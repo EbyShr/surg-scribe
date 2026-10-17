@@ -7,6 +7,7 @@
 const CONFIG_KEY = 'surg_gsheet_config_v04';
 const QUEUE_KEY = 'surg_gsheet_offline_queue_v04';
 const STAGED_KEY = 'surg_gsheet_staged_v04';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWKN6I80lNriVfPFr7XzZZm9wGdJckmms9led7xn7ieQJnbXz6oumHtWQ85uUHV0Q8/exec';
 
 export class GoogleSheetsSyncEngine {
   constructor() {
@@ -22,15 +23,22 @@ export class GoogleSheetsSyncEngine {
   loadConfig() {
     try {
       const saved = localStorage.getItem(CONFIG_KEY);
-      return saved ? JSON.parse(saved) : { scriptUrl: '', collectorName: '' };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          scriptUrl: (parsed.scriptUrl && parsed.scriptUrl.trim().length > 0) ? parsed.scriptUrl.trim() : DEFAULT_SCRIPT_URL,
+          collectorName: (parsed.collectorName || '').trim()
+        };
+      }
+      return { scriptUrl: DEFAULT_SCRIPT_URL, collectorName: '' };
     } catch (e) {
-      return { scriptUrl: '', collectorName: '' };
+      return { scriptUrl: DEFAULT_SCRIPT_URL, collectorName: '' };
     }
   }
 
   saveConfig({ scriptUrl, collectorName }) {
     this.config = {
-      scriptUrl: (scriptUrl || '').trim(),
+      scriptUrl: (scriptUrl && scriptUrl.trim().length > 0) ? scriptUrl.trim() : DEFAULT_SCRIPT_URL,
       collectorName: (collectorName || '').trim()
     };
     try {
