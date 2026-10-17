@@ -1602,3 +1602,394 @@ body.dark-mode .staging-status-badge.rejected {
   margin-top: 1rem;
 }
 
+/* ==========================================================================
+   v0.4-Surg: DIRECT SPLIT-ACTION CHIPS, ACCORDIONS & CATEGORIZED LAB PANELS
+   ========================================================================== */
+
+/* 1. Direct Split-Action Tri-State Chips */
+.split-chip-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.split-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-medium);
+  background: var(--bg-surface-elevated);
+  overflow: hidden;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.split-chip:hover {
+  border-color: var(--border-focus);
+}
+
+.chip-btn-pos, .chip-btn-neg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.6rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.chip-btn-pos {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.chip-btn-neg {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.chip-btn-pos:hover {
+  background: var(--chip-pos-badge);
+  color: #fff;
+}
+
+.chip-btn-neg:hover {
+  background: var(--chip-neg-badge);
+  color: #fff;
+}
+
+.chip-title {
+  padding: 0.42rem 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-primary);
+  white-space: nowrap;
+  transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.chip-title:hover {
+  color: var(--primary);
+}
+
+/* Active Positive State (+1) */
+.split-chip.active-pos {
+  background: var(--chip-pos-bg);
+  border-color: var(--chip-pos-border);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.split-chip.active-pos .chip-title {
+  color: var(--chip-pos-text);
+  font-weight: 700;
+}
+
+.split-chip.active-pos .chip-btn-pos {
+  background: var(--chip-pos-badge);
+  color: #fff;
+}
+
+.split-chip.active-pos .chip-btn-neg {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Active Negative State (-1) */
+.split-chip.active-neg {
+  background: var(--chip-neg-bg);
+  border-color: var(--chip-neg-border);
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.2);
+}
+
+.split-chip.active-neg .chip-title {
+  color: var(--chip-neg-text);
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.split-chip.active-neg .chip-btn-neg {
+  background: var(--chip-neg-badge);
+  color: #fff;
+}
+
+.split-chip.active-neg .chip-btn-pos {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Inline detail input within split chip wrap */
+.split-chip-wrap .inline-detail-input {
+  display: none;
+  padding: 0.32rem 0.65rem;
+  font-family: var(--font-persian);
+  font-size: 0.78rem;
+  border: 1.5px solid var(--chip-pos-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  min-width: 180px;
+  max-width: 320px;
+  outline: none;
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.15);
+  animation: expandInline 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.split-chip-wrap.has-inline-open .inline-detail-input {
+  display: inline-block;
+}
+
+/* 2. Subsystem Accordion Cards with Live Badge Counters */
+.subsystem-accordion {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.subsystem-accordion:hover {
+  border-color: var(--border-medium);
+}
+
+.subsystem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.95rem;
+  cursor: pointer;
+  background: var(--bg-surface);
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.subsystem-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.subsystem-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.subsystem-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subsystem-badge-counter {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.subsystem-badge-counter.pos {
+  background: var(--chip-pos-bg);
+  color: var(--chip-pos-text);
+  border: 1px solid var(--chip-pos-border);
+}
+
+.subsystem-badge-counter.neg {
+  background: var(--chip-neg-bg);
+  color: var(--chip-neg-text);
+  border: 1px solid var(--chip-neg-border);
+}
+
+.btn-toggle-sub-negatives {
+  padding: 3px 9px;
+  font-size: 0.72rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.btn-toggle-sub-negatives:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-toggle-sub-negatives.is-reset {
+  background: var(--chip-neg-bg);
+  border-color: var(--chip-neg-border);
+  color: var(--chip-neg-text);
+}
+
+.subsystem-chevron {
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.subsystem-accordion.is-collapsed .subsystem-chevron {
+  transform: rotate(-90deg);
+}
+
+.subsystem-body {
+  padding: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.subsystem-accordion.is-collapsed .subsystem-body {
+  display: none;
+}
+
+/* Master Section Negative Bar */
+.master-negative-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* 3. Categorized Lab Panels (Grid & Monospace) */
+.lab-panel-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+}
+
+.lab-panel-header {
+  padding: 0.55rem 0.9rem;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lab-panel-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lab-panel-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.lab-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.lab-mini-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.lab-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lab-mini-label {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lab-mini-unit {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--text-muted);
+}
+
+.lab-mini-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+}
+
+.lab-mini-input {
+  width: 100%;
+  padding: 0.28rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  outline: none;
+  direction: ltr;
+  text-align: center;
+}
+
+.lab-mini-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.lab-mini-card.flag-high {
+  background: var(--lab-high-bg);
+  border-color: var(--lab-high-border);
+}
+.lab-mini-card.flag-high .lab-mini-input {
+  color: #E11D48;
+  font-weight: 800;
+  border-color: var(--lab-high-border);
+}
+
+.lab-mini-card.flag-low {
+  background: var(--lab-low-bg);
+  border-color: var(--lab-low-border);
+}
+.lab-mini-card.flag-low .lab-mini-input {
+  color: #2563EB;
+  font-weight: 800;
+  border-color: var(--lab-low-border);
+}
+
+/* Hide timing telemetry pill in header and mobile bottom bar */
+.telemetry-status-pill {
+  display: none !important;
+}
+

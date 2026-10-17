@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.3-cache-v3';
+const CACHE_NAME = 'surg-v0.4-cache-v4';
 
 const STATIC_ASSETS = [
   './',
@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   './js/telemetry.js',
   './js/generator.js',
   './js/cloud-sync.js',
+  './js/google-sync.js',
   './js/app.js',
   './manifest.json',
   './icons/icon-192.svg',

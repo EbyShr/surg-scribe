@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.2-Surg</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.4-Surg</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.2">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.4">
 
   <!-- Fonts: Vazirmatn & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.3-Surg</span>
+        <span class="version-pill">v0.4-Surg</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
@@ -41,16 +41,16 @@
         <span>پرونده جدید</span>
       </button>
 
-      <!-- Cloud Sync & Collector ID Group -->
+      <!-- Google Sheets Sync & Collector ID Group -->
       <div class="header-cloud-group">
-        <div class="collector-id-wrapper" title="نام ثبت‌کننده پرونده جهت ارسال تیمی">
+        <div class="collector-id-wrapper" title="نام یا کد شناسایی ثبت‌کننده پرونده">
           <label for="collectorIdInput">ثبت‌کننده:</label>
           <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" />
         </div>
 
-        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به مخزن مرکزی ابری">
-          <span>☁️</span>
-          <span>ارسال به مخزن</span>
+        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets">
+          <span>📊</span>
+          <span>ثبت در Google Sheets</span>
         </button>
 
         <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین (ارسال خودکار به محض اتصال اینترنت)">
@@ -58,7 +58,7 @@
           <span id="offlineQueueCount" class="mono-num">0</span>
         </div>
 
-        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به مخزن مرکزی (Google Sheets / Supabase)">
+        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به Google Sheets (Apps Script Web App)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
 
@@ -69,13 +69,6 @@
     </div>
 
     <div class="header-left">
-      <!-- Smart Telemetry Indicator -->
-      <div class="telemetry-status-pill idle" id="telemetryStatusPill" title="تایمر هوشمند ارزیابی بالینی (ضدِ فراموشی)">
-        <span class="pulse-dot"></span>
-        <span id="telemetryStatusText">در انتظار تعامل</span>
-        <span class="mono-num" id="telemetryTimeText">00:00</span>
-      </div>
-
       <!-- Shift Cases Button -->
       <button class="btn btn-secondary" id="btnOpenShiftManager" title="مدیریت پرونده‌های شیفت و دانلود تجمیعی">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -144,7 +137,7 @@
               <span>مسیر پذیرش بیمار (Admission Pathway)</span>
             </div>
           </div>
-          <div class="form-grid-3">
+          <div class="form-grid-2">
             <label class="toggle-chip" id="chipPathwayEmergency">
               <input type="radio" name="admissionPathway" value="emergency_symptom" checked style="display:none;">
               <span>🚨 مراجعه با علامت حاد / اورژانس</span>
@@ -152,10 +145,6 @@
             <label class="toggle-chip" id="chipPathwayClinic">
               <input type="radio" name="admissionPathway" value="clinic_referral" style="display:none;">
               <span>📋 ارجاع درمانگاه / بستری الکتیو</span>
-            </label>
-            <label class="toggle-chip" id="chipPathwayPostop">
-              <input type="radio" name="admissionPathway" value="postop_complication" style="display:none;">
-              <span>🩹 عوارض بعد از عمل و درن</span>
             </label>
           </div>
         </div>
@@ -682,9 +671,9 @@
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
               <span>بررسی ۱۱ سیستم کامل بدن (Review of Systems - ROS) با کادر درجا</span>
             </div>
-            <button class="btn btn-secondary btn-sm" id="btnRosMarkRemainingNeg">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>منفی کردن موارد باقیمانده</span>
+            <button class="btn btn-secondary btn-sm" id="btnRosMasterNegative">
+              <span id="rosMasterIcon">−</span>
+              <span id="rosMasterText">منفی کردن تمام گزینه‌های باقی‌مانده</span>
             </button>
           </div>
 
@@ -748,43 +737,17 @@
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
-              <span>یافته‌های معاینه بالینی با کادر درجا (PE Findings)</span>
+              <span>یافته‌های معاینه بالینی (PE Findings) با کپسول‌های مستقیم</span>
             </div>
-            <button class="btn btn-secondary btn-sm" id="btnPeMarkNormalAbdomen">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>نرمال کردن روتین شکم</span>
+            <button class="btn btn-secondary btn-sm" id="btnPeMasterNegative">
+              <span id="peMasterIcon">−</span>
+              <span id="peMasterText">منفی کردن تمام معاینات باقی‌مانده</span>
             </button>
           </div>
 
-          <!-- General & Head/Neck -->
-          <div class="chip-group-header">
-            <span class="chip-group-title">۱. ظاهر عمومی، سر، گردن و تیروئید</span>
+          <div id="peSubsystemsAccordion">
+            <!-- Dynamically populated or accordion-wrapped 5 PE subsystems -->
           </div>
-          <div class="chips-container" id="peGeneralChipsContainer"></div>
-
-          <!-- Cardiopulmonary & Breast -->
-          <div class="chip-group-header" style="margin-top: 0.75rem;">
-            <span class="chip-group-title">۲. سمع و لمس قلب، ریه و پستان</span>
-          </div>
-          <div class="chips-container" id="peCardioChipsContainer"></div>
-
-          <!-- Abdomen Inspection & Auscultation -->
-          <div class="chip-group-header" style="margin-top: 0.75rem;">
-            <span class="chip-group-title">۳. مشاهده و سمع شکم (صداهای روده‌ای و اسکار)</span>
-          </div>
-          <div class="chips-container" id="peAbdInspectChipsContainer"></div>
-
-          <!-- Abdomen Palpation & Peritoneal Signs -->
-          <div class="chip-group-header" style="margin-top: 0.75rem;">
-            <span class="chip-group-title">۴. لمس شکم و علائم تحریک صفاق (Peritoneal Signs)</span>
-          </div>
-          <div class="chips-container" id="peAbdPalpChipsContainer"></div>
-
-          <!-- DRE & Extremities -->
-          <div class="chip-group-header" style="margin-top: 0.75rem;">
-            <span class="chip-group-title">۵. معاینه توشه رکتال (TR) و اندام‌ها</span>
-          </div>
-          <div class="chips-container" id="peDreChipsContainer"></div>
 
           <div class="form-group" style="margin-top: 0.75rem;">
             <label class="form-label">توضیحات تکمیلی معاینه</label>
@@ -811,12 +774,12 @@
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg></span>
-              <span>آزمایش‌ها و آنزیم‌های جراحی (CBC, LFT, Biochem, Coag, Tumor Markers)</span>
+              <span>۶ پنل آزمایشگاهی استاندارد جراحی (Lab Panels)</span>
             </div>
-            <span class="card-badge">هشدار خودکار بالا ↑ و پایین ↓</span>
+            <span class="card-badge">هشدار ↑ High و ↓ Low</span>
           </div>
 
-          <div class="lab-grid" id="paraclinicLabGrid"></div>
+          <div id="paraclinicLabPanelsContainer"></div>
 
           <div class="form-group">
             <label class="form-label">سایر آزمایش‌ها (ABG، آنالیز ادرار U/A، کشت و تست‌های سرولوژی)</label>
@@ -926,12 +889,8 @@
   <!-- Mobile Floating Action Bar (< 1024px) -->
   <div class="mobile-bottom-bar">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <div class="telemetry-status-pill idle" id="mobileTelemetryPill" style="padding: 2px 8px; font-size: 0.75rem;">
-        <span class="pulse-dot"></span>
-        <span class="mono-num" id="mobileTelemetryTime">00:00</span>
-      </div>
-      <span class="stat-pill pos" style="font-size: 0.7rem;"><span id="mobilePosCount">0</span>+</span>
-      <span class="stat-pill neg" style="font-size: 0.7rem;"><span id="mobileNegCount">0</span>-</span>
+      <span class="stat-pill pos" style="font-size: 0.75rem;"><span id="mobilePosCount">0</span>+</span>
+      <span class="stat-pill neg" style="font-size: 0.75rem;"><span id="mobileNegCount">0</span>-</span>
     </div>
 
     <button class="btn btn-primary btn-sm" id="btnOpenMobileSheet">
@@ -947,7 +906,7 @@
     <div class="preview-top-toolbar">
       <div class="modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-        <span>پیش‌نمایش زنده شرح‌حال v0.2</span>
+        <span>پیش‌نمایش زنده شرح‌حال v0.4-Surg</span>
       </div>
       <div class="preview-actions">
         <button class="btn btn-secondary btn-sm" id="btnCopyNoteMobile">کپی متن</button>
@@ -990,41 +949,28 @@
     </div>
   </div>
 
-  <!-- Cloud Settings Modal -->
+  <!-- Google Sheets Sync Settings Modal -->
   <div class="modal-backdrop" id="cloudSettingsModalBackdrop">
     <div class="modal-box" style="max-width: 520px;">
       <div class="modal-header">
         <div class="modal-title">
-          <span>⚙️ تنظیمات اتصال به مخزن مرکزی (Cloud Sync)</span>
+          <span>⚙️ تنظیمات اتصال به Google Sheets (Apps Script Web App)</span>
         </div>
         <button class="btn btn-icon-only" id="btnCloseCloudSettings">✕</button>
       </div>
       <div class="modal-body">
         <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-          پرونده‌های ارسالی با فرمت استاندارد به مخزن مرکزی ارسال می‌شوند. در صورت قطع بودن اینترنت، پرونده‌ها در صف آفلاین ذخیره شده و پس از اتصال اینترنت خودکار فرستاده می‌شوند.
+          پرونده‌های ثبت‌شده مستقیماً به شیت گوگل ارسال می‌شوند. در صورت قطع اینترنت، داده‌ها در صف آفلاین ذخیره شده و پس از آنلاین شدن خودکار ارسال می‌گردند.
         </p>
 
         <div class="form-group" style="margin-bottom: 0.75rem;">
           <label class="form-label">نام ثبت‌کننده (Collector Name / ID)</label>
-          <input type="text" class="input-text" id="settingCollectorName" placeholder="مثلاً Abolfazl یا Fellow_01">
+          <input type="text" class="input-text" id="settingCollectorName" placeholder="مثلاً اینترن کشیک جراحی یا نام شما">
         </div>
 
         <div class="form-group" style="margin-bottom: 0.75rem;">
-          <label class="form-label">نوع مخزن مرکزی (Storage Mode)</label>
-          <select class="input-select" id="settingSyncMode">
-            <option value="webhook">گوگل شیت وب‌هوک (Google Apps Script Webhook) - پیشنهادی</option>
-            <option value="supabase">پایگاه داده Supabase REST API</option>
-          </select>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0.75rem;">
-          <label class="form-label">آدرس مخزن (Endpoint URL)</label>
+          <label class="form-label">آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)</label>
           <input type="url" class="input-text dir-ltr" id="settingEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec">
-        </div>
-
-        <div class="form-group" id="groupSettingApiKey" style="display:none; margin-bottom: 0.75rem;">
-          <label class="form-label">کلید دسترسی (Supabase API Key)</label>
-          <input type="password" class="input-text dir-ltr" id="settingApiKey" placeholder="anon key...">
         </div>
       </div>
       <div class="modal-footer">

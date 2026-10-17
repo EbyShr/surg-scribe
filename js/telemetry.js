@@ -1,214 +1,178 @@
-export class ClinicalTelemetryEngine {
-  constructor(idleThresholdMs = 15000) {
-    this.idleThresholdMs = idleThresholdMs;
-    this.currentSection = null;
-    this.isSectionTimingActive = false; // تنها پس از اولین کلیک/تایپ در بخش فعال می‌شود
-    this.lastInteractionTime = null;
-    this.idleTimerId = null;
+/**
+ * ClinicalCaseAnalytics - Surg-Scribe v0.4-Surg
+ * Lightweight, timer-free case analytics and structured metadata extractor.
+ * Extracts positive/negative finding counts, semantic qualifiers, and system gap logs.
+ */
 
-    this.metrics = {
-      sessionCreatedAt: new Date().toISOString(),
-      firstInteractionAt: null,
-      lastInteractionAt: null,
-      totalActiveDurationMs: 0,
-      idlePauseCount: 0,
-      sectionActiveMs: {
-        cc_admission: 0,
-        hpi: 0,
-        pmh_psh_hh: 0,
-        ah_dh_sh_fh: 0,
-        ros: 0,
-        pe: 0,
-        paraclinics: 0,
-        reasoning_sq: 0
-      },
-      interactionCounts: {},
-      freeTextSectionsUsed: new Set(),
-      loggedMissingItems: [] // لاگ کمبودهای سیستم جهت ارتقای برنامه (System Gap Logger)
+export class ClinicalCaseAnalytics {
+  /**
+   * Helper to count positives, negatives, and system gaps across all clinicalState sections.
+   */
+  static analyzeState(clinicalState) {
+    let positiveCount = 0;
+    let negativeCount = 0;
+    const systemGaps = [];
+
+    if (!clinicalState) {
+      return { positiveCount, negativeCount, systemGaps };
+    }
+
+    // Helper for tag collections with values +1 / -1
+    const scanTags = (obj, sectionName) => {
+      if (!obj || typeof obj !== 'object') return;
+      for (const [key, val] of Object.entries(obj)) {
+        if (key === 'systemGapNote' || key === 'notes' || key === 'detail' || key === 'note') {
+          if (typeof val === 'string' && val.trim().length > 0) {
+            systemGaps.push({ section: sectionName, field: key, note: val.trim() });
+          }
+          continue;
+        }
+        if (typeof val === 'object' && val !== null) {
+          const st = val.state !== undefined ? val.state : (val.status !== undefined ? val.status : val.value);
+          if (st === 1 || st === '+1') positiveCount++;
+          else if (st === -1 || st === '-1') negativeCount++;
+        } else if (val === 1 || val === '+1') {
+          positiveCount++;
+        } else if (val === -1 || val === '-1') {
+          negativeCount++;
+        }
+      }
     };
 
-    this._bindLifecycleEvents();
-  }
-
-  _bindLifecycleEvents() {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        this.pauseActiveTimer('tab_hidden');
+    // Scan HPI
+    if (clinicalState.hpi) {
+      if (clinicalState.hpi.symptoms) scanTags(clinicalState.hpi.symptoms, 'hpi_symptoms');
+      if (clinicalState.hpi.associatedSymptoms) scanTags(clinicalState.hpi.associatedSymptoms, 'hpi_associated');
+      if (clinicalState.hpi.systemGapNote && clinicalState.hpi.systemGapNote.trim().length > 0) {
+        systemGaps.push({ section: 'hpi', note: clinicalState.hpi.systemGapNote.trim() });
       }
-    });
-    window.addEventListener('blur', () => {
-      this.pauseActiveTimer('window_blur');
-    });
-  }
-
-  /**
-   * هنگام جابه‌جایی کاربر بین تب‌ها صدا زده می‌شود.
-   * توجه: تغییر تب تایمر بخش جدید را شروع نمی‌کند تا زمانی که کاربر تعاملی انجام دهد!
-   */
-  switchSection(newSectionId) {
-    this.pauseActiveTimer('section_switch');
-    this.currentSection = newSectionId;
-    this.isSectionTimingActive = false;
-  }
-
-  /**
-   * تنها زمانی صدا زده می‌شود که کاربر واقعاً تگی را لمس کند، متنی تایپ کند یا گزینه‌ای را تغییر دهد.
-   */
-  recordInteraction(sectionId, interactionType = 'tap', isFreeText = false) {
-    const now = performance.now();
-    const targetSection = sectionId || this.currentSection || 'cc_admission';
-
-    if (!this.metrics.firstInteractionAt) {
-      this.metrics.firstInteractionAt = new Date().toISOString();
-    }
-    this.metrics.lastInteractionAt = new Date().toISOString();
-
-    if (this.currentSection !== targetSection) {
-      this.switchSection(targetSection);
     }
 
-    if (this.isSectionTimingActive && this.lastInteractionTime !== null) {
-      const delta = now - this.lastInteractionTime;
-      if (delta <= this.idleThresholdMs) {
-        this.metrics.sectionActiveMs[targetSection] =
-          (this.metrics.sectionActiveMs[targetSection] || 0) + delta;
-        this.metrics.totalActiveDurationMs += delta;
-      } else {
-        // اگر فاصله دو کلیک بیش از ۱۵ ثانیه بود، زمان وقفه را دور بریز و یک توقف ثبت کن
-        this.metrics.idlePauseCount += 1;
-      }
-    } else {
-      // شروع تایمر از اولین تعامل در این بخش: افزودن مقدار پایه ۱۵۰۰ میلی‌ثانیه جهت جبران زمان تفکر و لمس اول
-      this.isSectionTimingActive = true;
-      const baseInitialMs = 1500;
-      this.metrics.sectionActiveMs[targetSection] =
-        (this.metrics.sectionActiveMs[targetSection] || 0) + baseInitialMs;
-      this.metrics.totalActiveDurationMs += baseInitialMs;
-    }
-
-    this.lastInteractionTime = now;
-    this.metrics.interactionCounts[interactionType] =
-      (this.metrics.interactionCounts[interactionType] || 0) + 1;
-
-    if (isFreeText) {
-      this.metrics.freeTextSectionsUsed.add(targetSection);
-    }
-
-    this._resetIdleWatchdog();
-  }
-
-  /**
-   * ثبت کمبودهای سیستم و موارد خارج از لیست جهت بازخورد و ارتقای برنامه (System Gap Logger)
-   */
-  logSystemGap(sectionId, missingText) {
-    if (!missingText || !missingText.trim()) return;
-    const cleanText = missingText.trim();
-    const existingIdx = this.metrics.loggedMissingItems.findIndex(
-      (item) => item.section === sectionId && (item.text === cleanText || item.note === cleanText)
-    );
-    if (existingIdx >= 0) {
-      this.metrics.loggedMissingItems[existingIdx].updatedAt = new Date().toISOString();
-    } else {
-      this.metrics.loggedMissingItems.push({
-        section: sectionId,
-        text: cleanText,
-        note: cleanText,
-        loggedAt: new Date().toISOString()
-      });
-    }
-    this.recordInteraction(sectionId, 'system_gap_logged', true);
-  }
-
-  _resetIdleWatchdog() {
-    if (this.idleTimerId) clearTimeout(this.idleTimerId);
-    this.idleTimerId = setTimeout(() => {
-      this.pauseActiveTimer('idle_timeout');
-    }, this.idleThresholdMs);
-  }
-
-  pauseActiveTimer(reason = 'manual') {
-    if (!this.isSectionTimingActive || this.lastInteractionTime === null) return;
-    const now = performance.now();
-    const delta = now - this.lastInteractionTime;
-
-    if (delta <= this.idleThresholdMs && this.currentSection) {
-      this.metrics.sectionActiveMs[this.currentSection] =
-        (this.metrics.sectionActiveMs[this.currentSection] || 0) + delta;
-      this.metrics.totalActiveDurationMs += delta;
-    }
-    if (reason === 'idle_timeout') {
-      this.metrics.idlePauseCount += 1;
-    }
-
-    this.isSectionTimingActive = false;
-    this.lastInteractionTime = null;
-    if (this.idleTimerId) {
-      clearTimeout(this.idleTimerId);
-      this.idleTimerId = null;
-    }
-  }
-
-  exportTelemetrySnapshot(clinicalState) {
-    this.pauseActiveTimer('export');
-    const sectionSeconds = {};
-    for (const [key, ms] of Object.entries(this.metrics.sectionActiveMs)) {
-      sectionSeconds[key] = Math.round(ms / 100) / 10;
-    }
-
-    // استخراج خودکار تمام systemGapNoteها در لحظه Export از روی استیت بالینی
-    const allSystemGaps = [...this.metrics.loggedMissingItems];
-    const sectionsWithGap = ['hpi', 'pmh', 'psh', 'hh', 'dh', 'ah', 'sh', 'fh', 'ros', 'pe', 'paraclinics'];
-    sectionsWithGap.forEach((secKey) => {
-      const note = clinicalState?.[secKey]?.systemGapNote;
-      if (note && note.trim()) {
-        const cleanNote = note.trim();
-        const exists = allSystemGaps.some(
-          (g) => g.section === secKey && (g.text === cleanNote || g.note === cleanNote)
-        );
-        if (!exists) {
-          allSystemGaps.push({
-            section: secKey,
-            text: cleanNote,
-            note: cleanNote,
-            loggedAt: new Date().toISOString()
-          });
+    // Scan PMH, PSH, HH, DH, AH, SH, FH
+    ['pmh', 'psh', 'hh', 'dh', 'ah', 'sh', 'fh'].forEach((sec) => {
+      const data = clinicalState[sec];
+      if (data) {
+        if (data.items) scanTags(data.items, sec);
+        if (data.tags) scanTags(data.tags, sec);
+        if (data.highAlert && Array.isArray(data.highAlert)) {
+          positiveCount += data.highAlert.length;
+        }
+        if (data.selected && Array.isArray(data.selected)) {
+          positiveCount += data.selected.length;
+        }
+        if (data.systemGapNote && data.systemGapNote.trim().length > 0) {
+          systemGaps.push({ section: sec, note: data.systemGapNote.trim() });
         }
       }
     });
 
-    // شمارش خودکار نکات مثبت و منفی کلیدی در تمام بخش‌ها
-    let posCount = 0;
-    let negCount = 0;
-    const countTriState = (obj) => {
-      if (!obj) return;
-      Object.values(obj).forEach((val) => {
-        if (typeof val === 'number') {
-          if (val === 1) posCount++;
-          if (val === -1) negCount++;
-        } else if (typeof val === 'object' && val !== null) {
-          if (val.state === 1) posCount++;
-          if (val.state === -1) negCount++;
+    // Scan ROS
+    if (clinicalState.ros) {
+      if (clinicalState.ros.items) scanTags(clinicalState.ros.items, 'ros');
+      for (const [sysKey, sysVal] of Object.entries(clinicalState.ros)) {
+        if (sysKey === 'systemGapNote') {
+          if (typeof sysVal === 'string' && sysVal.trim().length > 0) {
+            systemGaps.push({ section: 'ros', note: sysVal.trim() });
+          }
+        } else if (sysKey !== 'items' && typeof sysVal === 'object' && sysVal !== null) {
+          scanTags(sysVal, `ros_${sysKey}`);
         }
-      });
-    };
+      }
+    }
 
-    countTriState(clinicalState?.hpi?.symptoms);
-    countTriState(clinicalState?.pmh?.items);
-    countTriState(clinicalState?.ros?.items);
-    countTriState(clinicalState?.pe?.findings);
+    // Scan PE
+    if (clinicalState.pe) {
+      if (clinicalState.pe.findings) scanTags(clinicalState.pe.findings, 'pe_findings');
+      for (const [peSecKey, peSecVal] of Object.entries(clinicalState.pe)) {
+        if (peSecKey === 'systemGapNote') {
+          if (typeof peSecVal === 'string' && peSecVal.trim().length > 0) {
+            systemGaps.push({ section: 'pe', note: peSecVal.trim() });
+          }
+        } else if (peSecKey !== 'findings' && peSecKey !== 'vitals' && typeof peSecVal === 'object' && peSecVal !== null) {
+          scanTags(peSecVal, `pe_${peSecKey}`);
+        }
+      }
+    }
+
+    // Scan Paraclinics imaging
+    if (clinicalState.paraclinics) {
+      if (clinicalState.paraclinics.imagingReports && Array.isArray(clinicalState.paraclinics.imagingReports)) {
+        clinicalState.paraclinics.imagingReports.forEach((rep) => {
+          if (rep.tags && Array.isArray(rep.tags)) {
+            positiveCount += rep.tags.length;
+          }
+        });
+      }
+      if (clinicalState.paraclinics.systemGapNote && clinicalState.paraclinics.systemGapNote.trim().length > 0) {
+        systemGaps.push({ section: 'paraclinics', note: clinicalState.paraclinics.systemGapNote.trim() });
+      }
+    }
+
+    return { positiveCount, negativeCount, systemGaps };
+  }
+
+  /**
+   * Build complete metadata snapshot for a clinical case (used by JSON export and Google Sheets sync)
+   */
+  static buildMetadataSnapshot(clinicalState, collectorName = '') {
+    const { positiveCount, negativeCount, systemGaps } = this.analyzeState(clinicalState);
+
+    // Semantic qualifiers selected
+    const semanticQualifiersSelected = [];
+    if (clinicalState?.reasoning?.selectedSQs && Array.isArray(clinicalState.reasoning.selectedSQs)) {
+      clinicalState.reasoning.selectedSQs.forEach((sq) => {
+        semanticQualifiersSelected.push({ value: sq });
+      });
+    } else if (clinicalState?.semanticQualifiers) {
+      for (const [category, val] of Object.entries(clinicalState.semanticQualifiers)) {
+        if (val && typeof val === 'string' && val.trim().length > 0) {
+          semanticQualifiersSelected.push({ category, value: val.trim() });
+        }
+      }
+    }
+
+    // Check lab data
+    let labCount = 0;
+    if (clinicalState?.paraclinics?.labs) {
+      for (const [k, v] of Object.entries(clinicalState.paraclinics.labs)) {
+        if (v !== undefined && v !== null && v !== '') {
+          labCount++;
+        }
+      }
+    }
 
     return {
-      total_active_duration_sec: Math.round(this.metrics.totalActiveDurationMs / 100) / 10,
-      idle_pause_count: this.metrics.idlePauseCount,
-      section_durations_sec: sectionSeconds,
-      pertinent_positives_count: posCount,
-      pertinent_negatives_count: negCount,
-      semantic_qualifiers_count: (clinicalState?.reasoning?.selectedSQs || []).length,
-      free_text_fallback_triggered: this.metrics.freeTextSectionsUsed.size > 0 || allSystemGaps.length > 0,
-      free_text_sections: Array.from(this.metrics.freeTextSectionsUsed),
-      system_gaps_logged: allSystemGaps,
-      first_interaction_at: this.metrics.firstInteractionAt,
-      last_interaction_at: this.metrics.lastInteractionAt
+      schemaVersion: 'v0.4-Surg',
+      exportedAt: new Date().toISOString(),
+      caseId: clinicalState?.caseId || `SURG-${Date.now()}`,
+      collector: collectorName || clinicalState?.collectorName || 'anonymous',
+      admissionPathway: clinicalState?.cc?.pathway || clinicalState?.admissionPathway || 'unknown',
+      chiefComplaint: clinicalState?.cc?.patientQuote || clinicalState?.cc?.selectedCategoryLabel || clinicalState?.chiefComplaint || '',
+      metrics: {
+        positiveFindingsCount: positiveCount,
+        negativeFindingsCount: negativeCount,
+        labsRecordedCount: labCount,
+        systemGapsLoggedCount: systemGaps.length,
+        freeTextFallbackTriggered: systemGaps.length > 0
+      },
+      semanticQualifiers: semanticQualifiersSelected,
+      systemGapsLogged: systemGaps
     };
+  }
+}
+
+// Backwards-compatible shim in case any component calls methods of ClinicalTelemetryEngine
+export class ClinicalTelemetryEngine {
+  constructor() {
+    this.currentSection = null;
+  }
+  switchSection(newSectionId) {
+    this.currentSection = newSectionId;
+  }
+  recordInteraction() {}
+  pauseActiveTimer() {}
+  logMissingItem(sec, item) {}
+  exportTelemetrySnapshot(clinicalState) {
+    return ClinicalCaseAnalytics.buildMetadataSnapshot(clinicalState);
   }
 }

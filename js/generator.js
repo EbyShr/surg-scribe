@@ -1,4 +1,4 @@
-import { SURGICAL_SCHEMA } from './schema.js';
+import { SURGICAL_SCHEMA, LAB_PANELS } from './schema.js';
 
 export function normalizePersianClinicalText(text) {
   if (!text) return '';
@@ -41,13 +41,6 @@ export function generateClinicalNote(state) {
     );
     if (cc.patientQuote) {
       lines.push(`- **شکایت اولیه از زبان بیمار:** «${normalizePersianClinicalText(cc.patientQuote)}»`);
-    }
-  } else if (cc.pathway === 'postop_complication') {
-    lines.push(
-      `بیمار ${genderStr} ${ageStr}${maritalStr}${cityStr} که به دنبال عمل جراحی اخیر / با تابلوی عوارض پس از عمل و درن جراحی با شکایت اصلی **«${normalizePersianClinicalText(cc.patientQuote || cc.selectedCategoryLabel || 'عوارض محل عمل / درن')}»** از ${normalizePersianClinicalText(hpi.duration || 'مدت اخیر')} قبل به این مرکز مراجعه کرده‌اند.${sourceStr}`
-    );
-    if (cc.patientQuote) {
-      lines.push(`- **شرح شکایت بیمار:** «${normalizePersianClinicalText(cc.patientQuote)}»`);
     }
   } else {
     lines.push(
@@ -278,26 +271,8 @@ export function generateClinicalNote(state) {
     lines.push(`- **سایر سوابق خانوادگی خارج از لیست:** ${normalizePersianClinicalText(state.fh.systemGapNote)}`);
   }
 
-  // 5. ROS (11 Systems - Smart Summarization)
+  // 5. ROS (11 Systems - Subsystem Separated Output)
   lines.push(`\n### ۵. بررسی سیستم‌ها (ROS)`);
-  const cleanGroupNames = {
-    ros_general: 'عمومی',
-    ros_skin_breast: 'پوست و پستان',
-    ros_heent: 'سر و گردن',
-    ros_respiratory: 'تنفسی',
-    ros_cardiovascular: 'قلبی-عروقی',
-    ros_gastrointestinal: 'گوارشی',
-    ros_genitourinary: 'ادراری-تناسلی',
-    ros_musculoskeletal: 'عضلانی-اسکلتی',
-    ros_neurological: 'عصبی',
-    ros_endocrine: 'غدد و متابولیک',
-    ros_hematology: 'خون و لنفاتیک'
-  };
-
-  const rosPos = [];
-  const fullyNegativeGroups = [];
-  const specificNegatives = [];
-
   SURGICAL_SCHEMA.rosGroups.forEach((group) => {
     const groupPos = [];
     const groupNeg = [];
@@ -314,85 +289,102 @@ export function generateClinicalNote(state) {
       }
     });
 
-    if (groupPos.length > 0) {
-      rosPos.push(...groupPos);
-      if (groupNeg.length > 0) {
-        specificNegatives.push(...groupNeg);
-      }
+    if (groupPos.length > 0 && groupNeg.length > 0) {
+      lines.push(`- **${group.group}:** **مثبت:** ${groupPos.join('، ')} | **منفی:** ${groupNeg.join('، ')}`);
+    } else if (groupPos.length > 0) {
+      lines.push(`- **${group.group}:** **مثبت:** ${groupPos.join('، ')}`);
     } else if (groupNeg.length > 0) {
-      if (groupNeg.length >= Math.ceil(totalItems * 0.5) || groupNeg.length === totalItems) {
-        fullyNegativeGroups.push(cleanGroupNames[group.id] || group.group || group.id);
+      if (groupNeg.length === totalItems) {
+        lines.push(`- **${group.group}:** بررسی کامل سیستم بدون نکته پاتولوژیک`);
       } else {
-        specificNegatives.push(...groupNeg);
+        lines.push(`- **${group.group}:** منفی از نظر ${groupNeg.join('، ')}`);
       }
+    } else {
+      lines.push(`- **${group.group}:** بررسی اجمالی بدون نکته پاتولوژیک`);
     }
   });
 
-  lines.push(`- **یافته‌های مثبت ROS:** ${rosPos.length ? rosPos.join('، ') : 'نکته مثبت دیگری غیر از موارد HPI ندارد'}.`);
-  if (fullyNegativeGroups.length > 0) {
-    lines.push(`- **یافته‌های منفی بررسی سیستم‌ها (ROS):** بررسی سیستم‌های ${fullyNegativeGroups.join('، ')} بدون نکته پاتولوژیک می‌باشد.`);
-    if (specificNegatives.length > 0) {
-      lines.push(`- **سایر منفی‌های کلیدی ROS:** عدم وجود ${specificNegatives.join('، ')}.`);
-    }
-  } else if (specificNegatives.length > 0) {
-    lines.push(`- **یافته‌های منفی ROS:** عدم وجود ${specificNegatives.join('، ')}.`);
-  } else {
-    lines.push(`- **یافته‌های منفی ROS:** سایر سیستم‌ها در بررسی اجمالی نکته پاتولوژیکی نداشتند.`);
-  }
   if (state.ros?.systemGapNote) {
     lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
   }
 
-  // 6. PE
+  // 6. PE (5 Subsystems Separated Output)
   lines.push(`\n### ۶. معاینه فیزیکی (Physical Examination)`);
   const v = state.pe?.vitals || {};
   lines.push(
     `- **علائم حیاتی (Vitals):** BP: ${v.bp || '—'} mmHg | PR: ${v.pr || '—'} /min | RR: ${v.rr || '—'} /min | T: ${v.temp || '—'} °C | SpO2: ${v.spo2 || '—'}% | وضعیت NPO: ${v.npo || 'نامشخص'}`
   );
 
-  const allPeItems = Object.values(SURGICAL_SCHEMA.peFindings).flat();
-  const pePos = [];
-  const peNeg = [];
+  const peSectionLabels = {
+    generalAndHeadNeck: 'سر، گردن و لنفادنوپاتی',
+    generalHeadNeck: 'سر، گردن و لنفادنوپاتی',
+    cardiopulmonaryAndBreast: 'قفسه سینه، قلب، ریه و پستان',
+    abdomenInspectionAuscultation: 'مشاهده و سمع شکم',
+    abdomenPalpationAndSigns: 'لمس و علائم اختصاصی شکم',
+    dreAndExtremities: 'معاینه رکتال (TR) و اندام‌ها'
+  };
 
-  for (const [id, itemData] of Object.entries(state.pe?.findings || {})) {
-    const st = typeof itemData === 'object' ? itemData.state : itemData;
-    const detail = typeof itemData === 'object' ? itemData.detail : '';
-    const item = allPeItems.find((x) => x.id === id);
-    const label = item ? item.label : id;
+  for (const [secKey, secItems] of Object.entries(SURGICAL_SCHEMA.peFindings)) {
+    const secTitle = peSectionLabels[secKey] || secKey;
+    const secPos = [];
+    const secNeg = [];
 
-    if (st === 1) {
-      pePos.push(detail && detail.trim() ? `${label} (${normalizePersianClinicalText(detail)})` : label);
-    } else if (st === -1) {
-      peNeg.push(label);
+    secItems.forEach((item) => {
+      const itemData = state.pe?.findings?.[item.id];
+      const st = typeof itemData === 'object' ? itemData.state : itemData;
+      const detail = typeof itemData === 'object' ? itemData.detail : '';
+      if (st === 1) {
+        secPos.push(detail && detail.trim() ? `${item.label} (${normalizePersianClinicalText(detail)})` : item.label);
+      } else if (st === -1) {
+        secNeg.push(item.label);
+      }
+    });
+
+    if (secPos.length > 0 && secNeg.length > 0) {
+      lines.push(`- **${secTitle}:** **مثبت:** ${secPos.join('، ')} | **منفی (رد شده):** عدم وجود ${secNeg.join('، ')}`);
+    } else if (secPos.length > 0) {
+      lines.push(`- **${secTitle}:** **مثبت:** ${secPos.join('، ')}`);
+    } else if (secNeg.length > 0) {
+      if (secNeg.length === secItems.length) {
+        lines.push(`- **${secTitle}:** معاینه کامل بدون نکته پاتولوژیک`);
+      } else {
+        lines.push(`- **${secTitle}:** منفی از نظر ${secNeg.join('، ')}`);
+      }
+    } else {
+      lines.push(`- **${secTitle}:** بررسی روتین بدون نکته پاتولوژیک`);
     }
   }
 
-  if (pePos.length) lines.push(`- **یافته‌های مثبت معاینه:** ${pePos.join(' ، ')}.`);
-  if (peNeg.length) lines.push(`- **یافته‌های منفی کلیدی معاینه (رد شده):** عدم وجود ${peNeg.join(' ، ')}.`);
   if (state.pe?.note) lines.push(`- **توضیحات تکمیلی معاینه:** ${normalizePersianClinicalText(state.pe.note)}`);
   if (state.pe?.systemGapNote) {
     lines.push(`- **یافته‌های خارج از لیست معاینه فیزیکی:** ${normalizePersianClinicalText(state.pe.systemGapNote)}`);
   }
 
-  // 7. Paraclinics
+  // 7. Paraclinics (Categorized by 6 Lab Panels with ↑(H) and ↓(L))
   lines.push(`\n### ۷. یافته‌های پاراکلینیک (آزمایشگاه، تصویربرداری، اسکوپی و پاتولوژی)`);
   const labs = state.paraclinics?.labs || {};
-  const enteredLabs = [];
-  SURGICAL_SCHEMA.paraclinicLabDefinitions.forEach((def) => {
-    const val = labs[def.id];
-    if (val !== undefined && val !== '') {
-      const num = parseFloat(val);
-      let flag = '';
-      if (!isNaN(num)) {
-        if (num > def.max) flag = ' (↑ High)';
-        else if (num < def.min) flag = ' (↓ Low)';
+
+  LAB_PANELS.forEach((panel) => {
+    const panelTests = [];
+    panel.tests.forEach((def) => {
+      const val = labs[def.id];
+      if (val !== undefined && val !== '' && val !== null) {
+        const num = parseFloat(val);
+        let flag = '';
+        if (!isNaN(num)) {
+          if (num > def.max) flag = ' ↑(H)';
+          else if (num < def.min) flag = ' ↓(L)';
+        }
+        const unitStr = def.unit ? ` ${def.unit}` : '';
+        panelTests.push(`${def.label}: ${val}${unitStr}${flag}`);
       }
-      enteredLabs.push(`${def.label}: ${val} ${def.unit}${flag}`.trim());
+    });
+
+    if (panelTests.length > 0) {
+      lines.push(`- **${panel.title}:** ${panelTests.join(' | ')}`);
     }
   });
-  if (enteredLabs.length > 0) {
-    lines.push(`- **آزمایشگاه و آنزیم‌ها (Labs):** ${enteredLabs.join(' | ')}`);
-  }
+
   if (state.paraclinics?.labNote) {
     lines.push(`- **سایر آزمایش‌ها (ABG / U/A / کشت):** ${normalizePersianClinicalText(state.paraclinics.labNote)}`);
   }
@@ -445,9 +437,6 @@ export function synthesizeProblemRepresentation(state) {
   const sqStr = sqs.length > 0 ? `با تابلوی بالینی ${sqs.join(' و ')}` : '';
 
   let mainComplaint = cc.patientQuote || cc.selectedCategoryLabel || 'شکایت حاد جراحی';
-  if (cc.pathway === 'postop_complication') {
-    mainComplaint = cc.patientQuote || 'عوارض و علائم پس از عمل جراحی اخیر';
-  }
 
   if (hpi.selectedRegions && hpi.selectedRegions.length > 0) {
     const regLabels = hpi.selectedRegions.map((id) => {

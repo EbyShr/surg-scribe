@@ -1,8 +1,7 @@
 export const SURGICAL_SCHEMA = {
   admissionPathways: [
     { id: 'emergency_symptom', label: 'مراجعه با علامت حاد / اورژانس' },
-    { id: 'clinic_referral', label: 'ارجاع از درمانگاه با نامه استاد / بستری الکتیو' },
-    { id: 'postop_complication', label: 'مراجعه به دنبال عمل جراحی اخیر / عوارض پس از عمل و درن' }
+    { id: 'clinic_referral', label: 'ارجاع از درمانگاه با نامه استاد / بستری الکتیو' }
   ],
 
   painSpatialPatterns: [
@@ -385,49 +384,50 @@ export const SURGICAL_SCHEMA = {
   },
 
   paraclinicLabDefinitions: [
-    { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 11.0, group: 'CBC (شمارش کامل خون)' },
-    { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9, group: 'CBC (شمارش کامل خون)' },
-    { id: 'hb', label: 'Hb', unit: 'g/dL', min: 12.0, max: 17.5, group: 'CBC (شمارش کامل خون)' },
-    { id: 'hct', label: 'Hct', unit: '%', min: 36.0, max: 52.0, group: 'CBC (شمارش کامل خون)' },
-    { id: 'mcv', label: 'MCV', unit: 'fL', min: 80, max: 100, group: 'CBC (شمارش کامل خون)' },
-    { id: 'plt', label: 'Plt', unit: '×10³/µL', min: 150, max: 450, group: 'CBC (شمارش کامل خون)' },
-    { id: 'neut', label: 'Neutrophils', unit: '%', min: 40, max: 75, group: 'CBC (شمارش کامل خون)' },
-    { id: 'lymph', label: 'Lymphocytes', unit: '%', min: 20, max: 45, group: 'CBC (شمارش کامل خون)' },
+    { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 11.0, group: 'هماتولوژی روتین' },
+    { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9, group: 'هماتولوژی روتین' },
+    { id: 'hb', label: 'Hb', unit: 'g/dL', min: 12.0, max: 17.5, group: 'هماتولوژی روتین' },
+    { id: 'hct', label: 'Hct', unit: '%', min: 36.0, max: 52.0, group: 'هماتولوژی روتین' },
+    { id: 'mcv', label: 'MCV', unit: 'fL', min: 80, max: 100, group: 'هماتولوژی روتین' },
+    { id: 'plt', label: 'Plt', unit: '×10³/µL', min: 150, max: 450, group: 'هماتولوژی روتین' },
+    { id: 'neut', label: 'Neutrophils', unit: '%', min: 40, max: 75, group: 'هماتولوژی روتین' },
+    { id: 'lymph', label: 'Lymphocytes', unit: '%', min: 20, max: 45, group: 'هماتولوژی روتین' },
 
-    { id: 'ast', label: 'AST (SGOT)', unit: 'U/L', min: 5, max: 40, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'alt', label: 'ALT (SGPT)', unit: 'U/L', min: 5, max: 40, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'alp', label: 'ALP', unit: 'U/L', min: 40, max: 130, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'bili_t', label: 'Bilirubin Total', unit: 'mg/dL', min: 0.1, max: 1.2, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'bili_d', label: 'Bilirubin Direct', unit: 'mg/dL', min: 0.0, max: 0.3, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'amylase', label: 'Amylase', unit: 'U/L', min: 30, max: 110, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
-    { id: 'lipase', label: 'Lipase', unit: 'U/L', min: 10, max: 140, group: 'آنزیم‌های کبدی، صفراوی و پانکراس' },
+    { id: 'pt', label: 'PT', unit: 'sec', min: 11.0, max: 13.5, group: 'انعقادی و التهابی' },
+    { id: 'ptt', label: 'PTT', unit: 'sec', min: 25, max: 35, group: 'انعقادی و التهابی' },
+    { id: 'inr', label: 'INR', unit: '', min: 0.8, max: 1.2, group: 'انعقادی و التهابی' },
+    { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20, group: 'انعقادی و التهابی' },
+    { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6, group: 'انعقادی و التهابی' },
+    { id: 'ddimer', label: 'D-Dimer', unit: 'ng/mL', min: 0, max: 500, group: 'انعقادی و التهابی' },
 
-    { id: 'bs', label: 'BS', unit: 'mg/dL', min: 70, max: 140, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'cr', label: 'Cr', unit: 'mg/dL', min: 0.6, max: 1.3, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'na', label: 'Na', unit: 'mEq/L', min: 135, max: 145, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'k', label: 'K', unit: 'mEq/L', min: 3.5, max: 5.1, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'ca', label: 'Ca', unit: 'mg/dL', min: 8.5, max: 10.5, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'mg', label: 'Mg', unit: 'mg/dL', min: 1.7, max: 2.2, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
-    { id: 'albumin', label: 'Albumin', unit: 'g/dL', min: 3.5, max: 5.2, group: 'بیوشیمی، کلیوی و الکترولیت‌ها' },
+    { id: 'bs', label: 'BS', unit: 'mg/dL', min: 70, max: 140, group: 'بیوشیمی و کلیه' },
+    { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20, group: 'بیوشیمی و کلیه' },
+    { id: 'cr', label: 'Cr', unit: 'mg/dL', min: 0.6, max: 1.3, group: 'بیوشیمی و کلیه' },
+    { id: 'na', label: 'Na', unit: 'mEq/L', min: 135, max: 145, group: 'بیوشیمی و کلیه' },
+    { id: 'k', label: 'K', unit: 'mEq/L', min: 3.5, max: 5.1, group: 'بیوشیمی و کلیه' },
+    { id: 'ca', label: 'Ca', unit: 'mg/dL', min: 8.5, max: 10.5, group: 'بیوشیمی و کلیه' },
+    { id: 'mg', label: 'Mg', unit: 'mg/dL', min: 1.7, max: 2.2, group: 'بیوشیمی و کلیه' },
+    { id: 'albumin', label: 'Albumin', unit: 'g/dL', min: 3.5, max: 5.2, group: 'بیوشیمی و کلیه' },
 
-    { id: 'pt', label: 'PT', unit: 'sec', min: 11, max: 13.5, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'ptt', label: 'PTT', unit: 'sec', min: 25, max: 35, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'inr', label: 'INR', unit: '', min: 0.8, max: 1.2, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'ddimer', label: 'D-Dimer', unit: 'ng/mL', min: 0, max: 500, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'tsh', label: 'TSH', unit: 'mIU/L', min: 0.4, max: 4.5, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
+    { id: 'ast', label: 'AST (SGOT)', unit: 'U/L', min: 5, max: 40, group: 'کبد و صفرا و پانکراس' },
+    { id: 'alt', label: 'ALT (SGPT)', unit: 'U/L', min: 5, max: 40, group: 'کبد و صفرا و پانکراس' },
+    { id: 'alp', label: 'ALP', unit: 'U/L', min: 40, max: 130, group: 'کبد و صفرا و پانکراس' },
+    { id: 'bili_t', label: 'Bili Total', unit: 'mg/dL', min: 0.1, max: 1.2, group: 'کبد و صفرا و پانکراس' },
+    { id: 'bili_d', label: 'Bili Direct', unit: 'mg/dL', min: 0.0, max: 0.3, group: 'کبد و صفرا و پانکراس' },
+    { id: 'amylase', label: 'Amylase', unit: 'U/L', min: 30, max: 110, group: 'کبد و صفرا و پانکراس' },
+    { id: 'lipase', label: 'Lipase', unit: 'U/L', min: 10, max: 140, group: 'کبد و صفرا و پانکراس' },
 
-    { id: 'ph', label: 'pH (VBG/ABG)', unit: '', min: 7.35, max: 7.45, group: 'گازهای خونی (VBG / ABG)' },
-    { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45, group: 'گازهای خونی (VBG / ABG)' },
-    { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26, group: 'گازهای خونی (VBG / ABG)' },
-    { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2, group: 'گازهای خونی (VBG / ABG)' },
-    { id: 'po2', label: 'PO2', unit: 'mmHg', min: 40, max: 100, group: 'گازهای خونی (VBG / ABG)' },
-    { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.2, group: 'گازهای خونی (VBG / ABG)' }
+    { id: 'ph', label: 'pH', unit: '', min: 7.35, max: 7.45, group: 'گازهای خونی' },
+    { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45, group: 'گازهای خونی' },
+    { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26, group: 'گازهای خونی' },
+    { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2, group: 'گازهای خونی' },
+    { id: 'po2', label: 'PO2', unit: 'mmHg', min: 40, max: 100, group: 'گازهای خونی' },
+    { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.2, group: 'گازهای خونی' },
+
+    { id: 'tsh', label: 'TSH', unit: 'mIU/L', min: 0.4, max: 4.5, group: 'هورمونی و تومورمارکر' },
+    { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5, group: 'هورمونی و تومورمارکر' },
+    { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0, group: 'هورمونی و تومورمارکر' },
+    { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37, group: 'هورمونی و تومورمارکر' }
   ],
 
   paraclinicModalities: [
@@ -516,3 +516,87 @@ export const SURGICAL_SCHEMA = {
     { pair: 'ماهیت پاتوفیزیولوژیک', options: ['التهابی/عفونی (Inflammatory)', 'انسدادی (Obstructive)', 'خونریزی‌دهنده (Hemorrhagic)', 'نئوپلاستیک/توده‌ای (Neoplastic)', 'پرفوراسیون/پریتونیت (Perforated)'] }
   ]
 };
+
+export const LAB_PANELS = [
+  {
+    id: 'cbc_diff',
+    title: 'هماتولوژی روتین (CBC / Diff)',
+    badge: 'CBC / Diff',
+    tests: [
+      { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 11.0 },
+      { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9 },
+      { id: 'hb', label: 'Hb', unit: 'g/dL', min: 12.0, max: 17.5 },
+      { id: 'hct', label: 'Hct', unit: '%', min: 36.0, max: 52.0 },
+      { id: 'mcv', label: 'MCV', unit: 'fL', min: 80, max: 100 },
+      { id: 'plt', label: 'Plt', unit: '×10³/µL', min: 150, max: 450 },
+      { id: 'neut', label: 'Neutrophils', unit: '%', min: 40, max: 75 },
+      { id: 'lymph', label: 'Lymphocytes', unit: '%', min: 20, max: 45 }
+    ]
+  },
+  {
+    id: 'coag_inflam',
+    title: 'انعقادی و نشانگرهای التهابی',
+    badge: 'Coag / Inflam',
+    tests: [
+      { id: 'pt', label: 'PT', unit: 'sec', min: 11.0, max: 13.5 },
+      { id: 'ptt', label: 'PTT', unit: 'sec', min: 25, max: 35 },
+      { id: 'inr', label: 'INR', unit: '', min: 0.8, max: 1.2 },
+      { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20 },
+      { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6 },
+      { id: 'ddimer', label: 'D-Dimer', unit: 'ng/mL', min: 0, max: 500 }
+    ]
+  },
+  {
+    id: 'biochem_renal',
+    title: 'بیوشیمی، کلیوی و الکترولیت‌ها',
+    badge: 'Biochem / Lytes',
+    tests: [
+      { id: 'bs', label: 'BS', unit: 'mg/dL', min: 70, max: 140 },
+      { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20 },
+      { id: 'cr', label: 'Cr', unit: 'mg/dL', min: 0.6, max: 1.3 },
+      { id: 'na', label: 'Na', unit: 'mEq/L', min: 135, max: 145 },
+      { id: 'k', label: 'K', unit: 'mEq/L', min: 3.5, max: 5.1 },
+      { id: 'ca', label: 'Ca', unit: 'mg/dL', min: 8.5, max: 10.5 },
+      { id: 'mg', label: 'Mg', unit: 'mg/dL', min: 1.7, max: 2.2 },
+      { id: 'albumin', label: 'Albumin', unit: 'g/dL', min: 3.5, max: 5.2 }
+    ]
+  },
+  {
+    id: 'hepato_biliary',
+    title: 'کبدی، صفراوی و آنزیم‌های پانکراس',
+    badge: 'LFT / Pancreas',
+    tests: [
+      { id: 'ast', label: 'AST (SGOT)', unit: 'U/L', min: 5, max: 40 },
+      { id: 'alt', label: 'ALT (SGPT)', unit: 'U/L', min: 5, max: 40 },
+      { id: 'alp', label: 'ALP', unit: 'U/L', min: 40, max: 130 },
+      { id: 'bili_t', label: 'Bilirubin Total', unit: 'mg/dL', min: 0.1, max: 1.2 },
+      { id: 'bili_d', label: 'Bilirubin Direct', unit: 'mg/dL', min: 0.0, max: 0.3 },
+      { id: 'amylase', label: 'Amylase', unit: 'U/L', min: 30, max: 110 },
+      { id: 'lipase', label: 'Lipase', unit: 'U/L', min: 10, max: 140 }
+    ]
+  },
+  {
+    id: 'blood_gases',
+    title: 'گازهای خونی (VBG / ABG)',
+    badge: 'VBG / ABG',
+    tests: [
+      { id: 'ph', label: 'pH', unit: '', min: 7.35, max: 7.45 },
+      { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45 },
+      { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26 },
+      { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2 },
+      { id: 'po2', label: 'PO2', unit: 'mmHg', min: 40, max: 100 },
+      { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.2 }
+    ]
+  },
+  {
+    id: 'endocrine_tumor',
+    title: 'هورمونی و تومورمارکرها',
+    badge: 'Tumor / Endo',
+    tests: [
+      { id: 'tsh', label: 'TSH', unit: 'mIU/L', min: 0.4, max: 4.5 },
+      { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5 },
+      { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0 },
+      { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37 }
+    ]
+  }
+];
