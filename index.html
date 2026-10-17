@@ -28,18 +28,44 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.2-Surg</span>
+        <span class="version-pill">v0.3-Surg</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-        <span class="id-text" id="headerCaseId">SURG-20261016-001</span>
+        <span class="id-text" id="headerCaseId">SURG-20261017-001</span>
       </div>
 
       <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         <span>پرونده جدید</span>
       </button>
+
+      <!-- Cloud Sync & Collector ID Group -->
+      <div class="header-cloud-group">
+        <div class="collector-id-wrapper" title="نام ثبت‌کننده پرونده جهت ارسال تیمی">
+          <label for="collectorIdInput">ثبت‌کننده:</label>
+          <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" />
+        </div>
+
+        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به مخزن مرکزی ابری">
+          <span>☁️</span>
+          <span>ارسال به مخزن</span>
+        </button>
+
+        <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین (ارسال خودکار به محض اتصال اینترنت)">
+          <span>📦 صف آفلاین:</span>
+          <span id="offlineQueueCount" class="mono-num">0</span>
+        </div>
+
+        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به مخزن مرکزی (Google Sheets / Supabase)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+
+        <button class="btn-admin-staging" id="btnAdminStaging" title="پنل مدیریت، بازبینی و خروجی تجمیعی دیتاست مرجع">
+          <span>🗂️ پنل مدیریت</span>
+        </button>
+      </div>
     </div>
 
     <div class="header-left">
@@ -118,14 +144,18 @@
               <span>مسیر پذیرش بیمار (Admission Pathway)</span>
             </div>
           </div>
-          <div class="form-grid-2">
+          <div class="form-grid-3">
             <label class="toggle-chip" id="chipPathwayEmergency">
               <input type="radio" name="admissionPathway" value="emergency_symptom" checked style="display:none;">
               <span>🚨 مراجعه با علامت حاد / اورژانس</span>
             </label>
             <label class="toggle-chip" id="chipPathwayClinic">
               <input type="radio" name="admissionPathway" value="clinic_referral" style="display:none;">
-              <span>📋 ارجاع از درمانگاه با نامه استاد / بستری الکتیو</span>
+              <span>📋 ارجاع درمانگاه / بستری الکتیو</span>
+            </label>
+            <label class="toggle-chip" id="chipPathwayPostop">
+              <input type="radio" name="admissionPathway" value="postop_complication" style="display:none;">
+              <span>🩹 عوارض بعد از عمل و درن</span>
             </label>
           </div>
         </div>
@@ -326,6 +356,33 @@
             <label class="form-label">محل(های) انتشار درد (Radiation Sites)</label>
             <div class="chips-container" id="radiationSitesContainer"></div>
           </div>
+
+          <!-- NEW v0.3: Secondary Pain Focus / Concomitant Symptom -->
+          <div class="secondary-pain-card" id="secondaryPainCard">
+            <div class="secondary-pain-header" id="secondaryPainHeader">
+              <div class="secondary-pain-title">
+                <span>➕</span>
+                <span>ثبت درد دوم یا علامت همزمان در ناحیه دیگر (مثلاً درد کمر/لگن/پریود)</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSecondaryPain">افزودن</button>
+            </div>
+            <div class="secondary-pain-body" id="secondaryPainBody">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label">ناحیه درد دوم</label>
+                  <input type="text" class="input-text" id="secPainRegion" placeholder="مثلاً هیپوگاستر، کمر، لگن، پهلو...">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ماهیت و زمان شروع</label>
+                  <input type="text" class="input-text" id="secPainCharacter" placeholder="مثلاً شروع همزمان، دردهای متناوب، سوزشی...">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ارتباط با شکایت اصلی</label>
+                  <input type="text" class="input-text" id="secPainRelation" placeholder="مثلاً مستقل و همزمان با سیکل قاعدگی، انتشار ثانویه...">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- HPI Symptoms Grouped with Inline Detail Inputs -->
@@ -440,6 +497,59 @@
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
             <input type="text" class="system-gap-input" id="hhSystemGapInput" placeholder="موارد خاص بستری...">
+          </div>
+        </div>
+
+        <!-- NEW v0.3: Ob/Gyn Card (Visible for Female Patients) -->
+        <div class="clinical-card obgyn-card" id="cardObGynHistory" style="display:none;">
+          <div class="card-header">
+            <div class="card-title obgyn-title">
+              <span>🩺 سوابق زنان و مامایی (Ob/Gyn History - ویژه بانوان)</span>
+            </div>
+            <span class="card-badge">GPAL & LMP</span>
+          </div>
+          <div class="obgyn-gpal-grid">
+            <div class="form-group">
+              <label class="form-label">بارداری (G)</label>
+              <input type="number" class="input-text dir-ltr" id="obgynG" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">زایمان (P)</label>
+              <input type="number" class="input-text dir-ltr" id="obgynP" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">سقط (Ab)</label>
+              <input type="number" class="input-text dir-ltr" id="obgynAb" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">فرزند زنده (L)</label>
+              <input type="number" class="input-text dir-ltr" id="obgynL" min="0" placeholder="0">
+            </div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">نوع زایمان‌های قبلی</label>
+              <select class="input-select" id="obgynDeliveryType">
+                <option value="">-- نامشخص / سزارین / NVD --</option>
+                <option value="سزارین قبلی (C-Section)">سزارین قبلی (C-Section)</option>
+                <option value="زایمان طبیعی (NVD)">زایمان طبیعی (NVD)</option>
+                <option value="هر دو (NVD + C-Section)">هر دو (NVD + C-Section)</option>
+                <option value="نولی‌پار (بدون سابقه زایمان)">نولی‌پار (بدون سابقه زایمان)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">وضعیت قاعدگی و تاریخ LMP</label>
+              <input type="text" class="input-text" id="obgynLmp" placeholder="مثلاً ۲ هفته قبل / یائسه / همزمانی با درد">
+            </div>
+            <div class="form-group">
+              <label class="form-label">دیسمنوره / منوراژی</label>
+              <select class="input-select" id="obgynDysmenorrhea">
+                <option value="">-- انتخاب --</option>
+                <option value="بدون دیسمنوره یا اختلال قاعدگی">بدون دیسمنوره یا اختلال قاعدگی</option>
+                <option value="سابقه دیسمنوره شدید">سابقه دیسمنوره شدید</option>
+                <option value="منوراژی / لکه‌بینی نامنظم">منوراژی / لکه‌بینی نامنظم</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -880,6 +990,112 @@
     </div>
   </div>
 
+  <!-- Cloud Settings Modal -->
+  <div class="modal-backdrop" id="cloudSettingsModalBackdrop">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⚙️ تنظیمات اتصال به مخزن مرکزی (Cloud Sync)</span>
+        </div>
+        <button class="btn btn-icon-only" id="btnCloseCloudSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          پرونده‌های ارسالی با فرمت استاندارد به مخزن مرکزی ارسال می‌شوند. در صورت قطع بودن اینترنت، پرونده‌ها در صف آفلاین ذخیره شده و پس از اتصال اینترنت خودکار فرستاده می‌شوند.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label class="form-label">نام ثبت‌کننده (Collector Name / ID)</label>
+          <input type="text" class="input-text" id="settingCollectorName" placeholder="مثلاً Abolfazl یا Fellow_01">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label class="form-label">نوع مخزن مرکزی (Storage Mode)</label>
+          <select class="input-select" id="settingSyncMode">
+            <option value="webhook">گوگل شیت وب‌هوک (Google Apps Script Webhook) - پیشنهادی</option>
+            <option value="supabase">پایگاه داده Supabase REST API</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label class="form-label">آدرس مخزن (Endpoint URL)</label>
+          <input type="url" class="input-text dir-ltr" id="settingEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+
+        <div class="form-group" id="groupSettingApiKey" style="display:none; margin-bottom: 0.75rem;">
+          <label class="form-label">کلید دسترسی (Supabase API Key)</label>
+          <input type="password" class="input-text dir-ltr" id="settingApiKey" placeholder="anon key...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelCloudSettings">انصراف</button>
+        <button class="btn btn-primary" id="btnSaveCloudSettings">ذخیره تنظیمات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Staging & Batch Merge Modal -->
+  <div class="modal-backdrop" id="adminStagingModalBackdrop">
+    <div class="modal-box" style="max-width: 820px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🗂️ پنل مدیریت و بازبینی پرونده‌ها (Admin Staging & Batch Merge)</span>
+        </div>
+        <button class="btn btn-icon-only" id="btnCloseAdminStaging">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <span style="font-size:0.84rem; color:var(--text-secondary);">
+            پرونده‌های دریافتی از اعضای تیم را بررسی، تایید و در قالب دیتاست مرجع استاندارد خروجی بگیرید.
+          </span>
+          <span class="version-pill" id="stagingCountPill">تعداد: ۰ پرونده</span>
+        </div>
+
+        <div class="staging-table-wrapper">
+          <table class="staging-table">
+            <thead>
+              <tr>
+                <th>ردیف</th>
+                <th>شناسه پرونده</th>
+                <th>ثبت‌کننده</th>
+                <th>تاریخ ثبت</th>
+                <th>شکایت اصلی</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody id="stagingTableBody">
+              <tr>
+                <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+                  هنوز پرونده‌ای در استیجینگ بارگذاری نشده است.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="staging-actions-bar">
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" id="btnImportStagingFiles">
+              <span>📥 ورود فایل(های) JSON پرونده‌ها</span>
+            </button>
+            <input type="file" id="stagingFileInput" accept=".json" multiple style="display:none;">
+            <button class="btn btn-secondary btn-sm" id="btnApproveAllStaging">
+              <span>✅ تایید همه پرونده‌ها</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnClearStaging" style="color:#EF4444;">
+              <span>🗑️ پاکسازی</span>
+            </button>
+          </div>
+
+          <button class="btn btn-primary" id="btnExportMasterDataset">
+            <span>📥 خروجی یکپارچه دیتاست مرجع (Master Dataset JSON)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
@@ -891,7 +1107,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then((reg) => {
-          console.log('[PWA v0.2] Service Worker registered:', reg.scope);
+          console.log('[PWA v0.3] Service Worker registered:', reg.scope);
         }).catch((err) => {
           console.warn('[PWA] Service Worker registration failed:', err);
         });

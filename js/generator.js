@@ -42,6 +42,13 @@ export function generateClinicalNote(state) {
     if (cc.patientQuote) {
       lines.push(`- **شکایت اولیه از زبان بیمار:** «${normalizePersianClinicalText(cc.patientQuote)}»`);
     }
+  } else if (cc.pathway === 'postop_complication') {
+    lines.push(
+      `بیمار ${genderStr} ${ageStr}${maritalStr}${cityStr} که به دنبال عمل جراحی اخیر / با تابلوی عوارض پس از عمل و درن جراحی با شکایت اصلی **«${normalizePersianClinicalText(cc.patientQuote || cc.selectedCategoryLabel || 'عوارض محل عمل / درن')}»** از ${normalizePersianClinicalText(hpi.duration || 'مدت اخیر')} قبل به این مرکز مراجعه کرده‌اند.${sourceStr}`
+    );
+    if (cc.patientQuote) {
+      lines.push(`- **شرح شکایت بیمار:** «${normalizePersianClinicalText(cc.patientQuote)}»`);
+    }
   } else {
     lines.push(
       `بیمار ${genderStr} ${ageStr}${maritalStr}${cityStr} که با شکایت اصلی **«${normalizePersianClinicalText(cc.patientQuote || cc.selectedCategoryLabel || 'درد شکم')}»** از ${normalizePersianClinicalText(hpi.duration || 'مدت اخیر')} قبل به اورژانس/بخش مراجعه کرده‌اند.${sourceStr}`
@@ -107,6 +114,18 @@ export function generateClinicalNote(state) {
     lines.push(`- **انتشار درد:** ${radList.join(' ، ')}.`);
   }
 
+  // کانون درد دوم یا علامت همزمان مستقل (Secondary Pain Focus)
+  if (hpi.secondaryPain && (hpi.secondaryPain.region || hpi.secondaryPain.character || hpi.secondaryPain.relation)) {
+    const sp = hpi.secondaryPain;
+    const spParts = [];
+    if (sp.region) spParts.push(`ناحیه: ${normalizePersianClinicalText(sp.region)}`);
+    if (sp.character) spParts.push(`ماهیت و زمان شروع: ${normalizePersianClinicalText(sp.character)}`);
+    if (sp.relation) spParts.push(`ارتباط با شکایت اصلی: ${normalizePersianClinicalText(sp.relation)}`);
+    if (spParts.length > 0) {
+      lines.push(`- **کانون درد دوم / علامت همزمان مستقل:** ${spParts.join(' | ')}`);
+    }
+  }
+
   // تفکیک نکات مثبت و منفی کلیدی در HPI با توضیحات درجا
   const allHpiChips = SURGICAL_SCHEMA.chiefComplaints.flatMap((c) =>
     (c.symptomGroups || []).flatMap((g) => g.chips)
@@ -143,7 +162,7 @@ export function generateClinicalNote(state) {
     lines.push(`- **توضیحات تکمیلی HPI:** ${normalizePersianClinicalText(hpi.narrativeNote)}`);
   }
 
-  // 3. PMH / PSH / HH
+  // 3. PMH / PSH / HH / Ob-Gyn
   lines.push(`\n### ۳. سوابق پزشکی، جراحی و بستری (PMH / PSH / HH)`);
   const pmhPos = [];
   const pmhNeg = [];
@@ -175,6 +194,26 @@ export function generateClinicalNote(state) {
   lines.push(`- **سوابق بستری قبلی (HH):** ${state.hh?.note ? normalizePersianClinicalText(state.hh.note) : 'سابقه بستری غیرجراحی قبلی یا دریافت فرآورده خونی ندارد.'}`);
   if (state.hh?.systemGapNote) {
     lines.push(`- **سایر سوابق بستری خارج از لیست:** ${normalizePersianClinicalText(state.hh.systemGapNote)}`);
+  }
+
+  // سوابق زنان و مامایی (مختص بانوان)
+  if (demo.gender === 'female' && state.obgyn) {
+    const ob = state.obgyn;
+    const obParts = [];
+    const gpal = [];
+    if (ob.g) gpal.push(`G: ${ob.g}`);
+    if (ob.p) gpal.push(`P: ${ob.p}`);
+    if (ob.ab) gpal.push(`Ab: ${ob.ab}`);
+    if (ob.l) gpal.push(`L: ${ob.l}`);
+    if (gpal.length > 0) obParts.push(`بارداری/زایمان: ${gpal.join(' / ')}`);
+    if (ob.deliveryType) obParts.push(`نوع زایمان قبلی: ${ob.deliveryType}`);
+    if (ob.lmp) obParts.push(`وضعیت قاعدگی و تاریخ LMP: ${normalizePersianClinicalText(ob.lmp)}`);
+    if (ob.dysmenorrhea) obParts.push(`دیسمنوره/منوراژی: ${normalizePersianClinicalText(ob.dysmenorrhea)}`);
+    if (ob.note) obParts.push(normalizePersianClinicalText(ob.note));
+
+    if (obParts.length > 0) {
+      lines.push(`- **سوابق زنان و مامایی (Ob/Gyn):** ${obParts.join(' | ')}.`);
+    }
   }
 
   // 4. DH / AH / SH / FH
@@ -239,27 +278,67 @@ export function generateClinicalNote(state) {
     lines.push(`- **سایر سوابق خانوادگی خارج از لیست:** ${normalizePersianClinicalText(state.fh.systemGapNote)}`);
   }
 
-  // 5. ROS (11 Systems)
+  // 5. ROS (11 Systems - Smart Summarization)
   lines.push(`\n### ۵. بررسی سیستم‌ها (ROS)`);
+  const cleanGroupNames = {
+    ros_general: 'عمومی',
+    ros_skin_breast: 'پوست و پستان',
+    ros_heent: 'سر و گردن',
+    ros_respiratory: 'تنفسی',
+    ros_cardiovascular: 'قلبی-عروقی',
+    ros_gastrointestinal: 'گوارشی',
+    ros_genitourinary: 'ادراری-تناسلی',
+    ros_musculoskeletal: 'عضلانی-اسکلتی',
+    ros_neurological: 'عصبی',
+    ros_endocrine: 'غدد و متابولیک',
+    ros_hematology: 'خون و لنفاتیک'
+  };
+
   const rosPos = [];
-  const rosNeg = [];
-  const allRosItems = SURGICAL_SCHEMA.rosGroups.flatMap((g) => g.items);
+  const fullyNegativeGroups = [];
+  const specificNegatives = [];
 
-  for (const [id, itemData] of Object.entries(state.ros?.items || {})) {
-    const st = typeof itemData === 'object' ? itemData.state : itemData;
-    const detail = typeof itemData === 'object' ? itemData.detail : '';
-    const item = allRosItems.find((x) => x.id === id);
-    const label = item ? item.label : id;
+  SURGICAL_SCHEMA.rosGroups.forEach((group) => {
+    const groupPos = [];
+    const groupNeg = [];
+    const totalItems = group.items.length;
 
-    if (st === 1) {
-      rosPos.push(detail && detail.trim() ? `${label} (${normalizePersianClinicalText(detail)})` : label);
-    } else if (st === -1) {
-      rosNeg.push(label);
+    group.items.forEach((item) => {
+      const itemData = state.ros?.items?.[item.id];
+      const st = typeof itemData === 'object' ? itemData.state : itemData;
+      const detail = typeof itemData === 'object' ? itemData.detail : '';
+      if (st === 1) {
+        groupPos.push(detail && detail.trim() ? `${item.label} (${normalizePersianClinicalText(detail)})` : item.label);
+      } else if (st === -1) {
+        groupNeg.push(item.label);
+      }
+    });
+
+    if (groupPos.length > 0) {
+      rosPos.push(...groupPos);
+      if (groupNeg.length > 0) {
+        specificNegatives.push(...groupNeg);
+      }
+    } else if (groupNeg.length > 0) {
+      if (groupNeg.length >= Math.ceil(totalItems * 0.5) || groupNeg.length === totalItems) {
+        fullyNegativeGroups.push(cleanGroupNames[group.id] || group.group || group.id);
+      } else {
+        specificNegatives.push(...groupNeg);
+      }
     }
-  }
+  });
 
   lines.push(`- **یافته‌های مثبت ROS:** ${rosPos.length ? rosPos.join('، ') : 'نکته مثبت دیگری غیر از موارد HPI ندارد'}.`);
-  lines.push(`- **یافته‌های منفی ROS:** ${rosNeg.length ? `عدم وجود ${rosNeg.join('، ')}` : 'سایر سیستم‌ها در بررسی اجمالی نکته پاتولوژیکی نداشتند'}.`);
+  if (fullyNegativeGroups.length > 0) {
+    lines.push(`- **یافته‌های منفی بررسی سیستم‌ها (ROS):** بررسی سیستم‌های ${fullyNegativeGroups.join('، ')} بدون نکته پاتولوژیک می‌باشد.`);
+    if (specificNegatives.length > 0) {
+      lines.push(`- **سایر منفی‌های کلیدی ROS:** عدم وجود ${specificNegatives.join('، ')}.`);
+    }
+  } else if (specificNegatives.length > 0) {
+    lines.push(`- **یافته‌های منفی ROS:** عدم وجود ${specificNegatives.join('، ')}.`);
+  } else {
+    lines.push(`- **یافته‌های منفی ROS:** سایر سیستم‌ها در بررسی اجمالی نکته پاتولوژیکی نداشتند.`);
+  }
   if (state.ros?.systemGapNote) {
     lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
   }
@@ -350,4 +429,149 @@ export function generateClinicalNote(state) {
   }
 
   return lines.join('\n');
+}
+
+/**
+ * High-Yield Problem Representation Auto-Synthesizer with Comprehensive Abnormal Labs
+ */
+export function synthesizeProblemRepresentation(state) {
+  const d = state.demographics || {};
+  const cc = state.cc || {};
+  const hpi = state.hpi || {};
+  const sqs = state.reasoning?.selectedSQs || [];
+
+  const genderStr = d.gender === 'female' ? 'خانم' : 'آقای';
+  const ageStr = d.age ? `${d.age} ساله` : '[نامشخص]';
+  const sqStr = sqs.length > 0 ? `با تابلوی بالینی ${sqs.join(' و ')}` : '';
+
+  let mainComplaint = cc.patientQuote || cc.selectedCategoryLabel || 'شکایت حاد جراحی';
+  if (cc.pathway === 'postop_complication') {
+    mainComplaint = cc.patientQuote || 'عوارض و علائم پس از عمل جراحی اخیر';
+  }
+
+  if (hpi.selectedRegions && hpi.selectedRegions.length > 0) {
+    const regLabels = hpi.selectedRegions.map((id) => {
+      const f = SURGICAL_SCHEMA.abdominalRegions.find((r) => r.id === id);
+      return f ? f.label : id;
+    });
+    mainComplaint += ` در ناحیه ${regLabels.join(' و ')}`;
+  }
+
+  // Key positives
+  const allHpiChips = SURGICAL_SCHEMA.chiefComplaints.flatMap((c) => (c.symptomGroups || []).flatMap((g) => g.chips));
+  const posSymptoms = Object.entries(hpi.symptoms || {})
+    .filter(([_, item]) => (typeof item === 'object' ? item.state : item) === 1)
+    .map(([id, item]) => {
+      const f = allHpiChips.find((x) => x.id === id);
+      const label = f ? f.label : id;
+      const detail = typeof item === 'object' && item.detail ? ` (${item.detail})` : '';
+      return `${label}${detail}`;
+    });
+
+  // Key negatives
+  const negSymptoms = Object.entries(hpi.symptoms || {})
+    .filter(([_, item]) => (typeof item === 'object' ? item.state : item) === -1)
+    .map(([id]) => {
+      const f = allHpiChips.find((x) => x.id === id);
+      return f ? f.label : id;
+    });
+
+  const parts = [];
+  parts.push(`بیمار ${genderStr} ${ageStr}`);
+  if (sqStr) parts.push(sqStr);
+  parts.push(`که با «${mainComplaint}» از ${hpi.duration || 'مدت اخیر'} قبل مراجعه نموده است.`);
+
+  if (posSymptoms.length > 0) {
+    parts.push(`یافته‌های مثبت شاخص شامل ${posSymptoms.slice(0, 3).join('، ')}`);
+  }
+  if (negSymptoms.length > 0) {
+    parts.push(`در غیاب ${negSymptoms.slice(0, 3).join('، ')} می‌باشد.`);
+  }
+
+  // Comprehensive Abnormal Paraclinics Detection
+  const labs = state.paraclinics?.labs || {};
+  const labFindings = [];
+
+  const wbc = parseFloat(labs['wbc']);
+  if (!isNaN(wbc)) {
+    if (wbc > 11.0) labFindings.push(`لکوسیتوز WBC: ${wbc}`);
+    else if (wbc < 4.0) labFindings.push(`لوکوپنی WBC: ${wbc}`);
+  }
+
+  const hb = parseFloat(labs['hb']);
+  if (!isNaN(hb)) {
+    const anemiaCutoff = d.gender === 'female' ? 12.0 : 13.0;
+    if (hb < anemiaCutoff) labFindings.push(`آنمی Hb: ${hb}`);
+  }
+
+  const crp = parseFloat(labs['crp']);
+  const esr = parseFloat(labs['esr']);
+  const inflammatory = [];
+  if (!isNaN(crp) && crp > 10) inflammatory.push(`CRP: ${crp}`);
+  if (!isNaN(esr) && esr > 20) inflammatory.push(`ESR: ${esr}`);
+  if (inflammatory.length) {
+    labFindings.push(`افزایش مارکرهای التهابی ${inflammatory.join(' و ')}`);
+  }
+
+  const ddimer = parseFloat(labs['ddimer']);
+  if (!isNaN(ddimer) && ddimer > 500) {
+    labFindings.push(`افزایش D-Dimer: ${ddimer}`);
+  }
+
+  const amylase = parseFloat(labs['amylase']);
+  const lipase = parseFloat(labs['lipase']);
+  if (!isNaN(amylase) && amylase > 110) labFindings.push(`افزایش آمیلاز: ${amylase}`);
+  if (!isNaN(lipase) && lipase > 140) labFindings.push(`افزایش لیپاز: ${lipase}`);
+
+  const ast = parseFloat(labs['ast']);
+  const alt = parseFloat(labs['alt']);
+  const alp = parseFloat(labs['alp']);
+  const lfts = [];
+  if (!isNaN(ast) && ast > 40) lfts.push(`AST: ${ast}`);
+  if (!isNaN(alt) && alt > 40) lfts.push(`ALT: ${alt}`);
+  if (!isNaN(alp) && alp > 130) lfts.push(`ALP: ${alp}`);
+  if (lfts.length) labFindings.push(`اختلال تست‌های کبدی/صفراوی (${lfts.join('، ')})`);
+
+  const bili_t = parseFloat(labs['bili_t']);
+  if (!isNaN(bili_t) && bili_t > 1.2) {
+    labFindings.push(`هیپربیلی‌روبینمی Total Bili: ${bili_t}`);
+  }
+
+  const cr = parseFloat(labs['cr']);
+  if (!isNaN(cr) && cr > 1.3) {
+    labFindings.push(`افزایش کراتینین Cr: ${cr}`);
+  }
+
+  const na = parseFloat(labs['na']);
+  if (!isNaN(na)) {
+    if (na < 135) labFindings.push(`هیپوناترمی Na: ${na}`);
+    else if (na > 145) labFindings.push(`هیپرناترمی Na: ${na}`);
+  }
+
+  const k = parseFloat(labs['k']);
+  if (!isNaN(k)) {
+    if (k < 3.5) labFindings.push(`هیپوکالمی K: ${k}`);
+    else if (k > 5.1) labFindings.push(`هیپرکالمی K: ${k}`);
+  }
+
+  const ph = parseFloat(labs['ph']);
+  const pco2 = parseFloat(labs['pco2']);
+  if (!isNaN(ph)) {
+    if (ph < 7.35) labFindings.push(`اسیدوز (pH: ${ph})`);
+    else if (ph > 7.45) {
+      if (!isNaN(pco2) && pco2 < 35) labFindings.push(`آلکالوز تنفسی (pH: ${ph})`);
+      else labFindings.push(`آلکالوز (pH: ${ph})`);
+    }
+  }
+
+  const lactate = parseFloat(labs['lactate']);
+  if (!isNaN(lactate) && lactate > 2.2) {
+    labFindings.push(`هیپرلاکتاتمی Lactate: ${lactate}`);
+  }
+
+  if (labFindings.length > 0) {
+    parts.push(`(همراه با ${labFindings.join('، ')})`);
+  }
+
+  return parts.join(' ');
 }

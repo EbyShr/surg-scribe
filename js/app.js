@@ -1,15 +1,17 @@
 import { SURGICAL_SCHEMA } from './schema.js';
 import { ClinicalTelemetryEngine } from './telemetry.js';
-import { generateClinicalNote, normalizePersianClinicalText } from './generator.js';
+import { generateClinicalNote, normalizePersianClinicalText, synthesizeProblemRepresentation } from './generator.js';
+import { CloudSyncManager } from './cloud-sync.js';
 
 /* ==========================================================================
-   State & Global Singletons (v0.2-Surg)
+   State & Global Singletons (v0.3-Surg)
    ========================================================================== */
-const STORAGE_CURRENT_CASE_KEY = 'surg_current_case_v02';
-const STORAGE_SHIFT_CASES_KEY = 'surg_shift_cases_v02';
+const STORAGE_CURRENT_CASE_KEY = 'surg_current_case_v03';
+const STORAGE_SHIFT_CASES_KEY = 'surg_shift_cases_v03';
 const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 let telemetry = new ClinicalTelemetryEngine(15000);
+let cloudSync = new CloudSyncManager();
 let activeSectionId = 'cc_admission';
 
 function generateCaseId() {
@@ -54,10 +56,25 @@ function createDefaultClinicalState() {
       initialRegions: [],
       currentRegions: [],
       radiation: ['rad_none'],
+      secondaryPain: {
+        region: '',
+        character: '',
+        relation: ''
+      },
       symptoms: {}, // id -> { state: 1|-1, detail: '' }
       preAdmissionWorkup: '',
       narrativeNote: '',
       systemGapNote: ''
+    },
+    obgyn: {
+      g: '',
+      p: '',
+      ab: '',
+      l: '',
+      deliveryType: '',
+      lmp: '',
+      dysmenorrhea: '',
+      note: ''
     },
     pmh: {
       items: {}, // id -> { state: 1|-1, detail: '' } (Tri-state PMH)
@@ -222,6 +239,7 @@ function renderInlineDetailTriStateChip(options) {
    Initialization & Dynamic DOM Population
    ========================================================================== */
 function initDynamicUI() {
+  initGlobalTelemetryDelegation();
   initAdmissionPathwayHandlers();
   initDemographicsHandlers();
   renderCCCategoryChips();
@@ -230,11 +248,13 @@ function initDynamicUI() {
   initOldcartsHandlers();
   renderPainSpatialPatterns();
   renderRadiationSites();
+  initSecondaryPainHandlers();
   renderHpiSymptomGroups();
 
-  // Tab 3: PMH / PSH / HH
+  // Tab 3: PMH / PSH / HH / ObGyn
   renderPmhChips();
   initPmhPshHhHandlers();
+  initObGynHandlers();
 
   // Tab 4: DH / AH / SH / FH
   renderHighAlertDrugs();
@@ -263,6 +283,7 @@ function initDynamicUI() {
   // Navigation, Telemetry Ticker & Modals
   initNavigationTabs();
   initShiftManager();
+  initCloudSyncUI();
   initThemeToggle();
   initExportAndCopy();
   initMobileBottomSheet();
@@ -306,28 +327,30 @@ function initSystemGapLoggers() {
 function initAdmissionPathwayHandlers() {
   const chipEmerg = document.getElementById('chipPathwayEmergency');
   const chipClinic = document.getElementById('chipPathwayClinic');
+  const chipPostop = document.getElementById('chipPathwayPostop');
   const cardEmerg = document.getElementById('cardCCEmergency');
   const cardClinic = document.getElementById('cardCCReferral');
 
   function setPathway(pathway) {
     clinicalState.cc.pathway = pathway;
-    if (pathway === 'emergency_symptom') {
-      chipEmerg.classList.add('active');
-      chipClinic.classList.remove('active');
-      cardEmerg.style.display = 'flex';
-      cardClinic.style.display = 'none';
+    chipEmerg?.classList.toggle('active', pathway === 'emergency_symptom');
+    chipClinic?.classList.toggle('active', pathway === 'clinic_referral');
+    chipPostop?.classList.toggle('active', pathway === 'postop_complication');
+
+    if (pathway === 'clinic_referral') {
+      if (cardEmerg) cardEmerg.style.display = 'none';
+      if (cardClinic) cardClinic.style.display = 'flex';
     } else {
-      chipClinic.classList.add('active');
-      chipEmerg.classList.remove('active');
-      cardEmerg.style.display = 'none';
-      cardClinic.style.display = 'flex';
+      if (cardEmerg) cardEmerg.style.display = 'flex';
+      if (cardClinic) cardClinic.style.display = 'none';
     }
     telemetry.recordInteraction('cc_admission', 'pathway_switch');
     updateLivePreview();
   }
 
-  chipEmerg.addEventListener('click', () => setPathway('emergency_symptom'));
-  chipClinic.addEventListener('click', () => setPathway('clinic_referral'));
+  chipEmerg?.addEventListener('click', () => setPathway('emergency_symptom'));
+  chipClinic?.addEventListener('click', () => setPathway('clinic_referral'));
+  chipPostop?.addEventListener('click', () => setPathway('postop_complication'));
 
   ['ccEstablishedDiagnosis', 'ccReferringAttending', 'ccPlannedProcedure', 'ccReferralPatientQuote'].forEach((id) => {
     const el = document.getElementById(id);
@@ -395,6 +418,12 @@ function initDemographicsHandlers() {
     el.addEventListener(evt, (e) => {
       telemetry.recordInteraction('cc_admission', 'typing');
       clinicalState.demographics[prop] = e.target.value;
+      if (prop === 'gender') {
+        const obgynCard = document.getElementById('cardObGynHistory');
+        if (obgynCard) {
+          obgynCard.style.display = e.target.value === 'female' ? 'block' : 'none';
+        }
+      }
       updateLivePreview();
     });
   });
@@ -448,6 +477,39 @@ function initOldcartsHandlers() {
     telemetry.recordInteraction('hpi', 'typing', true);
     clinicalState.hpi.narrativeNote = e.target.value;
     updateLivePreview();
+  });
+}
+
+function initSecondaryPainHandlers() {
+  const card = document.getElementById('secondaryPainCard');
+  const btnToggle = document.getElementById('btnToggleSecondaryPain');
+  const header = document.getElementById('secondaryPainHeader');
+
+  function toggleSecPain() {
+    if (!card) return;
+    const isActive = card.classList.toggle('active');
+    if (btnToggle) {
+      btnToggle.textContent = isActive ? 'بستن' : 'افزودن';
+    }
+    telemetry.recordInteraction('hpi', 'toggle_secondary_pain');
+  }
+
+  btnToggle?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSecPain();
+  });
+  header?.addEventListener('click', toggleSecPain);
+
+  ['secPainRegion', 'secPainCharacter', 'secPainRelation'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      telemetry.recordInteraction('hpi', 'typing');
+      if (id === 'secPainRegion') clinicalState.hpi.secondaryPain.region = e.target.value;
+      if (id === 'secPainCharacter') clinicalState.hpi.secondaryPain.character = e.target.value;
+      if (id === 'secPainRelation') clinicalState.hpi.secondaryPain.relation = e.target.value;
+      updateLivePreview();
+    });
   });
 }
 
@@ -659,6 +721,29 @@ function initPmhPshHhHandlers() {
     telemetry.recordInteraction('pmh_psh_hh', 'typing', true);
     clinicalState.hh.note = e.target.value;
     updateLivePreview();
+  });
+}
+
+function initObGynHandlers() {
+  const fields = [
+    { id: 'obgynG', key: 'g' },
+    { id: 'obgynP', key: 'p' },
+    { id: 'obgynAb', key: 'ab' },
+    { id: 'obgynL', key: 'l' },
+    { id: 'obgynDeliveryType', key: 'deliveryType' },
+    { id: 'obgynLmp', key: 'lmp' },
+    { id: 'obgynDysmenorrhea', key: 'dysmenorrhea' }
+  ];
+
+  fields.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, (e) => {
+      telemetry.recordInteraction('pmh_psh_hh', 'obgyn_input');
+      clinicalState.obgyn[key] = e.target.value;
+      updateLivePreview();
+    });
   });
 }
 
@@ -892,6 +977,27 @@ function renderFhChips() {
       updateLivePreview();
     });
 
+    const relationBar = document.createElement('span');
+    relationBar.className = 'fh-relation-bar';
+    relationBar.style.display = existing ? 'inline-flex' : 'none';
+
+    (SURGICAL_SCHEMA.familyRelations || ['مادر', 'پدر', 'برادر', 'خواهر', 'درجه ۲']).forEach((rel) => {
+      const relBtn = document.createElement('button');
+      relBtn.type = 'button';
+      relBtn.className = 'fh-relation-btn';
+      relBtn.textContent = rel;
+      relBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const current = detailInput.value.trim();
+        detailInput.value = current ? `${current}، ${rel}` : rel;
+        const found = (clinicalState.fh.selected || []).find((s) => s.id === fhItem.id);
+        if (found) found.detail = detailInput.value;
+        telemetry.recordInteraction('ah_dh_sh_fh', 'quick_relation_tap');
+        updateLivePreview();
+      });
+      relationBar.appendChild(relBtn);
+    });
+
     chip.addEventListener('click', () => {
       const list = clinicalState.fh.selected || [];
       const idx = list.findIndex((s) => (s.id || s) === fhItem.id);
@@ -899,10 +1005,12 @@ function renderFhChips() {
         list.splice(idx, 1);
         chip.classList.remove('active');
         detailInput.style.display = 'none';
+        relationBar.style.display = 'none';
       } else {
         list.push({ id: fhItem.id, label: fhItem.label, detail: '' });
         chip.classList.add('active');
         detailInput.style.display = 'inline-block';
+        relationBar.style.display = 'inline-flex';
         detailInput.focus();
       }
       clinicalState.fh.selected = list;
@@ -912,6 +1020,7 @@ function renderFhChips() {
 
     wrap.appendChild(chip);
     wrap.appendChild(detailInput);
+    wrap.appendChild(relationBar);
     container.appendChild(wrap);
   });
 
@@ -1322,73 +1431,12 @@ function initReasoningHandlers() {
 
   btnAutoPR?.addEventListener('click', () => {
     telemetry.recordInteraction('reasoning_sq', 'auto_pr_click');
-    const autoSummary = synthesizeProblemRepresentation();
+    const autoSummary = synthesizeProblemRepresentation(clinicalState);
     clinicalState.reasoning.problemRepresentation = autoSummary;
     if (prInput) prInput.value = autoSummary;
-    showToast('بازنمایی مسئله بالینی به صورت خودکار تولید و جایگذاری شد.', 'success');
+    showToast('بازنمایی مسئله بالینی به صورت خودکار با تمام آزمایش‌های مثبت تولید شد.', 'success');
     updateLivePreview();
   });
-}
-
-/**
- * High-Yield Problem Representation Auto-Synthesizer
- */
-function synthesizeProblemRepresentation() {
-  const d = clinicalState.demographics;
-  const cc = clinicalState.cc;
-  const hpi = clinicalState.hpi;
-  const sqs = clinicalState.reasoning.selectedSQs || [];
-
-  const genderStr = d.gender === 'female' ? 'خانم' : 'آقای';
-  const ageStr = d.age ? `${d.age} ساله` : '[نامشخص]';
-  const sqStr = sqs.length > 0 ? `با تابلوی بالینی ${sqs.join(' و ')}` : '';
-
-  let mainComplaint = cc.patientQuote || cc.selectedCategoryLabel || 'شکایت حاد جراحی';
-  if (hpi.selectedRegions && hpi.selectedRegions.length > 0) {
-    const regLabels = hpi.selectedRegions.map((id) => {
-      const f = SURGICAL_SCHEMA.abdominalRegions.find((r) => r.id === id);
-      return f ? f.label : id;
-    });
-    mainComplaint += ` در ناحیه ${regLabels.join(' و ')}`;
-  }
-
-  // Key positives
-  const allHpiChips = SURGICAL_SCHEMA.chiefComplaints.flatMap((c) => (c.symptomGroups || []).flatMap((g) => g.chips));
-  const posSymptoms = Object.entries(hpi.symptoms)
-    .filter(([_, item]) => (typeof item === 'object' ? item.state : item) === 1)
-    .map(([id, item]) => {
-      const f = allHpiChips.find((x) => x.id === id);
-      const label = f ? f.label : id;
-      const detail = typeof item === 'object' && item.detail ? ` (${item.detail})` : '';
-      return `${label}${detail}`;
-    });
-
-  // Key negatives
-  const negSymptoms = Object.entries(hpi.symptoms)
-    .filter(([_, item]) => (typeof item === 'object' ? item.state : item) === -1)
-    .map(([id]) => {
-      const f = allHpiChips.find((x) => x.id === id);
-      return f ? f.label : id;
-    });
-
-  const parts = [];
-  parts.push(`بیمار ${genderStr} ${ageStr}`);
-  if (sqStr) parts.push(sqStr);
-  parts.push(`که با «${mainComplaint}» از ${hpi.duration || 'مدت اخیر'} قبل مراجعه نموده است.`);
-
-  if (posSymptoms.length > 0) {
-    parts.push(`یافته‌های مثبت شاخص شامل ${posSymptoms.slice(0, 3).join('، ')}`);
-  }
-  if (negSymptoms.length > 0) {
-    parts.push(`در غیاب ${negSymptoms.slice(0, 3).join('، ')} می‌باشد.`);
-  }
-
-  const wbc = clinicalState.paraclinics.labs['wbc'];
-  if (wbc && parseFloat(wbc) > 11) {
-    parts.push(`(همراه با لکوسیتوز WBC: ${wbc})`);
-  }
-
-  return parts.join(' ');
 }
 
 /* ==========================================================================
@@ -1829,6 +1877,306 @@ function initThemeToggle() {
 }
 
 /* ==========================================================================
+/* ==========================================================================
+   Global Event Delegation for Telemetry (v0.3-Surg)
+   ========================================================================== */
+function initGlobalTelemetryDelegation() {
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest('.tri-chip, .quick-chip, .toggle-chip, .chip, .fh-relation-btn, .btn, .pattern-pill-btn');
+    if (chip) {
+      telemetry.recordInteraction(activeSectionId, 'click_chip');
+    }
+  }, { passive: true });
+
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.tagName === 'SELECT') {
+      telemetry.recordInteraction(activeSectionId, 'change_select');
+    } else if (el.type === 'radio' || el.type === 'checkbox') {
+      telemetry.recordInteraction(activeSectionId, 'toggle_input');
+    }
+  }, { passive: true });
+
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.type === 'range') {
+      telemetry.recordInteraction(activeSectionId, 'slider_input');
+    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      telemetry.recordInteraction(activeSectionId, 'type_input');
+    }
+  }, { passive: true });
+}
+
+/* ==========================================================================
+   Cloud Sync & Admin Staging UI Integration (v0.3-Surg)
+   ========================================================================== */
+function initCloudSyncUI() {
+  const collectorInput = document.getElementById('collectorIdInput');
+  const btnCloudSync = document.getElementById('btnCloudSync');
+  const queueBadge = document.getElementById('offlineQueueBadge');
+  const queueCount = document.getElementById('offlineQueueCount');
+  const btnSettings = document.getElementById('btnCloudSettings');
+  const settingsModal = document.getElementById('cloudSettingsModalBackdrop');
+  const btnCloseSettings = document.getElementById('btnCloseCloudSettings');
+  const btnCancelSettings = document.getElementById('btnCancelCloudSettings');
+  const btnSaveSettings = document.getElementById('btnSaveCloudSettings');
+
+  const settingCollectorName = document.getElementById('settingCollectorName');
+  const settingSyncMode = document.getElementById('settingSyncMode');
+  const settingEndpointUrl = document.getElementById('settingEndpointUrl');
+  const settingApiKey = document.getElementById('settingApiKey');
+  const groupApiKey = document.getElementById('groupSettingApiKey');
+
+  // Admin Staging Elements
+  const btnAdminStaging = document.getElementById('btnAdminStaging');
+  const stagingModal = document.getElementById('adminStagingModalBackdrop');
+  const btnCloseAdminStaging = document.getElementById('btnCloseAdminStaging');
+  const btnImportStagingFiles = document.getElementById('btnImportStagingFiles');
+  const stagingFileInput = document.getElementById('stagingFileInput');
+  const btnApproveAllStaging = document.getElementById('btnApproveAllStaging');
+  const btnClearStaging = document.getElementById('btnClearStaging');
+  const btnExportMasterDataset = document.getElementById('btnExportMasterDataset');
+  const stagingTableBody = document.getElementById('stagingTableBody');
+  const stagingCountPill = document.getElementById('stagingCountPill');
+
+  function updateQueueBadge() {
+    const count = cloudSync.getPendingCount();
+    if (queueBadge && queueCount) {
+      queueCount.textContent = count;
+      queueBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  // Set initial collector name
+  if (collectorInput) {
+    collectorInput.value = cloudSync.config.collectorName || '';
+    collectorInput.addEventListener('change', (e) => {
+      cloudSync.saveConfig({
+        ...cloudSync.config,
+        collectorName: e.target.value
+      });
+      showToast(`نام ثبت‌کننده به «${e.target.value}» تنظیم شد.`, 'success');
+    });
+  }
+
+  updateQueueBadge();
+  window.addEventListener('online', () => {
+    updateQueueBadge();
+    showToast('اتصال اینترنت برقرار شد؛ صف آفلاین بررسی شد.', 'info');
+  });
+
+  queueBadge?.addEventListener('click', async () => {
+    showToast('در حال تلاش برای ارسال صف آفلاین...', 'info');
+    await cloudSync.flushOfflineQueue();
+    updateQueueBadge();
+  });
+
+  // Submit Current Case to Cloud
+  btnCloudSync?.addEventListener('click', async () => {
+    telemetry.recordInteraction(activeSectionId, 'cloud_sync_submit');
+    const snapshot = telemetry.exportTelemetrySnapshot(clinicalState);
+    const fullCaseRecord = {
+      ...clinicalState,
+      telemetry: snapshot
+    };
+
+    showToast('در حال ارسال پرونده به مخزن ابری...', 'info');
+    try {
+      const result = await cloudSync.submitCaseToCloud(fullCaseRecord);
+      if (result.status === 'synced') {
+        showToast(result.message, 'success');
+      } else if (result.status === 'queued_offline') {
+        showToast(result.message, 'warning');
+      } else {
+        showToast(result.message, 'info');
+      }
+      updateQueueBadge();
+    } catch (err) {
+      showToast(err.message, 'warning');
+      updateQueueBadge();
+    }
+  });
+
+  // Cloud Settings Modal
+  function openCloudSettings() {
+    if (settingCollectorName) settingCollectorName.value = cloudSync.config.collectorName || '';
+    if (settingSyncMode) {
+      settingSyncMode.value = cloudSync.config.mode || 'webhook';
+      if (groupApiKey) groupApiKey.style.display = settingSyncMode.value === 'supabase' ? 'block' : 'none';
+    }
+    if (settingEndpointUrl) settingEndpointUrl.value = cloudSync.config.endpointUrl || '';
+    if (settingApiKey) settingApiKey.value = cloudSync.config.apiKey || '';
+    if (settingsModal) settingsModal.classList.add('active');
+  }
+
+  function closeCloudSettings() {
+    if (settingsModal) settingsModal.classList.remove('active');
+  }
+
+  btnSettings?.addEventListener('click', openCloudSettings);
+  btnCloseSettings?.addEventListener('click', closeCloudSettings);
+  btnCancelSettings?.addEventListener('click', closeCloudSettings);
+
+  settingSyncMode?.addEventListener('change', (e) => {
+    if (groupApiKey) groupApiKey.style.display = e.target.value === 'supabase' ? 'block' : 'none';
+  });
+
+  btnSaveSettings?.addEventListener('click', () => {
+    cloudSync.saveConfig({
+      collectorName: settingCollectorName.value,
+      mode: settingSyncMode.value,
+      endpointUrl: settingEndpointUrl.value,
+      apiKey: settingApiKey?.value || ''
+    });
+    if (collectorInput) collectorInput.value = settingCollectorName.value;
+    closeCloudSettings();
+    showToast('تنظیمات مخزن ابری ذخیره گردید.', 'success');
+  });
+
+  // Admin Staging Modal
+  function renderStagingTable() {
+    const staged = cloudSync.getStagedRecords();
+    if (stagingCountPill) stagingCountPill.textContent = `تعداد: ${staged.length} پرونده`;
+
+    if (!stagingTableBody) return;
+    if (staged.length === 0) {
+      stagingTableBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
+            هنوز پرونده‌ای در استیجینگ بارگذاری نشده است.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    stagingTableBody.innerHTML = '';
+    staged.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      const ccText = item.record_json?.cc?.patientQuote || item.record_json?.cc?.selectedCategoryLabel || 'درد شکم';
+      const statusLabel = item.review_status === 'approved' ? 'تاییدشده' : item.review_status === 'rejected' ? 'ردشده' : 'در انتظار';
+      const statusClass = item.review_status || 'pending_review';
+
+      tr.innerHTML = `
+        <td class="mono-num">${idx + 1}</td>
+        <td class="mono-num" style="font-weight:700;">${item.case_id}</td>
+        <td>${item.collector_name || 'ناشناس'}</td>
+        <td class="mono-num" style="font-size:0.75rem;">${new Date(item.submitted_at).toLocaleDateString('fa-IR')}</td>
+        <td>${ccText}</td>
+        <td><span class="staging-status-badge ${statusClass}">${statusLabel}</span></td>
+        <td>
+          <div style="display:flex; gap:0.25rem;">
+            <button class="btn btn-secondary btn-sm btn-approve" data-id="${item.case_id}" title="تایید پرونده">✓</button>
+            <button class="btn btn-secondary btn-sm btn-reject" data-id="${item.case_id}" title="رد پرونده" style="color:#EF4444;">✕</button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.btn-approve')?.addEventListener('click', () => {
+        cloudSync.updateRecordStatus(item.case_id, 'approved');
+        renderStagingTable();
+      });
+
+      tr.querySelector('.btn-reject')?.addEventListener('click', () => {
+        cloudSync.updateRecordStatus(item.case_id, 'rejected');
+        renderStagingTable();
+      });
+
+      stagingTableBody.appendChild(tr);
+    });
+  }
+
+  btnAdminStaging?.addEventListener('click', () => {
+    renderStagingTable();
+    if (stagingModal) stagingModal.classList.add('active');
+  });
+
+  btnCloseAdminStaging?.addEventListener('click', () => {
+    if (stagingModal) stagingModal.classList.remove('active');
+  });
+
+  btnApproveAllStaging?.addEventListener('click', () => {
+    const staged = cloudSync.getStagedRecords();
+    staged.forEach((item) => {
+      cloudSync.updateRecordStatus(item.case_id, 'approved');
+    });
+    renderStagingTable();
+    showToast('تمام پرونده‌های استیجینگ تایید شدند.', 'success');
+  });
+
+  btnClearStaging?.addEventListener('click', () => {
+    if (confirm('آیا از پاکسازی تمام پرونده‌های استیجینگ مطمئن هستید؟')) {
+      cloudSync.stagedRecords = [];
+      cloudSync.saveStagedRecords();
+      renderStagingTable();
+      showToast('استیجینگ پاکسازی شد.', 'info');
+    }
+  });
+
+  btnImportStagingFiles?.addEventListener('click', () => {
+    stagingFileInput?.click();
+  });
+
+  stagingFileInput?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((p) => {
+              cloudSync.addCaseToStaging({
+                case_id: p.caseId || p.case_id || generateCaseId(),
+                collector_name: p.collector_name || 'external_import',
+                review_status: 'pending_review',
+                submitted_at: p.submitted_at || new Date().toISOString(),
+                record_json: p.record_json || p
+              });
+            });
+          } else if (parsed.cases && Array.isArray(parsed.cases)) {
+            parsed.cases.forEach((c) => {
+              cloudSync.addCaseToStaging({
+                case_id: c.original_case_id || c.case_id || generateCaseId(),
+                collector_name: c.collector_name || 'external_import',
+                review_status: c.review_status || 'approved',
+                submitted_at: c.submitted_at || new Date().toISOString(),
+                record_json: c.record || c.record_json || c
+              });
+            });
+          } else {
+            cloudSync.addCaseToStaging({
+              case_id: parsed.caseId || parsed.case_id || generateCaseId(),
+              collector_name: parsed.collector_name || 'external_import',
+              review_status: 'pending_review',
+              submitted_at: parsed.submitted_at || new Date().toISOString(),
+              record_json: parsed.record_json || parsed
+            });
+          }
+          renderStagingTable();
+          showToast(`پرونده(ها) با موفقیت به استیجینگ افزوده شد.`, 'success');
+        } catch (err) {
+          showToast(`خطا در خواندن فایل ${file.name}: ${err.message}`, 'warning');
+        }
+      };
+      reader.readAsText(file);
+    });
+    e.target.value = '';
+  });
+
+  btnExportMasterDataset?.addEventListener('click', () => {
+    try {
+      cloudSync.exportMasterDataset(false);
+      showToast('دیتاست مرجع استاندارد با موفقیت دانلود شد.', 'success');
+    } catch (err) {
+      showToast(err.message, 'warning');
+    }
+  });
+}
+
+/* ==========================================================================
    DOM Synchronization from State
    ========================================================================== */
 function syncDomFromState() {
@@ -1844,10 +2192,17 @@ function syncDomFromState() {
   if (document.getElementById('demoOccupation')) document.getElementById('demoOccupation').value = d.occupation || '';
   if (document.getElementById('demoInformant')) document.getElementById('demoInformant').value = d.informant || 'خود بیمار';
 
+  const obgynCard = document.getElementById('cardObGynHistory');
+  if (obgynCard) {
+    obgynCard.style.display = d.gender === 'female' ? 'block' : 'none';
+  }
+
   // CC
   const cc = clinicalState.cc;
   if (cc.pathway === 'clinic_referral') {
     document.getElementById('chipPathwayClinic')?.click();
+  } else if (cc.pathway === 'postop_complication') {
+    document.getElementById('chipPathwayPostop')?.click();
   } else {
     document.getElementById('chipPathwayEmergency')?.click();
   }
@@ -1873,9 +2228,30 @@ function syncDomFromState() {
   if (document.getElementById('hpiNarrativeNote')) document.getElementById('hpiNarrativeNote').value = hpi.narrativeNote || '';
   if (document.getElementById('hpiSystemGapInput')) document.getElementById('hpiSystemGapInput').value = hpi.systemGapNote || '';
 
+  const sec = hpi.secondaryPain || {};
+  if (document.getElementById('secPainRegion')) document.getElementById('secPainRegion').value = sec.region || '';
+  if (document.getElementById('secPainCharacter')) document.getElementById('secPainCharacter').value = sec.character || '';
+  if (document.getElementById('secPainRelation')) document.getElementById('secPainRelation').value = sec.relation || '';
+  const secCard = document.getElementById('secondaryPainCard');
+  if (secCard && (sec.region || sec.character || sec.relation)) {
+    secCard.classList.add('active');
+    const btnToggle = document.getElementById('btnToggleSecondaryPain');
+    if (btnToggle) btnToggle.textContent = 'بستن';
+  }
+
   renderPainSpatialPatterns();
   renderRadiationSites();
   renderHpiSymptomGroups();
+
+  // Ob/Gyn
+  const ob = clinicalState.obgyn || {};
+  if (document.getElementById('obgynG')) document.getElementById('obgynG').value = ob.g || '';
+  if (document.getElementById('obgynP')) document.getElementById('obgynP').value = ob.p || '';
+  if (document.getElementById('obgynAb')) document.getElementById('obgynAb').value = ob.ab || '';
+  if (document.getElementById('obgynL')) document.getElementById('obgynL').value = ob.l || '';
+  if (document.getElementById('obgynDeliveryType')) document.getElementById('obgynDeliveryType').value = ob.deliveryType || '';
+  if (document.getElementById('obgynLmp')) document.getElementById('obgynLmp').value = ob.lmp || '';
+  if (document.getElementById('obgynDysmenorrhea')) document.getElementById('obgynDysmenorrhea').value = ob.dysmenorrhea || '';
 
   // PMH
   renderPmhChips();

@@ -78,8 +78,12 @@ export class ClinicalTelemetryEngine {
         this.metrics.idlePauseCount += 1;
       }
     } else {
-      // شروع تایمر دقیقاً از اولین تعامل در این بخش
+      // شروع تایمر از اولین تعامل در این بخش: افزودن مقدار پایه ۱۵۰۰ میلی‌ثانیه جهت جبران زمان تفکر و لمس اول
       this.isSectionTimingActive = true;
+      const baseInitialMs = 1500;
+      this.metrics.sectionActiveMs[targetSection] =
+        (this.metrics.sectionActiveMs[targetSection] || 0) + baseInitialMs;
+      this.metrics.totalActiveDurationMs += baseInitialMs;
     }
 
     this.lastInteractionTime = now;
@@ -100,7 +104,7 @@ export class ClinicalTelemetryEngine {
     if (!missingText || !missingText.trim()) return;
     const cleanText = missingText.trim();
     const existingIdx = this.metrics.loggedMissingItems.findIndex(
-      (item) => item.section === sectionId && item.text === cleanText
+      (item) => item.section === sectionId && (item.text === cleanText || item.note === cleanText)
     );
     if (existingIdx >= 0) {
       this.metrics.loggedMissingItems[existingIdx].updatedAt = new Date().toISOString();
@@ -108,6 +112,7 @@ export class ClinicalTelemetryEngine {
       this.metrics.loggedMissingItems.push({
         section: sectionId,
         text: cleanText,
+        note: cleanText,
         loggedAt: new Date().toISOString()
       });
     }
@@ -150,6 +155,27 @@ export class ClinicalTelemetryEngine {
       sectionSeconds[key] = Math.round(ms / 100) / 10;
     }
 
+    // استخراج خودکار تمام systemGapNoteها در لحظه Export از روی استیت بالینی
+    const allSystemGaps = [...this.metrics.loggedMissingItems];
+    const sectionsWithGap = ['hpi', 'pmh', 'psh', 'hh', 'dh', 'ah', 'sh', 'fh', 'ros', 'pe', 'paraclinics'];
+    sectionsWithGap.forEach((secKey) => {
+      const note = clinicalState?.[secKey]?.systemGapNote;
+      if (note && note.trim()) {
+        const cleanNote = note.trim();
+        const exists = allSystemGaps.some(
+          (g) => g.section === secKey && (g.text === cleanNote || g.note === cleanNote)
+        );
+        if (!exists) {
+          allSystemGaps.push({
+            section: secKey,
+            text: cleanNote,
+            note: cleanNote,
+            loggedAt: new Date().toISOString()
+          });
+        }
+      }
+    });
+
     // شمارش خودکار نکات مثبت و منفی کلیدی در تمام بخش‌ها
     let posCount = 0;
     let negCount = 0;
@@ -178,9 +204,9 @@ export class ClinicalTelemetryEngine {
       pertinent_positives_count: posCount,
       pertinent_negatives_count: negCount,
       semantic_qualifiers_count: (clinicalState?.reasoning?.selectedSQs || []).length,
-      free_text_fallback_triggered: this.metrics.freeTextSectionsUsed.size > 0,
+      free_text_fallback_triggered: this.metrics.freeTextSectionsUsed.size > 0 || allSystemGaps.length > 0,
       free_text_sections: Array.from(this.metrics.freeTextSectionsUsed),
-      system_gaps_logged: this.metrics.loggedMissingItems,
+      system_gaps_logged: allSystemGaps,
       first_interaction_at: this.metrics.firstInteractionAt,
       last_interaction_at: this.metrics.lastInteractionAt
     };

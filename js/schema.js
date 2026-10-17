@@ -1,7 +1,8 @@
 export const SURGICAL_SCHEMA = {
   admissionPathways: [
     { id: 'emergency_symptom', label: 'مراجعه با علامت حاد / اورژانس' },
-    { id: 'clinic_referral', label: 'ارجاع از درمانگاه با نامه استاد / بستری الکتیو' }
+    { id: 'clinic_referral', label: 'ارجاع از درمانگاه با نامه استاد / بستری الکتیو' },
+    { id: 'postop_complication', label: 'مراجعه به دنبال عمل جراحی اخیر / عوارض پس از عمل و درن' }
   ],
 
   painSpatialPatterns: [
@@ -33,7 +34,8 @@ export const SURGICAL_SCHEMA = {
     { id: 'rad_chest', label: 'قفسه سینه' }
   ],
 
-  // علائم همراه HPI دسته‌بندی‌شده دقیق بر اساس پاتولوژی‌های جراحی (همگی دارای قابلیت باز شدن کادر توضیح درجا در حالت +1)
+  familyRelations: ['مادر', 'پدر', 'برادر', 'خواهر', 'درجه ۲'],
+
   chiefComplaints: [
     {
       id: 'abdominal_gi_biliary',
@@ -81,8 +83,17 @@ export const SURGICAL_SCHEMA = {
             { id: 'chills_rigors', label: 'لرز تکانی (Chills / Rigors)', detailHint: 'تناوب و شدت...' },
             { id: 'unintentional_weight_loss', label: 'کاهش وزن ناخواسته', detailHint: 'چند کیلوگرم در چند ماه...' },
             { id: 'dysuria_frequency', label: 'سوزش یا تکرر ادرار (Dysuria / Frequency)', detailHint: 'تغییر رنگ ادرار...' },
-            { id: 'hematuria', label: 'هماچوری (تغییر رنگ خونی ادرار)', detailHint: 'لخته، ابتدا یا انتهای ادرار...' },
+            { id: 'hematuria', label: 'هماچوری (تغییر رنگ خونی ادرار)', detailHint: 'لخته، ابتدا یا کل ادرار...' },
             { id: 'gyn_discharge_bleeding_lmp', label: 'ترشح/خونریزی غیرطبیعی واژینال یا تاخیر پریود (در خانم‌ها)', detailHint: 'تاریخ LMP...' }
+          ]
+        },
+        {
+          groupTitle: 'علائم محل عمل، زخم و درن جراحی (Post-Op & Drain Site)',
+          chips: [
+            { id: 'drain_site_pain_induration', label: 'درد و سفتی (Induration) در محل درن یا برش جراحی', detailHint: 'ناحیه درن و فاصله از عمل...' },
+            { id: 'drain_output_change', label: 'تغییر حجم یا ماهیت ترشحات درن', detailHint: 'حجم ۲۴ ساعته به cc و ماهیت: سروزی/هموراژیک/چرکی/صفراوی...' },
+            { id: 'drain_dislodgement_blockage', label: 'انسداد، نشت از کنار درن یا خروج ناخواسته درن', detailHint: 'میزان نشت یا انسداد...' },
+            { id: 'wound_erythema_warmth_dehiscence', label: 'قرمزی، گرمی، ترشح یا باز شدن (Dehiscence) خط بخیه', detailHint: 'ترشح، باز شدن لبه‌ها...' }
           ]
         }
       ]
@@ -131,7 +142,6 @@ export const SURGICAL_SCHEMA = {
     }
   ],
 
-  // بیماری‌های زمینه‌ای (PMH): همگی در رابط کاربری ۳ حالته (+1 دارد با کادر درجا، -1 ندارد جهت درج در منفی‌های مهم، 0 پرسیده نشده)
   pmhItems: [
     { id: 'pmh_dm', label: 'دیابت شیرین (DM)', isCoreNegative: true, detailHint: 'نوع، مدت ابتلا، داروهای مصرفی، آخرین HbA1c...' },
     { id: 'pmh_htn', label: 'پرفشاری خون (HTN)', isCoreNegative: true, detailHint: 'مدت ابتلا، داروها، فشار خون معمول...' },
@@ -180,11 +190,10 @@ export const SURGICAL_SCHEMA = {
     { id: 'fh_breast_ovarian', label: 'کانسر پستان یا تخمدان (BRCA)', detailHint: 'تعداد افراد مبتلا در خانواده...' },
     { id: 'fh_thyroid_men', label: 'کانسر مدولاری/پاپیلاری تیروئید یا سندروم MEN', detailHint: 'نوع بدخیمی...' },
     { id: 'fh_ihd_early', label: 'بیماری ایسکمیک قلبی زودرس (مرد <55، زن <65)', detailHint: 'نسبت...' },
-    { id: 'fh_dm_htn', label: 'دیابت شیرین و پرفشاری خون خانوادگی', detailHint: 'پدر، مادر، خواهر، برادر...' },
+    { id: 'fh_dm_htn', label: 'دیابت شیرین و پرفشاری خون خانوادگی', detailHint: 'نسبت فامیلی...' },
     { id: 'fh_coagulopathy', label: 'اختلالات ترومبوفیلی، DVT مکرر یا خونریزی ارثی', detailHint: 'سابقه آمبولی در خانواده...' }
   ],
 
-  // بررسی سیستم‌ها (ROS) جامع ۱۱ سیستمی در تراز شرح‌حال کامل داخلی و جراحی
   rosGroups: [
     {
       id: 'ros_constitutional',
@@ -325,7 +334,6 @@ export const SURGICAL_SCHEMA = {
     }
   ],
 
-  // معاینه فیزیکی (PE): هر تگ در حالت +1 یک فیلد توضیح درجا باز می‌کند
   peFindings: {
     generalAndHeadNeck: [
       { id: 'pe_conscious_oriented', label: 'هوشیار و آگاه به زمان، مکان و شخص (Oriented ×3)', detailHint: 'GCS...' },
@@ -347,6 +355,7 @@ export const SURGICAL_SCHEMA = {
       { id: 'pe_abd_flat_symmetrical', label: 'مشاهده: شکم صاف و قرینه، هم‌سطح قفسه سینه و همراه با تنفس', detailHint: '' },
       { id: 'pe_abd_distension', label: 'مشاهده: دیستانسیون و اتساع شکم', detailHint: 'ژنرالیزه یا لوکالیزه...' },
       { id: 'pe_abd_surgical_scar', label: 'مشاهده: اسکار جراحی قبلی روی شکم', detailHint: 'نوع برش (میدلاین/مک‌برنی/کوشر/فان‌اشتیل) و مربوط به چه عملی...' },
+      { id: 'pe_laparoscopic_port_drain_site', label: 'بررسی پورت‌های لاپاراسکوپی و محل ورود درن', detailHint: 'وضعیت پانسمان، تندرنس موضعی، هماتوم، سلولیت یا ترشح اطراف درن...' },
       { id: 'pe_abd_ecchymosis_striae_veins', label: 'مشاهده: اکیموز (کولن/گری‌ترنر)، استریا یا عروق کولترال', detailHint: 'توضیح محل...' },
       { id: 'pe_normoactive_bs', label: 'سمع: صداهای روده‌ای نرمال (Normoactive BS)', detailHint: '' },
       { id: 'pe_hyperactive_metallic_bs', label: 'سمع: صداهای روده‌ای هیپراکتیو یا متالیک (High-pitched)', detailHint: '' },
@@ -375,7 +384,6 @@ export const SURGICAL_SCHEMA = {
     ]
   },
 
-  // جدول کامل آزمایشگاه شامل RBC و Hct و سایر فاکتورهای بالینی
   paraclinicLabDefinitions: [
     { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 11.0, group: 'CBC (شمارش کامل خون)' },
     { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9, group: 'CBC (شمارش کامل خون)' },
@@ -408,13 +416,20 @@ export const SURGICAL_SCHEMA = {
     { id: 'inr', label: 'INR', unit: '', min: 0.8, max: 1.2, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
     { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
     { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
+    { id: 'ddimer', label: 'D-Dimer', unit: 'ng/mL', min: 0, max: 500, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
     { id: 'tsh', label: 'TSH', unit: 'mIU/L', min: 0.4, max: 4.5, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
     { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
     { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
-    { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' }
+    { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37, group: 'انعقادی، التهابی، تیروئید و تومورمارکر' },
+
+    { id: 'ph', label: 'pH (VBG/ABG)', unit: '', min: 7.35, max: 7.45, group: 'گازهای خونی (VBG / ABG)' },
+    { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45, group: 'گازهای خونی (VBG / ABG)' },
+    { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26, group: 'گازهای خونی (VBG / ABG)' },
+    { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2, group: 'گازهای خونی (VBG / ABG)' },
+    { id: 'po2', label: 'PO2', unit: 'mmHg', min: 40, max: 100, group: 'گازهای خونی (VBG / ABG)' },
+    { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.2, group: 'گازهای خونی (VBG / ABG)' }
   ],
 
-  // مدالیته‌های تصویربرداری و اسکوپی: هر تگ دارای detailHint برای ورودی درجا
   paraclinicModalities: [
     {
       id: 'ultrasound',
