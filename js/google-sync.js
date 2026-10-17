@@ -4,10 +4,70 @@
  * Handles offline queueing in localStorage and avoids CORS preflight issues with text/plain payloads.
  */
 
+import { SURGICAL_SCHEMA } from './schema.js';
+
 const CONFIG_KEY = 'surg_gsheet_config_v04';
 const QUEUE_KEY = 'surg_gsheet_offline_queue_v04';
 const STAGED_KEY = 'surg_gsheet_staged_v04';
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWKN6I80lNriVfPFr7XzZZm9wGdJckmms9led7xn7ieQJnbXz6oumHtWQ85uUHV0Q8/exec';
+
+let _cachedLabelMap = null;
+function getClinicalLabelMap() {
+  if (_cachedLabelMap) return _cachedLabelMap;
+  _cachedLabelMap = new Map();
+  (SURGICAL_SCHEMA.chiefComplaints || []).forEach(c => (c.symptomGroups || []).forEach(g => (g.chips || []).forEach(ch => _cachedLabelMap.set(ch.id, ch.label))));
+  (SURGICAL_SCHEMA.pmhItems || []).forEach(i => _cachedLabelMap.set(i.id, i.label));
+  (SURGICAL_SCHEMA.rosGroups || []).forEach(g => (g.items || []).forEach(i => _cachedLabelMap.set(i.id, i.label)));
+  Object.values(SURGICAL_SCHEMA.peFindings || {}).forEach(arr => (arr || []).forEach(i => _cachedLabelMap.set(i.id, i.label)));
+  (SURGICAL_SCHEMA.fhItems || []).forEach(i => _cachedLabelMap.set(i.id, i.label));
+  return _cachedLabelMap;
+}
+
+export function extractDetailedFindings(state) {
+  const labelMap = getClinicalLabelMap();
+  const positives = [];
+  const negatives = [];
+
+  const scan = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const [id, val] of Object.entries(obj)) {
+      if (id === 'systemGapNote' || id === 'notes' || id === 'detail' || id === 'note') continue;
+      const st = typeof val === 'object' && val !== null ? val.state : val;
+      const detail = typeof val === 'object' && val !== null && val.detail ? val.detail.trim() : '';
+      const rawLabel = labelMap.get(id) || id;
+
+      if (st === 1 || st === '+1') {
+        positives.push(detail ? `${rawLabel} (${detail})` : rawLabel);
+      } else if (st === -1 || st === '-1') {
+        negatives.push(rawLabel);
+      }
+    }
+  };
+
+  scan(state.hpi && state.hpi.symptoms);
+  scan(state.pmh && state.pmh.items);
+  scan(state.ros && state.ros.items);
+  scan(state.pe && state.pe.findings);
+  scan(state.fh && state.fh.items);
+
+  if (state.dh?.highAlert && Array.isArray(state.dh.highAlert)) {
+    state.dh.highAlert.forEach(d => {
+      positives.push(`داروی پرخطر: ${d.label || d.id}${d.detail ? ' (' + d.detail + ')' : ''}`);
+    });
+  }
+  if (state.ah?.selected && Array.isArray(state.ah.selected)) {
+    state.ah.selected.forEach(a => {
+      positives.push(`حساسیت دارویی: ${a.label || a.id}${a.detail ? ' (' + a.detail + ')' : ''}`);
+    });
+  }
+
+  return {
+    positiveFindingsList: positives.join(' | ') || 'یافته مثبت شاخصی ثبت نشده',
+    negativeFindingsList: negatives.join(' | ') || 'یافته منفی ردشده‌ای ثبت نشده',
+    positiveCount: positives.length,
+    negativeCount: negatives.length
+  };
+}
 
 export class GoogleSheetsSyncEngine {
   constructor() {
@@ -24,13 +84,15 @@ export class GoogleSheetsSyncEngine {
 
   loadConfig() {
     try {
-      const saved = localStorage.getItem(CONFIG_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          scriptUrl: (parsed.scriptUrl && parsed.scriptUrl.trim().length > 0) ? parsed.scriptUrl.trim() : DEFAULT_SCRIPT_URL,
-          collectorName: (parsed.collectorName || '').trim()
-        };
+      if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+        const saved = localStorage.getItem(CONFIG_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            scriptUrl: (parsed.scriptUrl && parsed.scriptUrl.trim().length > 0) ? parsed.scriptUrl.trim() : DEFAULT_SCRIPT_URL,
+            collectorName: (parsed.collectorName || '').trim()
+          };
+        }
       }
       return { scriptUrl: DEFAULT_SCRIPT_URL, collectorName: '' };
     } catch (e) {
@@ -44,7 +106,9 @@ export class GoogleSheetsSyncEngine {
       collectorName: (collectorName || '').trim()
     };
     try {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(this.config));
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(this.config));
+      }
     } catch (e) {
       console.warn('Failed to save Google Sheets config:', e);
     }
@@ -52,8 +116,11 @@ export class GoogleSheetsSyncEngine {
 
   loadQueue() {
     try {
-      const saved = localStorage.getItem(QUEUE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+        const saved = localStorage.getItem(QUEUE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      }
+      return [];
     } catch (e) {
       return [];
     }
@@ -61,7 +128,9 @@ export class GoogleSheetsSyncEngine {
 
   saveQueue() {
     try {
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
+      }
     } catch (e) {
       console.warn('Failed to save offline queue:', e);
     }
@@ -69,8 +138,11 @@ export class GoogleSheetsSyncEngine {
 
   loadStaged() {
     try {
-      const saved = localStorage.getItem(STAGED_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+        const saved = localStorage.getItem(STAGED_KEY);
+        return saved ? JSON.parse(saved) : [];
+      }
+      return [];
     } catch (e) {
       return [];
     }
@@ -78,7 +150,9 @@ export class GoogleSheetsSyncEngine {
 
   saveStaged() {
     try {
-      localStorage.setItem(STAGED_KEY, JSON.stringify(this.staged.slice(-50)));
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem(STAGED_KEY, JSON.stringify(this.staged.slice(-50)));
+      }
     } catch (e) {
       console.warn('Failed to save staged cases:', e);
     }
@@ -113,6 +187,7 @@ export class GoogleSheetsSyncEngine {
     const nowIso = new Date().toISOString();
     const vitals = clinicalState.pe?.vitals || {};
     const vitalsStr = `BP: ${vitals.bp || '—'} | PR: ${vitals.pr || '—'} | RR: ${vitals.rr || '—'} | Temp: ${vitals.temp || '—'} | SpO2: ${vitals.spo2 || '—'}`;
+    const detailedFindings = extractDetailedFindings(clinicalState);
 
     const payload = {
       action: 'record_case',
@@ -156,12 +231,23 @@ export class GoogleSheetsSyncEngine {
       spo2: vitals.spo2 || '',
 
       // Quantitative Findings Metrics
-      positiveFindingsCount: metadataSnapshot?.metrics?.positiveFindingsCount || 0,
-      positive_count: metadataSnapshot?.metrics?.positiveFindingsCount || 0,
-      negativeFindingsCount: metadataSnapshot?.metrics?.negativeFindingsCount || 0,
-      negative_count: metadataSnapshot?.metrics?.negativeFindingsCount || 0,
+      positiveFindingsCount: metadataSnapshot?.metrics?.positiveFindingsCount || detailedFindings.positiveCount,
+      positive_count: metadataSnapshot?.metrics?.positiveFindingsCount || detailedFindings.positiveCount,
+      negativeFindingsCount: metadataSnapshot?.metrics?.negativeFindingsCount || detailedFindings.negativeCount,
+      negative_count: metadataSnapshot?.metrics?.negativeFindingsCount || detailedFindings.negativeCount,
       labsRecordedCount: metadataSnapshot?.metrics?.labsRecordedCount || 0,
       labs_count: metadataSnapshot?.metrics?.labsRecordedCount || 0,
+
+      // Qualitative Detailed Findings Lists (Full textual items with inline details)
+      positiveFindingsList: detailedFindings.positiveFindingsList,
+      positive_findings: detailedFindings.positiveFindingsList,
+      positivesText: detailedFindings.positiveFindingsList,
+      positiveFindings: detailedFindings.positiveFindingsList,
+
+      negativeFindingsList: detailedFindings.negativeFindingsList,
+      negative_findings: detailedFindings.negativeFindingsList,
+      negativesText: detailedFindings.negativeFindingsList,
+      negativeFindings: detailedFindings.negativeFindingsList,
 
       // Generated Markdown Clinical Note
       fullClinicalNote: generatedNote || '',
@@ -214,7 +300,7 @@ export class GoogleSheetsSyncEngine {
     }
 
     // Check online status
-    if (!navigator.onLine) {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.onLine === false) {
       this.enqueue(payload);
       return {
         success: true,
