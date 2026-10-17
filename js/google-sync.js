@@ -15,9 +15,11 @@ export class GoogleSheetsSyncEngine {
     this.queue = this.loadQueue();
     this.staged = this.loadStaged();
 
-    window.addEventListener('online', () => {
-      this.flushQueue();
-    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.flushQueue();
+      });
+    }
   }
 
   loadConfig() {
@@ -105,21 +107,81 @@ export class GoogleSheetsSyncEngine {
    */
   async sendCase(clinicalState, generatedNote, metadataSnapshot) {
     const caseId = clinicalState.caseId || `SURG-${Date.now()}`;
+    const pathway = clinicalState.cc?.pathway || clinicalState.admissionPathway || 'emergency_symptom';
+    const chiefComplaint = clinicalState.cc?.patientQuote || clinicalState.cc?.selectedCategoryLabel || clinicalState.chiefComplaint || 'شکایت جراحی';
+    const collector = this.config.collectorName || 'پزشک ثبت‌کننده';
+    const nowIso = new Date().toISOString();
+    const vitals = clinicalState.pe?.vitals || {};
+    const vitalsStr = `BP: ${vitals.bp || '—'} | PR: ${vitals.pr || '—'} | RR: ${vitals.rr || '—'} | Temp: ${vitals.temp || '—'} | SpO2: ${vitals.spo2 || '—'}`;
+
     const payload = {
       action: 'record_case',
       schemaVersion: 'v0.4-Surg',
+
+      // Primary Identifiers
       caseId: caseId,
-      timestamp: new Date().toISOString(),
-      collectorName: this.config.collectorName || 'پزشک ثبت‌کننده',
-      admissionPathway: clinicalState.admissionPathway || '',
-      chiefComplaint: clinicalState.chiefComplaint || '',
+      case_id: caseId,
+      timestamp: nowIso,
+      date: nowIso,
+
+      // Collector Info
+      collectorName: collector,
+      collector_name: collector,
+      collector: collector,
+
+      // Patient Demographics
+      age: clinicalState.demographics?.age || '',
+      gender: clinicalState.demographics?.gender === 'female' ? 'زن' : 'مرد',
+      patientGender: clinicalState.demographics?.gender || 'male',
+      marital: clinicalState.demographics?.marital || '',
+      city: clinicalState.demographics?.city || '',
+      occupation: clinicalState.demographics?.occupation || '',
+
+      // Pathway & Chief Complaint
+      admissionPathway: pathway === 'clinic_referral' ? 'درمانگاه (الکتیو)' : 'اورژانس',
+      admission_pathway: pathway === 'clinic_referral' ? 'درمانگاه (الکتیو)' : 'اورژانس',
+      pathway: pathway,
+      chiefComplaint: chiefComplaint,
+      chief_complaint: chiefComplaint,
+      cc: chiefComplaint,
+      patientQuote: clinicalState.cc?.patientQuote || '',
+      patient_quote: clinicalState.cc?.patientQuote || '',
+
+      // Physical Exam & Vitals
+      vitals: vitalsStr,
+      bp: vitals.bp || '',
+      pr: vitals.pr || '',
+      rr: vitals.rr || '',
+      temp: vitals.temp || '',
+      spo2: vitals.spo2 || '',
+
+      // Quantitative Findings Metrics
       positiveFindingsCount: metadataSnapshot?.metrics?.positiveFindingsCount || 0,
+      positive_count: metadataSnapshot?.metrics?.positiveFindingsCount || 0,
       negativeFindingsCount: metadataSnapshot?.metrics?.negativeFindingsCount || 0,
+      negative_count: metadataSnapshot?.metrics?.negativeFindingsCount || 0,
       labsRecordedCount: metadataSnapshot?.metrics?.labsRecordedCount || 0,
+      labs_count: metadataSnapshot?.metrics?.labsRecordedCount || 0,
+
+      // Generated Markdown Clinical Note
       fullClinicalNote: generatedNote || '',
+      clinical_note: generatedNote || '',
+      note: generatedNote || '',
+
+      // Status
+      review_status: 'approved',
+      reviewStatus: 'approved',
+      status: 'approved',
+
+      // Structured JSON Data
       semanticQualifiersJSON: JSON.stringify(metadataSnapshot?.semanticQualifiers || []),
+      semantic_qualifiers: JSON.stringify(metadataSnapshot?.semanticQualifiers || []),
       systemGapsJSON: JSON.stringify(metadataSnapshot?.systemGapsLogged || []),
-      rawStateJSON: JSON.stringify(clinicalState)
+      system_gaps: JSON.stringify(metadataSnapshot?.systemGapsLogged || []),
+      rawStateJSON: JSON.stringify(clinicalState),
+      record_json: clinicalState,
+      record: clinicalState,
+      clinicalState: clinicalState
     };
 
     // Keep in local staged history
