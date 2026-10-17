@@ -173,6 +173,15 @@ export class GoogleSheetsSyncEngine {
       reviewStatus: 'approved',
       status: 'approved',
 
+      // Pre-formatted Column Summaries for Google Sheets
+      timestampFormatted: new Date().toLocaleDateString('fa-IR') + ' ' + new Date().toLocaleTimeString('fa-IR'),
+      maritalCity: `${clinicalState.demographics?.marital || '—'} / ${clinicalState.demographics?.city || '—'}`,
+      painSeverityDuration: `شدت: ${clinicalState.hpi?.severity || '—'}/10 | مدت: ${clinicalState.hpi?.duration || '—'}`,
+      painRegionPattern: `${(clinicalState.hpi?.selectedRegions || []).join('، ') || '—'} (${clinicalState.hpi?.spatialPattern || 'لوکالیزه'})`,
+      systemGapsSummary: (metadataSnapshot?.systemGapsLogged || []).map(g => `[${g.section}]: ${g.note}`).join(' | ') || 'ندارد',
+      semanticQualifiersSummary: (metadataSnapshot?.semanticQualifiers || []).map(s => typeof s === 'object' ? (s.value || s.label || JSON.stringify(s)) : s).join('، ') || '—',
+      rawJsonString: JSON.stringify(clinicalState, null, 2),
+
       // Structured JSON Data
       semanticQualifiersJSON: JSON.stringify(metadataSnapshot?.semanticQualifiers || []),
       semantic_qualifiers: JSON.stringify(metadataSnapshot?.semanticQualifiers || []),
