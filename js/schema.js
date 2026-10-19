@@ -524,15 +524,15 @@ export const SURGICAL_SCHEMA = {
   ],
 
   abdominalRegions: [
-    { id: 'epigastric', label: 'اپیگاستر (Epigastric)' },
-    { id: 'periumbilical', label: 'دور ناف (Periumbilical)' },
-    { id: 'suprapubic', label: 'سوپراپوبیک (Suprapubic)' },
-    { id: 'ruq', label: 'RUQ (رباع فوقانی راست)' },
-    { id: 'rlq', label: 'RLQ (رباع تحتانی راست)' },
-    { id: 'luq', label: 'LUQ (رباع فوقانی چپ)' },
-    { id: 'llq', label: 'LLQ (رباع تحتانی چپ)' },
-    { id: 'right_flank', label: 'پهلوی راست (Right Flank)' },
-    { id: 'left_flank', label: 'پهلوی چپ (Left Flank)' }
+    { id: 'ruq', label: 'RUQ (فوقانی راست)', code: 'RUQ', fa: 'فوقانی راست' },
+    { id: 'epigastric', label: 'اپی‌گاستر (Epigastric)', code: 'Epigastric', fa: 'اپی‌گاستر' },
+    { id: 'luq', label: 'LUQ (فوقانی چپ)', code: 'LUQ', fa: 'فوقانی چپ' },
+    { id: 'right_flank', label: 'پهلوی راست (Right Flank)', code: 'R-Flank', fa: 'پهلوی راست' },
+    { id: 'periumbilical', label: 'دور ناف (Periumbilical)', code: 'Umbilical', fa: 'دور ناف' },
+    { id: 'left_flank', label: 'پهلوی چپ (Left Flank)', code: 'L-Flank', fa: 'پهلوی چپ' },
+    { id: 'rlq', label: 'RLQ (تحتانی راست)', code: 'RLQ', fa: 'تحتانی راست' },
+    { id: 'suprapubic', label: 'سوپراپوبیک (Suprapubic)', code: 'Suprapubic', fa: 'سوپراپوبیک' },
+    { id: 'llq', label: 'LLQ (تحتانی چپ)', code: 'LLQ', fa: 'تحتانی چپ' }
   ],
 
   radiationSites: [

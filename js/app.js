@@ -810,6 +810,11 @@ function renderPainRegionsForEpisode(cardElement, pain) {
     grid.className = 'abdominal-matrix-grid';
     renderRegionButtonsIntoGrid(grid, pain.selectedRegions || [], (newArr) => {
       pain.selectedRegions = newArr;
+      const regLabels = newArr.map((id) => {
+        const r = SURGICAL_SCHEMA.abdominalRegions.find((x) => x.id === id);
+        return r ? r.label : id;
+      });
+      pain.site = regLabels.join(' و ');
       saveCurrentCase();
       updateLivePreview();
     });
@@ -824,9 +829,15 @@ function renderRegionButtonsIntoGrid(gridElement, selectedArray, onChange) {
     const isAct = selectedArray.includes(reg.id);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `region-cell-btn ${isAct ? 'active' : ''}`;
-    btn.textContent = reg.label;
-    btn.addEventListener('click', () => {
+    btn.className = `matrix-cell-btn region-cell-btn ${isAct ? 'active' : ''}`;
+    btn.setAttribute('data-region-id', reg.id);
+    btn.title = reg.label;
+    btn.innerHTML = `
+      <span class="cell-code">${reg.code || reg.id.toUpperCase()}</span>
+      <span class="cell-fa">${reg.fa || reg.label}</span>
+    `;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       let updated = [];
       if (selectedArray.includes(reg.id)) {
         updated = selectedArray.filter((x) => x !== reg.id);
