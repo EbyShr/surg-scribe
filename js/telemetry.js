@@ -1,7 +1,7 @@
 /**
- * ClinicalCaseAnalytics - Surg-Scribe v0.4-Surg
- * Lightweight, timer-free case analytics and structured metadata extractor.
- * Extracts positive/negative finding counts, semantic qualifiers, and system gap logs.
+ * ClinicalCaseAnalytics - Surg-Scribe v0.5-Surg
+ * Case analytics, structured metadata extractor and system gap logger.
+ * Handles positive/negative findings metrics, lab metrics, and system gaps.
  */
 
 export class ClinicalCaseAnalytics {
@@ -17,124 +17,171 @@ export class ClinicalCaseAnalytics {
       return { positiveCount, negativeCount, systemGaps };
     }
 
-    // Helper for tag collections with values +1 / -1
-    const scanTags = (obj, sectionName) => {
-      if (!obj || typeof obj !== 'object') return;
-      for (const [key, val] of Object.entries(obj)) {
-        if (key === 'systemGapNote' || key === 'notes' || key === 'detail' || key === 'note') {
-          if (typeof val === 'string' && val.trim().length > 0) {
-            systemGaps.push({ section: sectionName, field: key, note: val.trim() });
-          }
-          continue;
-        }
-        if (typeof val === 'object' && val !== null) {
-          const st = val.state !== undefined ? val.state : (val.status !== undefined ? val.status : val.value);
-          if (st === 1 || st === '+1') positiveCount++;
-          else if (st === -1 || st === '-1') negativeCount++;
-        } else if (val === 1 || val === '+1') {
-          positiveCount++;
-        } else if (val === -1 || val === '-1') {
-          negativeCount++;
-        }
+    const checkGap = (sec, val) => {
+      if (typeof val === 'string' && val.trim().length > 0) {
+        systemGaps.push({ section: sec, note: val.trim() });
       }
     };
 
-    // Scan HPI
+    // 1. Scan HPI
     if (clinicalState.hpi) {
-      if (clinicalState.hpi.symptoms) scanTags(clinicalState.hpi.symptoms, 'hpi_symptoms');
-      if (clinicalState.hpi.associatedSymptoms) scanTags(clinicalState.hpi.associatedSymptoms, 'hpi_associated');
-      if (clinicalState.hpi.systemGapNote && clinicalState.hpi.systemGapNote.trim().length > 0) {
-        systemGaps.push({ section: 'hpi', note: clinicalState.hpi.systemGapNote.trim() });
+      // Pain episodes
+      if (clinicalState.hpi.painList && Array.isArray(clinicalState.hpi.painList)) {
+        clinicalState.hpi.painList.forEach((p) => {
+          if (p.selectedRegions && p.selectedRegions.length > 0) positiveCount++;
+          if (p.radiationList && p.radiationList.length > 0) positiveCount += p.radiationList.length;
+          if (p.noRadiation) negativeCount++;
+          if (p.aggravating && p.aggravating.length > 0) positiveCount += p.aggravating.length;
+          if (p.relieving && p.relieving.length > 0) positiveCount += p.relieving.length;
+        });
       }
+
+      // Symptoms
+      if (clinicalState.hpi.symptoms && typeof clinicalState.hpi.symptoms === 'object') {
+        Object.values(clinicalState.hpi.symptoms).forEach((val) => {
+          const st = typeof val === 'object' && val !== null ? val.state : val;
+          if (st === 1 || st === '+1') positiveCount++;
+          else if (st === -1 || st === '-1') negativeCount++;
+        });
+      }
+
+      checkGap('hpi', clinicalState.hpi.systemGapNote);
     }
 
-    // Scan PMH, PSH, HH, DH, AH, SH, FH
-    ['pmh', 'psh', 'hh', 'dh', 'ah', 'sh', 'fh'].forEach((sec) => {
-      const data = clinicalState[sec];
-      if (data) {
-        if (data.items) scanTags(data.items, sec);
-        if (data.tags) scanTags(data.tags, sec);
-        if (data.highAlert && Array.isArray(data.highAlert)) {
-          positiveCount += data.highAlert.length;
-        }
-        if (data.selected && Array.isArray(data.selected)) {
-          positiveCount += data.selected.length;
-        }
-        if (data.systemGapNote && data.systemGapNote.trim().length > 0) {
-          systemGaps.push({ section: sec, note: data.systemGapNote.trim() });
-        }
+    // 2. Scan PMH (7 Tree Gatekeepers & Items)
+    if (clinicalState.pmh) {
+      if (clinicalState.pmh.masterRoutineNegative) {
+        negativeCount += 4; // DM, HTN, DLP, IHD
       }
-    });
+      if (clinicalState.pmh.categories && typeof clinicalState.pmh.categories === 'object') {
+        Object.values(clinicalState.pmh.categories).forEach((cat) => {
+          if (cat.status === 'negated') negativeCount++;
+          if (cat.items && typeof cat.items === 'object') {
+            Object.values(cat.items).forEach((val) => {
+              const st = typeof val === 'object' && val !== null ? val.state : val;
+              if (st === 1 || st === '+1') positiveCount++;
+              else if (st === -1 || st === '-1') negativeCount++;
+            });
+          }
+          if (cat.otherNote && cat.otherNote.trim()) positiveCount++;
+        });
+      }
+      if (clinicalState.pmh.items && typeof clinicalState.pmh.items === 'object') {
+        Object.values(clinicalState.pmh.items).forEach((val) => {
+          const st = typeof val === 'object' && val !== null ? val.state : val;
+          if (st === 1 || st === '+1') positiveCount++;
+          else if (st === -1 || st === '-1') negativeCount++;
+        });
+      }
+      checkGap('pmh', clinicalState.pmh.systemGapNote);
+    }
 
-    // Scan ROS
+    // 3. Scan PSH & Ob/Gyn
+    if (clinicalState.psh) {
+      if (clinicalState.psh.note && clinicalState.psh.note.trim()) positiveCount++;
+      checkGap('psh', clinicalState.psh.systemGapNote);
+    }
+
+    if (clinicalState.obgyn) {
+      if (clinicalState.obgyn.pregnancies && Array.isArray(clinicalState.obgyn.pregnancies)) {
+        positiveCount += clinicalState.obgyn.pregnancies.length;
+      }
+      checkGap('obgyn', clinicalState.obgyn.systemGapNote);
+    }
+
+    // 4. Scan DH (5 Categories & Custom Drugs)
+    if (clinicalState.dh) {
+      if (clinicalState.dh.categories && typeof clinicalState.dh.categories === 'object') {
+        Object.values(clinicalState.dh.categories).forEach((cat) => {
+          if (cat.drugs && typeof cat.drugs === 'object') {
+            Object.values(cat.drugs).forEach((drug) => {
+              if (drug && (drug.active || drug === true)) positiveCount++;
+            });
+          }
+        });
+      }
+      if (clinicalState.dh.customDrugs && Array.isArray(clinicalState.dh.customDrugs)) {
+        positiveCount += clinicalState.dh.customDrugs.length;
+      }
+      if (clinicalState.dh.highAlert && Array.isArray(clinicalState.dh.highAlert)) {
+        positiveCount += clinicalState.dh.highAlert.length;
+      }
+      checkGap('dh', clinicalState.dh.systemGapNote);
+    }
+
+    // 5. Scan AH, SH, FH
+    if (clinicalState.ah) {
+      if (clinicalState.ah.nkda) negativeCount++;
+      if (clinicalState.ah.selected && Array.isArray(clinicalState.ah.selected)) {
+        positiveCount += clinicalState.ah.selected.length;
+      }
+      checkGap('ah', clinicalState.ah.systemGapNote);
+    }
+
+    if (clinicalState.sh) {
+      if (clinicalState.sh.cigsPerDay && Number(clinicalState.sh.cigsPerDay) > 0) positiveCount++;
+      if (clinicalState.sh.opium && clinicalState.sh.opium.trim()) positiveCount++;
+      checkGap('sh', clinicalState.sh.systemGapNote);
+    }
+
+    if (clinicalState.fh) {
+      if (clinicalState.fh.selected && Array.isArray(clinicalState.fh.selected)) {
+        positiveCount += clinicalState.fh.selected.length;
+      }
+      checkGap('fh', clinicalState.fh.systemGapNote);
+    }
+
+    // 6. Scan ROS
     if (clinicalState.ros) {
-      if (clinicalState.ros.items) scanTags(clinicalState.ros.items, 'ros');
-      for (const [sysKey, sysVal] of Object.entries(clinicalState.ros)) {
-        if (sysKey === 'systemGapNote') {
-          if (typeof sysVal === 'string' && sysVal.trim().length > 0) {
-            systemGaps.push({ section: 'ros', note: sysVal.trim() });
-          }
-        } else if (sysKey !== 'items' && typeof sysVal === 'object' && sysVal !== null) {
-          scanTags(sysVal, `ros_${sysKey}`);
-        }
+      if (clinicalState.ros.items && typeof clinicalState.ros.items === 'object') {
+        Object.values(clinicalState.ros.items).forEach((val) => {
+          const st = typeof val === 'object' && val !== null ? val.state : val;
+          if (st === 1 || st === '+1') positiveCount++;
+          else if (st === -1 || st === '-1') negativeCount++;
+        });
       }
+      checkGap('ros', clinicalState.ros.systemGapNote);
     }
 
-    // Scan PE
+    // 7. Scan PE
     if (clinicalState.pe) {
-      if (clinicalState.pe.findings) scanTags(clinicalState.pe.findings, 'pe_findings');
-      for (const [peSecKey, peSecVal] of Object.entries(clinicalState.pe)) {
-        if (peSecKey === 'systemGapNote') {
-          if (typeof peSecVal === 'string' && peSecVal.trim().length > 0) {
-            systemGaps.push({ section: 'pe', note: peSecVal.trim() });
-          }
-        } else if (peSecKey !== 'findings' && peSecKey !== 'vitals' && typeof peSecVal === 'object' && peSecVal !== null) {
-          scanTags(peSecVal, `pe_${peSecKey}`);
-        }
+      if (clinicalState.pe.findings && typeof clinicalState.pe.findings === 'object') {
+        Object.values(clinicalState.pe.findings).forEach((val) => {
+          const st = typeof val === 'object' && val !== null ? val.state : val;
+          if (st === 1 || st === '+1') positiveCount++;
+          else if (st === -1 || st === '-1') negativeCount++;
+        });
       }
+      checkGap('pe', clinicalState.pe.systemGapNote);
     }
 
-    // Scan Paraclinics imaging
+    // 8. Scan Paraclinics
     if (clinicalState.paraclinics) {
       if (clinicalState.paraclinics.imagingReports && Array.isArray(clinicalState.paraclinics.imagingReports)) {
         clinicalState.paraclinics.imagingReports.forEach((rep) => {
           if (rep.tags && Array.isArray(rep.tags)) {
             positiveCount += rep.tags.length;
           }
+          if (rep.summary && rep.summary.trim()) {
+            positiveCount++;
+          }
         });
       }
-      if (clinicalState.paraclinics.systemGapNote && clinicalState.paraclinics.systemGapNote.trim().length > 0) {
-        systemGaps.push({ section: 'paraclinics', note: clinicalState.paraclinics.systemGapNote.trim() });
-      }
+      checkGap('paraclinics', clinicalState.paraclinics.systemGapNote);
     }
 
     return { positiveCount, negativeCount, systemGaps };
   }
 
   /**
-   * Build complete metadata snapshot for a clinical case (used by JSON export and Google Sheets sync)
+   * Build complete metadata snapshot for a clinical case
    */
   static buildMetadataSnapshot(clinicalState, collectorName = '') {
     const { positiveCount, negativeCount, systemGaps } = this.analyzeState(clinicalState);
 
-    // Semantic qualifiers selected
-    const semanticQualifiersSelected = [];
-    if (clinicalState?.reasoning?.selectedSQs && Array.isArray(clinicalState.reasoning.selectedSQs)) {
-      clinicalState.reasoning.selectedSQs.forEach((sq) => {
-        semanticQualifiersSelected.push({ value: sq });
-      });
-    } else if (clinicalState?.semanticQualifiers) {
-      for (const [category, val] of Object.entries(clinicalState.semanticQualifiers)) {
-        if (val && typeof val === 'string' && val.trim().length > 0) {
-          semanticQualifiersSelected.push({ category, value: val.trim() });
-        }
-      }
-    }
-
-    // Check lab data
     let labCount = 0;
     if (clinicalState?.paraclinics?.labs) {
-      for (const [k, v] of Object.entries(clinicalState.paraclinics.labs)) {
+      for (const [_, v] of Object.entries(clinicalState.paraclinics.labs)) {
         if (v !== undefined && v !== null && v !== '') {
           labCount++;
         }
@@ -142,7 +189,7 @@ export class ClinicalCaseAnalytics {
     }
 
     return {
-      schemaVersion: 'v0.4-Surg',
+      schemaVersion: 'v0.5-Surg',
       exportedAt: new Date().toISOString(),
       caseId: clinicalState?.caseId || `SURG-${Date.now()}`,
       collector: collectorName || clinicalState?.collectorName || 'anonymous',
@@ -155,13 +202,11 @@ export class ClinicalCaseAnalytics {
         systemGapsLoggedCount: systemGaps.length,
         freeTextFallbackTriggered: systemGaps.length > 0
       },
-      semanticQualifiers: semanticQualifiersSelected,
       systemGapsLogged: systemGaps
     };
   }
 }
 
-// Backwards-compatible shim in case any component calls methods of ClinicalTelemetryEngine
 export class ClinicalTelemetryEngine {
   constructor() {
     this.currentSection = null;

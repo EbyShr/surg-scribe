@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.4-Surg</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.5-Surg</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.4">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.5-Surg">
 
   <!-- Fonts: Vazirmatn & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,12 +28,12 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.4-Surg</span>
+        <span class="version-pill">v0.5-Surg</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-        <span class="id-text" id="headerCaseId">SURG-20261017-001</span>
+        <span class="id-text" id="headerCaseId">SURG-20261019-001</span>
       </div>
 
       <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید">
@@ -48,17 +48,17 @@
           <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" />
         </div>
 
-        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets">
+        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets (حذف خودکار اطلاعات هویتی حساس)">
           <span>📊</span>
           <span>ثبت در Google Sheets</span>
         </button>
 
-        <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین (ارسال خودکار به محض اتصال اینترنت)">
+        <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین">
           <span>📦 صف آفلاین:</span>
           <span id="offlineQueueCount" class="mono-num">0</span>
         </div>
 
-        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به Google Sheets (Apps Script Web App)">
+        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به Google Sheets">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
 
@@ -110,7 +110,7 @@
           </button>
           <button class="tab-btn" data-tab="tab-ros" role="tab">
             <span class="tab-num">۵</span>
-            <span>بررسی ۱۱ سیستم (ROS)</span>
+            <span>بررسی سیستم‌ها (ROS)</span>
           </button>
           <button class="tab-btn" data-tab="tab-pe" role="tab">
             <span class="tab-num">۶</span>
@@ -122,7 +122,7 @@
           </button>
           <button class="tab-btn" data-tab="tab-reasoning" role="tab">
             <span class="tab-num">۸</span>
-            <span>استدلال بالینی (SQ/DDx)</span>
+            <span>استدلال بالینی (DDx)</span>
           </button>
         </div>
       </nav>
@@ -130,38 +130,38 @@
       <!-- ================= TAB 1: پذیرش و CC ================= -->
       <section class="tab-pane active" id="tab-cc" data-section-id="cc_admission">
         
-        <div class="clinical-card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
-              <span>مسیر پذیرش بیمار (Admission Pathway)</span>
-            </div>
-          </div>
-          <div class="form-grid-2">
-            <label class="toggle-chip" id="chipPathwayEmergency">
-              <input type="radio" name="admissionPathway" value="emergency_symptom" checked style="display:none;">
-              <span>🚨 مراجعه با علامت حاد / اورژانس</span>
-            </label>
-            <label class="toggle-chip" id="chipPathwayClinic">
-              <input type="radio" name="admissionPathway" value="clinic_referral" style="display:none;">
-              <span>📋 ارجاع درمانگاه / بستری الکتیو</span>
-            </label>
-          </div>
-        </div>
-
+        <!-- مشخصات هویتی و بیمارستانی (PII) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
-              <span>مشخصات دموگرافیک (Demographics)</span>
+              <span>مشخصات هویتی بیمار (ویژه پرونده بیمارستان)</span>
+            </div>
+            <span class="card-badge" title="نام و تاریخ تولد هنگام ارسال به کلاد یا اکسل جهت حفظ حریم خصوصی به طور خودکار پاک می‌شوند">🛡️ سپر حریم خصوصی فعال</span>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">نام و نام خانوادگی بیمار</label>
+              <input type="text" class="input-text" id="demoFullName" placeholder="مثلاً علی رضایی">
+            </div>
+            <div class="form-group">
+              <label class="form-label">نام پدر</label>
+              <input type="text" class="input-text" id="demoFatherName" placeholder="مثلاً حسین">
+            </div>
+            <div class="form-group">
+              <label class="form-label">تاریخ تولد</label>
+              <input type="text" class="input-text dir-ltr" id="demoBirthDate" placeholder="مثلاً 1358/04/12">
             </div>
           </div>
-          <div class="form-grid-3">
+
+          <div class="form-grid-3" style="margin-top: 0.5rem;">
             <div class="form-group">
               <label class="form-label">جنسیت</label>
               <select class="input-select" id="demoGender">
-                <option value="male">آقا (مرد)</option>
                 <option value="female">خانم (زن)</option>
+                <option value="male">آقا (مرد)</option>
+                <option value="other">سایر / ترنس (نمایش تمام منوها)</option>
               </select>
             </div>
             <div class="form-group">
@@ -177,14 +177,15 @@
               </select>
             </div>
           </div>
-          <div class="form-grid-3">
+
+          <div class="form-grid-3" style="margin-top: 0.5rem;">
             <div class="form-group">
               <label class="form-label">شهر محل سکونت / اصالت</label>
               <input type="text" class="input-text" id="demoCity" placeholder="مثلاً تهران">
             </div>
             <div class="form-group">
               <label class="form-label">شغل بیمار</label>
-              <input type="text" class="input-text" id="demoOccupation" placeholder="مثلاً کارمند، بازنشسته">
+              <input type="text" class="input-text" id="demoOccupation" placeholder="مثلاً کارمند، خانه‌دار">
             </div>
             <div class="form-group">
               <label class="form-label">منبع شرح‌حال (Informant)</label>
@@ -193,53 +194,67 @@
           </div>
         </div>
 
-        <div class="clinical-card" id="cardCCEmergency">
+        <!-- مسیر پذیرش بیمار -->
+        <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
-              <span>شکایت اصلی در مراجعه اورژانس (Chief Complaint)</span>
+              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
+              <span>مسیر پذیرش بیمار (Admission Pathway)</span>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">دسته‌بندی شکایت اصلی</label>
-            <div class="chips-container" id="ccCategoryChipsContainer"></div>
-          </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">شکایت اصلی از زبان بیمار</label>
-              <input type="text" class="input-text" id="ccPatientQuote" placeholder="مثلاً «درد شدید و ناگهانی دور ناف»">
-            </div>
-            <div class="form-group">
-              <label class="form-label">مدت زمان شروع تا مراجعه</label>
-              <input type="text" class="input-text" id="hpiDuration" placeholder="مثلاً ۱۲ ساعت">
-            </div>
+          <div class="form-grid-3">
+            <label class="toggle-chip" id="chipPathwayEmergency">
+              <input type="radio" name="admissionPathway" value="emergency_symptom" checked style="display:none;">
+              <span>🚨 اورژانس / علامت حاد</span>
+            </label>
+            <label class="toggle-chip" id="chipPathwayClinic">
+              <input type="radio" name="admissionPathway" value="clinic_referral" style="display:none;">
+              <span>📋 ارجاع درمانگاه / بستری الکتیو</span>
+            </label>
+            <label class="toggle-chip" id="chipPathwayPostop">
+              <input type="radio" name="admissionPathway" value="postop_complication" style="display:none;">
+              <span>🏥 عوارض پس از عمل / درن</span>
+            </label>
           </div>
         </div>
 
+        <!-- کادر شکایت اصلی خالص -->
+        <div class="clinical-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
+              <span>شکایت اصلی بیمار (Chief Complaint - CC)</span>
+            </div>
+            <span class="card-badge">صرفاً عبارت کوتاه شکایت اصلی</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">شکایت اصلی از زبان بیمار (صرفاً عبارت شکایت)</label>
+            <input type="text" class="input-text" id="ccPatientQuote" placeholder="مثلاً درد ربع تحتانی چپ شکم (LLQ) و درد پستان چپ">
+          </div>
+        </div>
+
+        <!-- فیلدهای تکمیلی ارجاع از درمانگاه -->
         <div class="clinical-card" id="cardCCReferral" style="display:none;">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
-              <span>اطلاعات بستری الکتیو و ارجاع از درمانگاه</span>
+              <span>اطلاعات ارجاع از درمانگاه و نامه بستری استاد</span>
             </div>
           </div>
           <div class="form-grid-3">
-            <div class="form-group">
-              <label class="form-label">تشخیص اولیه درمانگاه</label>
-              <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کوله‌سیستیت مزمن با سنگ کیسه صفرا">
-            </div>
             <div class="form-group">
               <label class="form-label">استاد محترم ارجاع‌دهنده</label>
               <input type="text" class="input-text" id="ccReferringAttending" placeholder="مثلاً دکتر احمدی">
             </div>
             <div class="form-group">
-              <label class="form-label">اقدام یا عمل جراحی برنامه‌ریزی‌شده</label>
+              <label class="form-label">تشخیص اولیه درمانگاه</label>
+              <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کله‌سیستیت مزمن با سنگ کیسه صفرا">
+            </div>
+            <div class="form-group">
+              <label class="form-label">عمل جراحی برنامه‌ریزی‌شده</label>
               <input type="text" class="input-text" id="ccPlannedProcedure" placeholder="مثلاً کله‌سیستکتومی لاپاروسکوپیک">
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">شکایت اولیه و علت مراجعه به درمانگاه</label>
-            <input type="text" class="input-text" id="ccReferralPatientQuote" placeholder="مثلاً دردهای مکرر پس از صرف غذای چرب از ۳ ماه قبل">
           </div>
         </div>
 
@@ -248,157 +263,55 @@
       <!-- ================= TAB 2: شرح بیماری فعلی (HPI) ================= -->
       <section class="tab-pane" id="tab-hpi" data-section-id="hpi">
         
-        <!-- OLDCARTS Core -->
+        <!-- کانون‌های درد چندگانه (Multi-Focal Dynamic Pain Cards) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-              <span>مشخصات علامت محوری (OLDCARTS)</span>
-            </div>
-          </div>
-          
-          <div class="form-grid-3">
-            <div class="form-group">
-              <label class="form-label">نحوه شروع (Onset)</label>
-              <select class="input-select" id="hpiOnset">
-                <option value="">-- انتخاب نحوه شروع --</option>
-                <option value="شروع ناگهانی (Sudden)">شروع ناگهانی (Sudden)</option>
-                <option value="شروع تدریجی (Gradual)">شروع تدریجی (Gradual)</option>
-                <option value="به دنبال تروما/وعده غذایی">به دنبال تروما/وعده غذایی</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">الگوی سیر (Course)</label>
-              <select class="input-select" id="hpiCourse">
-                <option value="">-- انتخاب الگوی سیر --</option>
-                <option value="ثابت و مداوم (Constant)">ثابت و مداوم (Constant)</option>
-                <option value="کولیکی و متناوب (Colicky)">کولیکی و متناوب (Colicky)</option>
-                <option value="پیشرونده و رو به تشدید (Progressive)">پیشرونده و رو به تشدید (Progressive)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">ماهیت علامت (Character)</label>
-              <select class="input-select" id="hpiCharacter">
-                <option value="">-- انتخاب ماهیت --</option>
-                <option value="تیز و خنجری (Sharp)">تیز و خنجری (Sharp)</option>
-                <option value="مبهم و فشاری (Dull/Crampy)">مبهم و فشاری (Dull/Crampy)</option>
-                <option value="سوزشی (Burning)">سوزشی (Burning)</option>
-                <option value="ضربان‌دار (Throbbing)">ضربان‌دار (Throbbing)</option>
-              </select>
+              <span>کانون‌های درد و شکایات محوری (Pain Episodes & Trajectory)</span>
             </div>
           </div>
 
-          <!-- Severity Slider -->
-          <div class="form-group">
-            <div class="form-label">
-              <span>شدت درد بر اساس معیار عددی (NRS Score)</span>
-              <span class="mono-num" id="hpiSeverityLabel">5 / 10</span>
-            </div>
-            <div class="severity-slider-container">
-              <span class="mono-num">0</span>
-              <input type="range" class="severity-slider" id="hpiSeverity" min="0" max="10" value="5">
-              <span class="mono-num">10</span>
-              <div class="severity-value-badge dir-ltr" id="hpiSeverityBadge">5 / 10</div>
-            </div>
-          </div>
+          <!-- Dynamic container for pain episode cards -->
+          <div id="painEpisodesContainer"></div>
+
+          <!-- Add new pain card button -->
+          <button type="button" class="btn-add-pain-card" id="btnAddPainEpisode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>➕ افزودن کانون درد / شکایت همزمان دیگر</span>
+          </button>
         </div>
 
-        <!-- NEW v0.2: Spatial-Temporal Pain Trajectory Mapper -->
-        <div class="clinical-card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg></span>
-              <span>الگوی فضایی-زمانی و محل درد شکم (Spatial-Temporal Pain Trajectory)</span>
-            </div>
-          </div>
-
-          <!-- 1. Spatial Pattern Selector -->
-          <div class="form-group">
-            <label class="form-label">الگوی انتشار فضایی-زمانی درد</label>
-            <div class="spatial-patterns-grid" id="painSpatialPatternsContainer"></div>
-          </div>
-
-          <!-- 2. Standard Multi-Select Regions (for Localized / Predominant) -->
-          <div class="form-group" id="containerStandardRegions">
-            <label class="form-label" id="labelStandardRegions">انتخاب نواحی آناتومیک درگیر (چند انتخابی)</label>
-            <div class="abdominal-matrix-grid" id="abdominalMatrixGrid"></div>
-          </div>
-
-          <!-- 3. Dynamic Trajectory Step Rows (for Localized to Generalized or Migratory Shifting) -->
-          <div id="containerTrajectorySteps" style="display:none; flex-direction:column; gap:0.75rem;">
-            <div class="trajectory-step-card">
-              <div class="trajectory-step-title">
-                <span>📍 ۱. محل(های) شروع اولیه درد (Initial Regions)</span>
-              </div>
-              <div class="abdominal-matrix-grid" id="abdominalInitialMatrixGrid"></div>
-            </div>
-            <div class="trajectory-step-card">
-              <div class="trajectory-step-title">
-                <span>🎯 ۲. محل(های) فعلی / ثانویه درد (Current / Secondary Regions)</span>
-              </div>
-              <div class="abdominal-matrix-grid" id="abdominalCurrentMatrixGrid"></div>
-            </div>
-          </div>
-
-          <!-- 4. Multi-Select Radiation Sites -->
-          <div class="form-group" style="margin-top:0.5rem;">
-            <label class="form-label">محل(های) انتشار درد (Radiation Sites)</label>
-            <div class="chips-container" id="radiationSitesContainer"></div>
-          </div>
-
-          <!-- NEW v0.3: Secondary Pain Focus / Concomitant Symptom -->
-          <div class="secondary-pain-card" id="secondaryPainCard">
-            <div class="secondary-pain-header" id="secondaryPainHeader">
-              <div class="secondary-pain-title">
-                <span>➕</span>
-                <span>ثبت درد دوم یا علامت همزمان در ناحیه دیگر (مثلاً درد کمر/لگن/پریود)</span>
-              </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSecondaryPain">افزودن</button>
-            </div>
-            <div class="secondary-pain-body" id="secondaryPainBody">
-              <div class="form-grid-3">
-                <div class="form-group">
-                  <label class="form-label">ناحیه درد دوم</label>
-                  <input type="text" class="input-text" id="secPainRegion" placeholder="مثلاً هیپوگاستر، کمر، لگن، پهلو...">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">ماهیت و زمان شروع</label>
-                  <input type="text" class="input-text" id="secPainCharacter" placeholder="مثلاً شروع همزمان، دردهای متناوب، سوزشی...">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">ارتباط با شکایت اصلی</label>
-                  <input type="text" class="input-text" id="secPainRelation" placeholder="مثلاً مستقل و همزمان با سیکل قاعدگی، انتشار ثانویه...">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- HPI Symptoms Grouped with Inline Detail Inputs -->
+        <!-- علائم همراه HPI: علائم پایه گوارشی و عمومی + ماژول‌های آنلاکشونده -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>
-              <span>علائم همراه HPI با کادر توضیح درجا (Inline Contextual Input)</span>
+              <span>علائم همراه HPI (معماری ماژولار Unlockable)</span>
             </div>
-            <span class="card-badge">تپ سه‌حالته: خنثی / + مثبت / − منفی</span>
+            <span class="card-badge">تپ: خنثی / + مثبت / − منفی</span>
           </div>
 
-          <div id="hpiSymptomGroupsContainer">
-            <!-- Dynamically rendered with inline inputs for each +1 tag -->
+          <div class="form-group">
+            <label class="form-label">علائم پایه گوارشی و عمومی (Basic GI & Constitutional)</label>
+            <div class="chips-container" id="hpiBasicSymptomsContainer"></div>
           </div>
+
+          <!-- نوار افزودن ماژول‌های قفل‌دار HPI -->
+          <div class="unlockable-modules-bar" id="hpiUnlockableModulesBar"></div>
+          <div id="hpiUnlockedModulesContainer"></div>
 
           <!-- System Gap Logger Box for HPI -->
           <div class="system-gap-box">
             <div class="system-gap-header">
-              <span class="system-gap-label">💡 افزودن مورد خارج از لیست HPI (ثبت در شرح‌حال + گزارش به توسعه‌دهنده)</span>
+              <span class="system-gap-label">💡 افزودن مورد خارج از لیست HPI (ثبت در شرح‌حال + گزارش)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
             <input type="text" class="system-gap-input" id="hpiSystemGapInput" placeholder="هرگونه علامت یا یافته HPI که در گزینه‌های بالا وجود نداشت...">
           </div>
         </div>
 
-        <!-- Pre-admission Workup & Narrative -->
+        <!-- سیر اقدامات و یادداشت روایی HPI -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
@@ -418,34 +331,38 @@
 
       </section>
 
-      <!-- ================= TAB 3: سوابق (PMH / PSH / HH) ================= -->
-      <section class="tab-pane" id="tab-pmh" data-section-id="pmh_psh_hh">
+      <!-- ================= TAB 3: سوابق (PMH / PSH) ================= -->
+      <section class="tab-pane" id="tab-pmh" data-section-id="pmh_psh">
         
-        <!-- PMH Card: Now 3-State with Inline Detail Inputs -->
+        <!-- PMH دسته‌بندی‌شده درختی (7 Tree Gatekeepers) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></span>
-              <span>سوابق بیماری‌های داخلی ۳ حالته (PMH) با توضیحات درجا</span>
+              <span>سوابق بیماری‌های داخلی درختی (PMH Categorized Gatekeepers)</span>
             </div>
-            <span class="card-badge">تپ: خنثی / + دارد (با کادر درجا) / − ندارد</span>
           </div>
 
-          <div class="chips-container" id="pmhChipsContainer">
-            <!-- Dynamically populated 3-state chips with inline detail inputs -->
-          </div>
+          <!-- دکمه نفی تمام بیماری‌های روتین -->
+          <button type="button" class="pmh-master-routine-btn" id="btnPmhMasterRoutineNegative">
+            <span id="pmhMasterNegIcon">−</span>
+            <span>نفی تمام بیماری‌های زمینه‌ای روتین (DM, HTN, DLP, IHD)</span>
+          </button>
+
+          <!-- 7 دروازه دسته‌بندی PMH -->
+          <div class="pmh-categories-wrapper" id="pmhCategoriesContainer"></div>
 
           <!-- Gap Logger for PMH -->
-          <div class="system-gap-box">
+          <div class="system-gap-box" style="margin-top: 0.75rem;">
             <div class="system-gap-header">
-              <span class="system-gap-label">💡 افزودن بیماری داخلی خارج از لیست (ثبت در شرح‌حال + گزارش)</span>
+              <span class="system-gap-label">💡 افزودن بیماری داخلی خارج از لیست (PMH Gap)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
             <input type="text" class="system-gap-input" id="pmhSystemGapInput" placeholder="هر بیماری داخلی که در گزینه‌های بالا وجود نداشت...">
           </div>
         </div>
 
-        <!-- PSH Card -->
+        <!-- PSH Card (ساده‌شده بدون کادر اضافه) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
@@ -455,47 +372,24 @@
           </div>
           <div class="form-group">
             <label class="form-label">نام اعمال جراحی قبلی، سال انجام، نوع بیهوشی و وجود اسکار</label>
-            <textarea class="input-textarea" id="pshNote" placeholder="مثلاً آپاندکتومی ۲۰ سال قبل با برش مک‌برنی، بدون عارضه بیهوشی"></textarea>
+            <textarea class="input-textarea" id="pshNote" placeholder="مثلاً کله‌سیستکتومی لاپاروسکوپیک ۲ سال قبل، بدون عارضه بیهوشی"></textarea>
           </div>
-          <!-- Gap Logger for PSH -->
           <div class="system-gap-box">
             <div class="system-gap-header">
-              <span class="system-gap-label">💡 ثبت عمل جراحی نادر یا خارج از لیست PSH</span>
+              <span class="system-gap-label">💡 ثبت عمل جراحی نادر یا عارضه بیهوشی خاص (PSH Gap)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
-            <input type="text" class="system-gap-input" id="pshSystemGapInput" placeholder="موارد نادر جراحی یا عوارض خاص بیهوشی...">
+            <input type="text" class="system-gap-input" id="pshSystemGapInput" placeholder="موارد نادر جراحی...">
           </div>
         </div>
 
-        <!-- HH Card -->
-        <div class="clinical-card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>
-              <span>سوابق بستری غیرجراحی و ترانسفوزیون (Hospitalization History - HH)</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">علل بستری قبلی و دریافت فرآورده‌های خونی (Packed Cell / FFP)</label>
-            <input type="text" class="input-text" id="hhNote" placeholder="مثلاً بستری به علت پنومونی ۵ سال قبل، عدم دریافت خون">
-          </div>
-          <!-- Gap Logger for HH -->
-          <div class="system-gap-box">
-            <div class="system-gap-header">
-              <span class="system-gap-label">💡 ثبت بستری غیرجراحی یا ترانسفوزیون خاص (HH Gap)</span>
-              <span class="system-gap-badge">System Gap Logger</span>
-            </div>
-            <input type="text" class="system-gap-input" id="hhSystemGapInput" placeholder="موارد خاص بستری...">
-          </div>
-        </div>
-
-        <!-- NEW v0.3: Ob/Gyn Card (Visible for Female Patients) -->
-        <div class="clinical-card obgyn-card" id="cardObGynHistory" style="display:none;">
+        <!-- Ob/Gyn Card (تطبیق با جنسیت + بارداری‌های ردیفی) -->
+        <div class="clinical-card obgyn-card" id="cardObGynHistory">
           <div class="card-header">
             <div class="card-title obgyn-title">
-              <span>🩺 سوابق زنان و مامایی (Ob/Gyn History - ویژه بانوان)</span>
+              <span>🩺 سوابق زنان و مامایی (Ob/Gyn History)</span>
             </div>
-            <span class="card-badge">GPAL & LMP</span>
+            <span class="card-badge">GPAL & بارداری‌های پویا</span>
           </div>
           <div class="obgyn-gpal-grid">
             <div class="form-group">
@@ -515,11 +409,12 @@
               <input type="number" class="input-text dir-ltr" id="obgynL" min="0" placeholder="0">
             </div>
           </div>
+
           <div class="form-grid-3">
             <div class="form-group">
               <label class="form-label">نوع زایمان‌های قبلی</label>
               <select class="input-select" id="obgynDeliveryType">
-                <option value="">-- نامشخص / سزارین / NVD --</option>
+                <option value="">-- انتخاب نوع زایمان --</option>
                 <option value="سزارین قبلی (C-Section)">سزارین قبلی (C-Section)</option>
                 <option value="زایمان طبیعی (NVD)">زایمان طبیعی (NVD)</option>
                 <option value="هر دو (NVD + C-Section)">هر دو (NVD + C-Section)</option>
@@ -531,43 +426,77 @@
               <input type="text" class="input-text" id="obgynLmp" placeholder="مثلاً ۲ هفته قبل / یائسه / همزمانی با درد">
             </div>
             <div class="form-group">
-              <label class="form-label">دیسمنوره / منوراژی</label>
+              <label class="form-label">دیسمنوره / اختلال قاعدگی</label>
               <select class="input-select" id="obgynDysmenorrhea">
-                <option value="">-- انتخاب --</option>
+                <option value="">-- انتخاب وضعیت --</option>
                 <option value="بدون دیسمنوره یا اختلال قاعدگی">بدون دیسمنوره یا اختلال قاعدگی</option>
                 <option value="سابقه دیسمنوره شدید">سابقه دیسمنوره شدید</option>
                 <option value="منوراژی / لکه‌بینی نامنظم">منوراژی / لکه‌بینی نامنظم</option>
               </select>
             </div>
           </div>
+
+          <!-- جدول بارداری‌های ساختاریافته پویا -->
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label class="form-label">جزئیات سوابق بارداری‌ها و زایمان‌ها (Dynamic Pregnancy Rows)</label>
+            <div style="overflow-x: auto;">
+              <table class="pregnancy-history-table">
+                <thead>
+                  <tr>
+                    <th>نتیجه بارداری</th>
+                    <th>روش زایمان/ختم</th>
+                    <th>سال یا تاریخ</th>
+                    <th>علت یا عوارض</th>
+                    <th style="width: 40px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="pregnancyHistoryTableBody"></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn-add-pregnancy" id="btnAddPregnancyRow">
+              <span>➕ افزودن سابقه بارداری / زایمان</span>
+            </button>
+          </div>
         </div>
 
       </section>
 
       <!-- ================= TAB 4: دارو، حساسیت و عادات (DH/AH/SH/FH) ================= -->
-      <section class="tab-pane" id="tab-dh" data-section-id="ah_dh_sh_fh">
+      <section class="tab-pane" id="tab-dh" data-section-id="dh_ah_sh_fh">
         
-        <!-- High-Alert Drugs Matrix with Inline Last Dose & Details -->
+        <!-- کاتالوگ دسته‌بندی‌شده داروها با ۳ کادر دوز و طریقه مصرف -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg></span>
-              <span>داروهای با هوشیاری بالا در جراحی (High-Alert Surgical Drugs)</span>
+              <span>سوابق دارویی دسته‌بندی‌شده (Drug History - DH) با دوز و نحوه مصرف</span>
             </div>
-            <span class="card-badge">انعقادی / استروئید / دیابت</span>
+            <span class="card-badge">دوز + نحوه مصرف + آخرین دوز</span>
           </div>
-          <div class="chips-container" id="dhHighAlertContainer"></div>
-          <div class="form-group">
-            <label class="form-label">سایر داروهای مصرفی روتین (دوز و ساعت مصرف)</label>
-            <input type="text" class="input-text" id="dhNote" placeholder="مثلاً آتورواستاتین ۲۰ شب‌ها، لوزارتان ۲۵ صبح‌ها">
+
+          <!-- ۵ دسته‌بندی دارویی -->
+          <div id="dhCategoriesContainer"></div>
+
+          <!-- داروهای دستی اضافه شده -->
+          <div id="dhCustomDrugsContainer"></div>
+
+          <button type="button" class="btn-add-custom-drug" id="btnAddCustomDrug">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>➕ افزودن داروی دستی (با دوز و طریقه مصرف)</span>
+          </button>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <label class="form-label">توضیحات تکمیلی داروهای مصرفی</label>
+            <input type="text" class="input-text" id="dhNote" placeholder="هرگونه نکته خاص در مورد داروها یا زمان قطع قبل از عمل...">
           </div>
+
           <!-- Gap Logger for DH -->
           <div class="system-gap-box">
             <div class="system-gap-header">
-              <span class="system-gap-label">💡 افزودن داروی پرخطر جراحی خارج از لیست (DH Gap)</span>
+              <span class="system-gap-label">💡 افزودن داروی خاص خارج از لیست (DH Gap)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
-            <input type="text" class="system-gap-input" id="dhSystemGapInput" placeholder="هر داروی پرخطر جراحی که در لیست نبود...">
+            <input type="text" class="system-gap-input" id="dhSystemGapInput" placeholder="هر داروی مصرفی که در لیست نبود...">
           </div>
         </div>
 
@@ -578,7 +507,7 @@
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
               <span>سوابق حساسیت‌ها (Allergy History - AH)</span>
             </div>
-            <button class="btn btn-secondary btn-sm" id="btnToggleNKDA">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnToggleNKDA">
               <span id="nkdaCheckIcon">◻️</span>
               <span>حساسیت شناخته‌شده‌ای ندارد (NKDA)</span>
             </button>
@@ -587,7 +516,7 @@
             <div class="chips-container" id="ahTemplatesContainer"></div>
             <div class="form-group" style="margin-top: 0.5rem;">
               <label class="form-label">توضیح نوع واکنش آلرژیک</label>
-              <input type="text" class="input-text" id="ahNote" placeholder="مثلاً راش خارش‌دار پوستی به پنیسیلین">
+              <input type="text" class="input-text" id="ahNote" placeholder="مثلاً راش خارش‌دار به پنی‌سیلین">
             </div>
           </div>
           <!-- Gap Logger for AH -->
@@ -620,17 +549,17 @@
             </div>
             <div class="form-group">
               <label class="form-label">مصرف تریاک / اپیوم / سایر مواد</label>
-              <input type="text" class="input-text" id="shOpium" placeholder="مثلاً تدخین تریاک گهگاه / خیر">
+              <input type="text" class="input-text" id="shOpium" placeholder="مثلاً عدم مصرف / تدخین گهگاه تریاک">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">سایر عادات و سوابق اجتماعی</label>
-            <input type="text" class="input-text" id="shNote" placeholder="مثلاً عدم مصرف الکل، بدون سابقه سفر خارجی اخیر">
+            <input type="text" class="input-text" id="shNote" placeholder="مثلاً عدم مصرف الکل، بدون سفر خارجی اخیر">
           </div>
           <!-- Gap Logger for SH -->
           <div class="system-gap-box">
             <div class="system-gap-header">
-              <span class="system-gap-label">💡 ثبت عادت یا ماده مصرفی خارج از لیست (SH Gap)</span>
+              <span class="system-gap-label">💡 ثبت عادت یا سم شغلی خارج از لیست (SH Gap)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
             <input type="text" class="system-gap-input" id="shSystemGapInput" placeholder="مواد، سموم شغلی یا سایر عادات...">
@@ -642,7 +571,7 @@
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-              <span>سوابق خانوادگی (Family History - FH) با کادر درجا</span>
+              <span>سوابق خانوادگی (Family History - FH)</span>
             </div>
           </div>
           <div class="chips-container" id="fhChipsContainer"></div>
@@ -662,24 +591,28 @@
 
       </section>
 
-      <!-- ================= TAB 5: بررسی ۱۱ سیستم (ROS) ================= -->
+      <!-- ================= TAB 5: بررسی سیستم‌ها (ROS) ================= -->
       <section class="tab-pane" id="tab-ros" data-section-id="ros">
         
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-              <span>بررسی ۱۱ سیستم کامل بدن (Review of Systems - ROS) با کادر درجا</span>
+              <span>بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد</span>
             </div>
-            <button class="btn btn-secondary btn-sm" id="btnRosMasterNegative">
-              <span id="rosMasterIcon">−</span>
-              <span id="rosMasterText">منفی کردن تمام گزینه‌های باقی‌مانده</span>
-            </button>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <button type="button" class="gender-filter-toggle" id="btnToggleRosGenderFilter" title="نمایش تمام آیتم‌ها بدون فیلتر جنسیت">
+                <span id="rosGenderFilterIcon">🔒</span>
+                <span id="rosGenderFilterText">فیلتر جنسیت فعال</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRosMasterNegative">
+                <span id="rosMasterIcon">−</span>
+                <span id="rosMasterText">منفی کردن تمام گزینه‌های باقی‌مانده</span>
+              </button>
+            </div>
           </div>
 
-          <div id="rosGroupsAccordion">
-            <!-- Dynamically populated from schema.js rosGroups (11 systems) with inline detail inputs -->
-          </div>
+          <div id="rosGroupsAccordion"></div>
 
           <!-- Gap Logger for ROS -->
           <div class="system-gap-box">
@@ -696,12 +629,14 @@
       <!-- ================= TAB 6: معاینه فیزیکی (PE) ================= -->
       <section class="tab-pane" id="tab-pe" data-section-id="pe">
         
+        <!-- علائم حیاتی و وضعیت ناشتایی (با ذخیره پایدار Vitals Persistence) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></span>
               <span>علائم حیاتی و وضعیت ناشتایی (Vitals & NPO)</span>
             </div>
+            <span class="card-badge">ثبت و ذخیره فوری</span>
           </div>
           <div class="form-grid-3">
             <div class="form-group">
@@ -717,7 +652,7 @@
               <input type="number" class="input-text dir-ltr" id="peVitalsRr" placeholder="18">
             </div>
           </div>
-          <div class="form-grid-3">
+          <div class="form-grid-3" style="margin-top: 0.5rem;">
             <div class="form-group">
               <label class="form-label">درجه حرارت (Temp °C)</label>
               <input type="text" class="input-text dir-ltr" id="peVitalsTemp" placeholder="37.2">
@@ -733,24 +668,33 @@
           </div>
         </div>
 
+        <!-- معاینه فیزیکی: ۵ ستون الزامی (شامل ۴ رکن معاینه شکم) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
-              <span>یافته‌های معاینه بالینی (PE Findings) با کپسول‌های مستقیم</span>
+              <span>معاینه فیزیکی الزامی (تفکیک ۴ رکن معاینه شکم: مشاهده، سمع، دق، لمس)</span>
             </div>
-            <button class="btn btn-secondary btn-sm" id="btnPeMasterNegative">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPeMasterNegative">
               <span id="peMasterIcon">−</span>
               <span id="peMasterText">منفی کردن تمام معاینات باقی‌مانده</span>
             </button>
           </div>
 
-          <div id="peSubsystemsAccordion">
-            <!-- Dynamically populated or accordion-wrapped 5 PE subsystems -->
+          <!-- ستون‌های ۵ گانه الزامی -->
+          <div id="peMandatoryPillarsContainer"></div>
+
+          <!-- ۵ ماژول معاینه موضعی قابل آنلاک توسط اپراتور -->
+          <div style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">
+            <label class="form-label" style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+              ➕ ماژول‌های معاینه موضعی تخصصی (صرفاً در صورت انجام آنلاک شوند):
+            </label>
+            <div class="unlockable-modules-bar" id="peUnlockableModulesBar"></div>
+            <div id="peUnlockedModulesContainer"></div>
           </div>
 
           <div class="form-group" style="margin-top: 0.75rem;">
-            <label class="form-label">توضیحات تکمیلی معاینه</label>
+            <label class="form-label">توضیحات تکمیلی معاینه فیزیکی</label>
             <textarea class="input-textarea" id="peNote" placeholder="توضیحات تکمیلی یافته‌های بالینی..."></textarea>
           </div>
 
@@ -769,34 +713,39 @@
       <!-- ================= TAB 7: پاراکلینیک جامع ================= -->
       <section class="tab-pane" id="tab-paraclinics" data-section-id="paraclinics">
         
-        <!-- Labs & Enzymes Table -->
+        <!-- Labs & Enzymes Panels -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg></span>
               <span>۶ پنل آزمایشگاهی استاندارد جراحی (Lab Panels)</span>
             </div>
-            <span class="card-badge">هشدار ↑ High و ↓ Low</span>
+            <span class="card-badge">هشدار خودکار ↑ High و ↓ Low</span>
           </div>
 
           <div id="paraclinicLabPanelsContainer"></div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 0.75rem;">
             <label class="form-label">سایر آزمایش‌ها (ABG، آنالیز ادرار U/A، کشت و تست‌های سرولوژی)</label>
             <input type="text" class="input-text" id="paraclinicLabNote" placeholder="مثلاً U/A: WBC 20-25, RBC 4-6 | ABG: pH 7.34, HCO3 19, Lactate 2.8">
           </div>
         </div>
 
-        <!-- Imaging Modalities with Inline Details -->
+        <!-- تصویربرداری: نوار لانچر فشرده مدالیته‌ها + کارتهای چندگانه -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
-              <span>تصویربرداری، اسکوپی و پاتولوژی با کادر توضیح درجا (Imaging & Procedures)</span>
+              <span>تصویربرداری، اسکوپی و پاتولوژی (Compact Modality Launcher)</span>
             </div>
+            <span class="card-badge">قابلیت ثبت چند نوبت از هر مدالیته</span>
           </div>
 
-          <div id="imagingModalitiesContainer"></div>
+          <!-- نوار فشرده انتخاب مدالیته -->
+          <div class="modality-launcher-bar" id="modalityLauncherBar"></div>
+
+          <!-- لیست کارتهای ایجاد شده برای گزارش‌های تصویربرداری -->
+          <div id="imagingReportsListContainer"></div>
 
           <!-- Gap Logger for Paraclinics -->
           <div class="system-gap-box">
@@ -804,34 +753,22 @@
               <span class="system-gap-label">💡 افزودن تست آزمایشگاهی یا تصویربرداری خارج از لیست</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
-            <input type="text" class="system-gap-input" id="paraclinicSystemGapInput" placeholder="آزمایش خاص، مدالیته دیگر (MRI/MRCP، اسکن رادیوایزوتوپ و...)...">
+            <input type="text" class="system-gap-input" id="paraclinicSystemGapInput" placeholder="آزمایش خاص، اسکن رادیوایزوتوپ و...">
           </div>
         </div>
 
       </section>
 
-      <!-- ================= TAB 8: استدلال بالینی (SQ & DDx) ================= -->
-      <section class="tab-pane" id="tab-reasoning" data-section-id="reasoning_sq">
+      <!-- ================= TAB 8: استدلال بالینی (DDx & Plan) ================= -->
+      <section class="tab-pane" id="tab-reasoning" data-section-id="reasoning">
         
-        <div class="clinical-card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14h-2v-2h2zm0-4h-2V7h2z"></path></svg></span>
-              <span>توصیفگرهای معنایی (Semantic Qualifiers - SQs)</span>
-            </div>
-            <span class="card-badge">چارچوب استدلال شناختی بالینی</span>
-          </div>
-
-          <div id="sqPairsContainer"></div>
-        </div>
-
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>
               <span>بازنمایی مسئله (Problem Representation)</span>
             </div>
-            <button class="btn btn-primary btn-sm" id="btnAutoGeneratePR">
+            <button type="button" class="btn btn-primary btn-sm" id="btnAutoGeneratePR">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
               <span>تولید هوشمند بازنمایی مسئله</span>
             </button>
@@ -839,12 +776,12 @@
 
           <div class="form-group">
             <label class="form-label">جمله محوری بازنمایی بالینی مسئله (One-Sentence Summary)</label>
-            <textarea class="input-textarea" id="reasoningProblemRep" placeholder="جمله موجز و دقیق شامل سن، جنسیت، توصیفگرهای زمانی، علائم اصلی مثبت و نکات ردشده..."></textarea>
+            <textarea class="input-textarea" id="reasoningProblemRep" placeholder="جمله موجز و دقیق شامل سن، جنسیت، علائم محوری مثبت، غیاب علائم کلیدی و آزمایش‌های شاخص..."></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label">تشخیص‌های افتراقی اولویت‌بندی‌شده (Differential Diagnoses - DDx) و پلن اولیه</label>
-            <textarea class="input-textarea" id="reasoningDdx" style="min-height: 100px;" placeholder="۱. تشخیص محتمل اول (Most Likely)&#10;۲. سناریوهای پرخطر که باید رد شوند (Can't Miss)&#10;۳. اقدامات تشخیصی یا درمانی اولیه (NPO، مایع‌درمانی، رزرو خون، مشاوره بیهوشی)..."></textarea>
+            <label class="form-label">تشخیص‌های افتراقی اولویت‌بندی‌شده (Differential Diagnoses - DDx) و پلن اولیه جراحی</label>
+            <textarea class="input-textarea" id="reasoningDdx" style="min-height: 120px;" placeholder="۱. تشخیص محتمل اول (Most Likely)&#10;۲. سناریوهای پرخطر که باید رد شوند (Can't Miss)&#10;۳. اقدامات تشخیصی یا درمانی اولیه (NPO، مایع‌درمانی، رزرو خون، مشاوره بیهوشی)..."></textarea>
           </div>
         </div>
 
@@ -862,9 +799,6 @@
           <span class="stat-pill neg" title="نکات منفی کلیدی (Pertinent Negatives)">
             <span>−</span><span id="badgeNegCount" class="mono-num">0</span>
           </span>
-          <span class="stat-pill sq" title="توصیفگرهای معنایی">
-            <span>SQ:</span><span id="badgeSqCount" class="mono-num">0</span>
-          </span>
         </div>
 
         <div class="preview-actions">
@@ -872,7 +806,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>کپی متن</span>
           </button>
-          <button class="btn btn-secondary btn-sm" id="btnExportJson" title="دانلود فایل ساختاریافته JSON">
+          <button class="btn btn-secondary btn-sm" id="btnExportJson" title="دانلود فایل ساختاریافته پژوهشی JSON (حذف خودکار PII)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>JSON</span>
           </button>
@@ -906,7 +840,7 @@
     <div class="preview-top-toolbar">
       <div class="modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-        <span>پیش‌نمایش زنده شرح‌حال v0.4-Surg</span>
+        <span>پیش‌نمایش زنده شرح‌حال v0.5-Surg</span>
       </div>
       <div class="preview-actions">
         <button class="btn btn-secondary btn-sm" id="btnCopyNoteMobile">کپی متن</button>
@@ -931,9 +865,9 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 0.85rem; color: var(--text-secondary);">
-          تمامی پرونده‌های ثبت‌شده در این شیفت به صورت ۱۰۰٪ آفلاین در حافظه مرورگر شما نگهداری می‌شوند.
+          تمامی پرونده‌های ثبت‌شده در این شیفت به صورت ۱۰۰٪ آفلاین در حافظه مرورگر نگهداری می‌شوند.
         </p>
-        <div id="shiftCasesList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+        <div id="shiftCasesList" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnImportShiftJson">
@@ -960,7 +894,7 @@
       </div>
       <div class="modal-body">
         <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-          پرونده‌های ثبت‌شده مستقیماً به شیت گوگل ارسال می‌شوند. در صورت قطع اینترنت، داده‌ها در صف آفلاین ذخیره شده و پس از آنلاین شدن خودکار ارسال می‌گردند.
+          پرونده‌های ثبت‌شده مستقیماً به شیت گوگل ارسال می‌شوند. در صورت قطع اینترنت، داده‌ها در صف آفلاین ذخیره شده و پس از اتصال خودکار ارسال می‌گردند.
         </p>
 
         <div class="form-group" style="margin-bottom: 0.75rem;">
@@ -1053,7 +987,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then((reg) => {
-          console.log('[PWA v0.3] Service Worker registered:', reg.scope);
+          console.log('[PWA v0.5] Service Worker registered:', reg.scope);
         }).catch((err) => {
           console.warn('[PWA] Service Worker registration failed:', err);
         });

@@ -1,13 +1,32 @@
-import { SURGICAL_SCHEMA, LAB_PANELS } from './schema.js';
+import {
+  SURGICAL_SCHEMA,
+  LAB_PANELS,
+  ROS_GROUPS_BILINGUAL,
+  PMH_CATEGORIES,
+  DH_CATEGORIES,
+  DH_SIG_OPTIONS,
+  PAIN_TIMING_OPTIONS,
+  PAIN_AGGRAVATING_FACTORS,
+  PAIN_RELIEVING_FACTORS,
+  HPI_BASIC_SYMPTOMS,
+  HPI_UNLOCKABLE_MODULES,
+  PE_MANDATORY_PILLARS,
+  PE_UNLOCKABLE_MODULES
+} from './schema.js';
 import { ClinicalCaseAnalytics, ClinicalTelemetryEngine } from './telemetry.js';
-import { generateClinicalNote, normalizePersianClinicalText, synthesizeProblemRepresentation } from './generator.js';
+import {
+  generateClinicalNote,
+  normalizePersianClinicalText,
+  synthesizeProblemRepresentation,
+  sanitizeRecordForExport
+} from './generator.js';
 import { GoogleSheetsSyncEngine } from './google-sync.js';
 
 /* ==========================================================================
-   State & Global Singletons (v0.4-Surg)
+   State & Global Singletons (v0.5-Surg)
    ========================================================================== */
-const STORAGE_CURRENT_CASE_KEY = 'surg_current_case_v04';
-const STORAGE_SHIFT_CASES_KEY = 'surg_shift_cases_v04';
+const STORAGE_CURRENT_CASE_KEY = 'surg_current_case_v05';
+const STORAGE_SHIFT_CASES_KEY = 'surg_shift_cases_v05';
 const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 let telemetry = new ClinicalTelemetryEngine();
@@ -23,13 +42,37 @@ function generateCaseId() {
   return `SURG-${year}${month}${day}-${rand}`;
 }
 
-function createDefaultClinicalState() {
+export function createDefaultPainEpisode(id = 1, title = 'کانون درد اول / شکایت محوری') {
+  return {
+    id,
+    title,
+    duration: '۱۲ ساعت',
+    onset: 'شروع ناگهانی (Sudden)',
+    spatialPattern: 'localized',
+    selectedRegions: ['rlq'],
+    initialRegions: [],
+    currentRegions: [],
+    character: 'تیز و خنجری (Sharp)',
+    course: 'پیشرونده و رو به تشدید (Progressive)',
+    severity: 6,
+    timing: 'دائمی و پیوسته (Continuous)',
+    radiationList: [], // array of { id, label, detail }
+    noRadiation: true,
+    aggravating: ['حرکت، سرفه و دم عمیق'],
+    relieving: ['استراحت و بی‌حرکتی']
+  };
+}
+
+export function createDefaultClinicalState() {
   return {
     caseId: generateCaseId(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     demographics: {
-      gender: 'male',
+      fullName: '',
+      fatherName: '',
+      birthDate: '',
+      gender: 'female',
       age: '',
       marital: 'متأهل',
       city: '',
@@ -37,31 +80,17 @@ function createDefaultClinicalState() {
       informant: 'خود بیمار'
     },
     cc: {
-      pathway: 'emergency_symptom',
-      selectedCategoryId: 'abdominal_gi_biliary',
-      selectedCategoryLabel: 'درد شکم، شکایات کبدی-صفراوی و گوارشی',
+      pathway: 'emergency_symptom', // 'emergency_symptom' | 'clinic_referral' | 'postop_complication'
       patientQuote: '',
       establishedDiagnosis: '',
       referringAttending: '',
       plannedProcedure: ''
     },
     hpi: {
-      onset: '',
-      course: '',
-      character: '',
-      severity: 5,
       duration: '',
-      spatialPattern: 'localized',
-      selectedRegions: ['rlq'],
-      initialRegions: [],
-      currentRegions: [],
-      radiation: ['rad_none'],
-      secondaryPain: {
-        region: '',
-        character: '',
-        relation: ''
-      },
-      symptoms: {}, // id -> { state: 1|-1, detail: '' }
+      painList: [createDefaultPainEpisode(1, 'کانون درد اول / شکایت محوری')],
+      unlockedModules: [], // array of module IDs (e.g. 'mod_cholestasis')
+      symptoms: {}, // chipId -> { state: 1|-1, detail: '' }
       preAdmissionWorkup: '',
       narrativeNote: '',
       systemGapNote: ''
@@ -74,22 +103,23 @@ function createDefaultClinicalState() {
       deliveryType: '',
       lmp: '',
       dysmenorrhea: '',
-      note: ''
+      pregnancies: [], // array of { id, outcome, deliveryMethod, year, complications }
+      note: '',
+      systemGapNote: ''
     },
     pmh: {
-      items: {}, // id -> { state: 1|-1, detail: '' } (Tri-state PMH)
+      masterRoutineNegative: false,
+      categories: {}, // catId -> { status: 'neutral'|'negated'|'has_positive', items: {}, otherNote: '' }
+      items: {}, // fallback / direct lookup
       systemGapNote: ''
     },
     psh: {
       note: '',
       systemGapNote: ''
     },
-    hh: {
-      note: '',
-      systemGapNote: ''
-    },
     dh: {
-      highAlert: [], // array of { id, label, category, lastDose, detail }
+      categories: {}, // catId -> { drugs: { [drugId]: { active: false, dose: '', sig: 'Daily (روزانه)', note: '' } } }
+      customDrugs: [], // array of { id, name, dose, sig, note }
       note: '',
       systemGapNote: ''
     },
@@ -112,7 +142,8 @@ function createDefaultClinicalState() {
       systemGapNote: ''
     },
     ros: {
-      items: {}, // id -> { state: 1|-1, detail: '' }
+      items: {}, // itemId -> { state: 1|-1, detail: '' }
+      showAllGenders: false,
       systemGapNote: ''
     },
     pe: {
@@ -124,18 +155,18 @@ function createDefaultClinicalState() {
         spo2: '',
         npo: ''
       },
-      findings: {}, // id -> { state: 1|-1, detail: '' }
+      findings: {}, // itemId -> { state: 1|-1, detail: '' }
+      unlockedModules: [], // array of module IDs (e.g. 'exam_dre')
       note: '',
       systemGapNote: ''
     },
     paraclinics: {
-      labs: {}, // id -> string value
+      labs: {}, // labId -> string value
       labNote: '',
-      imagingReports: [], // array of { modalityId, modalityLabel, date, tags: [{ id, label, detail }], summary: '' }
+      imagingReports: [], // array of { id, modalityId, modalityLabel, date, tags: [{ id, label, detail }], summary: '' }
       systemGapNote: ''
     },
     reasoning: {
-      selectedSQs: [],
       problemRepresentation: '',
       ddx: ''
     }
@@ -162,18 +193,12 @@ function showToast(message, type = 'info') {
   }, 2600);
 }
 
-function cycleTriStateValue(currentVal) {
-  if (currentVal === undefined || currentVal === 0) return 1;
-  if (currentVal === 1) return -1;
-  return 0; // -1 -> 0
-}
-
 /**
  * Creates a Direct Split-Action Tri-State Clinical Chip: [ + ] [ Label ] [ − ]
  * Instant 1-touch positive or negative without cycle fatigue.
  */
 function renderInlineDetailTriStateChip(options) {
-  const { id, label, detailHint, currentItemData, sectionId, onStateChange, onDetailChange } = options;
+  const { id, label, detailHint, currentItemData, onStateChange, onDetailChange } = options;
   const stateVal = currentItemData ? (typeof currentItemData === 'object' ? currentItemData.state : currentItemData) : 0;
   const detail = currentItemData && typeof currentItemData === 'object' ? (currentItemData.detail || '') : '';
 
@@ -237,6 +262,7 @@ function renderInlineDetailTriStateChip(options) {
     if (onStateChange) {
       onStateChange(newState, inlineInput.value);
     }
+    saveCurrentCase();
     updateLivePreview();
   };
 
@@ -259,6 +285,7 @@ function renderInlineDetailTriStateChip(options) {
     if (onDetailChange) {
       onDetailChange(e.target.value);
     }
+    saveCurrentCase();
     updateLivePreview();
   });
 
@@ -268,170 +295,81 @@ function renderInlineDetailTriStateChip(options) {
 }
 
 /* ==========================================================================
-   Initialization & Dynamic DOM Population
+   Persistence: LocalStorage Auto-Save & Sync
    ========================================================================== */
-function initDynamicUI() {
-  initGlobalTelemetryDelegation();
-  initAdmissionPathwayHandlers();
-  initDemographicsHandlers();
-  renderCCCategoryChips();
-
-  // Tab 2: HPI & Pain Trajectory
-  initOldcartsHandlers();
-  renderPainSpatialPatterns();
-  renderRadiationSites();
-  initSecondaryPainHandlers();
-  renderHpiSymptomGroups();
-
-  // Tab 3: PMH / PSH / HH / ObGyn
-  renderPmhChips();
-  initPmhPshHhHandlers();
-  initObGynHandlers();
-
-  // Tab 4: DH / AH / SH / FH
-  renderHighAlertDrugs();
-  renderAllergyTemplates();
-  initShCalculator();
-  renderFhChips();
-
-  // Tab 5: ROS (11 Systems)
-  renderRosGroups();
-
-  // Tab 6: PE
-  initPeVitalsHandlers();
-  renderPeFindings();
-
-  // Tab 7: Paraclinics
-  renderParaclinicLabs();
-  renderImagingModalities();
-
-  // Tab 8: Clinical Reasoning
-  renderSemanticQualifiers();
-  initReasoningHandlers();
-
-  // System Gap Loggers in all sections
-  initSystemGapLoggers();
-
-  // Navigation, Telemetry Ticker & Modals
-  initNavigationTabs();
-  initShiftManager();
-  initCloudSyncUI();
-  initThemeToggle();
-  initExportAndCopy();
-  initMobileBottomSheet();
-  startTelemetryTicker();
-
-  // Load and synchronize state
-  loadSavedState();
-  syncDomFromState();
-  updateLivePreview();
+function saveCurrentCase() {
+  try {
+    clinicalState.updatedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_CURRENT_CASE_KEY, JSON.stringify(clinicalState));
+  } catch (e) {
+    console.warn('Failed to save state to localStorage:', e);
+  }
 }
 
-/* --- System Gap Loggers Setup --- */
-function initSystemGapLoggers() {
-  const gapMap = [
-    { inputId: 'hpiSystemGapInput', section: 'hpi', target: () => clinicalState.hpi },
-    { inputId: 'pmhSystemGapInput', section: 'pmh_psh_hh', target: () => clinicalState.pmh },
-    { inputId: 'pshSystemGapInput', section: 'pmh_psh_hh', target: () => clinicalState.psh },
-    { inputId: 'hhSystemGapInput', section: 'pmh_psh_hh', target: () => clinicalState.hh },
-    { inputId: 'dhSystemGapInput', section: 'ah_dh_sh_fh', target: () => clinicalState.dh },
-    { inputId: 'ahSystemGapInput', section: 'ah_dh_sh_fh', target: () => clinicalState.ah },
-    { inputId: 'shSystemGapInput', section: 'ah_dh_sh_fh', target: () => clinicalState.sh },
-    { inputId: 'fhSystemGapInput', section: 'ah_dh_sh_fh', target: () => clinicalState.fh },
-    { inputId: 'rosSystemGapInput', section: 'ros', target: () => clinicalState.ros },
-    { inputId: 'peSystemGapInput', section: 'pe', target: () => clinicalState.pe },
-    { inputId: 'paraclinicSystemGapInput', section: 'paraclinics', target: () => clinicalState.paraclinics }
-  ];
-
-  gapMap.forEach(({ inputId, section, target }) => {
-    const el = document.getElementById(inputId);
-    if (!el) return;
-    el.addEventListener('input', (e) => {
-      const val = e.target.value;
-      target().systemGapNote = val;
-      telemetry.logSystemGap(section, val);
-      updateLivePreview();
-    });
-  });
+function loadSavedState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge into clinicalState safely
+      clinicalState = Object.assign(createDefaultClinicalState(), parsed);
+      if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList) || clinicalState.hpi.painList.length === 0) {
+        clinicalState.hpi.painList = [createDefaultPainEpisode(1, 'کانون درد اول / شکایت محوری')];
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load state from localStorage:', e);
+  }
 }
 
-/* --- Tab 1: Admission & CC --- */
+/* ==========================================================================
+   Tab 1: Admission Pathway & Patient Demographics (with PII Sanitizer)
+   ========================================================================== */
 function initAdmissionPathwayHandlers() {
   const chipEmerg = document.getElementById('chipPathwayEmergency');
   const chipClinic = document.getElementById('chipPathwayClinic');
-  const cardEmerg = document.getElementById('cardCCEmergency');
+  const chipPostop = document.getElementById('chipPathwayPostop');
   const cardClinic = document.getElementById('cardCCReferral');
 
   function setPathway(pathway) {
     clinicalState.cc.pathway = pathway;
     chipEmerg?.classList.toggle('active', pathway === 'emergency_symptom');
     chipClinic?.classList.toggle('active', pathway === 'clinic_referral');
+    chipPostop?.classList.toggle('active', pathway === 'postop_complication');
 
-    if (pathway === 'clinic_referral') {
-      if (cardEmerg) cardEmerg.style.display = 'none';
-      if (cardClinic) cardClinic.style.display = 'flex';
-    } else {
-      if (cardEmerg) cardEmerg.style.display = 'flex';
-      if (cardClinic) cardClinic.style.display = 'none';
+    if (cardClinic) {
+      cardClinic.style.display = pathway === 'clinic_referral' ? 'block' : 'none';
     }
-    telemetry.recordInteraction('cc_admission', 'pathway_switch');
+    saveCurrentCase();
     updateLivePreview();
   }
 
   chipEmerg?.addEventListener('click', () => setPathway('emergency_symptom'));
   chipClinic?.addEventListener('click', () => setPathway('clinic_referral'));
+  chipPostop?.addEventListener('click', () => setPathway('postop_complication'));
 
-  ['ccEstablishedDiagnosis', 'ccReferringAttending', 'ccPlannedProcedure', 'ccReferralPatientQuote'].forEach((id) => {
+  ['ccEstablishedDiagnosis', 'ccReferringAttending', 'ccPlannedProcedure'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', (e) => {
-      telemetry.recordInteraction('cc_admission', 'typing', true);
-      if (id === 'ccEstablishedDiagnosis') clinicalState.cc.establishedDiagnosis = e.target.value;
-      if (id === 'ccReferringAttending') clinicalState.cc.referringAttending = e.target.value;
-      if (id === 'ccPlannedProcedure') clinicalState.cc.plannedProcedure = e.target.value;
-      if (id === 'ccReferralPatientQuote') clinicalState.cc.patientQuote = e.target.value;
+      clinicalState.cc[id.replace('cc', '').charAt(0).toLowerCase() + id.replace('cc', '').slice(1)] = e.target.value;
+      saveCurrentCase();
       updateLivePreview();
     });
   });
 
   document.getElementById('ccPatientQuote')?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('cc_admission', 'typing', true);
     clinicalState.cc.patientQuote = e.target.value;
+    saveCurrentCase();
     updateLivePreview();
-  });
-
-  document.getElementById('hpiDuration')?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('cc_admission', 'typing', true);
-    clinicalState.hpi.duration = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function renderCCCategoryChips() {
-  const container = document.getElementById('ccCategoryChipsContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  SURGICAL_SCHEMA.chiefComplaints.forEach((cc) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `toggle-chip ${clinicalState.cc.selectedCategoryId === cc.id ? 'active' : ''}`;
-    btn.textContent = cc.label;
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('.toggle-chip').forEach((c) => c.classList.remove('active'));
-      btn.classList.add('active');
-      clinicalState.cc.selectedCategoryId = cc.id;
-      clinicalState.cc.selectedCategoryLabel = cc.label;
-      telemetry.recordInteraction('cc_admission', 'select_cc');
-      renderHpiSymptomGroups();
-      updateLivePreview();
-    });
-    container.appendChild(btn);
   });
 }
 
 function initDemographicsHandlers() {
   const map = {
+    demoFullName: 'fullName',
+    demoFatherName: 'fatherName',
+    demoBirthDate: 'birthDate',
     demoGender: 'gender',
     demoAge: 'age',
     demoMarital: 'marital',
@@ -445,231 +383,1162 @@ function initDemographicsHandlers() {
     if (!el) return;
     const evt = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(evt, (e) => {
-      telemetry.recordInteraction('cc_admission', 'typing');
       clinicalState.demographics[prop] = e.target.value;
       if (prop === 'gender') {
         const obgynCard = document.getElementById('cardObGynHistory');
         if (obgynCard) {
-          obgynCard.style.display = e.target.value === 'female' ? 'block' : 'none';
+          obgynCard.style.display = e.target.value === 'male' ? 'none' : 'block';
         }
+        renderRosGroups();
       }
+      saveCurrentCase();
       updateLivePreview();
     });
   });
 }
 
-/* --- Tab 2: HPI, OLDCARTS & Spatial-Temporal Pain Trajectory Mapper --- */
-function initOldcartsHandlers() {
-  const onset = document.getElementById('hpiOnset');
-  const course = document.getElementById('hpiCourse');
-  const character = document.getElementById('hpiCharacter');
-  const severity = document.getElementById('hpiSeverity');
-  const severityLabel = document.getElementById('hpiSeverityLabel');
-  const severityBadge = document.getElementById('hpiSeverityBadge');
-  const workup = document.getElementById('hpiPreAdmissionWorkup');
-  const narrative = document.getElementById('hpiNarrativeNote');
-
-  onset?.addEventListener('change', (e) => {
-    telemetry.recordInteraction('hpi', 'change');
-    clinicalState.hpi.onset = e.target.value;
-    updateLivePreview();
-  });
-
-  course?.addEventListener('change', (e) => {
-    telemetry.recordInteraction('hpi', 'change');
-    clinicalState.hpi.course = e.target.value;
-    updateLivePreview();
-  });
-
-  character?.addEventListener('change', (e) => {
-    telemetry.recordInteraction('hpi', 'change');
-    clinicalState.hpi.character = e.target.value;
-    updateLivePreview();
-  });
-
-  severity?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('hpi', 'slider');
-    const val = e.target.value;
-    clinicalState.hpi.severity = val;
-    if (severityLabel) severityLabel.textContent = `${val} / 10`;
-    if (severityBadge) severityBadge.textContent = `${val} / 10`;
-    updateLivePreview();
-  });
-
-  workup?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('hpi', 'typing', true);
-    clinicalState.hpi.preAdmissionWorkup = e.target.value;
-    updateLivePreview();
-  });
-
-  narrative?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('hpi', 'typing', true);
-    clinicalState.hpi.narrativeNote = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function initSecondaryPainHandlers() {
-  const card = document.getElementById('secondaryPainCard');
-  const btnToggle = document.getElementById('btnToggleSecondaryPain');
-  const header = document.getElementById('secondaryPainHeader');
-
-  function toggleSecPain() {
-    if (!card) return;
-    const isActive = card.classList.toggle('active');
-    if (btnToggle) {
-      btnToggle.textContent = isActive ? 'بستن' : 'افزودن';
-    }
-    telemetry.recordInteraction('hpi', 'toggle_secondary_pain');
-  }
-
-  btnToggle?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleSecPain();
-  });
-  header?.addEventListener('click', toggleSecPain);
-
-  ['secPainRegion', 'secPainCharacter', 'secPainRelation'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', (e) => {
-      telemetry.recordInteraction('hpi', 'typing');
-      if (id === 'secPainRegion') clinicalState.hpi.secondaryPain.region = e.target.value;
-      if (id === 'secPainCharacter') clinicalState.hpi.secondaryPain.character = e.target.value;
-      if (id === 'secPainRelation') clinicalState.hpi.secondaryPain.relation = e.target.value;
-      updateLivePreview();
-    });
-  });
-}
-
-function renderPainSpatialPatterns() {
-  const container = document.getElementById('painSpatialPatternsContainer');
+/* ==========================================================================
+   Tab 2: HPI & Multi-Focal Dynamic Pain Cards
+   ========================================================================== */
+function renderPainEpisodes() {
+  const container = document.getElementById('painEpisodesContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  SURGICAL_SCHEMA.painSpatialPatterns.forEach((pattern) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `pattern-pill-btn ${clinicalState.hpi.spatialPattern === pattern.id ? 'active' : ''}`;
-    btn.textContent = pattern.label;
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      clinicalState.hpi.spatialPattern = pattern.id;
-      telemetry.recordInteraction('hpi', 'spatial_pattern_select');
-      updatePainRegionContainers();
+  const pains = clinicalState.hpi.painList || [];
+
+  pains.forEach((pain, index) => {
+    const card = document.createElement('div');
+    card.className = 'pain-episode-card';
+    card.dataset.id = String(pain.id);
+
+    // Card Header
+    const header = document.createElement('div');
+    header.className = 'pain-card-header';
+
+    const titleArea = document.createElement('div');
+    titleArea.className = 'pain-card-title';
+    titleArea.innerHTML = `<span>📍</span>`;
+
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'pain-title-input';
+    titleInput.value = pain.title || `کانون درد #${index + 1}`;
+    titleInput.placeholder = 'عنوان کانون درد...';
+    titleInput.addEventListener('input', (e) => {
+      pain.title = e.target.value;
+      saveCurrentCase();
       updateLivePreview();
     });
-    container.appendChild(btn);
+    titleArea.appendChild(titleInput);
+    header.appendChild(titleArea);
+
+    if (pains.length > 1) {
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn-delete-pain-card';
+      delBtn.innerHTML = `<span>🗑️</span><span>حذف این کانون</span>`;
+      delBtn.addEventListener('click', () => {
+        clinicalState.hpi.painList.splice(index, 1);
+        renderPainEpisodes();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      header.appendChild(delBtn);
+    }
+
+    card.appendChild(header);
+
+    // OLDCARTS Form Grid: Duration, Onset, Course, Character
+    const grid1 = document.createElement('div');
+    grid1.className = 'form-grid-3';
+
+    // Duration
+    const durGroup = document.createElement('div');
+    durGroup.className = 'form-group';
+    durGroup.innerHTML = `<label class="form-label">مدت زمان شروع</label>`;
+    const durInput = document.createElement('input');
+    durInput.type = 'text';
+    durInput.className = 'input-text';
+    durInput.value = pain.duration || '';
+    durInput.placeholder = 'مثلاً ۱۲ ساعت یا ۳ روز';
+    durInput.addEventListener('input', (e) => {
+      pain.duration = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    durGroup.appendChild(durInput);
+    grid1.appendChild(durGroup);
+
+    // Onset
+    const onsetGroup = document.createElement('div');
+    onsetGroup.className = 'form-group';
+    onsetGroup.innerHTML = `<label class="form-label">نحوه شروع (Onset)</label>`;
+    const onsetSelect = document.createElement('select');
+    onsetSelect.className = 'input-select';
+    onsetSelect.innerHTML = `
+      <option value="">-- نحوه شروع --</option>
+      <option value="شروع ناگهانی (Sudden)">شروع ناگهانی (Sudden)</option>
+      <option value="شروع تدریجی (Gradual)">شروع تدریجی (Gradual)</option>
+      <option value="به دنبال تروما/وعده غذایی">به دنبال تروما/وعده غذایی</option>
+    `;
+    onsetSelect.value = pain.onset || '';
+    onsetSelect.addEventListener('change', (e) => {
+      pain.onset = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    onsetGroup.appendChild(onsetSelect);
+    grid1.appendChild(onsetGroup);
+
+    // Course
+    const courseGroup = document.createElement('div');
+    courseGroup.className = 'form-group';
+    courseGroup.innerHTML = `<label class="form-label">الگوی سیر (Course)</label>`;
+    const courseSelect = document.createElement('select');
+    courseSelect.className = 'input-select';
+    courseSelect.innerHTML = `
+      <option value="">-- الگوی سیر --</option>
+      <option value="پیشرونده و رو به تشدید (Progressive)">پیشرونده و رو به تشدید (Progressive)</option>
+      <option value="کولیکی و متناوب (Colicky)">کولیکی و متناوب (Colicky)</option>
+      <option value="ثابت و مداوم (Constant)">ثابت و مداوم (Constant)</option>
+    `;
+    courseSelect.value = pain.course || '';
+    courseSelect.addEventListener('change', (e) => {
+      pain.course = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    courseGroup.appendChild(courseSelect);
+    grid1.appendChild(courseGroup);
+
+    card.appendChild(grid1);
+
+    // Character & Severity
+    const grid2 = document.createElement('div');
+    grid2.className = 'form-grid-2';
+    grid2.style.marginTop = '0.5rem';
+
+    // Character
+    const charGroup = document.createElement('div');
+    charGroup.className = 'form-group';
+    charGroup.innerHTML = `<label class="form-label">ماهیت علامت (Character)</label>`;
+    const charSelect = document.createElement('select');
+    charSelect.className = 'input-select';
+    charSelect.innerHTML = `
+      <option value="">-- انتخاب ماهیت --</option>
+      <option value="تیز و خنجری (Sharp)">تیز و خنجری (Sharp)</option>
+      <option value="مبهم و فشاری (Dull/Crampy)">مبهم و فشاری (Dull/Crampy)</option>
+      <option value="سوزشی (Burning)">سوزشی (Burning)</option>
+      <option value="ضربان‌دار (Throbbing)">ضربان‌دار (Throbbing)</option>
+    `;
+    charSelect.value = pain.character || '';
+    charSelect.addEventListener('change', (e) => {
+      pain.character = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    charGroup.appendChild(charSelect);
+    grid2.appendChild(charGroup);
+
+    // Severity Slider (0-10)
+    const sevGroup = document.createElement('div');
+    sevGroup.className = 'form-group';
+    sevGroup.innerHTML = `
+      <div class="form-label">
+        <span>شدت درد (NRS 0-10)</span>
+        <span class="mono-num sev-val-label">${pain.severity || 5} / 10</span>
+      </div>
+    `;
+    const sliderWrap = document.createElement('div');
+    sliderWrap.className = 'severity-slider-container';
+    sliderWrap.innerHTML = `
+      <span class="mono-num">0</span>
+      <input type="range" class="severity-slider" min="0" max="10" value="${pain.severity || 5}">
+      <span class="mono-num">10</span>
+      <div class="severity-value-badge dir-ltr">${pain.severity || 5} / 10</div>
+    `;
+    const rangeInput = sliderWrap.querySelector('input[type="range"]');
+    const badgeEl = sliderWrap.querySelector('.severity-value-badge');
+    const labelEl = sevGroup.querySelector('.sev-val-label');
+    rangeInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      pain.severity = val;
+      badgeEl.textContent = `${val} / 10`;
+      labelEl.textContent = `${val} / 10`;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    sevGroup.appendChild(sliderWrap);
+    grid2.appendChild(sevGroup);
+
+    card.appendChild(grid2);
+
+    // Spatial Pattern Selector (4 clean patterns)
+    const spatGroup = document.createElement('div');
+    spatGroup.className = 'form-group';
+    spatGroup.style.marginTop = '0.6rem';
+    spatGroup.innerHTML = `<label class="form-label">الگوی فضایی-زمانی درد</label>`;
+    const spatGrid = document.createElement('div');
+    spatGrid.className = 'spatial-patterns-grid';
+
+    SURGICAL_SCHEMA.painSpatialPatterns.forEach((patt) => {
+      const pattBtn = document.createElement('button');
+      pattBtn.type = 'button';
+      pattBtn.className = `pattern-pill-btn ${pain.spatialPattern === patt.id ? 'active' : ''}`;
+      pattBtn.textContent = patt.label;
+      pattBtn.addEventListener('click', () => {
+        spatGrid.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
+        pattBtn.classList.add('active');
+        pain.spatialPattern = patt.id;
+        renderPainRegionsForEpisode(card, pain);
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      spatGrid.appendChild(pattBtn);
+    });
+    spatGroup.appendChild(spatGrid);
+    card.appendChild(spatGroup);
+
+    // Abdominal Region Matrix Container
+    const regionContainer = document.createElement('div');
+    regionContainer.className = 'episode-region-container';
+    regionContainer.style.marginTop = '0.5rem';
+    card.appendChild(regionContainer);
+    renderPainRegionsForEpisode(card, pain);
+
+    // Timing (Pills)
+    const timingGroup = document.createElement('div');
+    timingGroup.className = 'form-group';
+    timingGroup.style.marginTop = '0.6rem';
+    timingGroup.innerHTML = `<label class="form-label">تایمینگ درد (Timing)</label>`;
+    const timingGrid = document.createElement('div');
+    timingGrid.className = 'tag-selector-grid';
+
+    PAIN_TIMING_OPTIONS.forEach((t) => {
+      const chip = document.createElement('span');
+      chip.className = `factor-chip ${pain.timing === t.label ? 'active' : ''}`;
+      chip.textContent = t.label;
+      chip.addEventListener('click', () => {
+        if (pain.timing === t.label) {
+          pain.timing = '';
+          chip.classList.remove('active');
+        } else {
+          pain.timing = t.label;
+          timingGrid.querySelectorAll('.factor-chip').forEach((c) => c.classList.remove('active'));
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      timingGrid.appendChild(chip);
+    });
+    timingGroup.appendChild(timingGrid);
+    card.appendChild(timingGroup);
+
+    // Radiation Sites with Inline Input
+    const radGroup = document.createElement('div');
+    radGroup.className = 'form-group';
+    radGroup.style.marginTop = '0.6rem';
+    radGroup.innerHTML = `<label class="form-label">محل انتشار درد (Radiation)</label>`;
+    const radList = document.createElement('div');
+    radList.className = 'radiation-capsules-list';
+
+    SURGICAL_SCHEMA.radiationSites.forEach((site) => {
+      const isNone = site.id === 'rad_none';
+      const existing = (pain.radiationList || []).find((r) => r.id === site.id);
+      const isSelected = isNone ? pain.noRadiation : !!existing;
+
+      const radItem = document.createElement('div');
+      radItem.className = `radiation-capsule-item ${isSelected ? 'active' : ''}`;
+
+      const radLabel = document.createElement('span');
+      radLabel.className = 'radiation-capsule-label';
+      radLabel.innerHTML = `<span>${isSelected ? '🔘' : '⚪'}</span> <span>${site.label}</span>`;
+
+      radItem.appendChild(radLabel);
+
+      let inlineInput = null;
+      if (!isNone) {
+        inlineInput = document.createElement('input');
+        inlineInput.type = 'text';
+        inlineInput.className = 'radiation-inline-input';
+        inlineInput.placeholder = site.detailHint || 'جزئیات (راست/چپ)...';
+        inlineInput.value = existing ? (existing.detail || '') : '';
+        inlineInput.style.display = isSelected ? 'inline-block' : 'none';
+
+        inlineInput.addEventListener('input', (e) => {
+          if (existing) {
+            existing.detail = e.target.value;
+            saveCurrentCase();
+            updateLivePreview();
+          }
+        });
+        radItem.appendChild(inlineInput);
+      }
+
+      radLabel.addEventListener('click', () => {
+        if (isNone) {
+          pain.noRadiation = !pain.noRadiation;
+          if (pain.noRadiation) {
+            pain.radiationList = [];
+          }
+        } else {
+          pain.noRadiation = false;
+          if (!pain.radiationList) pain.radiationList = [];
+          const idx = pain.radiationList.findIndex((r) => r.id === site.id);
+          if (idx >= 0) {
+            pain.radiationList.splice(idx, 1);
+          } else {
+            pain.radiationList.push({ id: site.id, label: site.label, detail: inlineInput ? inlineInput.value : '' });
+          }
+        }
+        renderPainEpisodes();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+
+      radList.appendChild(radItem);
+    });
+    radGroup.appendChild(radList);
+    card.appendChild(radGroup);
+
+    // Aggravating Factors (Multi-select)
+    const aggGroup = document.createElement('div');
+    aggGroup.className = 'form-group';
+    aggGroup.style.marginTop = '0.6rem';
+    aggGroup.innerHTML = `<label class="form-label">عوامل تشدیدکننده (Aggravating Factors)</label>`;
+    const aggGrid = document.createElement('div');
+    aggGrid.className = 'tag-selector-grid';
+
+    PAIN_AGGRAVATING_FACTORS.forEach((factor) => {
+      if (!pain.aggravating) pain.aggravating = [];
+      const isAct = pain.aggravating.includes(factor);
+      const chip = document.createElement('span');
+      chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+      chip.textContent = factor;
+      chip.addEventListener('click', () => {
+        if (pain.aggravating.includes(factor)) {
+          pain.aggravating = pain.aggravating.filter((f) => f !== factor);
+          chip.classList.remove('active');
+        } else {
+          pain.aggravating.push(factor);
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      aggGrid.appendChild(chip);
+    });
+    aggGroup.appendChild(aggGrid);
+    card.appendChild(aggGroup);
+
+    // Relieving Factors (Multi-select)
+    const relGroup = document.createElement('div');
+    relGroup.className = 'form-group';
+    relGroup.style.marginTop = '0.6rem';
+    relGroup.innerHTML = `<label class="form-label">عوامل تسکین‌دهنده (Relieving Factors)</label>`;
+    const relGrid = document.createElement('div');
+    relGrid.className = 'tag-selector-grid';
+
+    PAIN_RELIEVING_FACTORS.forEach((factor) => {
+      if (!pain.relieving) pain.relieving = [];
+      const isAct = pain.relieving.includes(factor);
+      const chip = document.createElement('span');
+      chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+      chip.textContent = factor;
+      chip.addEventListener('click', () => {
+        if (pain.relieving.includes(factor)) {
+          pain.relieving = pain.relieving.filter((f) => f !== factor);
+          chip.classList.remove('active');
+        } else {
+          pain.relieving.push(factor);
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      relGrid.appendChild(chip);
+    });
+    relGroup.appendChild(relGrid);
+    card.appendChild(relGroup);
+
+    container.appendChild(card);
   });
-
-  renderAbdominalMatrixGrid('abdominalMatrixGrid', clinicalState.hpi.selectedRegions);
-  renderAbdominalMatrixGrid('abdominalInitialMatrixGrid', clinicalState.hpi.initialRegions);
-  renderAbdominalMatrixGrid('abdominalCurrentMatrixGrid', clinicalState.hpi.currentRegions);
-
-  updatePainRegionContainers();
 }
 
-function updatePainRegionContainers() {
-  const pattern = clinicalState.hpi.spatialPattern;
-  const standardContainer = document.getElementById('containerStandardRegions');
-  const trajectoryContainer = document.getElementById('containerTrajectorySteps');
-  const labelStandard = document.getElementById('labelStandardRegions');
+function renderPainRegionsForEpisode(cardElement, pain) {
+  const container = cardElement.querySelector('.episode-region-container');
+  if (!container) return;
+  container.innerHTML = '';
 
-  if (pattern === 'generalized_pure') {
-    if (standardContainer) standardContainer.style.display = 'none';
-    if (trajectoryContainer) trajectoryContainer.style.display = 'none';
-  } else if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
-    if (standardContainer) standardContainer.style.display = 'none';
-    if (trajectoryContainer) trajectoryContainer.style.display = 'flex';
+  const pattern = pain.spatialPattern || 'localized';
+
+  if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
+    // Two-step Trajectory Grid
+    const row1 = document.createElement('div');
+    row1.className = 'form-group';
+    row1.innerHTML = `<label class="form-label">📍 ۱. محل(های) شروع اولیه درد</label>`;
+    const grid1 = document.createElement('div');
+    grid1.className = 'abdominal-matrix-grid';
+    renderRegionButtonsIntoGrid(grid1, pain.initialRegions || [], (newArr) => {
+      pain.initialRegions = newArr;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row1.appendChild(grid1);
+    container.appendChild(row1);
+
+    const row2 = document.createElement('div');
+    row2.className = 'form-group';
+    row2.innerHTML = `<label class="form-label">🎯 ۲. محل(های) فعلی / ثانویه درد</label>`;
+    const grid2 = document.createElement('div');
+    grid2.className = 'abdominal-matrix-grid';
+    renderRegionButtonsIntoGrid(grid2, pain.currentRegions || [], (newArr) => {
+      pain.currentRegions = newArr;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row2.appendChild(grid2);
+    container.appendChild(row2);
   } else {
-    // localized or generalized_predominant
-    if (standardContainer) standardContainer.style.display = 'block';
-    if (trajectoryContainer) trajectoryContainer.style.display = 'none';
-    if (labelStandard) {
-      labelStandard.textContent = pattern === 'generalized_predominant'
-        ? 'انتخاب ناحیه/نواحی دارای حداکثر شدت و ارجحیت درد'
-        : 'انتخاب نواحی آناتومیک درگیر درد (چند انتخابی)';
-    }
+    // Single Multi-select Grid
+    const row = document.createElement('div');
+    row.className = 'form-group';
+    row.innerHTML = `<label class="form-label">${pattern === 'generalized_predominant' ? 'نواحی دارای حداکثر شدت و ارجحیت درد' : 'نواحی آناتومیک درگیر درد'}</label>`;
+    const grid = document.createElement('div');
+    grid.className = 'abdominal-matrix-grid';
+    renderRegionButtonsIntoGrid(grid, pain.selectedRegions || [], (newArr) => {
+      pain.selectedRegions = newArr;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row.appendChild(grid);
+    container.appendChild(row);
   }
 }
 
-function renderAbdominalMatrixGrid(containerId, selectedArray) {
-  const grid = document.getElementById(containerId);
-  if (!grid) return;
-  grid.innerHTML = '';
-
+function renderRegionButtonsIntoGrid(gridElement, selectedArray, onChange) {
+  gridElement.innerHTML = '';
   SURGICAL_SCHEMA.abdominalRegions.forEach((reg) => {
+    const isAct = selectedArray.includes(reg.id);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `matrix-cell-btn ${selectedArray.includes(reg.id) ? 'active' : ''}`;
+    btn.className = `region-cell-btn ${isAct ? 'active' : ''}`;
     btn.textContent = reg.label;
     btn.addEventListener('click', () => {
-      const idx = selectedArray.indexOf(reg.id);
-      if (idx >= 0) {
-        selectedArray.splice(idx, 1);
-        btn.classList.remove('active');
+      let updated = [];
+      if (selectedArray.includes(reg.id)) {
+        updated = selectedArray.filter((x) => x !== reg.id);
       } else {
-        selectedArray.push(reg.id);
-        btn.classList.add('active');
+        updated = [...selectedArray, reg.id];
       }
-      telemetry.recordInteraction('hpi', 'matrix_tap');
-      updateLivePreview();
+      onChange(updated);
+      renderRegionButtonsIntoGrid(gridElement, updated, onChange);
     });
-    grid.appendChild(btn);
+    gridElement.appendChild(btn);
   });
 }
 
-function renderRadiationSites() {
-  const container = document.getElementById('radiationSitesContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  SURGICAL_SCHEMA.radiationSites.forEach((site) => {
-    const isSelected = (clinicalState.hpi.radiation || []).includes(site.id);
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = `toggle-chip ${isSelected ? 'active' : ''}`;
-    chip.textContent = site.label;
-
-    chip.addEventListener('click', () => {
-      let list = clinicalState.hpi.radiation || [];
-      if (site.id === 'rad_none') {
-        list = ['rad_none'];
-      } else {
-        // remove rad_none if selecting another
-        list = list.filter((id) => id !== 'rad_none');
-        const idx = list.indexOf(site.id);
-        if (idx >= 0) list.splice(idx, 1);
-        else list.push(site.id);
-        if (list.length === 0) list = ['rad_none'];
-      }
-      clinicalState.hpi.radiation = list;
-      renderRadiationSites();
-      telemetry.recordInteraction('hpi', 'radiation_tap');
-      updateLivePreview();
-    });
-
-    container.appendChild(chip);
+function initAddPainEpisodeHandler() {
+  document.getElementById('btnAddPainEpisode')?.addEventListener('click', () => {
+    if (!clinicalState.hpi.painList) clinicalState.hpi.painList = [];
+    const newId = clinicalState.hpi.painList.length + 1;
+    clinicalState.hpi.painList.push(createDefaultPainEpisode(newId, `کانون درد #${newId}`));
+    renderPainEpisodes();
+    saveCurrentCase();
+    updateLivePreview();
   });
 }
 
-function renderHpiSymptomGroups() {
-  const container = document.getElementById('hpiSymptomGroupsContainer');
+/* ==========================================================================
+   HPI Basic Symptoms & Unlockable Modules
+   ========================================================================== */
+function renderHpiBasicSymptoms() {
+  const container = document.getElementById('hpiBasicSymptomsContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  const activeCc = SURGICAL_SCHEMA.chiefComplaints.find(
-    (c) => c.id === clinicalState.cc.selectedCategoryId
-  ) || SURGICAL_SCHEMA.chiefComplaints[0];
+  HPI_BASIC_SYMPTOMS.forEach((sym) => {
+    const currentData = clinicalState.hpi.symptoms?.[sym.id];
+    const chipWrap = renderInlineDetailTriStateChip({
+      id: sym.id,
+      label: sym.label,
+      detailHint: sym.detailHint,
+      currentItemData: currentData,
+      onStateChange: (newState, detailText) => {
+        if (newState === 0) {
+          delete clinicalState.hpi.symptoms[sym.id];
+        } else {
+          clinicalState.hpi.symptoms[sym.id] = { state: newState, detail: detailText, label: sym.label };
+        }
+      },
+      onDetailChange: (detailText) => {
+        if (clinicalState.hpi.symptoms[sym.id]) {
+          clinicalState.hpi.symptoms[sym.id].detail = detailText;
+        }
+      }
+    });
+    container.appendChild(chipWrap);
+  });
+}
 
-  (activeCc.symptomGroups || []).forEach((grp) => {
+function renderHpiUnlockableModules() {
+  const bar = document.getElementById('hpiUnlockableModulesBar');
+  const unlockedContainer = document.getElementById('hpiUnlockedModulesContainer');
+  if (!bar || !unlockedContainer) return;
+
+  bar.innerHTML = '';
+  unlockedContainer.innerHTML = '';
+
+  const unlocked = clinicalState.hpi.unlockedModules || [];
+
+  HPI_UNLOCKABLE_MODULES.forEach((mod) => {
+    if (!unlocked.includes(mod.id)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-unlock-module';
+      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>🔒</span>`;
+      btn.addEventListener('click', () => {
+        clinicalState.hpi.unlockedModules.push(mod.id);
+        renderHpiUnlockableModules();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      bar.appendChild(btn);
+    } else {
+      // Module is unlocked - render card
+      const card = document.createElement('div');
+      card.className = 'unlocked-module-card';
+
+      const header = document.createElement('div');
+      header.className = 'unlocked-module-header';
+      header.innerHTML = `
+        <span class="unlocked-module-title">🔓 ${mod.title}</span>
+        <button type="button" class="btn btn-secondary btn-sm btn-close-module" style="color:#EF4444;">بستن و حذف</button>
+      `;
+
+      header.querySelector('.btn-close-module').addEventListener('click', () => {
+        clinicalState.hpi.unlockedModules = clinicalState.hpi.unlockedModules.filter((id) => id !== mod.id);
+        // Clear symptoms of this module
+        mod.chips.forEach((c) => delete clinicalState.hpi.symptoms[c.id]);
+        renderHpiUnlockableModules();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      card.appendChild(header);
+
+      const chipsGrid = document.createElement('div');
+      chipsGrid.className = 'chips-container';
+
+      mod.chips.forEach((c) => {
+        const cur = clinicalState.hpi.symptoms?.[c.id];
+        const chipWrap = renderInlineDetailTriStateChip({
+          id: c.id,
+          label: c.label,
+          detailHint: c.detailHint,
+          currentItemData: cur,
+          onStateChange: (newState, detailText) => {
+            if (newState === 0) {
+              delete clinicalState.hpi.symptoms[c.id];
+            } else {
+              clinicalState.hpi.symptoms[c.id] = { state: newState, detail: detailText, label: c.label };
+            }
+          },
+          onDetailChange: (detailText) => {
+            if (clinicalState.hpi.symptoms[c.id]) {
+              clinicalState.hpi.symptoms[c.id].detail = detailText;
+            }
+          }
+        });
+        chipsGrid.appendChild(chipWrap);
+      });
+      card.appendChild(chipsGrid);
+      unlockedContainer.appendChild(card);
+    }
+  });
+}
+
+/* ==========================================================================
+   Tab 3: PMH Categorized Gatekeepers, Simplified PSH & Ob/Gyn
+   ========================================================================== */
+function renderPmhCategories() {
+  const container = document.getElementById('pmhCategoriesContainer');
+  const masterRoutineBtn = document.getElementById('btnPmhMasterRoutineNegative');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (masterRoutineBtn) {
+    masterRoutineBtn.classList.toggle('active', !!clinicalState.pmh.masterRoutineNegative);
+    masterRoutineBtn.onclick = () => {
+      clinicalState.pmh.masterRoutineNegative = !clinicalState.pmh.masterRoutineNegative;
+      masterRoutineBtn.classList.toggle('active', clinicalState.pmh.masterRoutineNegative);
+      saveCurrentCase();
+      updateLivePreview();
+    };
+  }
+
+  PMH_CATEGORIES.forEach((cat) => {
+    if (!clinicalState.pmh.categories[cat.id]) {
+      clinicalState.pmh.categories[cat.id] = { status: 'neutral', items: {}, otherNote: '' };
+    }
+    const catData = clinicalState.pmh.categories[cat.id];
+
+    const card = document.createElement('div');
+    card.className = 'pmh-category-card';
+
+    const header = document.createElement('div');
+    header.className = 'pmh-category-header';
+
+    const titleArea = document.createElement('div');
+    titleArea.className = 'pmh-category-title';
+    titleArea.textContent = cat.title;
+    header.appendChild(titleArea);
+
+    const actions = document.createElement('div');
+    actions.className = 'pmh-category-actions';
+
+    const btnNeg = document.createElement('button');
+    btnNeg.type = 'button';
+    btnNeg.className = `btn-category-neg ${catData.status === 'negated' ? 'active' : ''}`;
+    btnNeg.textContent = catData.status === 'negated' ? '✓ نفی شد' : '− نفی کل دسته';
+
+    const btnPos = document.createElement('button');
+    btnPos.type = 'button';
+    btnPos.className = `btn-category-pos ${catData.status === 'has_positive' ? 'active' : ''}`;
+    btnPos.textContent = '+ دارد (انتخاب)';
+
+    actions.appendChild(btnNeg);
+    actions.appendChild(btnPos);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'pmh-category-body';
+    body.style.display = catData.status === 'has_positive' ? 'flex' : 'none';
+
+    // Split-action chips for items inside this category
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'chips-container';
+
+    cat.items.forEach((item) => {
+      const cur = catData.items?.[item.id] || clinicalState.pmh.items?.[item.id];
+      const chipWrap = renderInlineDetailTriStateChip({
+        id: item.id,
+        label: item.label,
+        detailHint: item.detailHint,
+        currentItemData: cur,
+        onStateChange: (newState, detailText) => {
+          if (newState === 0) {
+            delete catData.items[item.id];
+            delete clinicalState.pmh.items[item.id];
+          } else {
+            catData.items[item.id] = { state: newState, detail: detailText, label: item.label };
+            clinicalState.pmh.items[item.id] = catData.items[item.id];
+          }
+        },
+        onDetailChange: (detailText) => {
+          if (catData.items[item.id]) catData.items[item.id].detail = detailText;
+          if (clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id].detail = detailText;
+        }
+      });
+      chipsContainer.appendChild(chipWrap);
+    });
+    body.appendChild(chipsContainer);
+
+    // Other diseases input
+    const otherGroup = document.createElement('div');
+    otherGroup.className = 'form-group';
+    otherGroup.style.marginTop = '0.5rem';
+    otherGroup.innerHTML = `<label class="form-label">سایر بیماری‌های این دسته</label>`;
+    const otherInput = document.createElement('input');
+    otherInput.type = 'text';
+    otherInput.className = 'input-text';
+    otherInput.placeholder = 'سایر موارد...';
+    otherInput.value = catData.otherNote || '';
+    otherInput.addEventListener('input', (e) => {
+      catData.otherNote = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    otherGroup.appendChild(otherInput);
+    body.appendChild(otherGroup);
+
+    card.appendChild(body);
+
+    btnNeg.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (catData.status === 'negated') {
+        catData.status = 'neutral';
+      } else {
+        catData.status = 'negated';
+        catData.items = {};
+      }
+      renderPmhCategories();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    btnPos.addEventListener('click', (e) => {
+      e.stopPropagation();
+      catData.status = catData.status === 'has_positive' ? 'neutral' : 'has_positive';
+      renderPmhCategories();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function initPshHandlers() {
+  const pshEl = document.getElementById('pshNote');
+  if (pshEl) {
+    pshEl.addEventListener('input', (e) => {
+      clinicalState.psh.note = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+  }
+}
+
+function initObGynHandlers() {
+  ['obgynG', 'obgynP', 'obgynAb', 'obgynL'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prop = id.replace('obgyn', '').toLowerCase();
+    el.addEventListener('input', (e) => {
+      clinicalState.obgyn[prop] = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+  });
+
+  ['obgynDeliveryType', 'obgynLmp', 'obgynDysmenorrhea'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prop = id.replace('obgyn', '').charAt(0).toLowerCase() + id.replace('obgyn', '').slice(1);
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, (e) => {
+      clinicalState.obgyn[prop] = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+  });
+
+  document.getElementById('btnAddPregnancyRow')?.addEventListener('click', () => {
+    if (!clinicalState.obgyn.pregnancies) clinicalState.obgyn.pregnancies = [];
+    clinicalState.obgyn.pregnancies.push({
+      id: Date.now(),
+      outcome: 'تولد زنده موفق',
+      deliveryMethod: 'سزارین (C-Section)',
+      year: '',
+      complications: ''
+    });
+    renderPregnancyHistoryRows();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+}
+
+function renderPregnancyHistoryRows() {
+  const tbody = document.getElementById('pregnancyHistoryTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const pregs = clinicalState.obgyn.pregnancies || [];
+  pregs.forEach((preg, i) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>
+        <select class="pregnancy-row-input row-outcome">
+          <option value="تولد زنده موفق" ${preg.outcome === 'تولد زنده موفق' ? 'selected' : ''}>تولد زنده موفق</option>
+          <option value="سقط" ${preg.outcome === 'سقط' ? 'selected' : ''}>سقط</option>
+          <option value="حاملگی خارج رحمی (EP)" ${preg.outcome === 'حاملگی خارج رحمی (EP)' ? 'selected' : ''}>حاملگی خارج رحمی (EP)</option>
+          <option value="مرده‌زایی" ${preg.outcome === 'مرده‌زایی' ? 'selected' : ''}>مرده‌زایی</option>
+        </select>
+      </td>
+      <td>
+        <select class="pregnancy-row-input row-method">
+          <option value="سزارین (C-Section)" ${preg.deliveryMethod === 'سزارین (C-Section)' ? 'selected' : ''}>سزارین (C-Section)</option>
+          <option value="زایمان طبیعی (NVD)" ${preg.deliveryMethod === 'زایمان طبیعی (NVD)' ? 'selected' : ''}>زایمان طبیعی (NVD)</option>
+          <option value="کورتاژ" ${preg.deliveryMethod === 'کورتاژ' ? 'selected' : ''}>کورتاژ</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" class="pregnancy-row-input row-year" placeholder="مثلاً ۱۳۸۵" value="${preg.year || ''}">
+      </td>
+      <td>
+        <input type="text" class="pregnancy-row-input row-comp" placeholder="مثلاً سزارین تکراری" value="${preg.complications || ''}">
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-delete-imaging row-del" title="حذف ردیف">✕</button>
+      </td>
+    `;
+
+    tr.querySelector('.row-outcome').addEventListener('change', (e) => {
+      preg.outcome = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    tr.querySelector('.row-method').addEventListener('change', (e) => {
+      preg.deliveryMethod = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    tr.querySelector('.row-year').addEventListener('input', (e) => {
+      preg.year = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    tr.querySelector('.row-comp').addEventListener('input', (e) => {
+      preg.complications = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    tr.querySelector('.row-del').addEventListener('click', () => {
+      clinicalState.obgyn.pregnancies.splice(i, 1);
+      renderPregnancyHistoryRows();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+/* ==========================================================================
+   Tab 4: Categorized Drug History (DH) & 3-Box Inline Inputs
+   ========================================================================== */
+function renderDhCategories() {
+  const container = document.getElementById('dhCategoriesContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!clinicalState.dh.categories) clinicalState.dh.categories = {};
+
+  DH_CATEGORIES.forEach((cat) => {
+    if (!clinicalState.dh.categories[cat.id]) {
+      clinicalState.dh.categories[cat.id] = { drugs: {} };
+    }
+    const catData = clinicalState.dh.categories[cat.id];
+
+    const group = document.createElement('div');
+    group.className = 'dh-category-group';
+
+    const header = document.createElement('div');
+    header.className = 'dh-category-header';
+    header.textContent = cat.title;
+    group.appendChild(header);
+
+    cat.drugs.forEach((drug) => {
+      if (!catData.drugs[drug.id]) {
+        catData.drugs[drug.id] = { active: false, dose: drug.defaultDose, sig: 'Daily (روزانه)', note: '' };
+      }
+      const entry = catData.drugs[drug.id];
+
+      const row = document.createElement('div');
+      row.className = `dh-drug-row ${entry.active ? 'active' : ''}`;
+
+      const topBar = document.createElement('div');
+      topBar.className = 'dh-drug-top-bar';
+
+      const label = document.createElement('span');
+      label.className = 'dh-drug-label';
+      label.innerHTML = `<span>${entry.active ? '☑️' : '◻️'}</span> <span>${drug.label}</span>`;
+      topBar.appendChild(label);
+      row.appendChild(topBar);
+
+      const box3 = document.createElement('div');
+      box3.className = 'dh-3box-container';
+      box3.style.display = entry.active ? 'flex' : 'none';
+
+      const doseInp = document.createElement('input');
+      doseInp.type = 'text';
+      doseInp.className = 'dh-dose-input';
+      doseInp.value = entry.dose || drug.defaultDose;
+      doseInp.placeholder = 'دوز...';
+
+      const sigSel = document.createElement('select');
+      sigSel.className = 'dh-sig-select';
+      DH_SIG_OPTIONS.forEach((opt) => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        if (entry.sig === opt) option.selected = true;
+        sigSel.appendChild(option);
+      });
+
+      const noteInp = document.createElement('input');
+      noteInp.type = 'text';
+      noteInp.className = 'dh-note-input';
+      noteInp.value = entry.note || '';
+      noteInp.placeholder = 'توضیح / آخرین دوز (مثلاً ۳ روز قبل قطع شده)...';
+
+      doseInp.addEventListener('input', (e) => {
+        entry.dose = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      sigSel.addEventListener('change', (e) => {
+        entry.sig = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      noteInp.addEventListener('input', (e) => {
+        entry.note = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+
+      box3.appendChild(doseInp);
+      box3.appendChild(sigSel);
+      box3.appendChild(noteInp);
+      row.appendChild(box3);
+
+      label.addEventListener('click', () => {
+        entry.active = !entry.active;
+        row.classList.toggle('active', entry.active);
+        box3.style.display = entry.active ? 'flex' : 'none';
+        label.innerHTML = `<span>${entry.active ? '☑️' : '◻️'}</span> <span>${drug.label}</span>`;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+
+      group.appendChild(row);
+    });
+
+    container.appendChild(group);
+  });
+}
+
+function renderCustomDrugs() {
+  const container = document.getElementById('dhCustomDrugsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const drugs = clinicalState.dh.customDrugs || [];
+  drugs.forEach((cd, i) => {
+    const row = document.createElement('div');
+    row.className = 'dh-drug-row active';
+    row.style.marginBottom = '0.35rem';
+    row.style.borderRadius = 'var(--radius-sm)';
+    row.style.border = '1px solid var(--border-medium)';
+
+    row.innerHTML = `
+      <div class="dh-drug-top-bar">
+        <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">💊 ${cd.name || 'داروی جدید'}</span>
+        <button type="button" class="btn-delete-imaging" title="حذف این دارو">✕</button>
+      </div>
+      <div class="dh-3box-container" style="display:flex;">
+        <input type="text" class="dh-dose-input cd-dose" placeholder="دوز" value="${cd.dose || ''}">
+        <select class="dh-sig-select cd-sig">
+          ${DH_SIG_OPTIONS.map((opt) => `<option value="${opt}" ${cd.sig === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+        </select>
+        <input type="text" class="dh-note-input cd-note" placeholder="ملاحظات / آخرین دوز..." value="${cd.note || ''}">
+      </div>
+    `;
+
+    row.querySelector('.cd-dose').addEventListener('input', (e) => {
+      cd.dose = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row.querySelector('.cd-sig').addEventListener('change', (e) => {
+      cd.sig = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row.querySelector('.cd-note').addEventListener('input', (e) => {
+      cd.note = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row.querySelector('.btn-delete-imaging').addEventListener('click', () => {
+      clinicalState.dh.customDrugs.splice(i, 1);
+      renderCustomDrugs();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    container.appendChild(row);
+  });
+}
+
+function initAddCustomDrugHandler() {
+  document.getElementById('btnAddCustomDrug')?.addEventListener('click', () => {
+    const name = prompt('نام داروی جدید:');
+    if (name && name.trim()) {
+      if (!clinicalState.dh.customDrugs) clinicalState.dh.customDrugs = [];
+      clinicalState.dh.customDrugs.push({
+        id: Date.now(),
+        name: name.trim(),
+        dose: '',
+        sig: 'Daily (روزانه)',
+        note: ''
+      });
+      renderCustomDrugs();
+      saveCurrentCase();
+      updateLivePreview();
+    }
+  });
+
+  document.getElementById('dhNote')?.addEventListener('input', (e) => {
+    clinicalState.dh.note = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+}
+
+function initAhShFhHandlers() {
+  // AH NKDA
+  const nkdaBtn = document.getElementById('btnToggleNKDA');
+  const details = document.getElementById('allergyDetailsContainer');
+  nkdaBtn?.addEventListener('click', () => {
+    clinicalState.ah.nkda = !clinicalState.ah.nkda;
+    const check = document.getElementById('nkdaCheckIcon');
+    if (check) check.textContent = clinicalState.ah.nkda ? '☑️' : '◻️';
+    if (details) details.style.opacity = clinicalState.ah.nkda ? '0.4' : '1';
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  // AH Templates
+  const ahContainer = document.getElementById('ahTemplatesContainer');
+  if (ahContainer) {
+    ahContainer.innerHTML = '';
+    SURGICAL_SCHEMA.allergyTemplates.forEach((t) => {
+      const isSel = (clinicalState.ah.selected || []).find((x) => x.id === t.id);
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `toggle-chip ${isSel ? 'active' : ''}`;
+      chip.textContent = t.label;
+      chip.addEventListener('click', () => {
+        if (!clinicalState.ah.selected) clinicalState.ah.selected = [];
+        const idx = clinicalState.ah.selected.findIndex((x) => x.id === t.id);
+        if (idx >= 0) {
+          clinicalState.ah.selected.splice(idx, 1);
+          chip.classList.remove('active');
+        } else {
+          clinicalState.ah.selected.push({ id: t.id, label: t.label, detail: '' });
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      ahContainer.appendChild(chip);
+    });
+  }
+
+  document.getElementById('ahNote')?.addEventListener('input', (e) => {
+    clinicalState.ah.note = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  // SH
+  const cigs = document.getElementById('shCigsPerDay');
+  const years = document.getElementById('shYearsSmoked');
+  const packYearBadge = document.getElementById('packYearBadge');
+  function updatePackYear() {
+    const c = Number(cigs?.value || 0);
+    const y = Number(years?.value || 0);
+    const py = c > 0 && y > 0 ? ((c / 20) * y).toFixed(1) : '0.0';
+    if (packYearBadge) packYearBadge.textContent = `${py} Pack-Year`;
+    clinicalState.sh.cigsPerDay = cigs?.value || '';
+    clinicalState.sh.yearsSmoked = years?.value || '';
+    saveCurrentCase();
+    updateLivePreview();
+  }
+  cigs?.addEventListener('input', updatePackYear);
+  years?.addEventListener('input', updatePackYear);
+
+  document.getElementById('shOpium')?.addEventListener('input', (e) => {
+    clinicalState.sh.opium = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  document.getElementById('shNote')?.addEventListener('input', (e) => {
+    clinicalState.sh.note = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  // FH
+  const fhContainer = document.getElementById('fhChipsContainer');
+  if (fhContainer) {
+    fhContainer.innerHTML = '';
+    SURGICAL_SCHEMA.fhItems.forEach((f) => {
+      const isSel = (clinicalState.fh.selected || []).find((x) => x.id === f.id);
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `toggle-chip ${isSel ? 'active' : ''}`;
+      chip.textContent = f.label;
+      chip.addEventListener('click', () => {
+        if (!clinicalState.fh.selected) clinicalState.fh.selected = [];
+        const idx = clinicalState.fh.selected.findIndex((x) => x.id === f.id);
+        if (idx >= 0) {
+          clinicalState.fh.selected.splice(idx, 1);
+          chip.classList.remove('active');
+        } else {
+          clinicalState.fh.selected.push({ id: f.id, label: f.label, detail: '' });
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      fhContainer.appendChild(chip);
+    });
+  }
+
+  document.getElementById('fhNote')?.addEventListener('input', (e) => {
+    clinicalState.fh.note = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+}
+
+/* ==========================================================================
+   Tab 5: Review of Systems (ROS) - Bilingual & Intelligent Gender Filter
+   ========================================================================== */
+function renderRosGroups() {
+  const container = document.getElementById('rosGroupsAccordion');
+  const genderToggle = document.getElementById('btnToggleRosGenderFilter');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const patientGender = clinicalState.demographics.gender || 'female';
+  const showAllGenders = !!clinicalState.ros.showAllGenders;
+
+  if (genderToggle) {
+    document.getElementById('rosGenderFilterIcon').textContent = showAllGenders ? '🔓' : '🔒';
+    document.getElementById('rosGenderFilterText').textContent = showAllGenders ? 'نمایش همه آیتم‌ها' : 'فیلتر جنسیت فعال';
+    genderToggle.onclick = () => {
+      clinicalState.ros.showAllGenders = !clinicalState.ros.showAllGenders;
+      renderRosGroups();
+      saveCurrentCase();
+      updateLivePreview();
+    };
+  }
+
+  ROS_GROUPS_BILINGUAL.forEach((grp) => {
+    const filteredItems = grp.items.filter((item) => {
+      if (showAllGenders || item.gender === 'all') return true;
+      if (patientGender === 'female' && item.gender === 'female') return true;
+      if (patientGender === 'male' && item.gender === 'male') return true;
+      if (patientGender === 'other') return true;
+      return false;
+    });
+
+    if (filteredItems.length === 0) return;
+
     let posCount = 0;
     let negCount = 0;
     let neutralCount = 0;
 
-    grp.chips.forEach((c) => {
-      const it = clinicalState.hpi.symptoms[c.id];
+    filteredItems.forEach((item) => {
+      const it = clinicalState.ros.items[item.id];
       const st = it ? (typeof it === 'object' ? it.state : it) : 0;
       if (st === 1) posCount++;
       else if (st === -1) negCount++;
@@ -690,7 +1559,7 @@ function renderHpiSymptomGroups() {
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = grp.groupTitle;
+    titleSpan.textContent = grp.group;
     headerRight.appendChild(titleSpan);
 
     if (posCount > 0) {
@@ -719,20 +1588,21 @@ function renderHpiSymptomGroups() {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const makeNeg = !isResetState;
-      grp.chips.forEach((c) => {
-        const it = clinicalState.hpi.symptoms[c.id];
+      filteredItems.forEach((item) => {
+        const it = clinicalState.ros.items[item.id];
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.hpi.symptoms[c.id] = { state: -1, detail: '' };
+            clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.label };
           }
         } else {
           if (st === -1) {
-            delete clinicalState.hpi.symptoms[c.id];
+            delete clinicalState.ros.items[item.id];
           }
         }
       });
-      renderHpiSymptomGroups();
+      renderRosGroups();
+      saveCurrentCase();
       updateLivePreview();
     });
     headerLeft.appendChild(toggleBtn);
@@ -750,652 +1620,74 @@ function renderHpiSymptomGroups() {
       grpCard.classList.toggle('is-collapsed');
     });
 
+    grpCard.appendChild(header);
+
     const body = document.createElement('div');
     body.className = 'subsystem-body';
 
-    const chipsWrap = document.createElement('div');
-    chipsWrap.className = 'chips-container';
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'chips-container';
 
-    grp.chips.forEach((chipDef) => {
-      const currentItem = clinicalState.hpi.symptoms[chipDef.id];
-      const chipEl = renderInlineDetailTriStateChip({
-        id: chipDef.id,
-        label: chipDef.label,
-        detailHint: chipDef.detailHint,
-        currentItemData: currentItem,
-        sectionId: 'hpi',
-        onStateChange: (newVal, currentDetail) => {
-          if (newVal === 0) {
-            delete clinicalState.hpi.symptoms[chipDef.id];
+    filteredItems.forEach((item) => {
+      const cur = clinicalState.ros.items[item.id];
+      const chipWrap = renderInlineDetailTriStateChip({
+        id: item.id,
+        label: item.label,
+        detailHint: item.detailHint || 'توضیحات...',
+        currentItemData: cur,
+        onStateChange: (newState, detailText) => {
+          if (newState === 0) {
+            delete clinicalState.ros.items[item.id];
           } else {
-            clinicalState.hpi.symptoms[chipDef.id] = { state: newVal, detail: currentDetail || '' };
+            clinicalState.ros.items[item.id] = { state: newState, detail: detailText, label: item.label };
           }
-          renderHpiSymptomGroups();
         },
-        onDetailChange: (newDetail) => {
-          if (!clinicalState.hpi.symptoms[chipDef.id]) {
-            clinicalState.hpi.symptoms[chipDef.id] = { state: 1, detail: newDetail };
-          } else {
-            clinicalState.hpi.symptoms[chipDef.id].detail = newDetail;
+        onDetailChange: (detailText) => {
+          if (clinicalState.ros.items[item.id]) {
+            clinicalState.ros.items[item.id].detail = detailText;
           }
         }
       });
-      chipsWrap.appendChild(chipEl);
+      chipsContainer.appendChild(chipWrap);
     });
 
-    body.appendChild(chipsWrap);
-    grpCard.appendChild(header);
+    body.appendChild(chipsContainer);
     grpCard.appendChild(body);
     container.appendChild(grpCard);
   });
 }
 
-/* --- Tab 3: PMH / PSH / HH (Tri-state PMH) --- */
-function renderPmhChips() {
-  const container = document.getElementById('pmhChipsContainer');
-  if (!container) return;
-  container.innerHTML = '';
+function initRosMasterNegativeHandler() {
+  const masterBtn = document.getElementById('btnRosMasterNegative');
+  if (!masterBtn) return;
 
-  let posCount = 0;
-  let negCount = 0;
-  let neutralCount = 0;
+  masterBtn.addEventListener('click', () => {
+    const patientGender = clinicalState.demographics.gender || 'female';
+    const showAllGenders = !!clinicalState.ros.showAllGenders;
 
-  SURGICAL_SCHEMA.pmhItems.forEach((pmhDef) => {
-    const it = clinicalState.pmh.items[pmhDef.id];
-    const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-    if (st === 1) posCount++;
-    else if (st === -1) negCount++;
-    else neutralCount++;
-  });
-
-  const isResetState = neutralCount === 0 && negCount > 0;
-
-  const bar = document.createElement('div');
-  bar.className = 'master-negative-bar';
-
-  const badgeWrapper = document.createElement('div');
-  badgeWrapper.style.display = 'flex';
-  badgeWrapper.style.gap = '0.5rem';
-  badgeWrapper.style.alignItems = 'center';
-
-  if (posCount > 0) {
-    const bPos = document.createElement('span');
-    bPos.className = 'subsystem-badge-counter pos';
-    bPos.textContent = `${posCount} مثبت`;
-    badgeWrapper.appendChild(bPos);
-  }
-  if (negCount > 0) {
-    const bNeg = document.createElement('span');
-    bNeg.className = 'subsystem-badge-counter neg';
-    bNeg.textContent = `${negCount} منفی`;
-    badgeWrapper.appendChild(bNeg);
-  }
-
-  const toggleBtn = document.createElement('button');
-  toggleBtn.type = 'button';
-  toggleBtn.className = `btn-toggle-sub-negatives ${isResetState ? 'is-reset' : ''}`;
-  toggleBtn.innerHTML = isResetState
-    ? `<span>↺ بازنشانی تمام منفی‌ها</span>`
-    : `<span>− منفی کردن تمام موارد باقیمانده</span>`;
-
-  toggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const makeNeg = !isResetState;
-    SURGICAL_SCHEMA.pmhItems.forEach((pmhDef) => {
-      const it = clinicalState.pmh.items[pmhDef.id];
-      const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (makeNeg) {
-        if (st === 0) {
-          clinicalState.pmh.items[pmhDef.id] = { state: -1, detail: '' };
+    ROS_GROUPS_BILINGUAL.forEach((grp) => {
+      grp.items.forEach((item) => {
+        if (!showAllGenders && item.gender !== 'all') {
+          if (patientGender === 'female' && item.gender !== 'female') return;
+          if (patientGender === 'male' && item.gender !== 'male') return;
         }
-      } else {
-        if (st === -1) {
-          delete clinicalState.pmh.items[pmhDef.id];
-        }
-      }
-    });
-    renderPmhChips();
-    updateLivePreview();
-  });
-
-  bar.appendChild(badgeWrapper);
-  bar.appendChild(toggleBtn);
-  container.appendChild(bar);
-
-  const chipsWrap = document.createElement('div');
-  chipsWrap.className = 'chips-container';
-
-  SURGICAL_SCHEMA.pmhItems.forEach((pmhDef) => {
-    const currentItem = clinicalState.pmh.items[pmhDef.id];
-    const chipEl = renderInlineDetailTriStateChip({
-      id: pmhDef.id,
-      label: pmhDef.label,
-      detailHint: pmhDef.detailHint,
-      currentItemData: currentItem,
-      sectionId: 'pmh_psh_hh',
-      onStateChange: (newVal, currentDetail) => {
-        if (newVal === 0) {
-          delete clinicalState.pmh.items[pmhDef.id];
-        } else {
-          clinicalState.pmh.items[pmhDef.id] = { state: newVal, detail: currentDetail || '' };
-        }
-        renderPmhChips();
-      },
-      onDetailChange: (newDetail) => {
-        if (!clinicalState.pmh.items[pmhDef.id]) {
-          clinicalState.pmh.items[pmhDef.id] = { state: 1, detail: newDetail };
-        } else {
-          clinicalState.pmh.items[pmhDef.id].detail = newDetail;
-        }
-      }
-    });
-    chipsWrap.appendChild(chipEl);
-  });
-
-  container.appendChild(chipsWrap);
-}
-
-function initPmhPshHhHandlers() {
-  document.getElementById('pshNote')?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('pmh_psh_hh', 'typing', true);
-    clinicalState.psh.note = e.target.value;
-    updateLivePreview();
-  });
-
-  document.getElementById('hhNote')?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('pmh_psh_hh', 'typing', true);
-    clinicalState.hh.note = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function initObGynHandlers() {
-  const fields = [
-    { id: 'obgynG', key: 'g' },
-    { id: 'obgynP', key: 'p' },
-    { id: 'obgynAb', key: 'ab' },
-    { id: 'obgynL', key: 'l' },
-    { id: 'obgynDeliveryType', key: 'deliveryType' },
-    { id: 'obgynLmp', key: 'lmp' },
-    { id: 'obgynDysmenorrhea', key: 'dysmenorrhea' }
-  ];
-
-  fields.forEach(({ id, key }) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-    el.addEventListener(evt, (e) => {
-      telemetry.recordInteraction('pmh_psh_hh', 'obgyn_input');
-      clinicalState.obgyn[key] = e.target.value;
-      updateLivePreview();
-    });
-  });
-}
-
-/* --- Tab 4: DH / AH / SH / FH --- */
-function renderHighAlertDrugs() {
-  const container = document.getElementById('dhHighAlertContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  SURGICAL_SCHEMA.highAlertSurgicalDrugs.forEach((drug) => {
-    const existing = (clinicalState.dh.highAlert || []).find((d) => d.id === drug.id);
-    const wrap = document.createElement('div');
-    wrap.className = 'clinical-chip-wrap';
-
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = `toggle-chip ${existing ? 'active' : ''}`;
-    chip.innerHTML = `<span>💊</span> <span>${drug.label}</span>`;
-
-    const lastDoseInput = document.createElement('input');
-    lastDoseInput.type = 'text';
-    lastDoseInput.className = 'inline-detail-input';
-    lastDoseInput.placeholder = drug.detailHint || 'ساعت/تاریخ دوز آخر...';
-    lastDoseInput.style.display = existing ? 'inline-block' : 'none';
-    lastDoseInput.value = existing?.lastDose || '';
-
-    lastDoseInput.addEventListener('input', (e) => {
-      telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-      const found = (clinicalState.dh.highAlert || []).find((d) => d.id === drug.id);
-      if (found) found.lastDose = e.target.value;
-      updateLivePreview();
-    });
-
-    chip.addEventListener('click', () => {
-      const list = clinicalState.dh.highAlert || [];
-      const idx = list.findIndex((d) => d.id === drug.id);
-      if (idx >= 0) {
-        list.splice(idx, 1);
-        chip.classList.remove('active');
-        lastDoseInput.style.display = 'none';
-        lastDoseInput.value = '';
-      } else {
-        list.push({ id: drug.id, label: drug.label, category: drug.category, lastDose: '' });
-        chip.classList.add('active');
-        lastDoseInput.style.display = 'inline-block';
-        lastDoseInput.focus();
-      }
-      clinicalState.dh.highAlert = list;
-      telemetry.recordInteraction('ah_dh_sh_fh', 'chip_tap');
-      updateLivePreview();
-    });
-
-    wrap.appendChild(chip);
-    wrap.appendChild(lastDoseInput);
-    container.appendChild(wrap);
-  });
-
-  document.getElementById('dhNote')?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing', true);
-    clinicalState.dh.note = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function renderAllergyTemplates() {
-  const container = document.getElementById('ahTemplatesContainer');
-  const btnNkda = document.getElementById('btnToggleNKDA');
-  const nkdaIcon = document.getElementById('nkdaCheckIcon');
-  const allergyDetails = document.getElementById('allergyDetailsContainer');
-  const ahNote = document.getElementById('ahNote');
-
-  function updateNkdaUI() {
-    if (clinicalState.ah.nkda) {
-      if (nkdaIcon) nkdaIcon.textContent = '☑️';
-      if (btnNkda) btnNkda.classList.add('btn-primary');
-      if (allergyDetails) {
-        allergyDetails.style.opacity = '0.4';
-        allergyDetails.style.pointerEvents = 'none';
-      }
-    } else {
-      if (nkdaIcon) nkdaIcon.textContent = '◻️';
-      if (btnNkda) btnNkda.classList.remove('btn-primary');
-      if (allergyDetails) {
-        allergyDetails.style.opacity = '1';
-        allergyDetails.style.pointerEvents = 'auto';
-      }
-    }
-  }
-
-  btnNkda?.addEventListener('click', () => {
-    clinicalState.ah.nkda = !clinicalState.ah.nkda;
-    if (clinicalState.ah.nkda) {
-      clinicalState.ah.selected = [];
-    }
-    updateNkdaUI();
-    renderAllergyTemplatesChips();
-    telemetry.recordInteraction('ah_dh_sh_fh', 'toggle_nkda');
-    updateLivePreview();
-  });
-
-  function renderAllergyTemplatesChips() {
-    if (!container) return;
-    container.innerHTML = '';
-    SURGICAL_SCHEMA.allergyTemplates.forEach((template) => {
-      const existing = (clinicalState.ah.selected || []).find((s) => (s.id || s) === template.id);
-      const wrap = document.createElement('div');
-      wrap.className = 'clinical-chip-wrap';
-
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = `toggle-chip ${existing ? 'active' : ''}`;
-      chip.textContent = template.label;
-
-      const detailInput = document.createElement('input');
-      detailInput.type = 'text';
-      detailInput.className = 'inline-detail-input';
-      detailInput.placeholder = template.detailHint || 'نوع واکنش آلرژیک...';
-      detailInput.style.display = existing ? 'inline-block' : 'none';
-      detailInput.value = existing?.detail || '';
-
-      detailInput.addEventListener('input', (e) => {
-        telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-        const found = (clinicalState.ah.selected || []).find((s) => s.id === template.id);
-        if (found) found.detail = e.target.value;
-        updateLivePreview();
-      });
-
-      chip.addEventListener('click', () => {
-        if (clinicalState.ah.nkda) return;
-        const list = clinicalState.ah.selected || [];
-        const idx = list.findIndex((s) => (s.id || s) === template.id);
-        if (idx >= 0) {
-          list.splice(idx, 1);
-          chip.classList.remove('active');
-          detailInput.style.display = 'none';
-        } else {
-          list.push({ id: template.id, label: template.label, detail: '' });
-          chip.classList.add('active');
-          detailInput.style.display = 'inline-block';
-          detailInput.focus();
-        }
-        clinicalState.ah.selected = list;
-        telemetry.recordInteraction('ah_dh_sh_fh', 'chip_tap');
-        updateLivePreview();
-      });
-
-      wrap.appendChild(chip);
-      wrap.appendChild(detailInput);
-      container.appendChild(wrap);
-    });
-  }
-
-  renderAllergyTemplatesChips();
-  updateNkdaUI();
-
-  ahNote?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing', true);
-    clinicalState.ah.note = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function initShCalculator() {
-  const cigs = document.getElementById('shCigsPerDay');
-  const years = document.getElementById('shYearsSmoked');
-  const badge = document.getElementById('packYearBadge');
-  const opium = document.getElementById('shOpium');
-  const shNote = document.getElementById('shNote');
-
-  function calculatePackYear() {
-    const c = parseFloat(clinicalState.sh.cigsPerDay) || 0;
-    const y = parseFloat(clinicalState.sh.yearsSmoked) || 0;
-    const packYear = (c / 20) * y;
-    if (badge) badge.textContent = `${packYear.toFixed(1)} Pack-Year`;
-  }
-
-  cigs?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-    clinicalState.sh.cigsPerDay = e.target.value;
-    calculatePackYear();
-    updateLivePreview();
-  });
-
-  years?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-    clinicalState.sh.yearsSmoked = e.target.value;
-    calculatePackYear();
-    updateLivePreview();
-  });
-
-  opium?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-    clinicalState.sh.opium = e.target.value;
-    updateLivePreview();
-  });
-
-  shNote?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing', true);
-    clinicalState.sh.note = e.target.value;
-    updateLivePreview();
-  });
-}
-
-function renderFhChips() {
-  const container = document.getElementById('fhChipsContainer');
-  const fhNote = document.getElementById('fhNote');
-  if (!container) return;
-  container.innerHTML = '';
-
-  SURGICAL_SCHEMA.fhItems.forEach((fhItem) => {
-    const existing = (clinicalState.fh.selected || []).find((s) => (s.id || s) === fhItem.id);
-    const wrap = document.createElement('div');
-    wrap.className = 'clinical-chip-wrap';
-
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = `toggle-chip ${existing ? 'active' : ''}`;
-    chip.textContent = fhItem.label;
-
-    const detailInput = document.createElement('input');
-    detailInput.type = 'text';
-    detailInput.className = 'inline-detail-input';
-    detailInput.placeholder = fhItem.detailHint || 'نسبت فامیلی و سن...';
-    detailInput.style.display = existing ? 'inline-block' : 'none';
-    detailInput.value = existing?.detail || '';
-
-    detailInput.addEventListener('input', (e) => {
-      telemetry.recordInteraction('ah_dh_sh_fh', 'typing');
-      const found = (clinicalState.fh.selected || []).find((s) => s.id === fhItem.id);
-      if (found) found.detail = e.target.value;
-      updateLivePreview();
-    });
-
-    const relationBar = document.createElement('span');
-    relationBar.className = 'fh-relation-bar';
-    relationBar.style.display = existing ? 'inline-flex' : 'none';
-
-    (SURGICAL_SCHEMA.familyRelations || ['مادر', 'پدر', 'برادر', 'خواهر', 'درجه ۲']).forEach((rel) => {
-      const relBtn = document.createElement('button');
-      relBtn.type = 'button';
-      relBtn.className = 'fh-relation-btn';
-      relBtn.textContent = rel;
-      relBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const current = detailInput.value.trim();
-        detailInput.value = current ? `${current}، ${rel}` : rel;
-        const found = (clinicalState.fh.selected || []).find((s) => s.id === fhItem.id);
-        if (found) found.detail = detailInput.value;
-        telemetry.recordInteraction('ah_dh_sh_fh', 'quick_relation_tap');
-        updateLivePreview();
-      });
-      relationBar.appendChild(relBtn);
-    });
-
-    chip.addEventListener('click', () => {
-      const list = clinicalState.fh.selected || [];
-      const idx = list.findIndex((s) => (s.id || s) === fhItem.id);
-      if (idx >= 0) {
-        list.splice(idx, 1);
-        chip.classList.remove('active');
-        detailInput.style.display = 'none';
-        relationBar.style.display = 'none';
-      } else {
-        list.push({ id: fhItem.id, label: fhItem.label, detail: '' });
-        chip.classList.add('active');
-        detailInput.style.display = 'inline-block';
-        relationBar.style.display = 'inline-flex';
-        detailInput.focus();
-      }
-      clinicalState.fh.selected = list;
-      telemetry.recordInteraction('ah_dh_sh_fh', 'chip_tap');
-      updateLivePreview();
-    });
-
-    wrap.appendChild(chip);
-    wrap.appendChild(detailInput);
-    wrap.appendChild(relationBar);
-    container.appendChild(wrap);
-  });
-
-  fhNote?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('ah_dh_sh_fh', 'typing', true);
-    clinicalState.fh.note = e.target.value;
-    updateLivePreview();
-  });
-}
-
-/* --- Tab 5: ROS (11 Systems with Accordion, Live Badges & Negative Toggle) --- */
-function renderRosGroups() {
-  const container = document.getElementById('rosGroupsAccordion');
-  if (!container) return;
-  container.innerHTML = '';
-
-  SURGICAL_SCHEMA.rosGroups.forEach((group) => {
-    let posCount = 0;
-    let negCount = 0;
-    let neutralCount = 0;
-
-    group.items.forEach((item) => {
-      const it = clinicalState.ros.items[item.id];
-      const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (st === 1) posCount++;
-      else if (st === -1) negCount++;
-      else neutralCount++;
-    });
-
-    const isResetState = neutralCount === 0 && negCount > 0;
-
-    const card = document.createElement('div');
-    card.className = 'subsystem-accordion';
-
-    const header = document.createElement('div');
-    header.className = 'subsystem-header';
-
-    const headerRight = document.createElement('div');
-    headerRight.className = 'subsystem-header-right';
-
-    const titleSpan = document.createElement('span');
-    titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = group.group;
-    headerRight.appendChild(titleSpan);
-
-    if (posCount > 0) {
-      const bPos = document.createElement('span');
-      bPos.className = 'subsystem-badge-counter pos';
-      bPos.textContent = `${posCount} مثبت`;
-      headerRight.appendChild(bPos);
-    }
-    if (negCount > 0) {
-      const bNeg = document.createElement('span');
-      bNeg.className = 'subsystem-badge-counter neg';
-      bNeg.textContent = `${negCount} منفی`;
-      headerRight.appendChild(bNeg);
-    }
-
-    const headerLeft = document.createElement('div');
-    headerLeft.className = 'subsystem-header-left';
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = `btn-toggle-sub-negatives ${isResetState ? 'is-reset' : ''}`;
-    toggleBtn.innerHTML = isResetState
-      ? `<span>↺ بازنشانی منفی‌ها</span>`
-      : `<span>− منفی کردن بقیه</span>`;
-
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const makeNeg = !isResetState;
-      group.items.forEach((item) => {
         const it = clinicalState.ros.items[item.id];
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-        if (makeNeg) {
-          if (st === 0) {
-            clinicalState.ros.items[item.id] = { state: -1, detail: '' };
-          }
-        } else {
-          if (st === -1) {
-            delete clinicalState.ros.items[item.id];
-          }
-        }
-      });
-      renderRosGroups();
-      setupRosMasterNegative();
-      updateLivePreview();
-    });
-    headerLeft.appendChild(toggleBtn);
-
-    const chevron = document.createElement('span');
-    chevron.className = 'subsystem-chevron';
-    chevron.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-    headerLeft.appendChild(chevron);
-
-    header.appendChild(headerRight);
-    header.appendChild(headerLeft);
-
-    header.addEventListener('click', (e) => {
-      if (e.target.closest('button')) return;
-      card.classList.toggle('is-collapsed');
-    });
-
-    const body = document.createElement('div');
-    body.className = 'subsystem-body';
-
-    const chipsWrap = document.createElement('div');
-    chipsWrap.className = 'chips-container';
-
-    group.items.forEach((item) => {
-      const currentItem = clinicalState.ros.items[item.id];
-      const chipEl = renderInlineDetailTriStateChip({
-        id: item.id,
-        label: item.label,
-        detailHint: item.detailHint,
-        currentItemData: currentItem,
-        sectionId: 'ros',
-        onStateChange: (newVal, currentDetail) => {
-          if (newVal === 0) {
-            delete clinicalState.ros.items[item.id];
-          } else {
-            clinicalState.ros.items[item.id] = { state: newVal, detail: currentDetail || '' };
-          }
-          renderRosGroups();
-          setupRosMasterNegative();
-        },
-        onDetailChange: (newDetail) => {
-          if (!clinicalState.ros.items[item.id]) {
-            clinicalState.ros.items[item.id] = { state: 1, detail: newDetail };
-          } else {
-            clinicalState.ros.items[item.id].detail = newDetail;
-          }
-        }
-      });
-      chipsWrap.appendChild(chipEl);
-    });
-
-    body.appendChild(chipsWrap);
-    card.appendChild(header);
-    card.appendChild(body);
-    container.appendChild(card);
-  });
-
-  setupRosMasterNegative();
-}
-
-function setupRosMasterNegative() {
-  const btn = document.getElementById('btnRosMasterNegative');
-  const iconSpan = document.getElementById('rosMasterIcon');
-  const textSpan = document.getElementById('rosMasterText');
-  if (!btn) return;
-
-  const allItems = SURGICAL_SCHEMA.rosGroups.flatMap((g) => g.items);
-  let neutralCount = 0;
-  let negCount = 0;
-
-  allItems.forEach((item) => {
-    const it = clinicalState.ros.items[item.id];
-    const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-    if (st === 0) neutralCount++;
-    else if (st === -1) negCount++;
-  });
-
-  const isReset = neutralCount === 0 && negCount > 0;
-  if (iconSpan) iconSpan.textContent = isReset ? '↺' : '−';
-  if (textSpan) textSpan.textContent = isReset ? 'بازنشانی تمام منفی‌ها به خنثی' : 'منفی کردن تمام گزینه‌های باقی‌مانده';
-
-  btn.onclick = () => {
-    const makeNeg = !isReset;
-    allItems.forEach((item) => {
-      const it = clinicalState.ros.items[item.id];
-      const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (makeNeg) {
         if (st === 0) {
-          clinicalState.ros.items[item.id] = { state: -1, detail: '' };
+          clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.label };
         }
-      } else {
-        if (st === -1) {
-          delete clinicalState.ros.items[item.id];
-        }
-      }
+      });
     });
     renderRosGroups();
+    saveCurrentCase();
     updateLivePreview();
-  };
+  });
 }
 
-/* --- Tab 6: PE (Physical Examination with Accordions, Live Badges & Negative Toggle) --- */
+/* ==========================================================================
+   Tab 6: Physical Examination (PE) - Vitals Persistence & 4 Abdominal Pillars
+   ========================================================================== */
 function initPeVitalsHandlers() {
-  const v = clinicalState.pe.vitals;
   const vitalsMap = {
     peVitalsBp: 'bp',
     peVitalsPr: 'pr',
@@ -1409,37 +1701,30 @@ function initPeVitalsHandlers() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', (e) => {
-      v[prop] = e.target.value;
+      clinicalState.pe.vitals[prop] = e.target.value;
+      saveCurrentCase();
       updateLivePreview();
     });
   });
 
   document.getElementById('peNote')?.addEventListener('input', (e) => {
     clinicalState.pe.note = e.target.value;
+    saveCurrentCase();
     updateLivePreview();
   });
 }
 
-function renderPeFindings() {
-  const container = document.getElementById('peSubsystemsAccordion');
+function renderPeMandatoryPillars() {
+  const container = document.getElementById('peMandatoryPillarsContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  const peSections = [
-    { key: 'generalAndHeadNeck', title: '۱. ظاهر عمومی، سر، گردن و تیروئید' },
-    { key: 'cardiopulmonaryAndBreast', title: '۲. سمع و لمس قلب، ریه و پستان' },
-    { key: 'abdomenInspectionAuscultation', title: '۳. مشاهده و سمع شکم (صداهای روده‌ای و اسکار)' },
-    { key: 'abdomenPalpationAndSigns', title: '۴. لمس شکم و علائم تحریک صفاق (Peritoneal Signs)' },
-    { key: 'dreAndExtremities', title: '۵. معاینه توشه رکتال (TR) و اندام‌ها' }
-  ];
-
-  peSections.forEach((sec) => {
-    const items = SURGICAL_SCHEMA.peFindings[sec.key] || [];
+  PE_MANDATORY_PILLARS.forEach((pillar) => {
     let posCount = 0;
     let negCount = 0;
     let neutralCount = 0;
 
-    items.forEach((item) => {
+    pillar.items.forEach((item) => {
       const it = clinicalState.pe.findings[item.id];
       const st = it ? (typeof it === 'object' ? it.state : it) : 0;
       if (st === 1) posCount++;
@@ -1449,8 +1734,9 @@ function renderPeFindings() {
 
     const isResetState = neutralCount === 0 && negCount > 0;
 
-    const card = document.createElement('div');
-    card.className = 'subsystem-accordion';
+    const pillarCard = document.createElement('div');
+    pillarCard.className = 'subsystem-accordion';
+    pillarCard.style.marginTop = '0.75rem';
 
     const header = document.createElement('div');
     header.className = 'subsystem-header';
@@ -1460,7 +1746,7 @@ function renderPeFindings() {
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = sec.title;
+    titleSpan.textContent = pillar.title;
     headerRight.appendChild(titleSpan);
 
     if (posCount > 0) {
@@ -1489,12 +1775,12 @@ function renderPeFindings() {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const makeNeg = !isResetState;
-      items.forEach((item) => {
+      pillar.items.forEach((item) => {
         const it = clinicalState.pe.findings[item.id];
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.pe.findings[item.id] = { state: -1, detail: '' };
+            clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.label };
           }
         } else {
           if (st === -1) {
@@ -1502,8 +1788,8 @@ function renderPeFindings() {
           }
         }
       });
-      renderPeFindings();
-      setupPeMasterNegative();
+      renderPeMandatoryPillars();
+      saveCurrentCase();
       updateLivePreview();
     });
     headerLeft.appendChild(toggleBtn);
@@ -1518,1054 +1804,473 @@ function renderPeFindings() {
 
     header.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
-      card.classList.toggle('is-collapsed');
+      pillarCard.classList.toggle('is-collapsed');
     });
+
+    pillarCard.appendChild(header);
 
     const body = document.createElement('div');
     body.className = 'subsystem-body';
 
-    const chipsWrap = document.createElement('div');
-    chipsWrap.className = 'chips-container';
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'chips-container';
 
-    items.forEach((item) => {
-      const currentItem = clinicalState.pe.findings[item.id];
-      const chipEl = renderInlineDetailTriStateChip({
+    pillar.items.forEach((item) => {
+      const cur = clinicalState.pe.findings[item.id];
+      const chipWrap = renderInlineDetailTriStateChip({
         id: item.id,
         label: item.label,
-        detailHint: item.detailHint,
-        currentItemData: currentItem,
-        sectionId: 'pe',
-        onStateChange: (newVal, currentDetail) => {
-          if (newVal === 0) {
+        detailHint: item.detailHint || 'توضیحات...',
+        currentItemData: cur,
+        onStateChange: (newState, detailText) => {
+          if (newState === 0) {
             delete clinicalState.pe.findings[item.id];
           } else {
-            clinicalState.pe.findings[item.id] = { state: newVal, detail: currentDetail || '' };
+            clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.label };
           }
-          renderPeFindings();
-          setupPeMasterNegative();
         },
-        onDetailChange: (newDetail) => {
-          if (!clinicalState.pe.findings[item.id]) {
-            clinicalState.pe.findings[item.id] = { state: 1, detail: newDetail };
-          } else {
-            clinicalState.pe.findings[item.id].detail = newDetail;
+        onDetailChange: (detailText) => {
+          if (clinicalState.pe.findings[item.id]) {
+            clinicalState.pe.findings[item.id].detail = detailText;
           }
         }
       });
-      chipsWrap.appendChild(chipEl);
+      chipsContainer.appendChild(chipWrap);
     });
 
-    body.appendChild(chipsWrap);
-    card.appendChild(header);
-    card.appendChild(body);
-    container.appendChild(card);
+    body.appendChild(chipsContainer);
+    pillarCard.appendChild(body);
+    container.appendChild(pillarCard);
   });
-
-  setupPeMasterNegative();
 }
 
-function setupPeMasterNegative() {
-  const btn = document.getElementById('btnPeMasterNegative');
-  const iconSpan = document.getElementById('peMasterIcon');
-  const textSpan = document.getElementById('peMasterText');
-  if (!btn) return;
+function renderPeUnlockableModules() {
+  const bar = document.getElementById('peUnlockableModulesBar');
+  const unlockedContainer = document.getElementById('peUnlockedModulesContainer');
+  if (!bar || !unlockedContainer) return;
 
-  const allItems = Object.values(SURGICAL_SCHEMA.peFindings).flat();
-  let neutralCount = 0;
-  let negCount = 0;
+  bar.innerHTML = '';
+  unlockedContainer.innerHTML = '';
 
-  allItems.forEach((item) => {
-    const it = clinicalState.pe.findings[item.id];
-    const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-    if (st === 0) neutralCount++;
-    else if (st === -1) negCount++;
+  const unlocked = clinicalState.pe.unlockedModules || [];
+
+  PE_UNLOCKABLE_MODULES.forEach((mod) => {
+    if (!unlocked.includes(mod.id)) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-unlock-module';
+      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>🔒</span>`;
+      btn.addEventListener('click', () => {
+        clinicalState.pe.unlockedModules.push(mod.id);
+        renderPeUnlockableModules();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      bar.appendChild(btn);
+    } else {
+      // Render unlocked module
+      const card = document.createElement('div');
+      card.className = 'unlocked-module-card';
+
+      const header = document.createElement('div');
+      header.className = 'unlocked-module-header';
+      header.innerHTML = `
+        <span class="unlocked-module-title">🔓 ${mod.title}</span>
+        <button type="button" class="btn btn-secondary btn-sm btn-close-exam-mod" style="color:#EF4444;">بستن و حذف</button>
+      `;
+
+      header.querySelector('.btn-close-exam-mod').addEventListener('click', () => {
+        clinicalState.pe.unlockedModules = clinicalState.pe.unlockedModules.filter((id) => id !== mod.id);
+        mod.items.forEach((item) => delete clinicalState.pe.findings[item.id]);
+        renderPeUnlockableModules();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      card.appendChild(header);
+
+      const chipsGrid = document.createElement('div');
+      chipsGrid.className = 'chips-container';
+
+      mod.items.forEach((item) => {
+        const cur = clinicalState.pe.findings?.[item.id];
+        const chipWrap = renderInlineDetailTriStateChip({
+          id: item.id,
+          label: item.label,
+          detailHint: item.detailHint || 'توضیحات...',
+          currentItemData: cur,
+          onStateChange: (newState, detailText) => {
+            if (newState === 0) {
+              delete clinicalState.pe.findings[item.id];
+            } else {
+              clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.label };
+            }
+          },
+          onDetailChange: (detailText) => {
+            if (clinicalState.pe.findings[item.id]) {
+              clinicalState.pe.findings[item.id].detail = detailText;
+            }
+          }
+        });
+        chipsGrid.appendChild(chipWrap);
+      });
+      card.appendChild(chipsGrid);
+      unlockedContainer.appendChild(card);
+    }
   });
+}
 
-  const isReset = neutralCount === 0 && negCount > 0;
-  if (iconSpan) iconSpan.textContent = isReset ? '↺' : '−';
-  if (textSpan) textSpan.textContent = isReset ? 'بازنشانی تمام منفی‌ها به خنثی' : 'منفی کردن تمام معاینات باقی‌مانده';
-
-  btn.onclick = () => {
-    const makeNeg = !isReset;
-    allItems.forEach((item) => {
-      const it = clinicalState.pe.findings[item.id];
-      const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (makeNeg) {
+function initPeMasterNegativeHandler() {
+  document.getElementById('btnPeMasterNegative')?.addEventListener('click', () => {
+    PE_MANDATORY_PILLARS.forEach((pillar) => {
+      pillar.items.forEach((item) => {
+        const it = clinicalState.pe.findings[item.id];
+        const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (st === 0) {
-          clinicalState.pe.findings[item.id] = { state: -1, detail: '' };
+          clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.label };
         }
-      } else {
-        if (st === -1) {
-          delete clinicalState.pe.findings[item.id];
-        }
-      }
+      });
     });
-    renderPeFindings();
+    renderPeMandatoryPillars();
+    saveCurrentCase();
     updateLivePreview();
-  };
+  });
 }
 
-/* --- Tab 7: Paraclinic Lab Panels (6 Categorized Standard Panels) --- */
+/* ==========================================================================
+   Tab 7: Paraclinics - 6 Lab Panels & Compact Modality Launcher
+   ========================================================================== */
 function renderParaclinicLabs() {
   const container = document.getElementById('paraclinicLabPanelsContainer');
   if (!container) return;
   container.innerHTML = '';
 
   LAB_PANELS.forEach((panel) => {
-    const panelCard = document.createElement('div');
-    panelCard.className = 'lab-panel-card';
+    const card = document.createElement('div');
+    card.className = 'lab-panel-card';
 
     const header = document.createElement('div');
     header.className = 'lab-panel-header';
     header.innerHTML = `
-      <span class="lab-panel-title">${panel.title}</span>
+      <div class="lab-panel-title">
+        <span>🧪</span>
+        <span>${panel.title}</span>
+      </div>
       <span class="lab-panel-badge">${panel.badge}</span>
     `;
-    panelCard.appendChild(header);
+    card.appendChild(header);
 
     const grid = document.createElement('div');
-    grid.className = 'lab-panel-grid';
+    grid.className = 'lab-tests-grid';
 
-    panel.tests.forEach((test) => {
-      const currentVal = clinicalState.paraclinics.labs[test.id] || '';
+    panel.tests.forEach((t) => {
+      const val = clinicalState.paraclinics.labs[t.id] || '';
+      const mini = document.createElement('div');
+      mini.className = 'lab-mini-card';
+      mini.dataset.id = t.id;
 
-      const miniCard = document.createElement('div');
-      miniCard.className = 'lab-mini-card';
-      miniCard.id = `labCard_${test.id}`;
-
-      miniCard.innerHTML = `
+      mini.innerHTML = `
         <div class="lab-mini-header">
-          <span class="lab-mini-label">${test.label}</span>
-          <span class="lab-mini-unit dir-ltr">${test.min}-${test.max}</span>
+          <span class="lab-mini-label">${t.label}</span>
+          <span class="lab-mini-unit">${t.unit}</span>
         </div>
         <div class="lab-mini-input-row">
-          <input type="number" step="any" class="lab-mini-input dir-ltr" id="labInput_${test.id}" value="${currentVal}" placeholder="${test.unit || '—'}">
+          <input type="text" class="lab-mini-input" placeholder="${t.min}-${t.max}" value="${val}">
         </div>
       `;
 
-      const input = miniCard.querySelector(`#labInput_${test.id}`);
+      const input = mini.querySelector('.lab-mini-input');
 
-      const updateFlag = (val) => {
-        miniCard.classList.remove('flag-high', 'flag-low');
-        if (val === '' || val === undefined) return;
-        const num = parseFloat(val);
-        if (isNaN(num)) return;
-        if (num > test.max) {
-          miniCard.classList.add('flag-high');
-        } else if (num < test.min) {
-          miniCard.classList.add('flag-low');
+      function updateFlag(valStr) {
+        mini.classList.remove('flag-high', 'flag-low');
+        const num = parseFloat(valStr);
+        if (!isNaN(num) && valStr.trim() !== '') {
+          if (num > t.max) mini.classList.add('flag-high');
+          else if (num < t.min) mini.classList.add('flag-low');
         }
-      };
-
-      updateFlag(currentVal);
+      }
+      updateFlag(val);
 
       input.addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (val === '') {
-          delete clinicalState.paraclinics.labs[test.id];
-        } else {
-          clinicalState.paraclinics.labs[test.id] = val;
-        }
-        updateFlag(val);
+        const newVal = e.target.value;
+        clinicalState.paraclinics.labs[t.id] = newVal;
+        updateFlag(newVal);
+        saveCurrentCase();
         updateLivePreview();
       });
 
-      grid.appendChild(miniCard);
+      grid.appendChild(mini);
     });
 
-    panelCard.appendChild(grid);
-    container.appendChild(panelCard);
+    card.appendChild(grid);
+    container.appendChild(card);
   });
 
   document.getElementById('paraclinicLabNote')?.addEventListener('input', (e) => {
     clinicalState.paraclinics.labNote = e.target.value;
+    saveCurrentCase();
     updateLivePreview();
   });
 }
 
-function renderImagingModalities() {
-  const container = document.getElementById('imagingModalitiesContainer');
-  if (!container) return;
-  container.innerHTML = '';
+function initModalityLauncherBar() {
+  const bar = document.getElementById('modalityLauncherBar');
+  if (!bar) return;
+  bar.innerHTML = '';
 
   SURGICAL_SCHEMA.paraclinicModalities.forEach((mod) => {
-    const existing = (clinicalState.paraclinics.imagingReports || []).find((r) => r.modalityId === mod.id) || {
-      modalityId: mod.id,
-      modalityLabel: mod.label,
-      date: '',
-      tags: [], // array of { id, label, detail }
-      summary: ''
-    };
-
-    const modCard = document.createElement('div');
-    modCard.className = 'clinical-card';
-    modCard.style.marginTop = '0.75rem';
-
-    modCard.innerHTML = `
-      <div class="card-header">
-        <div class="card-title">
-          <span class="icon-holder">📷</span>
-          <span>${mod.label}</span>
-        </div>
-        <input type="text" class="input-text dir-ltr" style="width:130px; font-size:0.75rem;" placeholder="تاریخ/ساعت انجام" value="${existing.date}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">یافته‌های شاخص تشخیصی با ورودی درجا</label>
-        <div class="chips-container" id="modTags_${mod.id}"></div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">گزارش تکمیلی / ابعاد ضایعه و نتیجه‌گیری متخصص رادیولوژی</label>
-        <textarea class="input-textarea" style="min-height:60px;" placeholder="شرح گزارش رسمی، سایز توده، کلکسیون یا درجه انسداد...">${existing.summary}</textarea>
-      </div>
-    `;
-
-    const dateInput = modCard.querySelector('input');
-    const summaryInput = modCard.querySelector('textarea');
-    const tagsContainer = modCard.querySelector(`#modTags_${mod.id}`);
-
-    function syncReport() {
-      let reports = clinicalState.paraclinics.imagingReports || [];
-      const idx = reports.findIndex((r) => r.modalityId === mod.id);
-      if (existing.tags.length > 0 || existing.summary.trim() !== '' || existing.date.trim() !== '') {
-        if (idx >= 0) reports[idx] = existing;
-        else reports.push(existing);
-      } else if (idx >= 0) {
-        reports.splice(idx, 1);
-      }
-      clinicalState.paraclinics.imagingReports = reports;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-modality-launch';
+    btn.innerHTML = `<span>➕</span><span>${mod.label}</span>`;
+    btn.addEventListener('click', () => {
+      if (!clinicalState.paraclinics.imagingReports) clinicalState.paraclinics.imagingReports = [];
+      const count = clinicalState.paraclinics.imagingReports.filter((r) => r.modalityId === mod.id).length + 1;
+      clinicalState.paraclinics.imagingReports.push({
+        id: Date.now(),
+        modalityId: mod.id,
+        modalityLabel: `${mod.label} (نوبت ${count})`,
+        date: new Date().toLocaleDateString('fa-IR'),
+        tags: [],
+        summary: ''
+      });
+      renderImagingReportsList();
+      saveCurrentCase();
       updateLivePreview();
-    }
-
-    dateInput.addEventListener('input', (e) => {
-      telemetry.recordInteraction('paraclinics', 'typing');
-      existing.date = e.target.value;
-      syncReport();
     });
-
-    summaryInput.addEventListener('input', (e) => {
-      telemetry.recordInteraction('paraclinics', 'typing', true);
-      existing.summary = e.target.value;
-      syncReport();
-    });
-
-    mod.quickTags.forEach((tagDef) => {
-      const tagObj = existing.tags.find((t) => (t.id || t) === tagDef.id);
-      const isTagged = !!tagObj;
-
-      const wrap = document.createElement('div');
-      wrap.className = 'clinical-chip-wrap';
-
-      const tagChip = document.createElement('button');
-      tagChip.type = 'button';
-      tagChip.className = `toggle-chip ${isTagged ? 'active' : ''}`;
-      tagChip.textContent = tagDef.label;
-
-      const inlineInput = document.createElement('input');
-      inlineInput.type = 'text';
-      inlineInput.className = 'inline-detail-input';
-      inlineInput.placeholder = tagDef.detailHint || 'سایز / جزئیات...';
-      inlineInput.style.display = isTagged ? 'inline-block' : 'none';
-      inlineInput.value = tagObj?.detail || '';
-
-      inlineInput.addEventListener('input', (e) => {
-        telemetry.recordInteraction('paraclinics', 'typing');
-        const found = existing.tags.find((t) => t.id === tagDef.id);
-        if (found) found.detail = e.target.value;
-        syncReport();
-      });
-
-      tagChip.addEventListener('click', () => {
-        const tIdx = existing.tags.findIndex((t) => (t.id || t) === tagDef.id);
-        if (tIdx >= 0) {
-          existing.tags.splice(tIdx, 1);
-          tagChip.classList.remove('active');
-          inlineInput.style.display = 'none';
-        } else {
-          existing.tags.push({ id: tagDef.id, label: tagDef.label, detail: '' });
-          tagChip.classList.add('active');
-          inlineInput.style.display = 'inline-block';
-          inlineInput.focus();
-        }
-        telemetry.recordInteraction('paraclinics', 'tag_tap');
-        syncReport();
-      });
-
-      wrap.appendChild(tagChip);
-      wrap.appendChild(inlineInput);
-      tagsContainer.appendChild(wrap);
-    });
-
-    container.appendChild(modCard);
+    bar.appendChild(btn);
   });
 }
 
-/* --- Tab 8: Clinical Reasoning (SQ & Problem Representation) --- */
-function renderSemanticQualifiers() {
-  const container = document.getElementById('sqPairsContainer');
+function renderImagingReportsList() {
+  const container = document.getElementById('imagingReportsListContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  SURGICAL_SCHEMA.semanticQualifiers.forEach((sqDef) => {
-    const wrap = document.createElement('div');
-    wrap.style.marginTop = '0.75rem';
+  const reports = clinicalState.paraclinics.imagingReports || [];
+  reports.forEach((rep, index) => {
+    const modDef = SURGICAL_SCHEMA.paraclinicModalities.find((m) => m.id === rep.modalityId);
 
+    const card = document.createElement('div');
+    card.className = 'imaging-instance-card';
+
+    // Header
     const header = document.createElement('div');
-    header.className = 'chip-group-header';
-    header.innerHTML = `<span class="chip-group-title">دوقطبی معنایی: ${sqDef.pair}</span>`;
-    wrap.appendChild(header);
+    header.className = 'imaging-card-header';
+    header.innerHTML = `
+      <div class="imaging-card-title">
+        <span>📸</span>
+        <span>${rep.modalityLabel}</span>
+      </div>
+      <button type="button" class="btn-delete-imaging" title="حذف این نوبت">🗑️ حذف</button>
+    `;
 
-    const chipsWrap = document.createElement('div');
-    chipsWrap.className = 'chips-container';
-
-    sqDef.options.forEach((opt) => {
-      const isSelected = (clinicalState.reasoning.selectedSQs || []).includes(opt);
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = `toggle-chip ${isSelected ? 'active' : ''}`;
-      chip.textContent = opt;
-      chip.addEventListener('click', () => {
-        const list = clinicalState.reasoning.selectedSQs || [];
-        const idx = list.indexOf(opt);
-        if (idx >= 0) {
-          list.splice(idx, 1);
-          chip.classList.remove('active');
-        } else {
-          list.push(opt);
-          chip.classList.add('active');
-        }
-        clinicalState.reasoning.selectedSQs = list;
-        telemetry.recordInteraction('reasoning_sq', 'sq_tap');
-        updateLivePreview();
-      });
-      chipsWrap.appendChild(chip);
+    header.querySelector('.btn-delete-imaging').addEventListener('click', () => {
+      clinicalState.paraclinics.imagingReports.splice(index, 1);
+      renderImagingReportsList();
+      saveCurrentCase();
+      updateLivePreview();
     });
+    card.appendChild(header);
 
-    wrap.appendChild(chipsWrap);
-    container.appendChild(wrap);
+    // Date input
+    const dateRow = document.createElement('div');
+    dateRow.className = 'form-group';
+    dateRow.innerHTML = `<label class="form-label">تاریخ انجام</label>`;
+    const dateInp = document.createElement('input');
+    dateInp.type = 'text';
+    dateInp.className = 'input-text dir-ltr';
+    dateInp.value = rep.date || '';
+    dateInp.placeholder = '1405/07/28';
+    dateInp.addEventListener('input', (e) => {
+      rep.date = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    dateRow.appendChild(dateInp);
+    card.appendChild(dateRow);
+
+    // Quick tags for this modality
+    if (modDef && modDef.quickTags && modDef.quickTags.length > 0) {
+      const tagGroup = document.createElement('div');
+      tagGroup.className = 'form-group';
+      tagGroup.innerHTML = `<label class="form-label">یافته‌های سریع و شایع</label>`;
+      const tagGrid = document.createElement('div');
+      tagGrid.className = 'tag-selector-grid';
+
+      modDef.quickTags.forEach((qt) => {
+        if (!rep.tags) rep.tags = [];
+        const isSel = rep.tags.find((t) => (typeof t === 'object' ? t.id : t) === qt.id);
+
+        const chip = document.createElement('span');
+        chip.className = `factor-chip ${isSel ? 'active' : ''}`;
+        chip.textContent = qt.label;
+        chip.addEventListener('click', () => {
+          const idx = rep.tags.findIndex((t) => (typeof t === 'object' ? t.id : t) === qt.id);
+          if (idx >= 0) {
+            rep.tags.splice(idx, 1);
+            chip.classList.remove('active');
+          } else {
+            let detail = '';
+            if (qt.detailHint) {
+              const userInp = prompt(`توضیح برای «${qt.label}» (${qt.detailHint}):`);
+              if (userInp) detail = userInp.trim();
+            }
+            rep.tags.push({ id: qt.id, label: qt.label, detail });
+            chip.classList.add('active');
+          }
+          saveCurrentCase();
+          updateLivePreview();
+        });
+        tagGrid.appendChild(chip);
+      });
+      tagGroup.appendChild(tagGrid);
+      card.appendChild(tagGroup);
+    }
+
+    // Summary Textarea
+    const sumGroup = document.createElement('div');
+    sumGroup.className = 'form-group';
+    sumGroup.style.marginTop = '0.5rem';
+    sumGroup.innerHTML = `<label class="form-label">متن کامل یا خلاصه گزارش تصویربرداری</label>`;
+    const sumTa = document.createElement('textarea');
+    sumTa.className = 'input-textarea';
+    sumTa.placeholder = 'متن ریپورت رادیولوژیست یا جراح...';
+    sumTa.value = rep.summary || '';
+    sumTa.addEventListener('input', (e) => {
+      rep.summary = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    sumGroup.appendChild(sumTa);
+    card.appendChild(sumGroup);
+
+    container.appendChild(card);
   });
 }
 
+/* ==========================================================================
+   Tab 8: Clinical Reasoning (Problem Representation & DDx) - SQs Removed
+   ========================================================================== */
 function initReasoningHandlers() {
   const prInput = document.getElementById('reasoningProblemRep');
   const ddxInput = document.getElementById('reasoningDdx');
   const btnAutoPR = document.getElementById('btnAutoGeneratePR');
 
   prInput?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('reasoning_sq', 'typing', true);
     clinicalState.reasoning.problemRepresentation = e.target.value;
+    saveCurrentCase();
     updateLivePreview();
   });
 
   ddxInput?.addEventListener('input', (e) => {
-    telemetry.recordInteraction('reasoning_sq', 'typing', true);
     clinicalState.reasoning.ddx = e.target.value;
+    saveCurrentCase();
     updateLivePreview();
   });
 
   btnAutoPR?.addEventListener('click', () => {
-    telemetry.recordInteraction('reasoning_sq', 'auto_pr_click');
-    const autoSummary = synthesizeProblemRepresentation(clinicalState);
-    clinicalState.reasoning.problemRepresentation = autoSummary;
-    if (prInput) prInput.value = autoSummary;
-    showToast('بازنمایی مسئله بالینی به صورت خودکار با تمام آزمایش‌های مثبت تولید شد.', 'success');
+    const generated = synthesizeProblemRepresentation(clinicalState);
+    clinicalState.reasoning.problemRepresentation = generated;
+    if (prInput) prInput.value = generated;
+    saveCurrentCase();
     updateLivePreview();
+    showToast('بازنمایی مسئله هوشمند با موفقیت تولید شد.', 'success');
   });
 }
 
 /* ==========================================================================
-   Navigation Tabs
+   System Gap Loggers
    ========================================================================== */
-function initNavigationTabs() {
-  const tabs = document.querySelectorAll('.segmented-tabs-bar .tab-btn');
-  const panes = document.querySelectorAll('.tab-pane');
+function initSystemGapLoggers() {
+  const gapMap = [
+    { inputId: 'hpiSystemGapInput', target: () => clinicalState.hpi },
+    { inputId: 'pmhSystemGapInput', target: () => clinicalState.pmh },
+    { inputId: 'pshSystemGapInput', target: () => clinicalState.psh },
+    { inputId: 'dhSystemGapInput', target: () => clinicalState.dh },
+    { inputId: 'ahSystemGapInput', target: () => clinicalState.ah },
+    { inputId: 'shSystemGapInput', target: () => clinicalState.sh },
+    { inputId: 'fhSystemGapInput', target: () => clinicalState.fh },
+    { inputId: 'rosSystemGapInput', target: () => clinicalState.ros },
+    { inputId: 'peSystemGapInput', target: () => clinicalState.pe },
+    { inputId: 'paraclinicSystemGapInput', target: () => clinicalState.paraclinics }
+  ];
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const targetTabId = tab.dataset.tab;
-      tabs.forEach((t) => t.classList.remove('active'));
-      panes.forEach((p) => p.classList.remove('active'));
-
-      tab.classList.add('active');
-      const targetPane = document.getElementById(targetTabId);
-      if (targetPane) {
-        targetPane.classList.add('active');
-        activeSectionId = targetPane.dataset.sectionId || 'cc_admission';
-        telemetry.switchSection(activeSectionId);
-      }
+  gapMap.forEach(({ inputId, target }) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      target().systemGapNote = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
     });
   });
 }
 
 /* ==========================================================================
-   Live Note Rendering & Synchronization
+   Navigation Tabs & Sticky Live Note Preview
    ========================================================================== */
-function updateLivePreview() {
-  clinicalState.updatedAt = new Date().toISOString();
+function initNavigationTabs() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.tab-pane');
 
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.tab;
+      tabButtons.forEach((b) => b.classList.remove('active'));
+      panes.forEach((p) => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const targetPane = document.getElementById(targetId);
+      if (targetPane) {
+        targetPane.classList.add('active');
+        activeSectionId = targetPane.dataset.sectionId || 'cc_admission';
+      }
+    });
+  });
+}
+
+function updateLivePreview() {
   const noteMarkdown = generateClinicalNote(clinicalState);
 
   const desktopPreview = document.getElementById('liveNotePreview');
   const mobilePreview = document.getElementById('mobileLiveNotePreview');
 
-  const formattedHtml = formatNoteForDisplay(noteMarkdown);
+  // Format markdown to HTML simply for live preview
+  const formattedHtml = formatMarkdownForDisplay(noteMarkdown);
+
   if (desktopPreview) desktopPreview.innerHTML = formattedHtml;
   if (mobilePreview) mobilePreview.innerHTML = formattedHtml;
 
-  // Update Counters
-  let posCount = 0;
-  let negCount = 0;
-  const countTri = (obj) => {
-    if (!obj) return;
-    Object.values(obj).forEach((v) => {
-      const stateVal = typeof v === 'object' ? v.state : v;
-      if (stateVal === 1) posCount++;
-      if (stateVal === -1) negCount++;
-    });
-  };
-  countTri(clinicalState.hpi.symptoms);
-  countTri(clinicalState.pmh.items);
-  countTri(clinicalState.ros.items);
-  countTri(clinicalState.pe.findings);
+  // Update counters
+  const analytics = ClinicalCaseAnalytics.analyzeState(clinicalState);
+  const posBadge = document.getElementById('badgePosCount');
+  const negBadge = document.getElementById('badgeNegCount');
+  const mobilePos = document.getElementById('mobilePosCount');
+  const mobileNeg = document.getElementById('mobileNegCount');
 
-  const sqCount = (clinicalState.reasoning.selectedSQs || []).length;
-
-  document.getElementById('badgePosCount').textContent = posCount;
-  document.getElementById('badgeNegCount').textContent = negCount;
-  document.getElementById('badgeSqCount').textContent = sqCount;
-
-  const mPos = document.getElementById('mobilePosCount');
-  const mNeg = document.getElementById('mobileNegCount');
-  if (mPos) mPos.textContent = posCount;
-  if (mNeg) mNeg.textContent = negCount;
-
-  saveCurrentCase();
+  if (posBadge) posBadge.textContent = analytics.positiveCount;
+  if (negBadge) negBadge.textContent = analytics.negativeCount;
+  if (mobilePos) mobilePos.textContent = analytics.positiveCount;
+  if (mobileNeg) mobileNeg.textContent = analytics.negativeCount;
 }
 
-function formatNoteForDisplay(markdown) {
-  if (!markdown) return '<em>در انتظار ثبت اطلاعات بالینی...</em>';
-  return markdown
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+function formatMarkdownForDisplay(md) {
+  if (!md) return '<div class="preview-empty">در حال تکمیل پرونده...</div>';
+
+  let html = md
+    .replace(/^> \*\*مشخصات هویتی بیمار:\*\* (.*)$/gm, '<div class="preview-identity-box"><strong>مشخصات بیمار:</strong> $1</div>')
+    .replace(/^### (.*$)/gm, '<h3 class="preview-h3">$1</h3>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>');
+    .replace(/^- (.*$)/gm, '<div class="preview-bullet">• $1</div>')
+    .replace(/^  \* (.*$)/gm, '<div class="preview-sub-bullet" style="margin-right:1rem;">▫ $1</div>')
+    .replace(/^    - (.*$)/gm, '<div class="preview-sub-bullet" style="margin-right:2rem;">- $1</div>')
+    .replace(/\n\n/g, '<br/>');
+
+  return html;
 }
 
 /* ==========================================================================
-   Telemetry Status Ticker Loop (Neutralized in v0.4-Surg)
-   ========================================================================== */
-function startTelemetryTicker() {
-  // Timing ticker intentionally removed in v0.4-Surg to eliminate UX clutter.
-}
-
-/* ==========================================================================
-   Shift Manager & Offline Storage (100% Offline-First)
-   ========================================================================== */
-function saveCurrentCase() {
-  try {
-    localStorage.setItem(STORAGE_CURRENT_CASE_KEY, JSON.stringify(clinicalState));
-    updateShiftVaultWithCase(clinicalState);
-  } catch (err) {
-    console.warn('Failed to save state to localStorage:', err);
-  }
-}
-
-function loadSavedState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.caseId) {
-        clinicalState = parsed;
-        const idBadge = document.getElementById('headerCaseId');
-        if (idBadge) idBadge.textContent = clinicalState.caseId;
-      }
-    }
-  } catch (err) {
-    console.warn('Failed to load state from localStorage:', err);
-  }
-}
-
-function getShiftCases() {
-  try {
-    const raw = localStorage.getItem(STORAGE_SHIFT_CASES_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveShiftCases(cases) {
-  try {
-    localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(cases));
-    const countBadge = document.getElementById('shiftCasesCount');
-    if (countBadge) countBadge.textContent = cases.length;
-  } catch (err) {
-    console.warn('Failed to save shift vault:', err);
-  }
-}
-
-function updateShiftVaultWithCase(caseObj) {
-  const cases = getShiftCases();
-  const idx = cases.findIndex((c) => c.caseId === caseObj.caseId);
-  const summary = {
-    caseId: caseObj.caseId,
-    createdAt: caseObj.createdAt,
-    updatedAt: caseObj.updatedAt,
-    patientDesc: `${caseObj.demographics.gender === 'female' ? 'خانم' : 'آقای'} ${caseObj.demographics.age || '?'} ساله - ${caseObj.cc.patientQuote || caseObj.cc.selectedCategoryLabel}`,
-    fullState: caseObj
-  };
-
-  if (idx >= 0) cases[idx] = summary;
-  else cases.push(summary);
-  saveShiftCases(cases);
-}
-
-function initShiftManager() {
-  const btnOpen = document.getElementById('btnOpenShiftManager');
-  const btnClose = document.getElementById('btnCloseShiftModal');
-  const backdrop = document.getElementById('shiftModalBackdrop');
-  const btnNewCase = document.getElementById('btnNewCase');
-  const btnExportAll = document.getElementById('btnExportAllShiftCases');
-  const btnImport = document.getElementById('btnImportShiftJson');
-  const fileInput = document.getElementById('shiftFileInput');
-
-  function openModal() {
-    renderShiftList();
-    backdrop?.classList.add('open');
-  }
-
-  function closeModal() {
-    backdrop?.classList.remove('open');
-  }
-
-  btnOpen?.addEventListener('click', openModal);
-  btnClose?.addEventListener('click', closeModal);
-  backdrop?.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-  });
-
-  btnNewCase?.addEventListener('click', () => {
-    if (confirm('آیا مایل به ثبت پرونده جدید هستید؟ پرونده فعلی در شیفت ذخیره می‌شود.')) {
-      saveCurrentCase();
-      clinicalState = createDefaultClinicalState();
-      telemetry = new ClinicalTelemetryEngine(15000);
-      document.getElementById('headerCaseId').textContent = clinicalState.caseId;
-      syncDomFromState();
-      updateLivePreview();
-      showToast('پرونده جدید آغاز شد.', 'success');
-    }
-  });
-
-  btnExportAll?.addEventListener('click', () => {
-    const cases = getShiftCases();
-    const collector = gsheetSync?.config?.collectorName || 'anonymous_doctor';
-    const exportBundle = {
-      exportVersion: 'v0.4-Surg',
-      exportedAt: new Date().toISOString(),
-      shiftSummary: {
-        totalCases: cases.length,
-        casesList: cases.map((c) => ({ caseId: c.caseId, desc: c.patientDesc }))
-      },
-      cases: cases.map((c) => ({
-        ...c.fullState,
-        analyticsSnapshot: ClinicalCaseAnalytics.buildMetadataSnapshot(c.fullState, collector)
-      }))
-    };
-
-    const blob = new Blob([JSON.stringify(exportBundle, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Surg_Shift_v04_Export_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('فایل JSON تجمیعی شیفت با موفقیت دانلود شد.', 'success');
-  });
-
-  btnImport?.addEventListener('click', () => fileInput?.click());
-  fileInput?.addEventListener('change', (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = JSON.parse(evt.target.result);
-        if (data.cases && Array.isArray(data.cases)) {
-          const currentCases = getShiftCases();
-          data.cases.forEach((c) => {
-            currentCases.push({
-              caseId: c.caseId || generateCaseId(),
-              createdAt: c.createdAt || new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              patientDesc: `${c.demographics?.gender === 'female' ? 'خانم' : 'آقای'} ${c.demographics?.age || '?'} ساله - ${c.cc?.patientQuote || c.cc?.selectedCategoryLabel || 'پرونده وارد شده'}`,
-              fullState: c
-            });
-          });
-          saveShiftCases(currentCases);
-          renderShiftList();
-          showToast(`${data.cases.length} پرونده به شیفت افزوده شدند.`, 'success');
-        } else if (data.caseId) {
-          clinicalState = data;
-          document.getElementById('headerCaseId').textContent = clinicalState.caseId;
-          syncDomFromState();
-          updateLivePreview();
-          closeModal();
-          showToast('پرونده با موفقیت بارگذاری شد.', 'success');
-        } else {
-          showToast('ساختار فایل JSON معتبر نیست.', 'warning');
-        }
-      } catch {
-        showToast('خطا در خواندن فایل JSON', 'warning');
-      }
-    };
-    reader.readAsText(file);
-  });
-}
-
-function renderShiftList() {
-  const container = document.getElementById('shiftCasesList');
-  if (!container) return;
-  const cases = getShiftCases();
-  container.innerHTML = '';
-
-  if (cases.length === 0) {
-    container.innerHTML = '<div style="text-align:center; padding:1.5rem; color:var(--text-muted);">هنوز پرونده‌ای در این شیفت ذخیره نشده است.</div>';
-    return;
-  }
-
-  cases.forEach((c, idx) => {
-    const item = document.createElement('div');
-    item.className = 'shift-case-item';
-    const isCurrent = c.caseId === clinicalState.caseId;
-
-    item.innerHTML = `
-      <div class="shift-case-meta">
-        <span class="shift-case-id">${c.caseId} ${isCurrent ? '(پرونده جاری)' : ''}</span>
-        <span class="shift-case-desc">${c.patientDesc}</span>
-        <span class="shift-case-time">${new Date(c.updatedAt).toLocaleTimeString('fa-IR')}</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:0.4rem;">
-        <button class="btn btn-secondary btn-sm" id="btnLoadCase_${idx}">باز کردن</button>
-        <button class="btn btn-ghost btn-sm" id="btnDeleteCase_${idx}" style="color:#EF4444;">حذف</button>
-      </div>
-    `;
-
-    item.querySelector(`#btnLoadCase_${idx}`).addEventListener('click', () => {
-      clinicalState = c.fullState;
-      document.getElementById('headerCaseId').textContent = clinicalState.caseId;
-      syncDomFromState();
-      updateLivePreview();
-      document.getElementById('shiftModalBackdrop')?.classList.remove('open');
-      showToast(`پرونده ${c.caseId} بارگذاری شد.`, 'success');
-    });
-
-    item.querySelector(`#btnDeleteCase_${idx}`).addEventListener('click', () => {
-      if (confirm(`آیا مطمئن هستید که می‌خواهید پرونده ${c.caseId} را حذف کنید؟`)) {
-        cases.splice(idx, 1);
-        saveShiftCases(cases);
-        renderShiftList();
-      }
-    });
-
-    container.appendChild(item);
-  });
-}
-
-/* ==========================================================================
-   Export & Clipboard Copy
-   ========================================================================== */
-function initExportAndCopy() {
-  document.getElementById('btnCopyNote')?.addEventListener('click', () => copyNoteToClipboard());
-  document.getElementById('btnCopyNoteMobile')?.addEventListener('click', () => copyNoteToClipboard());
-
-  function exportSingleCaseJson() {
-    telemetry.recordInteraction(activeSectionId, 'export_json');
-    const collector = gsheetSync?.config?.collectorName || 'anonymous_doctor';
-    const analytics = ClinicalCaseAnalytics.buildMetadataSnapshot(clinicalState, collector);
-    const fullPayload = {
-      ...clinicalState,
-      analyticsSnapshot: analytics
-    };
-
-    const blob = new Blob([JSON.stringify(fullPayload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${clinicalState.caseId}_FullRecord_v04.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('فایل JSON پرونده (به همراه آنالیز بالینی و لاگ کمبودها) دانلود شد.', 'success');
-  }
-
-  document.getElementById('btnExportJson')?.addEventListener('click', exportSingleCaseJson);
-  document.getElementById('btnExportJsonMobile')?.addEventListener('click', exportSingleCaseJson);
-}
-
-function copyNoteToClipboard() {
-  const noteMarkdown = generateClinicalNote(clinicalState);
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(noteMarkdown).then(() => {
-      showToast('متن کامل شرح‌حال در کلیپ‌بورد کپی شد.', 'success');
-    }).catch(() => fallbackCopy(noteMarkdown));
-  } else {
-    fallbackCopy(noteMarkdown);
-  }
-}
-
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  document.body.removeChild(ta);
-  showToast('متن شرح‌حال با موفقیت کپی شد.', 'success');
-}
-
-/* ==========================================================================
-   Mobile Bottom-Sheet Controls
-   ========================================================================== */
-function initMobileBottomSheet() {
-  const sheet = document.getElementById('mobileBottomSheet');
-  const backdrop = document.getElementById('mobileSheetBackdrop');
-  const btnOpen = document.getElementById('btnOpenMobileSheet');
-  const btnClose = document.getElementById('btnCloseMobileSheet');
-
-  function openSheet() {
-    sheet?.classList.add('open');
-    backdrop?.classList.add('open');
-  }
-
-  function closeSheet() {
-    sheet?.classList.remove('open');
-    backdrop?.classList.remove('open');
-  }
-
-  btnOpen?.addEventListener('click', openSheet);
-  btnClose?.addEventListener('click', closeSheet);
-  backdrop?.addEventListener('click', closeSheet);
-}
-
-/* ==========================================================================
-   Theme Switcher (Dark / Light Mode)
-   ========================================================================== */
-function initThemeToggle() {
-  const btn = document.getElementById('btnToggleTheme');
-  const iconSun = document.getElementById('themeIconSun');
-  const iconMoon = document.getElementById('themeIconMoon');
-
-  function applyTheme(isDark) {
-    if (isDark) {
-      document.body.classList.add('dark-mode');
-      iconSun.style.display = 'block';
-      iconMoon.style.display = 'none';
-      localStorage.setItem(STORAGE_THEME_KEY, 'dark');
-    } else {
-      document.body.classList.remove('dark-mode');
-      iconSun.style.display = 'none';
-      iconMoon.style.display = 'block';
-      localStorage.setItem(STORAGE_THEME_KEY, 'light');
-    }
-  }
-
-  const savedTheme = localStorage.getItem(STORAGE_THEME_KEY);
-  applyTheme(savedTheme !== 'light');
-
-  btn?.addEventListener('click', () => {
-    const isCurrentlyDark = document.body.classList.contains('dark-mode');
-    applyTheme(!isCurrentlyDark);
-  });
-}
-
-/* ==========================================================================
-/* ==========================================================================
-   Global Event Delegation for Telemetry (v0.3-Surg)
-   ========================================================================== */
-function initGlobalTelemetryDelegation() {
-  document.addEventListener('click', (e) => {
-    const chip = e.target.closest('.tri-chip, .quick-chip, .toggle-chip, .chip, .fh-relation-btn, .btn, .pattern-pill-btn');
-    if (chip) {
-      telemetry.recordInteraction(activeSectionId, 'click_chip');
-    }
-  }, { passive: true });
-
-  document.addEventListener('change', (e) => {
-    const el = e.target;
-    if (el.tagName === 'SELECT') {
-      telemetry.recordInteraction(activeSectionId, 'change_select');
-    } else if (el.type === 'radio' || el.type === 'checkbox') {
-      telemetry.recordInteraction(activeSectionId, 'toggle_input');
-    }
-  }, { passive: true });
-
-  document.addEventListener('input', (e) => {
-    const el = e.target;
-    if (el.type === 'range') {
-      telemetry.recordInteraction(activeSectionId, 'slider_input');
-    } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      telemetry.recordInteraction(activeSectionId, 'type_input');
-    }
-  }, { passive: true });
-}
-
-/* ==========================================================================
-   Google Sheets Cloud Sync & Admin Staging UI Integration (v0.4-Surg)
-   ========================================================================== */
-function initCloudSyncUI() {
-  const collectorInput = document.getElementById('collectorIdInput');
-  const btnCloudSync = document.getElementById('btnCloudSync');
-  const queueBadge = document.getElementById('offlineQueueBadge');
-  const queueCount = document.getElementById('offlineQueueCount');
-  const btnSettings = document.getElementById('btnCloudSettings');
-  const settingsModal = document.getElementById('cloudSettingsModalBackdrop');
-  const btnCloseSettings = document.getElementById('btnCloseCloudSettings');
-  const btnCancelSettings = document.getElementById('btnCancelCloudSettings');
-  const btnSaveSettings = document.getElementById('btnSaveCloudSettings');
-
-  const settingCollectorName = document.getElementById('settingCollectorName');
-  const settingEndpointUrl = document.getElementById('settingEndpointUrl');
-
-  // Admin Staging Elements
-  const btnAdminStaging = document.getElementById('btnAdminStaging');
-  const stagingModal = document.getElementById('adminStagingModalBackdrop');
-  const btnCloseAdminStaging = document.getElementById('btnCloseAdminStaging');
-  const btnImportStagingFiles = document.getElementById('btnImportStagingFiles');
-  const stagingFileInput = document.getElementById('stagingFileInput');
-  const btnApproveAllStaging = document.getElementById('btnApproveAllStaging');
-  const btnClearStaging = document.getElementById('btnClearStaging');
-  const btnExportMasterDataset = document.getElementById('btnExportMasterDataset');
-  const stagingTableBody = document.getElementById('stagingTableBody');
-  const stagingCountPill = document.getElementById('stagingCountPill');
-
-  function updateQueueBadge() {
-    const count = gsheetSync.getQueueCount();
-    if (queueBadge && queueCount) {
-      queueCount.textContent = count;
-      queueBadge.style.display = count > 0 ? 'inline-flex' : 'none';
-    }
-  }
-
-  // Set initial collector name
-  if (collectorInput) {
-    collectorInput.value = gsheetSync.config.collectorName || '';
-    collectorInput.addEventListener('change', (e) => {
-      gsheetSync.saveConfig({
-        ...gsheetSync.config,
-        collectorName: e.target.value
-      });
-      showToast(`نام ثبت‌کننده به «${e.target.value}» تنظیم شد.`, 'success');
-    });
-  }
-
-  updateQueueBadge();
-  window.addEventListener('online', async () => {
-    const res = await gsheetSync.flushQueue();
-    updateQueueBadge();
-    if (res.flushed > 0) {
-      showToast(`اتصال اینترنت برقرار شد؛ ${res.flushed} پرونده از صف آفلاین به Google Sheets ارسال شد.`, 'success');
-    }
-  });
-
-  queueBadge?.addEventListener('click', async () => {
-    showToast('در حال تلاش برای ارسال صف آفلاین به Google Sheets...', 'info');
-    const res = await gsheetSync.flushQueue();
-    updateQueueBadge();
-    if (res.flushed > 0) {
-      showToast(`${res.flushed} پرونده با موفقیت ارسال شد.`, 'success');
-    } else if (res.count > 0) {
-      showToast(`${res.count} پرونده هنوز در صف آفلاین منتظر ارسال است.`, 'warning');
-    } else {
-      showToast('صف آفلاین خالی است.', 'info');
-    }
-  });
-
-  // Submit Current Case to Google Sheets
-  btnCloudSync?.addEventListener('click', async () => {
-    telemetry.recordInteraction(activeSectionId, 'cloud_sync_submit');
-    const note = generateClinicalNote(clinicalState);
-    const metadata = ClinicalCaseAnalytics.buildMetadataSnapshot(clinicalState, gsheetSync.config.collectorName);
-
-    showToast('در حال ارسال پرونده به Google Sheets...', 'info');
-    try {
-      const result = await gsheetSync.sendCase(clinicalState, note, metadata);
-      if (result.success && !result.queued) {
-        showToast(result.message, 'success');
-      } else if (result.queued) {
-        showToast(result.message, 'warning');
-      } else {
-        showToast(result.message, 'info');
-      }
-      updateQueueBadge();
-      renderStagingTable();
-    } catch (err) {
-      showToast(err.message, 'warning');
-      updateQueueBadge();
-    }
-  });
-
-  // Cloud Settings Modal
-  function openCloudSettings() {
-    if (settingCollectorName) settingCollectorName.value = gsheetSync.config.collectorName || '';
-    if (settingEndpointUrl) settingEndpointUrl.value = gsheetSync.config.scriptUrl || '';
-    if (settingsModal) settingsModal.classList.add('active');
-  }
-
-  function closeCloudSettings() {
-    if (settingsModal) settingsModal.classList.remove('active');
-  }
-
-  btnSettings?.addEventListener('click', openCloudSettings);
-  btnCloseSettings?.addEventListener('click', closeCloudSettings);
-  btnCancelSettings?.addEventListener('click', closeCloudSettings);
-
-  btnSaveSettings?.addEventListener('click', () => {
-    gsheetSync.saveConfig({
-      collectorName: settingCollectorName?.value || '',
-      scriptUrl: settingEndpointUrl?.value || ''
-    });
-    if (collectorInput) collectorInput.value = settingCollectorName?.value || '';
-    closeCloudSettings();
-    showToast('تنظیمات اتصال Google Sheets با موفقیت ذخیره گردید.', 'success');
-  });
-
-  // Admin Staging Modal
-  function renderStagingTable() {
-    const staged = gsheetSync.staged || [];
-    if (stagingCountPill) stagingCountPill.textContent = `تعداد: ${staged.length} پرونده`;
-
-    if (!stagingTableBody) return;
-    if (staged.length === 0) {
-      stagingTableBody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
-            هنوز پرونده‌ای در مخزن استیجینگ ثبت نشده است.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    stagingTableBody.innerHTML = '';
-    staged.forEach((item, idx) => {
-      const tr = document.createElement('tr');
-      const ccText = item.chiefComplaint || 'درد شکم';
-      const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleDateString('fa-IR') : '—';
-
-      tr.innerHTML = `
-        <td class="mono-num">${idx + 1}</td>
-        <td class="mono-num" style="font-weight:700;">${item.caseId}</td>
-        <td>${item.collectorName || 'پزشک ثبت‌کننده'}</td>
-        <td class="mono-num" style="font-size:0.75rem;">${timeStr}</td>
-        <td>${ccText}</td>
-        <td><span class="staging-status-badge approved">ثبت‌شده</span></td>
-        <td>
-          <div style="display:flex; gap:0.25rem;">
-            <button class="btn btn-secondary btn-sm btn-delete-staged" data-idx="${idx}" title="حذف از لیست" style="color:#EF4444;">✕</button>
-          </div>
-        </td>
-      `;
-
-      tr.querySelector('.btn-delete-staged')?.addEventListener('click', () => {
-        gsheetSync.staged.splice(idx, 1);
-        gsheetSync.saveStaged();
-        renderStagingTable();
-      });
-
-      stagingTableBody.appendChild(tr);
-    });
-  }
-
-  btnAdminStaging?.addEventListener('click', () => {
-    renderStagingTable();
-    if (stagingModal) stagingModal.classList.add('active');
-  });
-
-  btnCloseAdminStaging?.addEventListener('click', () => {
-    if (stagingModal) stagingModal.classList.remove('active');
-  });
-
-  btnApproveAllStaging?.addEventListener('click', () => {
-    showToast('تمامی پرونده‌ها در وضعیت تاییدشده قرار دارند.', 'success');
-  });
-
-  btnClearStaging?.addEventListener('click', () => {
-    if (confirm('آیا از پاکسازی تمام پرونده‌های تاریخچه استیجینگ مطمئن هستید؟')) {
-      gsheetSync.staged = [];
-      gsheetSync.saveStaged();
-      renderStagingTable();
-      showToast('استیجینگ پاکسازی شد.', 'info');
-    }
-  });
-
-  btnImportStagingFiles?.addEventListener('click', () => {
-    stagingFileInput?.click();
-  });
-
-  stagingFileInput?.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          const pushItem = (p) => {
-            gsheetSync.staged.unshift({
-              caseId: p.caseId || p.case_id || generateCaseId(),
-              timestamp: p.timestamp || p.submitted_at || new Date().toISOString(),
-              collectorName: p.collectorName || p.collector_name || 'external_import',
-              chiefComplaint: p.cc?.patientQuote || p.chiefComplaint || 'پرونده وارد شده',
-              noteLength: 0
-            });
-          };
-
-          if (Array.isArray(parsed)) {
-            parsed.forEach(pushItem);
-          } else if (parsed.cases && Array.isArray(parsed.cases)) {
-            parsed.cases.forEach(pushItem);
-          } else {
-            pushItem(parsed);
-          }
-          gsheetSync.saveStaged();
-          renderStagingTable();
-          showToast(`پرونده(ها) با موفقیت به استیجینگ افزوده شد.`, 'success');
-        } catch (err) {
-          showToast(`خطا در خواندن فایل ${file.name}: ${err.message}`, 'warning');
-        }
-      };
-      reader.readAsText(file);
-    });
-    e.target.value = '';
-  });
-
-  btnExportMasterDataset?.addEventListener('click', () => {
-    try {
-      const shiftCases = getShiftCases();
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        shiftCasesCount: shiftCases.length,
-        stagedCount: gsheetSync.staged.length,
-        shiftCases,
-        stagedHistory: gsheetSync.staged
-      };
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Surg_Master_Dataset_v04_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('دیتاست مرجع استاندارد با موفقیت دانلود شد.', 'success');
-    } catch (err) {
-      showToast(err.message, 'warning');
-    }
-  });
-}
-
-/* ==========================================================================
-   DOM Synchronization from State
+   Sync DOM From State (Restores All Inputs & Vitals Perfectly)
    ========================================================================== */
 function syncDomFromState() {
   const idBadge = document.getElementById('headerCaseId');
@@ -2573,7 +2278,10 @@ function syncDomFromState() {
 
   // Demographics
   const d = clinicalState.demographics;
-  if (document.getElementById('demoGender')) document.getElementById('demoGender').value = d.gender || 'male';
+  if (document.getElementById('demoFullName')) document.getElementById('demoFullName').value = d.fullName || '';
+  if (document.getElementById('demoFatherName')) document.getElementById('demoFatherName').value = d.fatherName || '';
+  if (document.getElementById('demoBirthDate')) document.getElementById('demoBirthDate').value = d.birthDate || '';
+  if (document.getElementById('demoGender')) document.getElementById('demoGender').value = d.gender || 'female';
   if (document.getElementById('demoAge')) document.getElementById('demoAge').value = d.age || '';
   if (document.getElementById('demoMarital')) document.getElementById('demoMarital').value = d.marital || 'متأهل';
   if (document.getElementById('demoCity')) document.getElementById('demoCity').value = d.city || '';
@@ -2582,55 +2290,40 @@ function syncDomFromState() {
 
   const obgynCard = document.getElementById('cardObGynHistory');
   if (obgynCard) {
-    obgynCard.style.display = d.gender === 'female' ? 'block' : 'none';
+    obgynCard.style.display = d.gender === 'male' ? 'none' : 'block';
   }
 
   // CC
   const cc = clinicalState.cc;
   if (cc.pathway === 'clinic_referral') {
     document.getElementById('chipPathwayClinic')?.click();
+  } else if (cc.pathway === 'postop_complication') {
+    document.getElementById('chipPathwayPostop')?.click();
   } else {
     document.getElementById('chipPathwayEmergency')?.click();
   }
+
   if (document.getElementById('ccPatientQuote')) document.getElementById('ccPatientQuote').value = cc.patientQuote || '';
-  if (document.getElementById('hpiDuration')) document.getElementById('hpiDuration').value = clinicalState.hpi.duration || '';
   if (document.getElementById('ccEstablishedDiagnosis')) document.getElementById('ccEstablishedDiagnosis').value = cc.establishedDiagnosis || '';
   if (document.getElementById('ccReferringAttending')) document.getElementById('ccReferringAttending').value = cc.referringAttending || '';
   if (document.getElementById('ccPlannedProcedure')) document.getElementById('ccPlannedProcedure').value = cc.plannedProcedure || '';
 
-  renderCCCategoryChips();
-
   // HPI
-  const hpi = clinicalState.hpi;
-  if (document.getElementById('hpiOnset')) document.getElementById('hpiOnset').value = hpi.onset || '';
-  if (document.getElementById('hpiCourse')) document.getElementById('hpiCourse').value = hpi.course || '';
-  if (document.getElementById('hpiCharacter')) document.getElementById('hpiCharacter').value = hpi.character || '';
-  if (document.getElementById('hpiSeverity')) {
-    document.getElementById('hpiSeverity').value = hpi.severity || 5;
-    document.getElementById('hpiSeverityLabel').textContent = `${hpi.severity || 5} / 10`;
-    document.getElementById('hpiSeverityBadge').textContent = `${hpi.severity || 5} / 10`;
-  }
-  if (document.getElementById('hpiPreAdmissionWorkup')) document.getElementById('hpiPreAdmissionWorkup').value = hpi.preAdmissionWorkup || '';
-  if (document.getElementById('hpiNarrativeNote')) document.getElementById('hpiNarrativeNote').value = hpi.narrativeNote || '';
-  if (document.getElementById('hpiSystemGapInput')) document.getElementById('hpiSystemGapInput').value = hpi.systemGapNote || '';
+  renderPainEpisodes();
+  renderHpiBasicSymptoms();
+  renderHpiUnlockableModules();
 
-  const sec = hpi.secondaryPain || {};
-  if (document.getElementById('secPainRegion')) document.getElementById('secPainRegion').value = sec.region || '';
-  if (document.getElementById('secPainCharacter')) document.getElementById('secPainCharacter').value = sec.character || '';
-  if (document.getElementById('secPainRelation')) document.getElementById('secPainRelation').value = sec.relation || '';
-  const secCard = document.getElementById('secondaryPainCard');
-  if (secCard && (sec.region || sec.character || sec.relation)) {
-    secCard.classList.add('active');
-    const btnToggle = document.getElementById('btnToggleSecondaryPain');
-    if (btnToggle) btnToggle.textContent = 'بستن';
-  }
+  if (document.getElementById('hpiPreAdmissionWorkup')) document.getElementById('hpiPreAdmissionWorkup').value = clinicalState.hpi.preAdmissionWorkup || '';
+  if (document.getElementById('hpiNarrativeNote')) document.getElementById('hpiNarrativeNote').value = clinicalState.hpi.narrativeNote || '';
+  if (document.getElementById('hpiSystemGapInput')) document.getElementById('hpiSystemGapInput').value = clinicalState.hpi.systemGapNote || '';
 
-  renderPainSpatialPatterns();
-  renderRadiationSites();
-  renderHpiSymptomGroups();
+  // PMH / PSH / ObGyn
+  renderPmhCategories();
+  if (document.getElementById('pshNote')) document.getElementById('pshNote').value = clinicalState.psh.note || '';
+  if (document.getElementById('pshSystemGapInput')) document.getElementById('pshSystemGapInput').value = clinicalState.psh.systemGapNote || '';
+  if (document.getElementById('pmhSystemGapInput')) document.getElementById('pmhSystemGapInput').value = clinicalState.pmh.systemGapNote || '';
 
-  // Ob/Gyn
-  const ob = clinicalState.obgyn || {};
+  const ob = clinicalState.obgyn;
   if (document.getElementById('obgynG')) document.getElementById('obgynG').value = ob.g || '';
   if (document.getElementById('obgynP')) document.getElementById('obgynP').value = ob.p || '';
   if (document.getElementById('obgynAb')) document.getElementById('obgynAb').value = ob.ab || '';
@@ -2638,20 +2331,14 @@ function syncDomFromState() {
   if (document.getElementById('obgynDeliveryType')) document.getElementById('obgynDeliveryType').value = ob.deliveryType || '';
   if (document.getElementById('obgynLmp')) document.getElementById('obgynLmp').value = ob.lmp || '';
   if (document.getElementById('obgynDysmenorrhea')) document.getElementById('obgynDysmenorrhea').value = ob.dysmenorrhea || '';
-
-  // PMH
-  renderPmhChips();
-  if (document.getElementById('pmhSystemGapInput')) document.getElementById('pmhSystemGapInput').value = clinicalState.pmh.systemGapNote || '';
-  if (document.getElementById('pshNote')) document.getElementById('pshNote').value = clinicalState.psh.note || '';
-  if (document.getElementById('pshSystemGapInput')) document.getElementById('pshSystemGapInput').value = clinicalState.psh.systemGapNote || '';
-  if (document.getElementById('hhNote')) document.getElementById('hhNote').value = clinicalState.hh.note || '';
-  if (document.getElementById('hhSystemGapInput')) document.getElementById('hhSystemGapInput').value = clinicalState.hh.systemGapNote || '';
+  renderPregnancyHistoryRows();
 
   // DH / AH / SH / FH
-  renderHighAlertDrugs();
+  renderDhCategories();
+  renderCustomDrugs();
   if (document.getElementById('dhNote')) document.getElementById('dhNote').value = clinicalState.dh.note || '';
   if (document.getElementById('dhSystemGapInput')) document.getElementById('dhSystemGapInput').value = clinicalState.dh.systemGapNote || '';
-  renderAllergyTemplates();
+
   if (document.getElementById('ahNote')) document.getElementById('ahNote').value = clinicalState.ah.note || '';
   if (document.getElementById('ahSystemGapInput')) document.getElementById('ahSystemGapInput').value = clinicalState.ah.systemGapNote || '';
   if (document.getElementById('shCigsPerDay')) document.getElementById('shCigsPerDay').value = clinicalState.sh.cigsPerDay || '';
@@ -2659,7 +2346,6 @@ function syncDomFromState() {
   if (document.getElementById('shOpium')) document.getElementById('shOpium').value = clinicalState.sh.opium || '';
   if (document.getElementById('shNote')) document.getElementById('shNote').value = clinicalState.sh.note || '';
   if (document.getElementById('shSystemGapInput')) document.getElementById('shSystemGapInput').value = clinicalState.sh.systemGapNote || '';
-  renderFhChips();
   if (document.getElementById('fhNote')) document.getElementById('fhNote').value = clinicalState.fh.note || '';
   if (document.getElementById('fhSystemGapInput')) document.getElementById('fhSystemGapInput').value = clinicalState.fh.systemGapNote || '';
 
@@ -2667,28 +2353,303 @@ function syncDomFromState() {
   renderRosGroups();
   if (document.getElementById('rosSystemGapInput')) document.getElementById('rosSystemGapInput').value = clinicalState.ros.systemGapNote || '';
 
-  // PE
-  const vitals = clinicalState.pe.vitals;
-  if (document.getElementById('peVitalsBp')) document.getElementById('peVitalsBp').value = vitals.bp || '';
-  if (document.getElementById('peVitalsPr')) document.getElementById('peVitalsPr').value = vitals.pr || '';
-  if (document.getElementById('peVitalsRr')) document.getElementById('peVitalsRr').value = vitals.rr || '';
-  if (document.getElementById('peVitalsTemp')) document.getElementById('peVitalsTemp').value = vitals.temp || '';
-  if (document.getElementById('peVitalsSpo2')) document.getElementById('peVitalsSpo2').value = vitals.spo2 || '';
-  if (document.getElementById('peVitalsNpo')) document.getElementById('peVitalsNpo').value = vitals.npo || '';
+  // PE & VITALS PERSISTENCE RESTORATION
+  const v = clinicalState.pe.vitals;
+  if (document.getElementById('peVitalsBp')) document.getElementById('peVitalsBp').value = v.bp || '';
+  if (document.getElementById('peVitalsPr')) document.getElementById('peVitalsPr').value = v.pr || '';
+  if (document.getElementById('peVitalsRr')) document.getElementById('peVitalsRr').value = v.rr || '';
+  if (document.getElementById('peVitalsTemp')) document.getElementById('peVitalsTemp').value = v.temp || '';
+  if (document.getElementById('peVitalsSpo2')) document.getElementById('peVitalsSpo2').value = v.spo2 || '';
+  if (document.getElementById('peVitalsNpo')) document.getElementById('peVitalsNpo').value = v.npo || '';
+
+  renderPeMandatoryPillars();
+  renderPeUnlockableModules();
   if (document.getElementById('peNote')) document.getElementById('peNote').value = clinicalState.pe.note || '';
   if (document.getElementById('peSystemGapInput')) document.getElementById('peSystemGapInput').value = clinicalState.pe.systemGapNote || '';
-  renderPeFindings();
 
   // Paraclinics
   renderParaclinicLabs();
-  renderImagingModalities();
+  initModalityLauncherBar();
+  renderImagingReportsList();
   if (document.getElementById('paraclinicLabNote')) document.getElementById('paraclinicLabNote').value = clinicalState.paraclinics.labNote || '';
   if (document.getElementById('paraclinicSystemGapInput')) document.getElementById('paraclinicSystemGapInput').value = clinicalState.paraclinics.systemGapNote || '';
 
   // Reasoning
-  renderSemanticQualifiers();
   if (document.getElementById('reasoningProblemRep')) document.getElementById('reasoningProblemRep').value = clinicalState.reasoning.problemRepresentation || '';
   if (document.getElementById('reasoningDdx')) document.getElementById('reasoningDdx').value = clinicalState.reasoning.ddx || '';
 }
 
-window.addEventListener('DOMContentLoaded', initDynamicUI);
+/* ==========================================================================
+   Export, Copy, PII Privacy & Modals
+   ========================================================================== */
+function initExportAndCopy() {
+  function copyText() {
+    const text = generateClinicalNote(clinicalState);
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('متن کامل شرح‌حال در حافظه کپی شد.', 'success');
+    }).catch(() => {
+      showToast('خطا در کپی متن.', 'warning');
+    });
+  }
+
+  document.getElementById('btnCopyNote')?.addEventListener('click', copyText);
+  document.getElementById('btnCopyNoteMobile')?.addEventListener('click', copyText);
+
+  function exportJson() {
+    // Strictly sanitize PII before export
+    const sanitized = sanitizeRecordForExport(clinicalState);
+    const meta = ClinicalCaseAnalytics.buildMetadataSnapshot(sanitized);
+    const bundle = {
+      record: sanitized,
+      metadata: meta,
+      generatedNote: generateClinicalNote(sanitized)
+    };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${clinicalState.caseId}-sanitized.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('فایل JSON استاندارد پژوهشی (فاقد مشخصات هویتی حساس) دانلود شد.', 'success');
+  }
+
+  document.getElementById('btnExportJson')?.addEventListener('click', exportJson);
+  document.getElementById('btnExportJsonMobile')?.addEventListener('click', exportJson);
+
+  document.getElementById('btnNewCase')?.addEventListener('click', () => {
+    if (confirm('آیا مایل به ثبت پرونده جدید هستید؟ پرونده فعلی در شیفت ذخیره می‌شود.')) {
+      saveCaseToShiftVault(clinicalState);
+      clinicalState = createDefaultClinicalState();
+      saveCurrentCase();
+      syncDomFromState();
+      updateLivePreview();
+      showToast('پرونده جدید با موفقیت ایجاد شد.', 'info');
+    }
+  });
+}
+
+function saveCaseToShiftVault(stateToSave) {
+  try {
+    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    list.unshift(JSON.parse(JSON.stringify(stateToSave)));
+    localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 50)));
+    updateShiftCasesCount();
+  } catch (e) {
+    console.warn('Failed to save to shift vault:', e);
+  }
+}
+
+function updateShiftCasesCount() {
+  try {
+    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    const countEl = document.getElementById('shiftCasesCount');
+    if (countEl) countEl.textContent = list.length + 1;
+  } catch (e) {}
+}
+
+function initShiftManager() {
+  const modal = document.getElementById('shiftModalBackdrop');
+  const btnOpen = document.getElementById('btnOpenShiftManager');
+  const btnClose = document.getElementById('btnCloseShiftModal');
+  const listContainer = document.getElementById('shiftCasesList');
+
+  btnOpen?.addEventListener('click', () => {
+    if (modal) modal.style.display = 'flex';
+    renderShiftCasesList();
+  });
+
+  btnClose?.addEventListener('click', () => {
+    if (modal) modal.style.display = 'none';
+  });
+
+  function renderShiftCasesList() {
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    if (list.length === 0) {
+      listContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">پرونده بایگانی‌شده‌ای در شیفت فعلی وجود ندارد.</div>';
+      return;
+    }
+
+    list.forEach((c, idx) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); padding:0.6rem 0.85rem; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center;';
+      item.innerHTML = `
+        <div>
+          <strong>${c.caseId}</strong> - <span style="font-size:0.8rem; color:var(--text-secondary);">${c.cc?.patientQuote || 'شکایت جراحی'}</span>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleTimeString('fa-IR')}</div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm btn-load-case">بارگذاری</button>
+      `;
+
+      item.querySelector('.btn-load-case').addEventListener('click', () => {
+        if (confirm(`بارگذاری پرونده ${c.caseId}؟`)) {
+          clinicalState = Object.assign(createDefaultClinicalState(), c);
+          saveCurrentCase();
+          syncDomFromState();
+          updateLivePreview();
+          if (modal) modal.style.display = 'none';
+          showToast(`پرونده ${c.caseId} بارگذاری گردید.`, 'info');
+        }
+      });
+
+      listContainer.appendChild(item);
+    });
+  }
+
+  // Export all shift cases
+  document.getElementById('btnExportAllShiftCases')?.addEventListener('click', () => {
+    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    const sanitizedList = [clinicalState, ...list].map(sanitizeRecordForExport);
+    const blob = new Blob([JSON.stringify(sanitizedList, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Shift-Dataset-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('دیتاست تجمیعی شیفت (فاقد مشخصات هویتی حساس) دانلود شد.', 'success');
+  });
+}
+
+function initCloudSyncUI() {
+  const btnSync = document.getElementById('btnCloudSync');
+  const btnSettings = document.getElementById('btnCloudSettings');
+  const settingsModal = document.getElementById('cloudSettingsModalBackdrop');
+  const btnCloseSettings = document.getElementById('btnCloseCloudSettings');
+  const btnCancelSettings = document.getElementById('btnCancelCloudSettings');
+  const btnSaveSettings = document.getElementById('btnSaveCloudSettings');
+  const collectorInput = document.getElementById('collectorIdInput');
+  const settingCollector = document.getElementById('settingCollectorName');
+  const settingUrl = document.getElementById('settingEndpointUrl');
+
+  if (collectorInput) {
+    collectorInput.value = gsheetSync.config.collectorName || '';
+    collectorInput.addEventListener('input', (e) => {
+      gsheetSync.saveConfig({ scriptUrl: gsheetSync.config.scriptUrl, collectorName: e.target.value });
+    });
+  }
+
+  btnSettings?.addEventListener('click', () => {
+    if (settingCollector) settingCollector.value = gsheetSync.config.collectorName || '';
+    if (settingUrl) settingUrl.value = gsheetSync.config.scriptUrl || '';
+    if (settingsModal) settingsModal.style.display = 'flex';
+  });
+
+  const closeSettings = () => { if (settingsModal) settingsModal.style.display = 'none'; };
+  btnCloseSettings?.addEventListener('click', closeSettings);
+  btnCancelSettings?.addEventListener('click', closeSettings);
+
+  btnSaveSettings?.addEventListener('click', () => {
+    gsheetSync.saveConfig({
+      scriptUrl: settingUrl?.value || '',
+      collectorName: settingCollector?.value || ''
+    });
+    if (collectorInput) collectorInput.value = settingCollector?.value || '';
+    closeSettings();
+    showToast('تنظیمات اتصال Google Sheets ذخیره شد.', 'success');
+  });
+
+  btnSync?.addEventListener('click', async () => {
+    btnSync.disabled = true;
+    btnSync.innerHTML = '<span>⏳</span><span>در حال ارسال...</span>';
+
+    const note = generateClinicalNote(clinicalState);
+    const meta = ClinicalCaseAnalytics.buildMetadataSnapshot(clinicalState, gsheetSync.config.collectorName);
+
+    try {
+      const res = await gsheetSync.sendCase(clinicalState, note, meta);
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else if (res.queued) {
+        showToast(res.message, 'warning');
+      } else {
+        showToast(res.message, 'warning');
+      }
+    } catch (err) {
+      showToast('خطا در همگام‌سازی ابری.', 'warning');
+    } finally {
+      btnSync.disabled = false;
+      btnSync.innerHTML = '<span>📊</span><span>ثبت در Google Sheets</span>';
+    }
+  });
+}
+
+function initThemeToggle() {
+  const btn = document.getElementById('btnToggleTheme');
+  const sun = document.getElementById('themeIconSun');
+  const moon = document.getElementById('themeIconMoon');
+
+  const currentTheme = localStorage.getItem(STORAGE_THEME_KEY) || 'dark';
+  document.body.classList.toggle('dark-mode', currentTheme === 'dark');
+  if (sun && moon) {
+    sun.style.display = currentTheme === 'dark' ? 'block' : 'none';
+    moon.style.display = currentTheme === 'dark' ? 'none' : 'block';
+  }
+
+  btn?.addEventListener('click', () => {
+    const isDark = document.body.classList.toggle('dark-mode');
+    localStorage.setItem(STORAGE_THEME_KEY, isDark ? 'dark' : 'light');
+    if (sun && moon) {
+      sun.style.display = isDark ? 'block' : 'none';
+      moon.style.display = isDark ? 'none' : 'block';
+    }
+  });
+}
+
+function initMobileBottomSheet() {
+  const btnOpen = document.getElementById('btnOpenMobileSheet');
+  const btnClose = document.getElementById('btnCloseMobileSheet');
+  const sheet = document.getElementById('mobileBottomSheet');
+  const backdrop = document.getElementById('mobileSheetBackdrop');
+
+  btnOpen?.addEventListener('click', () => {
+    sheet?.classList.add('open');
+    if (backdrop) backdrop.style.display = 'block';
+    updateLivePreview();
+  });
+
+  const close = () => {
+    sheet?.classList.remove('open');
+    if (backdrop) backdrop.style.display = 'none';
+  };
+
+  btnClose?.addEventListener('click', close);
+  backdrop?.addEventListener('click', close);
+}
+
+/* ==========================================================================
+   Master Dynamic UI Bootstrapper
+   ========================================================================== */
+export function initApp() {
+  initAdmissionPathwayHandlers();
+  initDemographicsHandlers();
+  initAddPainEpisodeHandler();
+  initPshHandlers();
+  initObGynHandlers();
+  initAddCustomDrugHandler();
+  initAhShFhHandlers();
+  initRosMasterNegativeHandler();
+  initPeVitalsHandlers();
+  initPeMasterNegativeHandler();
+  initReasoningHandlers();
+  initSystemGapLoggers();
+  initNavigationTabs();
+  initExportAndCopy();
+  initShiftManager();
+  initCloudSyncUI();
+  initThemeToggle();
+  initMobileBottomSheet();
+
+  loadSavedState();
+  syncDomFromState();
+  updateLivePreview();
+  updateShiftCasesCount();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    initApp();
+  });
+}
