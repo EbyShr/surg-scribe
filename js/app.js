@@ -2650,7 +2650,7 @@ function initShiftManager() {
 
 function initAppSettings() {
   const modal = document.getElementById('appSettingsModalBackdrop');
-  const btnOpen = document.getElementById('btnAppSettings') || document.getElementById('btnCloudSettings');
+  const btnOpen = document.getElementById('btnAppSettings');
   const btnClose = document.getElementById('btnCloseAppSettings');
   const btnCancel = document.getElementById('btnCancelAppSettings');
   const btnSave = document.getElementById('btnSaveAppSettings');
@@ -2746,14 +2746,7 @@ function initAppSettings() {
 
 function initCloudSyncUI() {
   const btnSync = document.getElementById('btnCloudSync');
-  const btnSettings = document.getElementById('btnCloudSettings');
-  const settingsModal = document.getElementById('cloudSettingsModalBackdrop');
-  const btnCloseSettings = document.getElementById('btnCloseCloudSettings');
-  const btnCancelSettings = document.getElementById('btnCancelCloudSettings');
-  const btnSaveSettings = document.getElementById('btnSaveCloudSettings');
   const collectorInput = document.getElementById('collectorIdInput');
-  const settingCollector = document.getElementById('settingCollectorName');
-  const settingUrl = document.getElementById('settingEndpointUrl');
 
   if (collectorInput) {
     collectorInput.value = gsheetSync.config.collectorName || '';
@@ -2761,26 +2754,6 @@ function initCloudSyncUI() {
       gsheetSync.saveConfig({ scriptUrl: gsheetSync.config.scriptUrl, collectorName: e.target.value });
     });
   }
-
-  btnSettings?.addEventListener('click', () => {
-    if (settingCollector) settingCollector.value = gsheetSync.config.collectorName || '';
-    if (settingUrl) settingUrl.value = gsheetSync.config.scriptUrl || '';
-    if (settingsModal) settingsModal.style.display = 'flex';
-  });
-
-  const closeSettings = () => { if (settingsModal) settingsModal.style.display = 'none'; };
-  btnCloseSettings?.addEventListener('click', closeSettings);
-  btnCancelSettings?.addEventListener('click', closeSettings);
-
-  btnSaveSettings?.addEventListener('click', () => {
-    gsheetSync.saveConfig({
-      scriptUrl: settingUrl?.value || '',
-      collectorName: settingCollector?.value || ''
-    });
-    if (collectorInput) collectorInput.value = settingCollector?.value || '';
-    closeSettings();
-    showToast('تنظیمات اتصال Google Sheets ذخیره شد.', 'success');
-  });
 
   btnSync?.addEventListener('click', async () => {
     btnSync.disabled = true;

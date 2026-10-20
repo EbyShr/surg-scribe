@@ -7,7 +7,8 @@ import {
   DH_CATEGORIES,
   PE_MANDATORY_PILLARS,
   PE_UNLOCKABLE_MODULES,
-  HPI_UNLOCKABLE_MODULES
+  HPI_UNLOCKABLE_MODULES,
+  HPI_BASIC_SYMPTOMS
 } from './schema.js';
 
 export function normalizePersianClinicalText(text) {
@@ -129,12 +130,6 @@ export function generateNarrativeCCAndHPI(state) {
     out.push(narrativeSentences.join('\n\n'));
     return out.join('\n');
   }
-
-  const cc = state.cc || state.admission || {};
-  const hpi = state.hpi || {};
-  const pains = hpi.painList && hpi.painList.length > 0 ? hpi.painList : [];
-
-  const out = [];
 
   // 1. کادر مشخصات هویتی برای بالای برگه شرح‌حال (فقط در نمایش محلی و پرینت بیمارستان)
   if (demo.fullName || demo.fatherName || demo.birthDate || demo.age) {
@@ -513,10 +508,6 @@ export function generateClinicalNote(state) {
 
     return lines.join('\n');
   }
-
-
-  // ۱ و ۲: CC و HPI روایی
-  lines.push(generateNarrativeCCAndHPI(state));
 
   // ۳. سوابق بیماری‌های داخلی (PMH) دسته‌بندی‌شده و سوابق جراحی (PSH) - حذف کامل HH
   lines.push(`\n### ۳. سوابق بیماری‌های داخلی و جراحی (PMH / PSH)`);
