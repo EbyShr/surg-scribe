@@ -1251,10 +1251,10 @@ button, input, select, textarea {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(3px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   z-index: 300;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -1262,9 +1262,11 @@ button, input, select, textarea {
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
-.modal-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
+.modal-backdrop.open,
+.modal-backdrop[style*="display: flex"] {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 .modal-box {
   background: var(--bg-surface);
@@ -2639,4 +2641,258 @@ body.dark-mode .staging-status-badge.rejected {
 .gender-filter-toggle:hover {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* ==========================================================================
+   v0.5.1: Settings Modal, Typography & LTR Localization Engine
+   ========================================================================== */
+
+/* 5 Dynamic Typography Font Stacks */
+body[data-font="vazirmatn"] {
+  --font-persian: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+body[data-font="sahel"] {
+  --font-persian: 'Noto Sans Arabic', 'Sahel', 'Vazirmatn', -apple-system, sans-serif;
+}
+body[data-font="samim"] {
+  --font-persian: 'Readex Pro', 'Samim', 'Vazirmatn', -apple-system, sans-serif;
+}
+body[data-font="shabnam"] {
+  --font-persian: 'Rubik', 'Shabnam', 'Vazirmatn', -apple-system, sans-serif;
+}
+body[data-font="estedad"] {
+  --font-persian: 'Cairo', 'Estedad', 'Vazirmatn', -apple-system, sans-serif;
+}
+
+/* Settings Modal Elements */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.settings-segmented-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.settings-opt-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-primary);
+  text-align: right;
+  transition: all 0.18s ease;
+  user-select: none;
+  font-family: inherit;
+  outline: none;
+}
+
+.settings-opt-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.settings-opt-btn.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 3px 10px var(--primary-glow);
+  transform: translateY(-1px);
+}
+
+.settings-opt-btn.active .opt-text small {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.opt-flag {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.opt-text strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.opt-text small {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.settings-font-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.settings-font-pill {
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  user-select: none;
+  outline: none;
+}
+
+.settings-font-pill:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.settings-font-pill.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 8px var(--primary-glow);
+  font-weight: 700;
+}
+
+/* Shift Vault Cards & Action Elements */
+.shift-vault-item {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.shift-vault-item:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.shift-vault-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.shift-vault-case-id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.shift-vault-cc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.shift-vault-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.shift-vault-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.shift-active-tag {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+/* ==========================================================================
+   Complete LTR (Medical English) UI Mode Overrides
+   ========================================================================== */
+html[dir="ltr"],
+html[dir="ltr"] body {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+html[dir="ltr"] .clinical-input-column {
+  border-left: none;
+  border-right: 1px solid var(--border-subtle);
+}
+
+html[dir="ltr"] .chip-btn-pos {
+  border-left: none;
+  border-right: 1px solid var(--border-subtle);
+}
+
+html[dir="ltr"] .chip-btn-neg {
+  border-right: none;
+  border-left: 1px solid var(--border-subtle);
+}
+
+html[dir="ltr"] .abdominal-matrix-grid {
+  direction: ltr !important;
+}
+
+html[dir="ltr"] .settings-opt-btn {
+  text-align: left;
+}
+
+html[dir="ltr"] .form-label,
+html[dir="ltr"] .subsystem-title,
+html[dir="ltr"] .card-title,
+html[dir="ltr"] .unlocked-module-title,
+html[dir="ltr"] .pmh-category-title {
+  text-align: left;
+}
+
+html[dir="ltr"] .btn-unlock-module {
+  text-align: left;
+}
+
+html[dir="ltr"] .clinical-note-rendered {
+  text-align: left;
+  direction: ltr;
+}
+
+html[dir="ltr"] .subsystem-chevron svg {
+  transform: rotate(0deg);
+}
+
+html[dir="ltr"] .subsystem-accordion.is-collapsed .subsystem-chevron svg {
+  transform: rotate(-90deg);
 }

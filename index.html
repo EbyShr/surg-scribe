@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.5-Surg">
 
-  <!-- Fonts: Vazirmatn & JetBrains Mono -->
+  <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Readex+Pro:wght@400;600;700&family=Rubik:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="css/clinical-ui.css">
@@ -36,47 +36,43 @@
         <span class="id-text" id="headerCaseId">SURG-20261019-001</span>
       </div>
 
-      <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید">
+      <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید" data-i18n-title="btn_new_case">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span>پرونده جدید</span>
+        <span data-i18n="btn_new_case">پرونده جدید</span>
       </button>
 
       <!-- Google Sheets Sync & Collector ID Group -->
       <div class="header-cloud-group">
         <div class="collector-id-wrapper" title="نام یا کد شناسایی ثبت‌کننده پرونده">
-          <label for="collectorIdInput">ثبت‌کننده:</label>
-          <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" />
+          <label for="collectorIdInput" data-i18n="collector_label">ثبت‌کننده:</label>
+          <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" data-i18n-ph="collector_ph" />
         </div>
 
-        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets (حذف خودکار اطلاعات هویتی حساس)">
+        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets (حذف خودکار اطلاعات هویتی حساس)" data-i18n-title="btn_cloud_sync_title">
           <span>📊</span>
-          <span>ثبت در Google Sheets</span>
+          <span data-i18n="btn_cloud_sync">ثبت در Google Sheets</span>
         </button>
 
         <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین">
-          <span>📦 صف آفلاین:</span>
+          <span data-i18n="offline_queue">📦 صف آفلاین:</span>
           <span id="offlineQueueCount" class="mono-num">0</span>
         </div>
 
-        <button class="btn btn-icon-only" id="btnCloudSettings" title="تنظیمات اتصال به Google Sheets">
+        <button class="btn btn-icon-only" id="btnAppSettings" title="تنظیمات سامانه (زبان، فونت، تم و کلاد)" data-i18n-title="btn_settings_title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
-
-        <button class="btn-admin-staging" id="btnAdminStaging" title="پنل مدیریت، بازبینی و خروجی تجمیعی دیتاست مرجع">
-          <span>🗂️ پنل مدیریت</span>
         </button>
       </div>
     </div>
 
     <div class="header-left">
       <!-- Shift Cases Button -->
-      <button class="btn btn-secondary" id="btnOpenShiftManager" title="مدیریت پرونده‌های شیفت و دانلود تجمیعی">
+      <button class="btn btn-secondary" id="btnOpenShiftManager" title="مدیریت پرونده‌های شیفت و دانلود تجمیعی" data-i18n-title="btn_shift_title">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-        <span>شیفت: <strong id="shiftCasesCount" class="mono-num">1</strong></span>
+        <span><span data-i18n="shift_label">شیفت:</span> <strong id="shiftCasesCount" class="mono-num">1</strong></span>
       </button>
 
       <!-- Theme Switcher -->
-      <button class="btn btn-icon-only" id="btnToggleTheme" title="تغییر تم تاریک / روشن">
+      <button class="btn btn-icon-only" id="btnToggleTheme" title="تغییر تم تاریک / روشن" data-i18n-title="btn_theme_title">
         <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
         <svg id="themeIconMoon" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
@@ -94,35 +90,35 @@
         <div class="segmented-tabs-bar" role="tablist">
           <button class="tab-btn active" data-tab="tab-cc" role="tab">
             <span class="tab-num">۱</span>
-            <span>پذیرش و CC</span>
+            <span data-i18n="tab_cc">پذیرش و CC</span>
           </button>
           <button class="tab-btn" data-tab="tab-hpi" role="tab">
             <span class="tab-num">۲</span>
-            <span>شرح بیماری (HPI)</span>
+            <span data-i18n="tab_hpi">شرح بیماری (HPI)</span>
           </button>
           <button class="tab-btn" data-tab="tab-pmh" role="tab">
             <span class="tab-num">۳</span>
-            <span>سوابق (PMH/PSH)</span>
+            <span data-i18n="tab_pmh">سوابق (PMH/PSH)</span>
           </button>
           <button class="tab-btn" data-tab="tab-dh" role="tab">
             <span class="tab-num">۴</span>
-            <span>دارو و عادات</span>
+            <span data-i18n="tab_dh">دارو و عادات</span>
           </button>
           <button class="tab-btn" data-tab="tab-ros" role="tab">
             <span class="tab-num">۵</span>
-            <span>بررسی سیستم‌ها (ROS)</span>
+            <span data-i18n="tab_ros">بررسی سیستم‌ها (ROS)</span>
           </button>
           <button class="tab-btn" data-tab="tab-pe" role="tab">
             <span class="tab-num">۶</span>
-            <span>معاینه فیزیکی (PE)</span>
+            <span data-i18n="tab_pe">معاینه فیزیکی (PE)</span>
           </button>
           <button class="tab-btn" data-tab="tab-paraclinics" role="tab">
             <span class="tab-num">۷</span>
-            <span>پاراکلینیک جامع</span>
+            <span data-i18n="tab_paraclinics">پاراکلینیک جامع</span>
           </button>
           <button class="tab-btn" data-tab="tab-reasoning" role="tab">
             <span class="tab-num">۸</span>
-            <span>استدلال بالینی (DDx)</span>
+            <span data-i18n="tab_reasoning">استدلال بالینی (DDx)</span>
           </button>
         </div>
       </nav>
@@ -855,123 +851,137 @@
 
   <!-- Shift Manager Modal -->
   <div class="modal-backdrop" id="shiftModalBackdrop">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width: 640px;">
       <div class="modal-header">
         <div class="modal-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span>مدیریت پرونده‌های شیفت (Offline Shift Vault)</span>
+          <span data-i18n="shift_modal_title">مدیریت پرونده‌های شیفت (Offline Shift Vault)</span>
         </div>
         <button class="btn btn-icon-only" id="btnCloseShiftModal">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-secondary);">
-          تمامی پرونده‌های ثبت‌شده در این شیفت به صورت ۱۰۰٪ آفلاین در حافظه مرورگر نگهداری می‌شوند.
-        </p>
-        <div id="shiftCasesList" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnImportShiftJson">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-          <span>ورود فایل JSON</span>
-        </button>
-        <input type="file" id="shiftFileInput" accept=".json" style="display:none;">
-        <button class="btn btn-primary" id="btnExportAllShiftCases">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>دانلود یکجای تمام پرونده‌ها (Shift JSON)</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Google Sheets Sync Settings Modal -->
-  <div class="modal-backdrop" id="cloudSettingsModalBackdrop">
-    <div class="modal-box" style="max-width: 520px;">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>⚙️ تنظیمات اتصال به Google Sheets (Apps Script Web App)</span>
-        </div>
-        <button class="btn btn-icon-only" id="btnCloseCloudSettings">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-          پرونده‌های ثبت‌شده مستقیماً به شیت گوگل ارسال می‌شوند. در صورت قطع اینترنت، داده‌ها در صف آفلاین ذخیره شده و پس از اتصال خودکار ارسال می‌گردند.
-        </p>
-
-        <div class="form-group" style="margin-bottom: 0.75rem;">
-          <label class="form-label">نام ثبت‌کننده (Collector Name / ID)</label>
-          <input type="text" class="input-text" id="settingCollectorName" placeholder="مثلاً اینترن کشیک جراحی یا نام شما">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0.75rem;">
-          <label class="form-label">آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)</label>
-          <input type="url" class="input-text dir-ltr" id="settingEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnCancelCloudSettings">انصراف</button>
-        <button class="btn btn-primary" id="btnSaveCloudSettings">ذخیره تنظیمات</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Admin Staging & Batch Merge Modal -->
-  <div class="modal-backdrop" id="adminStagingModalBackdrop">
-    <div class="modal-box" style="max-width: 820px;">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>🗂️ پنل مدیریت و بازبینی پرونده‌ها (Admin Staging & Batch Merge)</span>
-        </div>
-        <button class="btn btn-icon-only" id="btnCloseAdminStaging">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-          <span style="font-size:0.84rem; color:var(--text-secondary);">
-            پرونده‌های دریافتی از اعضای تیم را بررسی، تایید و در قالب دیتاست مرجع استاندارد خروجی بگیرید.
-          </span>
-          <span class="version-pill" id="stagingCountPill">تعداد: ۰ پرونده</span>
-        </div>
-
-        <div class="staging-table-wrapper">
-          <table class="staging-table">
-            <thead>
-              <tr>
-                <th>ردیف</th>
-                <th>شناسه پرونده</th>
-                <th>ثبت‌کننده</th>
-                <th>تاریخ ثبت</th>
-                <th>شکایت اصلی</th>
-                <th>وضعیت</th>
-                <th>عملیات</th>
-              </tr>
-            </thead>
-            <tbody id="stagingTableBody">
-              <tr>
-                <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.5rem;">
-                  هنوز پرونده‌ای در استیجینگ بارگذاری نشده است.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="staging-actions-bar">
-          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-sm" id="btnImportStagingFiles">
-              <span>📥 ورود فایل(های) JSON پرونده‌ها</span>
-            </button>
-            <input type="file" id="stagingFileInput" accept=".json" multiple style="display:none;">
-            <button class="btn btn-secondary btn-sm" id="btnApproveAllStaging">
-              <span>✅ تایید همه پرونده‌ها</span>
-            </button>
-            <button class="btn btn-secondary btn-sm" id="btnClearStaging" style="color:#EF4444;">
-              <span>🗑️ پاکسازی</span>
-            </button>
-          </div>
-
-          <button class="btn btn-primary" id="btnExportMasterDataset">
-            <span>📥 خروجی یکپارچه دیتاست مرجع (Master Dataset JSON)</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;" data-i18n="shift_modal_desc">
+            تمامی پرونده‌های ثبت‌شده در این شیفت به صورت ۱۰۰٪ آفلاین در حافظه مرورگر نگهداری می‌شوند.
+          </p>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnSaveCurrentToShift">
+            💾 <span data-i18n="shift_save_current">ذخیره پرونده فعلی در شیفت</span>
           </button>
         </div>
+        <div id="shiftCasesList" style="display:flex; flex-direction:column; gap:0.5rem; max-height:360px; overflow-y:auto;"></div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+        <div style="display:flex; gap:0.4rem; align-items:center;">
+          <button type="button" class="btn btn-secondary" id="btnImportShiftJson">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span data-i18n="shift_import">ورود فایل JSON</span>
+          </button>
+          <input type="file" id="shiftFileInput" accept=".json" style="display:none;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnClearShiftVault" style="color:#EF4444;" title="پاکسازی تاریخچه شیفت">
+            🗑️ <span data-i18n="shift_clear">پاکسازی شیفت</span>
+          </button>
+        </div>
+        <button type="button" class="btn btn-primary" id="btnExportAllShiftCases">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span data-i18n="shift_export">دانلود یکجای تمام پرونده‌ها (Shift JSON)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comprehensive System Settings Modal (Theme, 5 Fonts, Language, Cloud Sync) -->
+  <div class="modal-backdrop" id="appSettingsModalBackdrop">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span data-i18n="settings_modal_title">تنظیمات سامانه | System Settings</span>
+        </div>
+        <button class="btn btn-icon-only" id="btnCloseAppSettings">✕</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:1.1rem; max-height:75vh; overflow-y:auto;">
+        
+        <!-- Setting 1: Language & Direction -->
+        <div class="settings-group">
+          <label class="form-label" style="font-weight:700;" data-i18n="settings_lang_label">🌐 زبان سامانه و جهت نمایش (Language & Direction)</label>
+          <div class="settings-segmented-grid">
+            <button type="button" class="settings-opt-btn" data-lang="fa" id="btnLangFa">
+              <span class="opt-flag">🇮🇷</span>
+              <div class="opt-text">
+                <strong>فارسی</strong>
+                <small>راست‌به‌چپ (RTL) - بالینی فارسی</small>
+              </div>
+            </button>
+            <button type="button" class="settings-opt-btn" data-lang="en" id="btnLangEn">
+              <span class="opt-flag">🇬🇧</span>
+              <div class="opt-text">
+                <strong>English (Medical)</strong>
+                <small>Left-to-Right (LTR) - Specialized Surgical</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting 2: Theme / Mode -->
+        <div class="settings-group">
+          <label class="form-label" style="font-weight:700;" data-i18n="settings_theme_label">🎨 پوسته بصری نرم‌افزار (Theme & Appearance)</label>
+          <div class="settings-segmented-grid">
+            <button type="button" class="settings-opt-btn" data-theme="dark" id="btnThemeDark">
+              <span class="opt-flag">🌙</span>
+              <div class="opt-text">
+                <strong data-i18n="theme_dark_title">تیره جراحی (Dark Slate)</strong>
+                <small data-i18n="theme_dark_desc">کاهش خستگی چشم در شیفت شب</small>
+              </div>
+            </button>
+            <button type="button" class="settings-opt-btn" data-theme="light" id="btnThemeLight">
+              <span class="opt-flag">☀️</span>
+              <div class="opt-text">
+                <strong data-i18n="theme_light_title">روشن پزشکی (Clean Medical)</strong>
+                <small data-i18n="theme_light_desc">کنتراست استاندارد بیمارستانی</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting 3: Typography & Fonts (5 Different Fonts) -->
+        <div class="settings-group">
+          <label class="form-label" style="font-weight:700;" data-i18n="settings_font_label">🔤 فونت سامانه (Typography - 5 Styles)</label>
+          <div class="settings-font-grid">
+            <button type="button" class="settings-font-pill" data-font="vazirmatn" id="btnFontVazirmatn">
+              <span class="font-preview" style="font-family:'Vazirmatn', sans-serif;">وزیرمتن / Vazirmatn</span>
+            </button>
+            <button type="button" class="settings-font-pill" data-font="sahel" id="btnFontSahel">
+              <span class="font-preview" style="font-family:'Noto Sans Arabic', 'Sahel', sans-serif;">ساحل / Sahel</span>
+            </button>
+            <button type="button" class="settings-font-pill" data-font="samim" id="btnFontSamim">
+              <span class="font-preview" style="font-family:'Readex Pro', 'Samim', sans-serif;">صمیم / Samim</span>
+            </button>
+            <button type="button" class="settings-font-pill" data-font="shabnam" id="btnFontShabnam">
+              <span class="font-preview" style="font-family:'Rubik', 'Shabnam', sans-serif;">شبنم / Shabnam</span>
+            </button>
+            <button type="button" class="settings-font-pill" data-font="estedad" id="btnFontEstedad">
+              <span class="font-preview" style="font-family:'Cairo', 'Estedad', sans-serif;">استداد / Estedad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting 4: Google Sheets Cloud Sync -->
+        <div class="settings-group">
+          <label class="form-label" style="font-weight:700;" data-i18n="settings_cloud_label">📊 همگام‌سازی ابری Google Sheets (Apps Script Web App)</label>
+          <div class="form-group" style="margin-bottom: 0.6rem;">
+            <label class="form-label" data-i18n="settings_collector_label">نام ثبت‌کننده (Collector Name / ID)</label>
+            <input type="text" class="input-text" id="settingCollectorName" placeholder="Dr. Surg / اینترن یا رزیدنت">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="settings_url_label">آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)</label>
+            <input type="url" class="input-text dir-ltr" id="settingEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelAppSettings" data-i18n="btn_cancel">انصراف</button>
+        <button type="button" class="btn btn-primary" id="btnSaveAppSettings" data-i18n="btn_save_settings">ذخیره تنظیمات</button>
       </div>
     </div>
   </div>

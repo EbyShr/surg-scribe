@@ -21,6 +21,17 @@ import {
   sanitizeRecordForExport
 } from './generator.js';
 import { GoogleSheetsSyncEngine } from './google-sync.js';
+import {
+  getCurrentLanguage,
+  setLanguage,
+  getCurrentFont,
+  setFont,
+  getCurrentTheme,
+  setTheme,
+  t,
+  getLocalizedItemLabel,
+  applyI18nToDOM
+} from './i18n.js';
 
 /* ==========================================================================
    State & Global Singletons (v0.5-Surg)
@@ -214,7 +225,7 @@ function renderInlineDetailTriStateChip(options) {
   const btnPos = document.createElement('button');
   btnPos.type = 'button';
   btnPos.className = 'chip-btn-pos';
-  btnPos.title = 'ثبت مثبت (+1)';
+  btnPos.title = getCurrentLanguage() === 'en' ? 'Record Positive (+1)' : 'ثبت مثبت (+1)';
   btnPos.textContent = '+';
 
   const titleSpan = document.createElement('span');
@@ -224,7 +235,7 @@ function renderInlineDetailTriStateChip(options) {
   const btnNeg = document.createElement('button');
   btnNeg.type = 'button';
   btnNeg.className = 'chip-btn-neg';
-  btnNeg.title = 'ثبت منفی (-1)';
+  btnNeg.title = getCurrentLanguage() === 'en' ? 'Record Negative (-1)' : 'ثبت منفی (-1)';
   btnNeg.textContent = '−';
 
   chip.appendChild(btnPos);
@@ -2266,10 +2277,12 @@ function updateLivePreview() {
 }
 
 function formatMarkdownForDisplay(md) {
-  if (!md) return '<div class="preview-empty">در حال تکمیل پرونده...</div>';
+  const lang = getCurrentLanguage();
+  if (!md) return `<div class="preview-empty">${lang === 'en' ? 'Documenting clinical encounter...' : 'در حال تکمیل پرونده...'}</div>`;
 
   let html = md
     .replace(/^> \*\*مشخصات هویتی بیمار:\*\* (.*)$/gm, '<div class="preview-identity-box"><strong>مشخصات بیمار:</strong> $1</div>')
+    .replace(/^> \*\*Patient Demographics:\*\* (.*)$/gm, '<div class="preview-identity-box"><strong>Patient Demographics:</strong> $1</div>')
     .replace(/^### (.*$)/gm, '<h3 class="preview-h3">$1</h3>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/^- (.*$)/gm, '<div class="preview-bullet">• $1</div>')
@@ -2464,44 +2477,155 @@ function initShiftManager() {
   const btnOpen = document.getElementById('btnOpenShiftManager');
   const btnClose = document.getElementById('btnCloseShiftModal');
   const listContainer = document.getElementById('shiftCasesList');
+  const btnSaveCurrent = document.getElementById('btnSaveCurrentToShift');
+  const btnImport = document.getElementById('btnImportShiftJson');
+  const fileInput = document.getElementById('shiftFileInput');
+  const btnClear = document.getElementById('btnClearShiftVault');
 
-  btnOpen?.addEventListener('click', () => {
-    if (modal) modal.style.display = 'flex';
-    renderShiftCasesList();
+  const openModal = () => {
+    if (modal) {
+      modal.classList.add('open');
+      modal.style.display = 'flex';
+      renderShiftCasesList();
+    }
+  };
+
+  const closeModal = () => {
+    if (modal) {
+      modal.classList.remove('open');
+      modal.style.display = 'none';
+    }
+  };
+
+  btnOpen?.addEventListener('click', openModal);
+  btnClose?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
   });
 
-  btnClose?.addEventListener('click', () => {
-    if (modal) modal.style.display = 'none';
+  // Save current active case snapshot manually to shift vault
+  btnSaveCurrent?.addEventListener('click', () => {
+    saveCaseToShiftVault(clinicalState);
+    renderShiftCasesList();
+    showToast(getCurrentLanguage() === 'en' ? 'Current case saved to shift vault.' : 'نسخه فعلی پرونده با موفقیت در صندوق شیفت ذخیره شد.', 'success');
+  });
+
+  // Import JSON into Shift Vault
+  btnImport?.addEventListener('click', () => {
+    fileInput?.click();
+  });
+
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+        if (Array.isArray(parsed)) {
+          parsed.forEach((item) => list.unshift(item));
+        } else if (parsed && typeof parsed === 'object') {
+          list.unshift(parsed);
+        }
+        localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 100)));
+        updateShiftCasesCount();
+        renderShiftCasesList();
+        showToast(getCurrentLanguage() === 'en' ? 'Cases successfully imported to shift vault.' : 'پرونده(ها) با موفقیت به صندوق شیفت اضافه شدند.', 'success');
+      } catch (err) {
+        showToast((getCurrentLanguage() === 'en' ? 'JSON import error: ' : 'خطا در خواندن فایل JSON: ') + err.message, 'warning');
+      }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  });
+
+  // Clear Shift History
+  btnClear?.addEventListener('click', () => {
+    const confirmMsg = getCurrentLanguage() === 'en' ? 'Are you sure you want to clear all shift history?' : 'آیا از پاکسازی تمام تاریخچه شیفت اطمینان دارید؟';
+    if (confirm(confirmMsg)) {
+      localStorage.removeItem(STORAGE_SHIFT_CASES_KEY);
+      updateShiftCasesCount();
+      renderShiftCasesList();
+      showToast(getCurrentLanguage() === 'en' ? 'Shift history cleared.' : 'تاریخچه شیفت با موفقیت پاکسازی شد.', 'info');
+    }
   });
 
   function renderShiftCasesList() {
     if (!listContainer) return;
     listContainer.innerHTML = '';
+    const lang = getCurrentLanguage();
+    const isEn = lang === 'en';
     const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+
+    // 1. Render Current Active Case at Top
+    const activeItem = document.createElement('div');
+    activeItem.className = 'shift-vault-item';
+    activeItem.style.border = '1.5px solid var(--primary)';
+    activeItem.innerHTML = `
+      <div class="shift-vault-info">
+        <div>
+          <span class="shift-active-tag">${isEn ? 'Active Case' : 'پرونده جاری'}</span>
+          <strong class="shift-vault-case-id">${clinicalState.caseId}</strong>
+        </div>
+        <div class="shift-vault-cc">${clinicalState.demographics?.fullName || (isEn ? 'Unnamed Patient' : 'بیمار بدون نام')} - ${clinicalState.cc?.patientQuote || (isEn ? 'Active Surgical Complaint' : 'شکایت جراحی فعلی')}</div>
+        <div class="shift-vault-time">${new Date(clinicalState.createdAt || Date.now()).toLocaleTimeString()}</div>
+      </div>
+      <div class="shift-vault-actions">
+        <span style="font-size:0.75rem; color:var(--primary); font-weight:700;">${isEn ? 'Editing' : 'در حال ثبت'}</span>
+      </div>
+    `;
+    listContainer.appendChild(activeItem);
+
     if (list.length === 0) {
-      listContainer.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">پرونده بایگانی‌شده‌ای در شیفت فعلی وجود ندارد.</div>';
+      const emptyNote = document.createElement('div');
+      emptyNote.style.cssText = 'color:var(--text-muted); font-size:0.82rem; padding:1rem; text-align:center;';
+      emptyNote.textContent = isEn ? 'No other archived cases in this shift.' : 'پرونده بایگانی‌شده دیگری در این شیفت وجود ندارد.';
+      listContainer.appendChild(emptyNote);
       return;
     }
 
     list.forEach((c, idx) => {
       const item = document.createElement('div');
-      item.style.cssText = 'background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); padding:0.6rem 0.85rem; border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center;';
+      item.className = 'shift-vault-item';
       item.innerHTML = `
-        <div>
-          <strong>${c.caseId}</strong> - <span style="font-size:0.8rem; color:var(--text-secondary);">${c.cc?.patientQuote || 'شکایت جراحی'}</span>
-          <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.createdAt).toLocaleTimeString('fa-IR')}</div>
+        <div class="shift-vault-info">
+          <div>
+            <strong class="shift-vault-case-id">${c.caseId}</strong>
+            <span style="font-size:0.8rem; color:var(--text-primary); margin-inline-start:0.4rem;">${c.demographics?.fullName || ''}</span>
+          </div>
+          <div class="shift-vault-cc">${c.cc?.patientQuote || (isEn ? 'Surgical Complaint' : 'شکایت جراحی')}</div>
+          <div class="shift-vault-time">${new Date(c.createdAt || Date.now()).toLocaleTimeString()}</div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm btn-load-case">بارگذاری</button>
+        <div class="shift-vault-actions">
+          <button type="button" class="btn btn-secondary btn-sm btn-load-case">${isEn ? 'Load' : 'بارگذاری'}</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Delete' : 'حذف پرونده'}">✕</button>
+        </div>
       `;
 
       item.querySelector('.btn-load-case').addEventListener('click', () => {
-        if (confirm(`بارگذاری پرونده ${c.caseId}؟`)) {
+        const confirmLoad = isEn
+          ? `Load case ${c.caseId}? (Active unsaved work will be saved to shift vault)`
+          : `آیا مایل به بارگذاری پرونده ${c.caseId} هستید؟ (اطلاعات فعلی قبل از جابجایی در شیفت ثبت می‌شوند)`;
+        if (confirm(confirmLoad)) {
+          saveCaseToShiftVault(clinicalState);
           clinicalState = Object.assign(createDefaultClinicalState(), c);
           saveCurrentCase();
           syncDomFromState();
           updateLivePreview();
-          if (modal) modal.style.display = 'none';
-          showToast(`پرونده ${c.caseId} بارگذاری گردید.`, 'info');
+          closeModal();
+          showToast(isEn ? `Case ${c.caseId} loaded.` : `پرونده ${c.caseId} بارگذاری گردید.`, 'info');
+        }
+      });
+
+      item.querySelector('.btn-delete-case').addEventListener('click', () => {
+        const confirmDel = isEn ? `Delete case ${c.caseId} from shift vault?` : `حذف پرونده ${c.caseId} از حافظه شیفت؟`;
+        if (confirm(confirmDel)) {
+          list.splice(idx, 1);
+          localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
+          updateShiftCasesCount();
+          renderShiftCasesList();
+          showToast(isEn ? `Case ${c.caseId} removed.` : `پرونده ${c.caseId} حذف شد.`, 'info');
         }
       });
 
@@ -2520,7 +2644,103 @@ function initShiftManager() {
     a.download = `Shift-Dataset-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('دیتاست تجمیعی شیفت (فاقد مشخصات هویتی حساس) دانلود شد.', 'success');
+    showToast(getCurrentLanguage() === 'en' ? 'Shift dataset downloaded.' : 'دیتاست تجمیعی شیفت (فاقد مشخصات هویتی حساس) دانلود شد.', 'success');
+  });
+}
+
+function initAppSettings() {
+  const modal = document.getElementById('appSettingsModalBackdrop');
+  const btnOpen = document.getElementById('btnAppSettings') || document.getElementById('btnCloudSettings');
+  const btnClose = document.getElementById('btnCloseAppSettings');
+  const btnCancel = document.getElementById('btnCancelAppSettings');
+  const btnSave = document.getElementById('btnSaveAppSettings');
+
+  const settingCollector = document.getElementById('settingCollectorName');
+  const settingUrl = document.getElementById('settingEndpointUrl');
+  const collectorInput = document.getElementById('collectorIdInput');
+
+  const openModal = () => {
+    if (!modal) return;
+    if (settingCollector) settingCollector.value = gsheetSync.config.collectorName || '';
+    if (settingUrl) settingUrl.value = gsheetSync.config.scriptUrl || '';
+
+    // Highlight active language
+    const currentLang = getCurrentLanguage();
+    document.getElementById('btnLangFa')?.classList.toggle('active', currentLang === 'fa');
+    document.getElementById('btnLangEn')?.classList.toggle('active', currentLang === 'en');
+
+    // Highlight active theme
+    const currentTheme = getCurrentTheme();
+    document.getElementById('btnThemeDark')?.classList.toggle('active', currentTheme === 'dark');
+    document.getElementById('btnThemeLight')?.classList.toggle('active', currentTheme === 'light');
+
+    // Highlight active font
+    const currentFont = getCurrentFont();
+    document.querySelectorAll('.settings-font-pill').forEach((pill) => {
+      pill.classList.toggle('active', pill.dataset.font === currentFont);
+    });
+
+    modal.classList.add('open');
+    modal.style.display = 'flex';
+  };
+
+  const closeModal = () => {
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.style.display = 'none';
+  };
+
+  btnOpen?.addEventListener('click', openModal);
+  btnClose?.addEventListener('click', closeModal);
+  btnCancel?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Language buttons
+  document.getElementById('btnLangFa')?.addEventListener('click', () => {
+    setLanguage('fa');
+    document.getElementById('btnLangFa')?.classList.add('active');
+    document.getElementById('btnLangEn')?.classList.remove('active');
+  });
+
+  document.getElementById('btnLangEn')?.addEventListener('click', () => {
+    setLanguage('en');
+    document.getElementById('btnLangEn')?.classList.add('active');
+    document.getElementById('btnLangFa')?.classList.remove('active');
+  });
+
+  // Theme buttons
+  document.getElementById('btnThemeDark')?.addEventListener('click', () => {
+    setTheme('dark');
+    document.getElementById('btnThemeDark')?.classList.add('active');
+    document.getElementById('btnThemeLight')?.classList.remove('active');
+  });
+
+  document.getElementById('btnThemeLight')?.addEventListener('click', () => {
+    setTheme('light');
+    document.getElementById('btnThemeLight')?.classList.add('active');
+    document.getElementById('btnThemeDark')?.classList.remove('active');
+  });
+
+  // Font pills (5 styles)
+  document.querySelectorAll('.settings-font-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.settings-font-pill').forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      setFont(pill.dataset.font);
+    });
+  });
+
+  // Save Settings
+  btnSave?.addEventListener('click', () => {
+    gsheetSync.saveConfig({
+      scriptUrl: settingUrl?.value || '',
+      collectorName: settingCollector?.value || ''
+    });
+    if (collectorInput) collectorInput.value = settingCollector?.value || '';
+    closeModal();
+    showToast(getCurrentLanguage() === 'en' ? 'Settings saved successfully.' : 'تنظیمات سامانه با موفقیت ذخیره شد.', 'success');
   });
 }
 
@@ -2648,6 +2868,7 @@ export function initApp() {
   initSystemGapLoggers();
   initNavigationTabs();
   initExportAndCopy();
+  initAppSettings();
   initShiftManager();
   initCloudSyncUI();
   initThemeToggle();
@@ -2660,6 +2881,29 @@ export function initApp() {
 }
 
 if (typeof window !== 'undefined') {
+  window.addEventListener('surg:language-changed', (e) => {
+    const lang = e.detail?.lang || getCurrentLanguage();
+    renderHpiBasicSymptoms();
+    renderHpiUnlockableModules();
+    renderPmhCategories();
+    renderDhCategories();
+    renderRosGroups();
+    renderPeMandatoryPillars();
+    renderParaclinicModalityCards();
+    renderPainEpisodes();
+    updateLivePreview();
+    applyI18nToDOM(lang);
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.open').forEach(m => {
+        m.classList.remove('open');
+        m.style.display = 'none';
+      });
+    }
+  });
+
   window.addEventListener('DOMContentLoaded', () => {
     initApp();
   });

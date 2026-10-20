@@ -1,3 +1,4 @@
+import { getCurrentLanguage, getLocalizedItemLabel } from './i18n.js';
 import {
   SURGICAL_SCHEMA,
   LAB_PANELS,
@@ -41,8 +42,10 @@ export function sanitizeRecordForExport(rawState) {
 }
 
 function getRegionLabel(regionId) {
+  const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
   const found = SURGICAL_SCHEMA.abdominalRegions.find((r) => r.id === regionId);
-  return found ? found.label : regionId;
+  if (!found) return regionId;
+  return lang === 'en' ? (found.code || found.label) : found.label;
 }
 
 /**
@@ -50,7 +53,83 @@ function getRegionLabel(regionId) {
  * Generates natural, cohesive Persian prose structured like an expert attending surgeon's note.
  */
 export function generateNarrativeCCAndHPI(state) {
+  const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
+  const isEn = lang === 'en';
   const demo = state.demographics || state.admission || {};
+  const cc = state.cc || state.admission || {};
+  const hpi = state.hpi || {};
+  const pains = hpi.painList && hpi.painList.length > 0 ? hpi.painList : [];
+  const out = [];
+
+  if (isEn) {
+    if (demo.fullName || demo.fatherName || demo.birthDate || demo.age) {
+      const agePart = demo.age ? `${demo.age} y/o` : (demo.birthDate || '—');
+      const genderLabel = demo.gender === 'female' ? 'Female' : demo.gender === 'male' ? 'Male' : (demo.gender || '—');
+      out.push(
+        `> **Patient Demographics:** Name: **${demo.fullName || '—'}** | Father's Name: **${demo.fatherName || '—'}** | Age: **${agePart}** | Sex: **${genderLabel}**\n`
+      );
+    }
+
+    const ccText = cc.ccPhrase || cc.patientQuote || 'Acute Abdominal Pain';
+    out.push(`### 1. Chief Complaint (CC)`);
+    out.push(`- **"${ccText}"**`);
+
+    out.push(`\n### 2. History of Present Illness (HPI)`);
+    const narrativeSentences = [];
+
+    const genderNoun = demo.gender === 'female' ? 'female' : demo.gender === 'male' ? 'male' : 'patient';
+    const agePhrase = demo.age ? `${demo.age}-year-old` : '';
+    let introSentence = `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
+    if (cc.pathway === 'clinic_referral') {
+      introSentence += ` Admitted from surgical clinic under Dr. ${cc.attendingPhysician || 'Attending Surgeon'} for ${cc.plannedProcedure || 'planned surgical evaluation'}.`;
+    } else if (cc.pathway === 'postop_complication') {
+      introSentence += ` Presenting with acute post-operative complaint/complication following recent surgical intervention.`;
+    } else {
+      introSentence += ` Evaluated in the Emergency Department for acute surgical management.`;
+    }
+    narrativeSentences.push(introSentence);
+
+    if (pains.length > 0) {
+      pains.forEach((p, idx) => {
+        const siteStr = p.site || (p.selectedRegions || []).map(getRegionLabel).join(', ') || p.title || `Focus ${idx + 1}`;
+        let pSentence = `Pain focus #${idx + 1} (${siteStr}): Onset ${p.duration || 'recently'} prior to admission`;
+        if (p.character) pSentence += `, characterized as ${p.character}`;
+        if (p.course) pSentence += `, clinical course is ${p.course}`;
+        if (p.timing) pSentence += `, timing pattern: ${p.timing}`;
+        if (p.severity !== undefined && p.severity !== null && p.severity !== '') pSentence += `, severity rated ${p.severity}/10 on NRS`;
+        pSentence += '.';
+        if (p.radiationList && p.radiationList.length > 0) {
+          pSentence += ` Radiation: ${p.radiationList.map(r => r.label).join(', ')}.`;
+        }
+        if (p.aggravating && p.aggravating.length > 0) {
+          pSentence += ` Aggravated by: ${p.aggravating.join(', ')}.`;
+        }
+        if (p.relieving && p.relieving.length > 0) {
+          pSentence += ` Relieved by: ${p.relieving.join(', ')}.`;
+        }
+        narrativeSentences.push(pSentence);
+      });
+    }
+
+    const posSyms = [];
+    const negSyms = [];
+    if (hpi.symptoms) {
+      Object.entries(hpi.symptoms).forEach(([symId, data]) => {
+        const symObj = HPI_BASIC_SYMPTOMS.find(s => s.id === symId);
+        const symName = symObj ? (symObj.label.match(/\(([^)]+)\)/)?.[1] || symObj.label) : symId;
+        const st = typeof data === 'object' ? data.state : data;
+        const dt = typeof data === 'object' ? data.detail : '';
+        if (st === 1) posSyms.push(dt ? `${symName} (${dt})` : symName);
+        else if (st === -1) negSyms.push(symName);
+      });
+    }
+    if (posSyms.length > 0) narrativeSentences.push(`Associated symptoms: Positive for ${posSyms.join(', ')}.`);
+    if (negSyms.length > 0) narrativeSentences.push(`Pertinent review negatives: Denies ${negSyms.join(', ')}.`);
+
+    out.push(narrativeSentences.join('\n\n'));
+    return out.join('\n');
+  }
+
   const cc = state.cc || state.admission || {};
   const hpi = state.hpi || {};
   const pains = hpi.painList && hpi.painList.length > 0 ? hpi.painList : [];
@@ -291,8 +370,150 @@ export function generateNarrativeCCAndHPI(state) {
  * Complete Surgical Clinical Note Generator (v0.5-Surg)
  */
 export function generateClinicalNote(state) {
+  const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
+  const isEn = lang === 'en';
   const lines = [];
   const demo = state.demographics || {};
+
+  // 1 & 2: CC and HPI
+  lines.push(generateNarrativeCCAndHPI(state));
+
+  if (isEn) {
+    // 3. PMH / PSH
+    lines.push(`\n### 3. Past Medical & Surgical History (PMH / PSH)`);
+    const pmhState = state.pmh || {};
+    const pmhCategoriesState = pmhState.categories || {};
+    const masterNeg = pmhState.masterRoutineNegative;
+
+    if (masterNeg) {
+      lines.push(`- **PMH Routine Negatives:** Patient explicitly denies common chronic medical conditions (Diabetes Mellitus, Hypertension, Dyslipidemia, and Ischemic Heart Disease).`);
+    }
+
+    const catLines = [];
+    PMH_CATEGORIES.forEach((cat) => {
+      const catData = pmhCategoriesState[cat.id] || {};
+      const catItems = catData.items || {};
+      const isNeg = catData.status === 'negated' || catData.negativeAll === true;
+      const posItems = [];
+      cat.items.forEach((item) => {
+        const val = catItems[item.id] || pmhState.items?.[item.id];
+        const st = typeof val === 'object' && val !== null ? (val.state !== undefined ? val.state : (val.active ? 1 : 0)) : val;
+        const dt = typeof val === 'object' && val !== null ? (val.detail || val.note || '') : '';
+        if (st === 1 || st === '+1') {
+          const itemEn = item.label.match(/\(([^)]+)\)/)?.[1] || item.label;
+          posItems.push(dt ? `${itemEn} (${dt})` : itemEn);
+        }
+      });
+      const catTitleEn = cat.title.match(/\(([^)]+)\)/)?.[1] || cat.title;
+      if (posItems.length > 0) {
+        catLines.push(`  * **${catTitleEn}:** ${posItems.join(', ')}`);
+      } else if (isNeg) {
+        catLines.push(`  * **${catTitleEn}:** Denies condition in this category`);
+      }
+    });
+
+    if (catLines.length > 0) {
+      lines.push(`- **Past Medical History (PMH):**\n${catLines.join('\n')}`);
+    } else if (!masterNeg) {
+      lines.push(`- **Past Medical History (PMH):** Denies significant chronic medical illnesses.`);
+    }
+
+    if (state.psh?.surgeries && state.psh.surgeries.length > 0) {
+      const surgStr = state.psh.surgeries.map(s => `${s.procedure || 'Surgery'} (${s.yearHospital || ''})`).join(', ');
+      lines.push(`- **Past Surgical History (PSH):** ${surgStr}`);
+    } else {
+      lines.push(`- **Past Surgical History (PSH):** Denies prior abdominal or major surgical procedures.`);
+    }
+
+    if (demo.gender === 'female' && state.obgyn) {
+      const o = state.obgyn;
+      lines.push(`- **Obstetric History (Ob/Gyn):** Gravida: ${o.gravida || 0}, Para: ${o.para || 0}, Abortion: ${o.abortion || 0}, Living: ${o.living || 0}.`);
+    }
+
+    // 4. Medications, Allergies, Social History
+    lines.push(`\n### 4. Medications, Allergies & Social History (DH / SH / AH / FH)`);
+    const ahState = state.ah || {};
+    if (ahState.nkda) {
+      lines.push(`- **Allergies:** No Known Drug Allergies (NKDA).`);
+    } else if (ahState.drugAllergies) {
+      lines.push(`- **Allergies:** Drug Allergies: ${ahState.drugAllergies}`);
+    } else {
+      lines.push(`- **Allergies:** NKDA.`);
+    }
+
+    const dhRows = state.dh?.drugs || [];
+    if (dhRows.length > 0) {
+      const drugList = dhRows.map(d => `${d.name || ''} ${d.dose || ''} ${d.sig || ''} ${d.note ? '(' + d.note + ')' : ''}`.trim()).join(', ');
+      lines.push(`- **Current Medications:** ${drugList}`);
+    } else {
+      lines.push(`- **Current Medications:** Denies regular prescription medication use.`);
+    }
+
+    const shState = state.sh || {};
+    const shParts = [];
+    if (shState.smoking) shParts.push(`Tobacco: ${shState.smoking}`);
+    if (shState.alcohol) shParts.push(`Alcohol: ${shState.alcohol}`);
+    if (shState.substance) shParts.push(`Substances: ${shState.substance}`);
+    lines.push(`- **Social History:** ${shParts.length > 0 ? shParts.join('; ') : 'Non-contributory (denies tobacco, alcohol or substance use).'}`);
+
+    const fhState = state.fh || {};
+    lines.push(`- **Family History:** ${fhState.noncontributory ? 'Non-contributory (denies familial GI cancers or early deaths).' : (fhState.notes || 'Non-contributory.')}`);
+
+    // 5. ROS
+    lines.push(`\n### 5. Review of Systems (ROS)`);
+    const rosItems = state.ros?.items || {};
+    const rosPos = [];
+    const rosNeg = [];
+    Object.entries(rosItems).forEach(([rId, val]) => {
+      const st = typeof val === 'object' ? val.state : val;
+      const lb = typeof val === 'object' ? val.label : rId;
+      const enLb = lb.match(/\(([^)]+)\)/)?.[1] || lb;
+      if (st === 1) rosPos.push(enLb);
+      else if (st === -1) rosNeg.push(enLb);
+    });
+    if (rosPos.length > 0) lines.push(`- **Positive System Review:** ${rosPos.join(', ')}`);
+    if (rosNeg.length > 0) lines.push(`- **Negative System Review:** Denies ${rosNeg.join(', ')}`);
+    if (rosPos.length === 0 && rosNeg.length === 0) lines.push(`- **System Review:** 11-point review of systems otherwise negative except as noted in HPI.`);
+
+    // 6. PE
+    lines.push(`\n### 6. Physical Examination (PE)`);
+    const vitals = state.pe?.vitals || {};
+    lines.push(`- **Vital Signs:** BP: ${vitals.bp || '—'} mmHg | PR: ${vitals.pr || '—'} bpm | RR: ${vitals.rr || '—'} /min | Temp: ${vitals.temp || '—'} °C | SpO2: ${vitals.spo2 || '—'}% on RA | Fasting (NPO): ${vitals.npo ? 'Yes' : 'No'}`);
+
+    const peFindings = state.pe?.findings || {};
+    const pePos = [];
+    const peNeg = [];
+    Object.entries(peFindings).forEach(([fId, val]) => {
+      const st = typeof val === 'object' ? val.state : val;
+      const lb = typeof val === 'object' ? val.label : fId;
+      const enLb = lb.match(/\(([^)]+)\)/)?.[1] || lb;
+      if (st === 1) pePos.push(enLb);
+      else if (st === -1) peNeg.push(enLb);
+    });
+    lines.push(`- **Abdominal Examination (4 Pillars):**`);
+    if (pePos.length > 0) lines.push(`  * **Pertinent Positive Findings:** ${pePos.join(', ')}`);
+    if (peNeg.length > 0) lines.push(`  * **Normal / Negative Findings:** ${peNeg.join(', ')}`);
+
+    // 7. Paraclinics
+    lines.push(`\n### 7. Diagnostic Studies & Paraclinics`);
+    const labs = state.paraclinics?.labs || {};
+    const labEntries = Object.entries(labs).filter(([k, v]) => v && String(v).trim());
+    if (labEntries.length > 0) {
+      lines.push(`- **Laboratory Investigations:** ${labEntries.map(([k, v]) => `${k}: ${v}`).join(' | ')}`);
+    } else {
+      lines.push(`- **Laboratory Investigations:** Results pending at time of admission.`);
+    }
+
+    // 8. DDx & Plan
+    lines.push(`\n### 8. Clinical Reasoning & Plan (DDx & Plan)`);
+    const reasoning = state.reasoning || {};
+    if (reasoning.problemRepresentation) lines.push(`- **Problem Representation:** ${reasoning.problemRepresentation}`);
+    if (reasoning.topDifferential) lines.push(`- **Primary Differential:** ${reasoning.topDifferential}`);
+    if (reasoning.managementPlan) lines.push(`- **Management Plan:** ${reasoning.managementPlan}`);
+
+    return lines.join('\n');
+  }
+
 
   // ۱ و ۲: CC و HPI روایی
   lines.push(generateNarrativeCCAndHPI(state));
