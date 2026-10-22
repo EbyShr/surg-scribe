@@ -4,6 +4,12 @@ import {
   ROS_GROUPS_BILINGUAL,
   PMH_CATEGORIES,
   DH_CATEGORIES,
+  MASTER_SYMPTOMS_BANK,
+  MASTER_PMH_CATEGORIES,
+  MASTER_DRUG_CATEGORIES,
+  ALL_MASTER_SYMPTOMS,
+  ALL_MASTER_PMH_ITEMS,
+  ALL_MASTER_DRUGS,
   DH_SIG_OPTIONS,
   PAIN_TIMING_OPTIONS,
   PAIN_AGGRAVATING_FACTORS,
@@ -90,6 +96,7 @@ export function createDefaultPainEpisode(id = 1, title = 'کانون درد او
 }
 
 export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) {
+  const uid = typeof id === 'string' && id.startsWith('pres_') ? id : ('pres_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
   if (archetype === 'mass_lesion_archetype') {
     return {
       id,
@@ -179,10 +186,10 @@ export function createDefaultClinicalState() {
     },
     hpi: {
       duration: '',
-      presentations: [defaultPres],
-      painList: [defaultPres], // maintained for seamless backward compatibility
-      unlockedModules: [], // array of module IDs (e.g. 'mod_cholestasis')
-      symptoms: {}, // chipId -> { state: 1|-1, detail: '' }
+      presentations: [], // Empty state by default in v0.7-Master-Formulary!
+      painList: [],
+      unlockedModules: [],
+      symptoms: {},
       preAdmissionWorkup: '',
       narrativeNote: '',
       systemGapNote: ''
@@ -444,15 +451,11 @@ function loadSavedState() {
       if (!clinicalState.pe.atlsExam) {
         clinicalState.pe.atlsExam = defaults.pe.atlsExam;
       }
-      if (!clinicalState.hpi.presentations || !Array.isArray(clinicalState.hpi.presentations) || clinicalState.hpi.presentations.length === 0) {
-        if (clinicalState.hpi.painList && Array.isArray(clinicalState.hpi.painList) && clinicalState.hpi.painList.length > 0) {
-          clinicalState.hpi.presentations = clinicalState.hpi.painList.map((p) => ({ ...p, archetype: 'pain_archetype' }));
-        } else {
-          clinicalState.hpi.presentations = [createDefaultPresentation('pain_archetype', 1)];
-        }
+      if (!clinicalState.hpi.presentations || !Array.isArray(clinicalState.hpi.presentations)) {
+        clinicalState.hpi.presentations = [];
       }
-      if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList) || clinicalState.hpi.painList.length === 0) {
-        clinicalState.hpi.painList = [createDefaultPainEpisode(1, 'کانون درد اول / شکایت محوری')];
+      if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList)) {
+        clinicalState.hpi.painList = [];
       }
     }
   } catch (e) {
@@ -539,26 +542,71 @@ function initDemographicsHandlers() {
 /* ==========================================================================
    Tab 2: HPI & 5 Clinical Presentation Archetypes Engine
    ========================================================================== */
-function renderArchetypeSelectorBar() {
-  const bar = document.getElementById('archetypeSelectorBar');
-  if (!bar) return;
-  bar.innerHTML = '';
+export function renderArchetypeSelectorGrid() {
+  const container = document.getElementById('archetypeSelectorGrid') || document.getElementById('archetypeSelectorBar');
+  if (!container) return;
+  container.innerHTML = '';
 
-  CLINICAL_PRESENTATION_ARCHETYPES.forEach((arch) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `archetype-pill-btn archetype-btn-${arch.id}`;
-    btn.innerHTML = `
-      <span class="arch-icon">${arch.icon}</span>
-      <div class="arch-info">
-        <span class="arch-title">${arch.labelFa}</span>
-        <span class="arch-badge">${arch.badge}</span>
+  const archetypes = [
+    {
+      id: 'pain_archetype',
+      cardClass: 'arch-card-pain',
+      iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>',
+      title: '🔥 درد و ناراحتی (Pain & Discomfort)',
+      subtitle: 'شکمی، قفسه سینه، سر و گردن، کمر و اندام',
+      defaultTitle: 'درد و ناراحتی'
+    },
+    {
+      id: 'mass_lesion_archetype',
+      cardClass: 'arch-card-mass',
+      iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>',
+      title: '🟣 توده، تورم و ضایعه (Mass, Cyst & Lesion)',
+      subtitle: 'پستان، تیروئید، فک و صورت، کیست سر، فتق',
+      defaultTitle: 'توده / ضایعه'
+    },
+    {
+      id: 'trauma_burn_archetype',
+      cardClass: 'arch-card-trauma',
+      iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+      title: '🚑 تروما، جراحت و سوختگی (Trauma, Stab/GSW & Burn)',
+      subtitle: 'چاقو، گلوله، تصادف، سقوط، سوختگی',
+      defaultTitle: 'تروما و جراحت'
+    },
+    {
+      id: 'functional_bleeding_archetype',
+      cardClass: 'arch-card-functional',
+      iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>',
+      title: '🌊 اختلال عملکرد، خونریزی یا زردی (Functional & Bleeding)',
+      subtitle: 'تنگی نفس، خونریزی گوارشی، ایکتر، احتباس',
+      defaultTitle: 'اختلال عملکرد / خونریزی'
+    },
+    {
+      id: 'elective_asymptomatic_archetype',
+      cardClass: 'arch-card-elective',
+      iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>',
+      title: '📋 بستری الکتیو / ارجاع بی‌علامت (Elective & Pre-Op)',
+      subtitle: 'نامه استاد، کانسر/سنگ تشخیصدادهشده، چکاپ',
+      defaultTitle: 'بستری الکتیو / ارجاع'
+    }
+  ];
+
+  archetypes.forEach((arch) => {
+    const card = document.createElement('div');
+    card.className = `archetype-grid-card ${arch.cardClass}`;
+    card.innerHTML = `
+      <div class="arch-card-header">
+        <div class="arch-card-icon">${arch.iconSvg}</div>
+        <div class="arch-card-title">${arch.title}</div>
       </div>
+      <div class="arch-card-subtitle">${arch.subtitle}</div>
     `;
-    btn.addEventListener('click', () => {
+
+    card.addEventListener('click', () => {
       if (!clinicalState.hpi.presentations) clinicalState.hpi.presentations = [];
-      const newId = clinicalState.hpi.presentations.length + 1;
-      const newPres = createDefaultPresentation(arch.id, newId);
+      const newUid = 'pres_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      const count = clinicalState.hpi.presentations.length + 1;
+      const newPres = createDefaultPresentation(arch.id, newUid);
+      newPres.title = `${arch.defaultTitle} #${count}`;
       clinicalState.hpi.presentations.push(newPres);
 
       if (arch.id === 'trauma_burn_archetype') {
@@ -574,25 +622,29 @@ function renderArchetypeSelectorBar() {
       saveCurrentCase();
       updateLivePreview();
     });
-    bar.appendChild(btn);
+
+    container.appendChild(card);
   });
 }
 
-function renderHpiPresentations() {
+export const renderArchetypeSelectorBar = renderArchetypeSelectorGrid;
+
+export function renderHpiPresentations() {
   const container = document.getElementById('hpiPresentationsContainer');
   if (!container) return;
   container.innerHTML = '';
 
   if (!clinicalState.hpi.presentations || clinicalState.hpi.presentations.length === 0) {
-    if (clinicalState.hpi.painList && clinicalState.hpi.painList.length > 0) {
-      clinicalState.hpi.presentations = clinicalState.hpi.painList.map((p) => {
-        const item = { ...p };
-        item.archetype = 'pain_archetype';
-        return item;
-      });
-    } else {
-      clinicalState.hpi.presentations = [createDefaultPresentation('pain_archetype', 1)];
-    }
+    container.innerHTML = `
+      <div class="hpi-empty-state">
+        <div class="hpi-empty-icon">🩺</div>
+        <div class="hpi-empty-title">هنوز مواجهه‌ای ثبت نشده است</div>
+        <div class="hpi-empty-desc">
+          برای شروع، نوع شکایت بیمار را از یکی از ۵ الگوی بالا انتخاب کنید (امکان افزودن چندین الگوی همزمان وجود دارد).
+        </div>
+      </div>
+    `;
+    return;
   }
 
   // Backward compatibility: keep painList in sync with pain archetypes
@@ -600,11 +652,27 @@ function renderHpiPresentations() {
     (p) => (p.archetype || p.type) === 'pain_archetype'
   );
 
+  const badgeMap = {
+    pain_archetype: 'درد و ناراحتی (Pain)',
+    mass_lesion_archetype: 'توده و ضایعه (Mass)',
+    trauma_burn_archetype: 'تروما و سوختگی (ATLS)',
+    functional_bleeding_archetype: 'عملکردی / خونریزی (Functional)',
+    elective_asymptomatic_archetype: 'الکتیو بی‌علامت (Elective)'
+  };
+
+  const iconMap = {
+    pain_archetype: '🔥',
+    mass_lesion_archetype: '🟣',
+    trauma_burn_archetype: '🚑',
+    functional_bleeding_archetype: '🌊',
+    elective_asymptomatic_archetype: '📋'
+  };
+
   clinicalState.hpi.presentations.forEach((pres, index) => {
     const archType = pres.archetype || pres.type || 'pain_archetype';
     const card = document.createElement('div');
     card.className = `archetype-card card-archetype-${archType}`;
-    card.dataset.id = String(pres.id);
+    card.dataset.id = String(pres.id || pres.uid);
 
     // Header
     const header = document.createElement('div');
@@ -612,21 +680,6 @@ function renderHpiPresentations() {
 
     const titleArea = document.createElement('div');
     titleArea.className = 'archetype-card-title';
-
-    const iconMap = {
-      pain_archetype: '⚡',
-      mass_lesion_archetype: '🔘',
-      trauma_burn_archetype: '🚨',
-      functional_bleeding_archetype: '🩸',
-      elective_asymptomatic_archetype: '📋'
-    };
-    const badgeMap = {
-      pain_archetype: 'درد (Pain)',
-      mass_lesion_archetype: 'توده و ضایعه (Mass)',
-      trauma_burn_archetype: 'تروما و سوختگی (ATLS)',
-      functional_bleeding_archetype: 'عملکردی / خونریزی (Functional)',
-      elective_asymptomatic_archetype: 'الکتیو بی‌علامت (Elective)'
-    };
 
     const iconSpan = document.createElement('span');
     iconSpan.className = 'arch-icon';
@@ -636,7 +689,7 @@ function renderHpiPresentations() {
     const titleInput = document.createElement('input');
     titleInput.type = 'text';
     titleInput.className = 'archetype-title-input';
-    titleInput.value = pres.title || `مواجهه بالینی #${index + 1}`;
+    titleInput.value = pres.title || `مواجهه #${index + 1}: ${badgeMap[archType] || archType}`;
     titleInput.placeholder = 'عنوان شکایت...';
     titleInput.addEventListener('input', (e) => {
       pres.title = e.target.value;
@@ -647,43 +700,68 @@ function renderHpiPresentations() {
 
     const badge = document.createElement('span');
     badge.className = 'archetype-badge';
-    badge.textContent = badgeMap[archType] || archType;
+    badge.textContent = `مواجهه #${index + 1}`;
     titleArea.appendChild(badge);
 
     header.appendChild(titleArea);
 
-    if (clinicalState.hpi.presentations.length > 1) {
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'btn-delete-archetype-card';
-      delBtn.innerHTML = `<span>🗑️</span><span>حذف این مواجهه</span>`;
-      delBtn.addEventListener('click', () => {
-        clinicalState.hpi.presentations.splice(index, 1);
-        renderHpiPresentations();
-        saveCurrentCase();
-        updateLivePreview();
-      });
-      header.appendChild(delBtn);
-    }
+    // Action buttons: Collapse and Delete
+    const actions = document.createElement('div');
+    actions.className = 'archetype-card-actions';
+
+    const collapseBtn = document.createElement('button');
+    collapseBtn.type = 'button';
+    collapseBtn.className = 'btn-archetype-collapse';
+    collapseBtn.title = pres._collapsed ? 'باز کردن' : 'جمع کردن';
+    collapseBtn.textContent = pres._collapsed ? '▲ باز کردن' : '▼ جمع کردن';
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-delete-archetype-card';
+    delBtn.innerHTML = `<span>🗑️</span><span>حذف این مواجهه</span>`;
+    delBtn.addEventListener('click', () => {
+      clinicalState.hpi.presentations.splice(index, 1);
+      renderHpiPresentations();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    actions.appendChild(collapseBtn);
+    actions.appendChild(delBtn);
+    header.appendChild(actions);
 
     card.appendChild(header);
 
-    // Body based on archetype
-    if (archType === 'mass_lesion_archetype') {
-      renderMassLesionArchetypeBody(card, pres);
-    } else if (archType === 'trauma_burn_archetype') {
-      renderTraumaBurnArchetypeBody(card, pres);
-    } else if (archType === 'functional_bleeding_archetype') {
-      renderFunctionalBleedingArchetypeBody(card, pres);
-    } else if (archType === 'elective_asymptomatic_archetype') {
-      renderElectiveArchetypeBody(card, pres);
-    } else {
-      renderPainArchetypeBody(card, pres, index);
+    // Body wrapper
+    const bodyContainer = document.createElement('div');
+    bodyContainer.className = 'archetype-card-body-wrapper';
+    if (pres._collapsed) {
+      bodyContainer.style.display = 'none';
     }
 
+    collapseBtn.addEventListener('click', () => {
+      pres._collapsed = !pres._collapsed;
+      bodyContainer.style.display = pres._collapsed ? 'none' : 'block';
+      collapseBtn.textContent = pres._collapsed ? '▲ باز کردن' : '▼ جمع کردن';
+    });
+
+    if (archType === 'mass_lesion_archetype') {
+      renderMassLesionArchetypeBody(bodyContainer, pres);
+    } else if (archType === 'trauma_burn_archetype') {
+      renderTraumaBurnArchetypeBody(bodyContainer, pres);
+    } else if (archType === 'functional_bleeding_archetype') {
+      renderFunctionalBleedingArchetypeBody(bodyContainer, pres);
+    } else if (archType === 'elective_asymptomatic_archetype') {
+      renderElectiveArchetypeBody(bodyContainer, pres);
+    } else {
+      renderPainArchetypeBody(bodyContainer, pres);
+    }
+
+    card.appendChild(bodyContainer);
     container.appendChild(card);
   });
 }
+
 
 function renderMassLesionArchetypeBody(card, pres) {
   const grid = document.createElement('div');
@@ -3378,54 +3456,432 @@ function initAtlsExamHandlers() {
 }
 
 /* ==========================================================================
-   Live Quick Search & Tag Filter
+   v0.7-Master-Formulary: Direct Schema Omnisearch & Instant Capsule Tray
    ========================================================================== */
-function initTagQuickSearch() {
+
+/**
+ * Direct Schema Search Engine: searches directly in master clinical banks
+ * without relying on DOM elements or open accordions.
+ */
+export function filterSchemaItems(query, itemsArray) {
+  if (!query || query.trim().length < 1) return [];
+  const q = query.trim().toLowerCase()
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک');
+  return itemsArray.filter((item) => {
+    const haystack = `${item.label || ''} ${item.en || ''} ${item.brands || ''} ${item.category || ''} ${item.keywords || ''}`
+      .toLowerCase()
+      .replace(/ي/g, 'ی')
+      .replace(/ك/g, 'ک');
+    return haystack.includes(q);
+  }).slice(0, 30); // Show top 30 matches for snappy rendering
+}
+
+function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
+  const matches = filterSchemaItems(query, itemsPool);
+
+  const header = document.createElement('div');
+  header.className = 'search-tray-header';
+  header.innerHTML = `
+    <span>نتایج جستجو: <span class="search-tray-count">${matches.length} مورد</span></span>
+    <span>تپ روی + یا −</span>
+  `;
+  tray.appendChild(header);
+
+  const grid = document.createElement('div');
+  grid.className = 'search-tray-grid';
+
+  matches.forEach((item) => {
+    let cur = null;
+    if (sectionType === 'hpi') {
+      cur = clinicalState.hpi.symptoms?.[item.id];
+    } else if (sectionType === 'pmh') {
+      cur = (item.catId && clinicalState.pmh.categories?.[item.catId]?.items?.[item.id]) || clinicalState.pmh.items?.[item.id];
+    } else if (sectionType === 'ros') {
+      cur = clinicalState.ros.findings?.[item.id];
+    } else if (sectionType === 'pe') {
+      cur = clinicalState.pe.findings?.[item.id];
+    }
+
+    const st = cur ? (typeof cur === 'object' ? (cur.state !== undefined ? cur.state : 0) : cur) : 0;
+    const det = cur && typeof cur === 'object' ? (cur.detail || cur.note || '') : '';
+
+    const itemWrap = document.createElement('div');
+    itemWrap.className = `search-tray-item ${st === 1 ? 'is-positive' : st === -1 ? 'is-negative' : ''}`;
+
+    const chipRow = document.createElement('div');
+    chipRow.className = 'search-tray-chip-row';
+
+    const btnPos = document.createElement('button');
+    btnPos.type = 'button';
+    btnPos.className = `search-btn-pos ${st === 1 ? 'active' : ''}`;
+    btnPos.textContent = '+';
+    btnPos.title = 'مثبت / دارد';
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'search-tray-label';
+    labelSpan.textContent = item.label;
+
+    if (item.category) {
+      const catBadge = document.createElement('span');
+      catBadge.className = 'search-tray-category-badge';
+      catBadge.textContent = item.category;
+      chipRow.appendChild(catBadge);
+    }
+
+    const btnNeg = document.createElement('button');
+    btnNeg.type = 'button';
+    btnNeg.className = `search-btn-neg ${st === -1 ? 'active' : ''}`;
+    btnNeg.textContent = '−';
+    btnNeg.title = 'منفی / نفی شد';
+
+    chipRow.appendChild(btnPos);
+    chipRow.appendChild(labelSpan);
+    chipRow.appendChild(btnNeg);
+    itemWrap.appendChild(chipRow);
+
+    // Inline detail input if positive
+    const detailInp = document.createElement('input');
+    detailInp.type = 'text';
+    detailInp.className = 'search-tray-detail-input';
+    detailInp.placeholder = 'توضیحات تکمیلی (مدت، شدت، سیر...)...';
+    detailInp.value = det;
+    detailInp.style.display = st === 1 ? 'block' : 'none';
+
+    detailInp.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (sectionType === 'hpi') {
+        if (!clinicalState.hpi.symptoms[item.id]) clinicalState.hpi.symptoms[item.id] = { state: 1, label: item.label, detail: '' };
+        clinicalState.hpi.symptoms[item.id].detail = val;
+      } else if (sectionType === 'pmh') {
+        if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
+        if (!clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id] = { state: 1, label: item.label, detail: '' };
+        clinicalState.pmh.items[item.id].detail = val;
+      } else if (sectionType === 'ros') {
+        if (!clinicalState.ros.findings[item.id]) clinicalState.ros.findings[item.id] = { state: 1, label: item.label, detail: '' };
+        clinicalState.ros.findings[item.id].detail = val;
+      } else if (sectionType === 'pe') {
+        if (!clinicalState.pe.findings[item.id]) clinicalState.pe.findings[item.id] = { state: 1, label: item.label, detail: '' };
+        clinicalState.pe.findings[item.id].detail = val;
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    itemWrap.appendChild(detailInp);
+
+    const applyState = (newState) => {
+      if (sectionType === 'hpi') {
+        if (newState === 0) delete clinicalState.hpi.symptoms[item.id];
+        else clinicalState.hpi.symptoms[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+      } else if (sectionType === 'pmh') {
+        if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
+        if (item.catId) {
+          if (!clinicalState.pmh.categories[item.catId]) clinicalState.pmh.categories[item.catId] = { status: 'neutral', items: {} };
+          if (newState === 0) delete clinicalState.pmh.categories[item.catId].items[item.id];
+          else clinicalState.pmh.categories[item.catId].items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+          if (newState === 1) clinicalState.pmh.categories[item.catId].status = 'has_positive';
+        }
+        if (newState === 0) delete clinicalState.pmh.items[item.id];
+        else clinicalState.pmh.items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+        renderPmhCategories();
+      } else if (sectionType === 'ros') {
+        if (newState === 0) delete clinicalState.ros.findings[item.id];
+        else clinicalState.ros.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+      } else if (sectionType === 'pe') {
+        if (newState === 0) delete clinicalState.pe.findings[item.id];
+        else clinicalState.pe.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+      }
+
+      saveCurrentCase();
+      updateLivePreview();
+      btnPos.classList.toggle('active', newState === 1);
+      btnNeg.classList.toggle('active', newState === -1);
+      itemWrap.classList.toggle('is-positive', newState === 1);
+      itemWrap.classList.toggle('is-negative', newState === -1);
+      detailInp.style.display = newState === 1 ? 'block' : 'none';
+      if (newState === 1) detailInp.focus();
+    };
+
+    btnPos.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const curSt = btnPos.classList.contains('active') ? 1 : (btnNeg.classList.contains('active') ? -1 : 0);
+      applyState(curSt === 1 ? 0 : 1);
+    });
+
+    btnNeg.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const curSt = btnPos.classList.contains('active') ? 1 : (btnNeg.classList.contains('active') ? -1 : 0);
+      applyState(curSt === -1 ? 0 : -1);
+    });
+
+    grid.appendChild(itemWrap);
+  });
+
+  tray.appendChild(grid);
+
+  // Fallback direct add button
+  const fallbackBox = document.createElement('div');
+  fallbackBox.className = 'search-tray-fallback-box';
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'search-tray-add-btn';
+  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان آیتم جدید به این بخش`;
+  addBtn.addEventListener('click', () => {
+    const customId = `custom_${Date.now()}`;
+    if (sectionType === 'hpi') {
+      clinicalState.hpi.symptoms[customId] = { state: 1, label: query, detail: '' };
+    } else if (sectionType === 'pmh') {
+      if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
+      clinicalState.pmh.items[customId] = { state: 1, label: query, detail: '' };
+      renderPmhCategories();
+    } else if (sectionType === 'ros') {
+      clinicalState.ros.findings[customId] = { state: 1, label: query, detail: '' };
+    } else if (sectionType === 'pe') {
+      clinicalState.pe.findings[customId] = { state: 1, label: query, detail: '' };
+    }
+    saveCurrentCase();
+    updateLivePreview();
+    addBtn.innerHTML = `✓ «${query}» با موفقیت اضافه شد`;
+    addBtn.style.borderColor = '#10b981';
+    addBtn.style.color = '#10b981';
+  });
+  fallbackBox.appendChild(addBtn);
+  tray.appendChild(fallbackBox);
+}
+
+function renderDrugSearchTray(query, tray, input) {
+  const matches = filterSchemaItems(query, ALL_MASTER_DRUGS);
+
+  const header = document.createElement('div');
+  header.className = 'search-tray-header';
+  header.innerHTML = `
+    <span>داروهای یافت‌شده: <span class="search-tray-count">${matches.length} مورد</span></span>
+    <span>کلیک روی + افزودن دارو</span>
+  `;
+  tray.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'search-tray-drugs-list';
+
+  matches.forEach((drug) => {
+    const catId = drug.catId || 'dh_other';
+    if (!clinicalState.dh.categories[catId]) {
+      clinicalState.dh.categories[catId] = { drugs: {} };
+    }
+    const catData = clinicalState.dh.categories[catId];
+    if (!catData.drugs[drug.id]) {
+      catData.drugs[drug.id] = { active: false, dose: drug.defaultDose || '', sig: 'Daily (روزانه)', note: '' };
+    }
+    const drugEntry = catData.drugs[drug.id];
+
+    const card = document.createElement('div');
+    card.className = `dh-tray-card ${drugEntry.active ? 'is-active' : ''}`;
+
+    const topRow = document.createElement('div');
+    topRow.className = 'dh-tray-top';
+
+    const info = document.createElement('div');
+    info.className = 'dh-tray-main-info';
+    info.innerHTML = `
+      <div class="dh-tray-drug-name">
+        ${drug.label}
+        ${drug.highAlert ? '<span class="dh-tray-high-alert">⚠️ High-Alert</span>' : ''}
+      </div>
+      ${drug.brands ? `<div class="dh-tray-brands">نام‌های تجاری: ${drug.brands}</div>` : ''}
+    `;
+    topRow.appendChild(info);
+
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className = `dh-tray-action-btn ${drugEntry.active ? 'active' : ''}`;
+    actionBtn.innerHTML = drugEntry.active ? '✓ فعال (حذف)' : '+ افزودن دارو';
+
+    topRow.appendChild(actionBtn);
+    card.appendChild(topRow);
+
+    const box3 = document.createElement('div');
+    box3.className = 'dh-tray-3box';
+    box3.style.display = drugEntry.active ? 'flex' : 'none';
+
+    const doseInp = document.createElement('input');
+    doseInp.type = 'text';
+    doseInp.className = 'dh-tray-dose-inp';
+    doseInp.placeholder = 'دوز...';
+    doseInp.value = drugEntry.dose || drug.defaultDose || '';
+    doseInp.addEventListener('input', (e) => {
+      drugEntry.dose = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+      renderDhCategories();
+    });
+
+    const sigSel = document.createElement('select');
+    sigSel.className = 'dh-tray-sig-sel';
+    DH_SIG_OPTIONS.forEach((opt) => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      if (drugEntry.sig === opt) option.selected = true;
+      sigSel.appendChild(option);
+    });
+    sigSel.addEventListener('change', (e) => {
+      drugEntry.sig = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+      renderDhCategories();
+    });
+
+    const noteInp = document.createElement('input');
+    noteInp.type = 'text';
+    noteInp.className = 'dh-tray-note-inp';
+    noteInp.placeholder = 'دستور یا توضیح خاص...';
+    noteInp.value = drugEntry.note || '';
+    noteInp.addEventListener('input', (e) => {
+      drugEntry.note = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+      renderDhCategories();
+    });
+
+    box3.appendChild(doseInp);
+    box3.appendChild(sigSel);
+    box3.appendChild(noteInp);
+    card.appendChild(box3);
+
+    actionBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      drugEntry.active = !drugEntry.active;
+      actionBtn.classList.toggle('active', drugEntry.active);
+      actionBtn.innerHTML = drugEntry.active ? '✓ فعال (حذف)' : '+ افزودن دارو';
+      card.classList.toggle('is-active', drugEntry.active);
+      box3.style.display = drugEntry.active ? 'flex' : 'none';
+      if (drugEntry.active && !drugEntry.dose) {
+        drugEntry.dose = drug.defaultDose || '';
+        doseInp.value = drugEntry.dose;
+      }
+      saveCurrentCase();
+      updateLivePreview();
+      renderDhCategories();
+    });
+
+    list.appendChild(card);
+  });
+
+  tray.appendChild(list);
+
+  // Fallback button for adding custom drug
+  const fallbackBox = document.createElement('div');
+  fallbackBox.className = 'search-tray-fallback-box';
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'search-tray-add-btn';
+  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان داروی جدید`;
+  addBtn.addEventListener('click', () => {
+    if (!clinicalState.dh.customDrugs) clinicalState.dh.customDrugs = [];
+    clinicalState.dh.customDrugs.push({
+      id: Date.now(),
+      name: query,
+      dose: '',
+      sig: 'Daily (روزانه)',
+      note: ''
+    });
+    renderCustomDrugs();
+    saveCurrentCase();
+    updateLivePreview();
+    addBtn.innerHTML = `✓ داروی «${query}» با موفقیت اضافه شد`;
+    addBtn.style.borderColor = '#10b981';
+    addBtn.style.color = '#10b981';
+  });
+  fallbackBox.appendChild(addBtn);
+  tray.appendChild(fallbackBox);
+}
+
+export function initSchemaOmnisearch() {
   const searchInputs = document.querySelectorAll('.tag-quick-search-input');
+
+  const rosItems = ROS_GROUPS_BILINGUAL.flatMap((grp) =>
+    (grp.items || []).map((it) => ({
+      ...it,
+      category: grp.group || 'بررسی سیستم‌ها (ROS)',
+      keywords: it.keywords || ''
+    }))
+  );
+
+  const peItems = [
+    ...PE_MANDATORY_PILLARS.flatMap((p) =>
+      (p.items || []).map((it) => ({
+        ...it,
+        category: p.title || 'معاینه عمومی و اجباری',
+        keywords: it.keywords || ''
+      }))
+    ),
+    ...PE_UNLOCKABLE_MODULES.flatMap((m) =>
+      (m.items || []).map((it) => ({
+        ...it,
+        category: m.title || 'معاینه تخصصی',
+        keywords: it.keywords || ''
+      }))
+    )
+  ];
+
   searchInputs.forEach((input) => {
-    input.addEventListener('input', (e) => {
-      const query = (e.target.value || '').trim().toLowerCase();
-      const targetSelector = input.dataset.searchTarget;
-      const targetContainer = targetSelector
-        ? document.querySelector(targetSelector)
-        : input.closest('.clinical-card, .tab-pane');
-      if (!targetContainer) return;
+    const parentBox = input.closest('.tag-quick-search-box');
+    let tray = parentBox?.querySelector('.search-results-tray');
+    if (!tray) {
+      tray = document.createElement('div');
+      tray.className = 'search-results-tray';
+      if (parentBox) parentBox.appendChild(tray);
+      else input.insertAdjacentElement('afterend', tray);
+    }
 
-      const items = targetContainer.querySelectorAll(
-        '.split-chip-wrap, .tristate-chip-wrapper, .tree-leaf-item, .dh-drug-card, .ros-item-row, .factor-chip, .pattern-pill-btn'
-      );
+    const targetSection = input.dataset.searchTarget || '';
 
+    const handleSearch = () => {
+      const query = (input.value || '').trim();
       if (!query) {
-        items.forEach((item) => {
-          item.classList.remove('search-hidden');
-          item.style.display = '';
-        });
+        tray.classList.remove('is-active');
+        tray.innerHTML = '';
         return;
       }
 
-      items.forEach((item) => {
-        const text = (item.textContent || '').toLowerCase();
-        if (text.includes(query)) {
-          item.classList.remove('search-hidden');
-          item.style.display = '';
-          let parent = item.parentElement;
-          while (parent && parent !== targetContainer) {
-            if (parent.classList.contains('subsystem-accordion') || parent.classList.contains('pmh-tree-card')) {
-              parent.classList.remove('is-collapsed');
-            }
-            if (parent.classList.contains('tree-leaves-container')) {
-              parent.style.display = 'block';
-            }
-            parent = parent.parentElement;
-          }
-        } else {
-          item.classList.add('search-hidden');
-          item.style.display = 'none';
-        }
-      });
+      tray.classList.add('is-active');
+      tray.innerHTML = '';
+
+      if (targetSection === '#tab-dh') {
+        renderDrugSearchTray(query, tray, input);
+      } else if (targetSection === '#tab-pmh') {
+        renderTriStateSearchTray(query, tray, input, ALL_MASTER_PMH_ITEMS, 'pmh');
+      } else if (targetSection === '#tab-ros') {
+        renderTriStateSearchTray(query, tray, input, [...MASTER_SYMPTOMS_BANK, ...rosItems], 'ros');
+      } else if (targetSection === '#tab-pe') {
+        renderTriStateSearchTray(query, tray, input, peItems, 'pe');
+      } else {
+        renderTriStateSearchTray(query, tray, input, MASTER_SYMPTOMS_BANK, 'hpi');
+      }
+    };
+
+    input.addEventListener('input', handleSearch);
+    input.addEventListener('focus', () => {
+      if (input.value.trim().length > 0) {
+        handleSearch();
+      }
     });
   });
+
+  // Close tray when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.tag-quick-search-box')) {
+      document.querySelectorAll('.search-results-tray').forEach((t) => {
+        t.classList.remove('is-active');
+      });
+    }
+  });
 }
+
+// Backward compatibility alias
+export const initTagQuickSearch = initSchemaOmnisearch;
+
 
 function initPeMasterNegativeHandler() {
   document.getElementById('btnPeMasterNegative')?.addEventListener('click', () => {
@@ -4329,7 +4785,7 @@ export function initApp() {
     initPeMasterNegativeHandler();
     initMassExamHandlers();
     initAtlsExamHandlers();
-    initTagQuickSearch();
+    initSchemaOmnisearch();
     initReasoningHandlers();
     initSystemGapLoggers();
     initNavigationTabs();

@@ -396,73 +396,228 @@ export const HPI_UNLOCKABLE_MODULES = [
   }
 ];
 
-export const PMH_CATEGORIES = [
+
+export const MASTER_SYMPTOMS_BANK = [
+  // ۱. علائم عمومی و سیستمیک (Constitutional)
+  { id: 'sym_fever', label: 'تب (Fever / Pyrexia)', category: 'عمومی (Constitutional)', keywords: 'داغی بدن حرارت' },
+  { id: 'sym_chills', label: 'لرز و لرز تکانی (Chills / Rigors)', category: 'عمومی (Constitutional)', keywords: 'سرما لرزش' },
+  { id: 'sym_night_sweats', label: 'تعریق شبانه (Night Sweats / Diaphoresis)', category: 'عمومی (Constitutional)', keywords: 'عرق سرد خیس شدن' },
+  { id: 'sym_weight_loss', label: 'کاهش وزن ناخواسته (Unintentional Weight Loss)', category: 'عمومی (Constitutional)', keywords: 'لاغری کاشکسی' },
+  { id: 'sym_weight_gain', label: 'افزایش وزن اخیر (Weight Gain)', category: 'عمومی (Constitutional)', keywords: 'چاقی ورم' },
+  { id: 'sym_anorexia', label: 'بیاشتهایی و کاهش اشتها (Anorexia / Loss of Appetite)', category: 'عمومی (Constitutional)', keywords: 'غذا نخوردن میل' },
+  { id: 'sym_fatigue', label: 'ضعف، بیحالی و خستگی مفرط (Fatigue / Malaise / Lethargy)', category: 'عمومی (Constitutional)', keywords: 'سستی کرختی' },
+  { id: 'sym_insomnia', label: 'بیخوابی یا اختلال خواب (Insomnia / Sleep Disturbance)', category: 'عمومی (Constitutional)', keywords: 'بیداری شبانه' },
+
+  // ۲. گوارش فوقانی و تحتانی (Gastrointestinal)
+  { id: 'sym_nausea', label: 'تهوع (Nausea)', category: 'گوارش (GI)', keywords: 'حالت بهم خوردگی دل آشوب' },
+  { id: 'sym_vomiting', label: 'استفراغ (Vomiting / Emesis)', category: 'گوارش (GI)', keywords: 'بالا آوردن استفراغ غذایی' },
+  { id: 'sym_bilious_vomiting', label: 'استفراغ صفراوی سبز/زرد (Bilious Vomiting)', category: 'گوارش (GI)', keywords: 'تلخ زردآب' },
+  { id: 'sym_fecaloid_vomiting', label: 'استفراغ فکالوئید بدبو (Feculent Vomiting)', category: 'گوارش (GI)', keywords: 'انسداد روده' },
+  { id: 'sym_hematemesis', label: 'هماتمز / استفراغ خونی یا قهوهای (Hematemesis / Coffee-ground Emesis)', category: 'گوارش (GI)', keywords: 'خون بالا آوردن' },
+  { id: 'sym_dysphagia_solids', label: 'دیسفاژی به جامدات (Dysphagia to Solids)', category: 'گوارش (GI)', keywords: 'گیر کردن لقمه بلع' },
+  { id: 'sym_dysphagia_liquids', label: 'دیسفاژی به مایعات (Dysphagia to Liquids)', category: 'گوارش (GI)', keywords: 'مشکل قورت دادن آب' },
+  { id: 'sym_odynophagia', label: 'ادینوفاژی / بلع دردناک (Odynophagia)', category: 'گوارش (GI)', keywords: 'درد قورت دادن' },
+  { id: 'sym_globus', label: 'احساس توده در گلو (Globus Pharyngeus)', category: 'گوارش (GI)', keywords: 'بغض گیر کردن گلو' },
+  { id: 'sym_heartburn', label: 'سوزش سردل و ریفلاکس اسید (Pyrosis / Heartburn / Regurgitation)', category: 'گوارش (GI)', keywords: 'ترش کردن اسید معده' },
+  { id: 'sym_early_satiety', label: 'سیری زودرس (Early Satiety)', category: 'گوارش (GI)', keywords: 'پر شدن سریع معده' },
+  { id: 'sym_dyspepsia_bloating', label: 'سوءهاضمه، نفخ و سنگینی سر دل (Dyspepsia / Bloating / Fullness)', category: 'گوارش (GI)', keywords: 'باد شکم گاز' },
+  { id: 'sym_hiccups', label: 'سکسکه مداوم (Intractable Hiccups / Singultus)', category: 'گوارش (GI)', keywords: 'تحریک دیافراگم' },
+  { id: 'sym_constipation', label: 'یبوست (Constipation)', category: 'گوارش (GI)', keywords: 'سفتی مدفوع کار نکردن شکم' },
+  { id: 'sym_obstipation', label: 'عدم دفع گاز و مدفوع (Obstipation)', category: 'گوارش (GI)', keywords: 'انسداد کامل بسته شدن شکم' },
+  { id: 'sym_inability_flatus', label: 'عدم دفع گاز (Inability to Pass Flatus)', category: 'گوارش (GI)', keywords: 'باد شکم' },
+  { id: 'sym_diarrhea_watery', label: 'اسهال آبکی (Watery Diarrhea)', category: 'گوارش (GI)', keywords: 'شل بودن شکم' },
+  { id: 'sym_dysentery', label: 'اسهال خونی و موکوسی (Bloody/Mucoid Diarrhea / Dysentery)', category: 'گوارش (GI)', keywords: 'اسهال بلغمی خونی' },
+  { id: 'sym_steatorrhea', label: 'استئاتوره / مدفوع چرب و بدبو (Steatorrhea)', category: 'گوارش (GI)', keywords: 'سوءجذب چربی' },
+  { id: 'sym_stool_caliber', label: 'تغییر کالیبر و باریک شدن مدفوع (Decreased Stool Caliber / Pencil-thin)', category: 'گوارش (GI)', keywords: 'مدفوع نواری' },
+  { id: 'sym_melena', label: 'ملنا / مدفوع قیری و سیاه (Melena)', category: 'گوارش (GI)', keywords: 'مدفوع سیاه خونریزی فوقانی' },
+  { id: 'sym_hematochezia', label: 'هماتوشزی / رکتوراژی / دفع خون روشن (Hematochezia / Rectorrhagia)', category: 'گوارش (GI)', keywords: 'خونریزی مقعدی' },
+  { id: 'sym_tenesmus', label: 'زورپیچ و احساس دفع ناکامل (Tenesmus)', category: 'گوارش (GI)', keywords: 'پیچش مقعد' },
+  { id: 'sym_proctalgia', label: 'درد مقعدی حین یا پس از دفع (Proctalgia / Anal Pain / Dyschezia)', category: 'گوارش (GI)', keywords: 'شقاق فیشر هموروئید' },
+  { id: 'sym_perianal_discharge_itch', label: 'ترشح یا خارش ناحیه پریآنال (Perianal Discharge / Pruritus Ani)', category: 'گوارش (GI)', keywords: 'فیستول آبسه مقعد' },
+  { id: 'sym_fecal_incontinence', label: 'بیاختیاری مدفوع یا گاز (Fecal Incontinence)', category: 'گوارش (GI)', keywords: 'اسفنکتر' },
+
+  // ۳. کبد، مجاری صفراوی و پانکراس (Hepatobiliary & Pancreatic)
+  { id: 'sym_jaundice', label: 'زردی پوست و اسکلرا (Jaundice / Icterus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'یرقان زرد شدن چشم' },
+  { id: 'sym_cholestatic_pruritus', label: 'خارش پوستی کلستاتیک (Cholestatic Pruritus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'خارش بدن زردی' },
+  { id: 'sym_dark_urine', label: 'تیره یا چایرنگ شدن ادرار (Dark / Tea-colored Urine)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'بیلی روبین ادرار پررنگ' },
+  { id: 'sym_acholic_stool', label: 'سفید یا بیرنگ شدن مدفوع (Acholic / Clay-colored Stool)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'مدفوع گچی انسداد صفرا' },
+  { id: 'sym_abd_distension_ascites', label: 'اتساع شکم و آسیت (Abdominal Distension / Ascites)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'آب آوردن شکم بزرگی شکم' },
+
+  // ۴. قلب و عروق و عروق محیطی (Cardiovascular & Vascular)
+  { id: 'sym_chest_pain_angina', label: 'درد یا فشار قفسه سینه فعالیتی (Exertional Chest Pain / Angina)', category: 'قلب و عروق (Cardiovascular)', keywords: 'سنگینی سینه آنژین قلبی' },
+  { id: 'sym_palpitation', label: 'تپش قلب (Palpitations)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ضربان تند نامنظم قلب' },
+  { id: 'sym_doe', label: 'تنگی نفس فعالیتی (Dyspnea on Exertion - DOE)', category: 'قلب و عروق (Cardiovascular)', keywords: 'کم آوردن نفس راه رفتن پله' },
+  { id: 'sym_orthopnea', label: 'ارتوپنه / تنگی نفس در حالت درازکش (Orthopnea)', category: 'قلب و عروق (Cardiovascular)', keywords: 'چند بالش زیر سر' },
+  { id: 'sym_pnd', label: 'تنگی نفس حملهای شبانه (Paroxysmal Nocturnal Dyspnea - PND)', category: 'قلب و عروق (Cardiovascular)', keywords: 'پریدن از خواب با خفگی' },
+  { id: 'sym_syncope', label: 'سنکوپ / غش کردن و کاهش گذرای هوشیاری (Syncope)', category: 'قلب و عروق (Cardiovascular)', keywords: 'بیهوش شدن افتادن' },
+  { id: 'sym_presyncope', label: 'پیشسنکوپ و سیاهی رفتن چشم (Presyncope / Lightheadedness)', category: 'قلب و عروق (Cardiovascular)', keywords: 'سرگیجه ارتواستاتیک' },
+  { id: 'sym_lower_edema', label: 'ادم و ورم اندام تحتانی (Bilateral/Unilateral Lower Extremity Edema)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ورم پا قوزک' },
+  { id: 'sym_claudication', label: 'لنگش متناوب عروقی (Intermittent Claudication)', category: 'قلب و عروق (Cardiovascular)', keywords: 'درد ساق پا موقع راه رفتن ایسکمی' },
+  { id: 'sym_rest_limb_pain', label: 'درد استراحت و سردی/سیانوز اندام (Ischemic Rest Pain / Cyanosis)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ایسکمی حاد اندام آمبولی' },
+
+  // ۵. دستگاه تنفسی و توراکس (Respiratory & Thoracic)
+  { id: 'sym_dyspnea_rest', label: 'تنگی نفس در حال استراحت (Resting Dyspnea / Shortness of Breath)', category: 'تنفسی (Respiratory)', keywords: 'نفس تنگی حاد' },
+  { id: 'sym_cough_dry', label: 'سرفه خشک (Dry / Non-productive Cough)', category: 'تنفسی (Respiratory)', keywords: 'سرفه بدون خلط' },
+  { id: 'sym_cough_productive', label: 'سرفه خلطدار (Productive Cough / Sputum)', category: 'تنفسی (Respiratory)', keywords: 'خلط چرکی سبز زرد' },
+  { id: 'sym_hemoptysis', label: 'هموپتزی / دفع خلط خونی (Hemoptysis)', category: 'تنفسی (Respiratory)', keywords: 'سرفه خونی ریه' },
+  { id: 'sym_pleuritic_pain', label: 'درد قفسه سینه پلورتیک با دم عمیق (Pleuritic Chest Pain)', category: 'تنفسی (Respiratory)', keywords: 'درد تیرکشنده با نفس کشیدن آمبولی' },
+  { id: 'sym_wheezing_stridor', label: 'خسخس سینه یا استریدور (Wheezing / Stridor)', category: 'تنفسی (Respiratory)', keywords: 'صدای سوت ریه انسداد راه هوایی' },
+
+  // ۶. کلیه و مجاری ادراری و تناسلی آقایان (Genitourinary & Urology)
+  { id: 'sym_dysuria', label: 'سوزش ادرار (Dysuria)', category: 'ادراری و تناسلی (GU)', keywords: 'درد موقع ادرار عفونت' },
+  { id: 'sym_frequency', label: 'تکرر ادرار (Urinary Frequency)', category: 'ادراری و تناسلی (GU)', keywords: 'زیاد دستشویی رفتن' },
+  { id: 'sym_urgency', label: 'فوریت ادراری (Urinary Urgency)', category: 'ادراری و تناسلی (GU)', keywords: 'عجله در دفع ادرار' },
+  { id: 'sym_nocturia', label: 'نوکتوری / بیدار شدن شبانه برای ادرار (Nocturia)', category: 'ادراری و تناسلی (GU)', keywords: 'ادرار شبانه پروستات' },
+  { id: 'sym_hematuria_gross', label: 'هماچوری واضح یا دفع لخته در ادرار (Gross Hematuria / Clots)', category: 'ادراری و تناسلی (GU)', keywords: 'ادرار خونی قرمز' },
+  { id: 'sym_flank_renal_colic', label: 'درد پهلو و کولیک کلیوی (Flank Pain / Renal Colic)', category: 'ادراری و تناسلی (GU)', keywords: 'سنگ کلیه درد پهلو' },
+  { id: 'sym_urinary_retention', label: 'احتباس ادراری یا کاهش قطر و فشار جریان ادرار (Urinary Retention / Weak Stream / Hesitancy)', category: 'ادراری و تناسلی (GU)', keywords: 'بند آمدن ادرار قطره قطره' },
+  { id: 'sym_urinary_incontinence', label: 'بیاختیاری ادرار (Urinary Incontinence)', category: 'ادراری و تناسلی (GU)', keywords: 'ریزش ادرار' },
+  { id: 'sym_pneumaturia_fecaluria', label: 'دفع هوا یا مدفوع در ادرار (Pneumaturia / Fecaluria)', category: 'ادراری و تناسلی (GU)', keywords: 'فیستول کلون به مثانه دیورتیکولیت' },
+  { id: 'sym_scrotal_pain_mass', label: 'درد، تورم یا توده بیضه و اسکروتوم (Scrotal Pain / Swelling / Mass)', category: 'ادراری و تناسلی (GU)', keywords: 'تورشن اپیدیدیمیت هیدروسل واریکوسل فتق' },
+
+  // ۷. زنان و مامایی (Gynecology & Obstetrics)
+  { id: 'sym_aub_menorrhagia', label: 'خونریزی غیرطبیعی رحمی یا منوراژی (AUB / Menorrhagia / Metrorrhagia)', category: 'زنان (Ob/Gyn)', keywords: 'پریود سنگین لکه بینی' },
+  { id: 'sym_amenorrhea_delayed', label: 'آمنوره یا تاخیر قاعدگی (Amenorrhea / Missed Period)', category: 'زنان (Ob/Gyn)', keywords: 'عقب افتادن پریود بارداری حاملگی خارج رحمی' },
+  { id: 'sym_dysmenorrhea', label: 'دیسمنوره / درد شدید قاعدگی (Dysmenorrhea)', category: 'زنان (Ob/Gyn)', keywords: 'درد پریود اندومتریوز' },
+  { id: 'sym_dyspareunia', label: 'دیسپارونی / درد حین مقاربت (Dyspareunia)', category: 'زنان (Ob/Gyn)', keywords: 'درد لگنی' },
+  { id: 'sym_vaginal_discharge', label: 'ترشحات غیرطبیعی یا بدبوی واژینال (Abnormal Vaginal Discharge / Leukorrhea)', category: 'زنان (Ob/Gyn)', keywords: 'عفونت زنان PID' },
+  { id: 'sym_postmenopausal_bleeding', label: 'خونریزی پس از یائسگی (Postmenopausal Bleeding - PMB)', category: 'زنان (Ob/Gyn)', keywords: 'خونریزی یائسگی' },
+
+  // ۸. پستان، پوست و بافت نرم (Breast, Skin & Soft Tissue)
+  { id: 'sym_breast_mass', label: 'لمس توده در پستان یا زیربغل (Palpable Breast / Axillary Mass)', category: 'پستان و پوست (Breast & Skin)', keywords: 'غده سینه کیست سینه' },
+  { id: 'sym_mastalgia', label: 'درد پستان (Mastalgia / Mastodynia)', category: 'پستان و پوست (Breast & Skin)', keywords: 'درد سینه سیکلیک' },
+  { id: 'sym_nipple_discharge', label: 'ترشح از نوک پستان - خونی/سروزی/شیری (Nipple Discharge / Galactorrhea)', category: 'پستان و پوست (Breast & Skin)', keywords: 'ترشح نیپل پاژه' },
+  { id: 'sym_nipple_retraction_peau', label: 'فرورفتگی نیپل، کشیدگی پوست یا نمای پوستپرتقالی (Nipple Inversion / Skin Dimpling / Peau d’orange)', category: 'پستان و پوست (Breast & Skin)', keywords: 'تغییر پوست سینه' },
+  { id: 'sym_skin_ulcer_abscess', label: 'زخم مزمن، آبسه، سلولیت یا ترشح چرکی پوست (Cutaneous Ulcer / Abscess / Cellulitis)', category: 'پستان و پوست (Breast & Skin)', keywords: 'جوش چرکی دمل پای دیابتی' },
+  { id: 'sym_skin_rash_erythema', label: 'بثورات جلدی، کهیر یا اریتم (Skin Rash / Urticaria / Erythema)', category: 'پستان و پوست (Breast & Skin)', keywords: 'حساسیت پوستی قرمزی' },
+  { id: 'sym_ecchymosis_petechiae', label: 'کبودی آسان، اکیموز یا پتشی و پورپورا (Easy Bruising / Ecchymosis / Petechiae)', category: 'پستان و پوست (Breast & Skin)', keywords: 'خونمردگی پلاکت' },
+
+  // ۹. سر، صورت، فک، چشم، گوش، حلق و گردن (HEENT, Maxillofacial & Neck)
+  { id: 'sym_headache', label: 'سردرد (Headache / Cephalgia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'میگرن درد سر' },
+  { id: 'sym_facial_jaw_swelling', label: 'توده یا تورم فک، صورت، مندیبل یا غدد بزاقی (Maxillofacial / Mandibular / Parotid Mass)', category: 'سر و گردن (HEENT & Neck)', keywords: 'پاروتید زاویه فک کیست سر' },
+  { id: 'sym_trismus', label: 'محدودیت باز کردن دهان / تریسموس (Trismus)', category: 'سر و گردن (HEENT & Neck)', keywords: 'قفل شدن فک آبسه دندانی' },
+  { id: 'sym_neck_thyroid_mass', label: 'توده گردنی، بزرگی تیروئید یا گواتر (Neck Mass / Goiter / Thyroid Nodule)', category: 'سر و گردن (HEENT & Neck)', keywords: 'ندول تیروئید غده لنفاوی گردن' },
+  { id: 'sym_hoarseness', label: 'خشونت یا تغییر صدا (Hoarseness / Dysphonia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'گرفتگی صدا عصب راجعه حنجره' },
+  { id: 'sym_blurred_vision_diplopia', label: 'تاری دید، کاهش بینایی یا دوبینی (Blurred Vision / Visual Loss / Diplopia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'چشم دیدن' },
+  { id: 'sym_vertigo_tinnitus', label: 'سرگیجه چرخشی حقیقی یا وزوز گوش (True Vertigo / Tinnitus / Otalgia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'گوش درد تعادل' },
+  { id: 'sym_epistaxis_gingival', label: 'خوندماغ یا خونریزی لثه (Epistaxis / Gingival Bleeding)', category: 'سر و گردن (HEENT & Neck)', keywords: 'خونریزی بینی' },
+
+  // ۱۰. مغز و اعصاب و عضلانی-اسکلتی (Neurology & Musculoskeletal)
+  { id: 'sym_loc_confusion', label: 'کاهش سطح هوشیاری، گیجی یا دلیریوم (Altered Mental Status / Confusion / LOC)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'خواب آلودگی کما فراموشی' },
+  { id: 'sym_seizure', label: 'تشنج و حرکات تونیک-کلونیک (Seizure / Convulsion)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'صرع غش' },
+  { id: 'sym_focal_weakness_plegia', label: 'ضعف حرکتی، پارزی یا فلج اندام/صورت (Focal Weakness / Hemiparesis / Palsy)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'سکته بی حرکتی دست و پا' },
+  { id: 'sym_paresthesia_numbness', label: 'گزگز، مورمور و بیحسی (Paresthesia / Numbness / Hypoesthesia)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'خواب رفتن دست و پا عصب' },
+  { id: 'sym_dysarthria_aphasia', label: 'اختلال تکلم / دیسآرتری یا آفازی (Dysarthria / Aphasia)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'سنگینی زبان حرف زدن' },
+  { id: 'sym_ataxia_tremor', label: 'اختلال تعادل، آتاکسی یا لرزش دست (Ataxia / Gait Instability / Tremor)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'تلوتلو خوردن' },
+  { id: 'sym_arthralgia_myalgia', label: 'درد مفاصل یا درد عضلانی (Arthralgia / Arthritis / Myalgia)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'بدن درد ورم مفصل زانو' },
+  { id: 'sym_low_back_radicular', label: 'کمردرد یا درد تیرکشنده سیاتیکی (Low Back Pain / Sciatica / Radiculopathy)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'دیسک کمر ستون فقرات' },
+  { id: 'sym_unilateral_leg_swelling', label: 'تورم و درد یکطرفه ساق یا ران پا (Unilateral Leg Swelling / Calf Pain - DVT)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'لخته پا ترومبوز' },
+
+  // ۱۱. غدد، هماتولوژی و روانپزشکی (Endocrine, Heme & Psych)
+  { id: 'sym_polyuria_polydipsia', label: 'پرنوشی و پرادراری (Polydipsia & Polyuria)', category: 'غدد و خون (Endo & Heme)', keywords: 'تشنگی دیابت قند' },
+  { id: 'sym_heat_cold_intolerance', label: 'عدم تحمل به گرما یا سرما (Heat / Cold Intolerance)', category: 'غدد و خون (Endo & Heme)', keywords: 'تیروئید کم کاری پرکاری' },
+  { id: 'sym_lymphadenopathy_general', label: 'بزرگی غدد لنفاوی گردن، زیربغل یا کشاله ران (Lymphadenopathy)', category: 'غدد و خون (Endo & Heme)', keywords: 'غده لنفاوی لنفوم' },
+  { id: 'sym_anxiety_depression_agitation', label: 'اضطراب شدید، بیقراری یا خلق افسرده (Anxiety / Agitation / Depressed Mood)', category: 'غدد و خون (Endo & Heme)', keywords: 'اعصاب استرس پانیک' }
+];
+
+export const MASTER_PMH_CATEGORIES = [
   {
-    id: 'pmh_cardiovascular',
-    title: 'بیماری‌های قلبی-عروقی و فشار خون (Cardiovascular & HTN)',
+    catId: 'pmh_cat_cardio',
+    catTitle: '۱. قلبی-عروقی و فشار خون (Cardiovascular & HTN)',
     items: [
-      { id: 'pmh_htn', label: 'پرفشاری خون (HTN)', isRoutine: true, detailHint: 'مدت ابتلا، داروها، فشار خون معمول...' },
-      { id: 'pmh_ihd', label: 'بیماری ایسکمیک قلبی (IHD / MI / استنت / CABG)', isRoutine: true, detailHint: 'سال رخداد، تعداد رگ، آخرین اکو/آنژیو (EF%)...' },
-      { id: 'pmh_chf', label: 'نارسایی قلبی (CHF)', isRoutine: false, detailHint: 'کلاس عملکردی (NYHA)، EF%...' },
-      { id: 'pmh_arrhythmia', label: 'آریتمی قلبی / فیبریلاسیون دهلیزی (AF) / پیس‌میکر', isRoutine: false, detailHint: 'نوع آریتمی و داروی ضدآریتمی/ضدانعقاد...' }
+      { id: 'pmh_htn', label: 'پرفشاری خون (Hypertension - HTN)', isCoreNegative: true, keywords: 'فشار خون بالا' },
+      { id: 'pmh_ihd_cad', label: 'بیماری ایسکمیک قلبی / تنگی عروق کرونر (IHD / CAD / ACS)', isCoreNegative: true, keywords: 'سکته قلبی آنژین MI' },
+      { id: 'pmh_pci_stent', label: 'سابقه آنژیوپلاستی و تعبیه استنت کرونری (Prior PCI / Coronary Stent)', isCoreNegative: false, keywords: 'فنر قلب بالن آنژیوگرافی' },
+      { id: 'pmh_cabg', label: 'سابقه جراحی پیوند عروق کرونر قلب (Prior CABG)', isCoreNegative: false, keywords: 'عمل قلب باز بای پس' },
+      { id: 'pmh_chf', label: 'نارسایی احتقانی قلب (Heart Failure - HFrEF / HFpEF)', isCoreNegative: false, keywords: 'EF پایین نارسایی قلب' },
+      { id: 'pmh_af_arrhythmia', label: 'فیبریلاسیون دهلیزی یا آریتمی قلبی (Atrial Fibrillation / Arrhythmia)', isCoreNegative: false, keywords: 'ضربان نامنظم AF' },
+      { id: 'pmh_valvular_prosthetic', label: 'بیماری دریچهای یا دریچه مصنوعی قلب (Valvular Heart Disease / Prosthetic Valve)', isCoreNegative: false, keywords: 'تعویض دریچه میترال آئورت' },
+      { id: 'pmh_pacemaker_icd', label: 'دارای پیسمیکر یا دفیبریلاتور قلبی (Permanent Pacemaker / ICD)', isCoreNegative: false, keywords: 'باطری قلب' },
+      { id: 'pmh_pad', label: 'بیماری عروق محیطی (Peripheral Arterial Disease - PAD)', isCoreNegative: false, keywords: 'تنگی رگ پا' }
     ]
   },
   {
-    id: 'pmh_endocrine',
-    title: 'بیماری‌های غدد و متابولیک (Endocrine & Metabolic)',
+    catId: 'pmh_cat_endo',
+    catTitle: '۲. غدد، متابولیک و چربی خون (Endocrine & Metabolic)',
     items: [
-      { id: 'pmh_dm', label: 'دیابت شیرین (DM)', isRoutine: true, detailHint: 'نوع، مدت ابتلا، داروهای مصرفی (انسولین/خوراکی)، آخرین HbA1c...' },
-      { id: 'pmh_dlp', label: 'چربی خون / دیس‌لیپیدمی (DLP/HLP)', isRoutine: true, detailHint: 'داروی مصرفی (استاتین و...)...' },
-      { id: 'pmh_thyroid', label: 'کم‌کاری یا پرکاری تیروئید (Hypo/Hyperthyroidism)', isRoutine: false, detailHint: 'دوز لووتیروکسین یا متی‌مازول...' }
+      { id: 'pmh_dm', label: 'دیابت شیرین تیپ ۱ یا ۲ (Diabetes Mellitus - DM)', isCoreNegative: true, keywords: 'مرض قند دیابت' },
+      { id: 'pmh_dlp', label: 'دیسلیپیدمی / چربی خون بالا (Dyslipidemia / Hyperlipidemia - HLP)', isCoreNegative: true, keywords: 'کلسترول تری گلیسیرید چربی' },
+      { id: 'pmh_hypothyroid', label: 'کمکاری تیروئید (Hypothyroidism)', isCoreNegative: true, keywords: 'تیروئید کم کار هاشیموتو' },
+      { id: 'pmh_hyperthyroid', label: 'پرکاری تیروئید / گریوز / گواتر (Hyperthyroidism / Graves / Toxic Goiter)', isCoreNegative: false, keywords: 'تیروئید پرکار' },
+      { id: 'pmh_adrenal_steroid', label: 'نارسایی آدرنال / سندرم کوشینگ / مصرف مزمن کورتون', isCoreNegative: false, keywords: 'غده فوق کلیه' },
+      { id: 'pmh_parathyroid_osteoporosis', label: 'هیپرپاراتیروئیدیسم / استئوپوروز شدید / نقرس (Gout)', isCoreNegative: false, keywords: 'پوکی استخوان اسید اوریک' }
     ]
   },
   {
-    id: 'pmh_gi_hepatobiliary',
-    title: 'بیماری‌های گوارشی، کبدی و صفراوی (GI & Hepatobiliary)',
+    catId: 'pmh_cat_gi_liver',
+    catTitle: '۳. گوارش، کبد و مجاری صفراوی (GI & Hepatobiliary)',
     items: [
-      { id: 'pmh_pud_gerd', label: 'بیماری اولسر پپتیک (PUD) / ریفلاکس (GERD)', isRoutine: false, detailHint: 'سابقه اندوسکوپی یا مصرف PPI...' },
-      { id: 'pmh_liver', label: 'کبد چرب / سیروز / هپاتیت', isRoutine: false, detailHint: 'گرید یا کلاس Child-Pugh...' },
-      { id: 'pmh_ibd', label: 'بیماری التهابی روده (IBD / کرون / کولیت اولسراتیو)', isRoutine: false, detailHint: 'مدت و داروهای سرکوب‌کننده ایمنی...' },
-      { id: 'pmh_gallstones', label: 'سنگ کیسه صفرا یا مجاری صفراوی (Gallstones)', isRoutine: false, detailHint: 'علامت‌دار یا بدون علامت...' }
+      { id: 'pmh_gerd_pud', label: 'ریفلاکس معده یا زخم پپتیک (GERD / Peptic Ulcer Disease - PUD)', isCoreNegative: false, keywords: 'زخم معده زخم اثنی عشر ورم معده' },
+      { id: 'pmh_cholelithiasis', label: 'سنگ کیسه صفرا یا کولهسیستیت قبلی (Cholelithiasis / Biliary Colic)', isCoreNegative: false, keywords: 'سنگ صفرا' },
+      { id: 'pmh_fatty_liver_cirrhosis', label: 'کبد چرب (NAFLD/MASLD) یا سیروز کبدی (Liver Cirrhosis)', isCoreNegative: false, keywords: 'نارسایی کبد آسیت' },
+      { id: 'pmh_hepatitis', label: 'هپاتیت ویروسی مزمن B یا C یا اتوایمیون (Chronic Hepatitis B / C)', isCoreNegative: false, keywords: 'HBsAg HCV هپاتیت' },
+      { id: 'pmh_ibd', label: 'بیماری التهابی روده - کرون یا کولیت اولسراتیو (IBD: Crohn’s / Ulcerative Colitis)', isCoreNegative: false, keywords: 'کولیت روده کرون' },
+      { id: 'pmh_pancreatitis_diverticulosis', label: 'سابقه پانکراتیت یا دیورتیکولوز کولون (Pancreatitis / Diverticulosis)', isCoreNegative: false, keywords: 'التهاب پانکراس لوزالمعده' }
     ]
   },
   {
-    id: 'pmh_respiratory',
-    title: 'بیماری‌های تنفسی و ریوی (Respiratory)',
+    catId: 'pmh_cat_resp',
+    catTitle: '۴. تنفسی و ریوی (Respiratory)',
     items: [
-      { id: 'pmh_asthma', label: 'آسم (Asthma)', isRoutine: false, detailHint: 'اسپری‌های استنشاقی، سابقه بستری...' },
-      { id: 'pmh_copd', label: 'بیماری مزمن انسدادی ریه (COPD)', isRoutine: false, detailHint: 'مصرف اکسیژن خانگی، بستری...' },
-      { id: 'pmh_sleep_apnea', label: 'آپنه انسدادی خواب (Sleep Apnea / CPAP)', isRoutine: false, detailHint: 'استفاده از دستگاه CPAP...' }
+      { id: 'pmh_asthma', label: 'آسم برونشیال (Bronchial Asthma)', isCoreNegative: true, keywords: 'آسم تنگی نفس اسپری' },
+      { id: 'pmh_copd', label: 'بیماری انسدادی مزمن ریه / برونشیت مزمن (COPD / Emphysema)', isCoreNegative: true, keywords: 'آمفیزم ریه سیگاری' },
+      { id: 'pmh_osa', label: 'آپنه انسدادی خواب (Obstructive Sleep Apnea - OSA)', isCoreNegative: false, keywords: 'خروپف وقفه تنفسی خواب CPAP' },
+      { id: 'pmh_tb_ild', label: 'سابقه سل ریوی (TB)، برونشکتازی یا فیبروز ریه (ILD)', isCoreNegative: false, keywords: 'توبرکلوز ریه' }
     ]
   },
   {
-    id: 'pmh_renal_urologic',
-    title: 'بیماری‌های کلیوی و مجاری ادراری (Renal & Urologic)',
+    catId: 'pmh_cat_renal_uro',
+    catTitle: '۵. کلیوی و مجاری ادراری (Renal & Urologic)',
     items: [
-      { id: 'pmh_ckd_dialysis', label: 'بیماری مزمن کلیوی / دیالیز (CKD / Dialysis)', isRoutine: false, detailHint: 'کراتینین پایه، برنامه دیالیز...' },
-      { id: 'pmh_kidney_stones', label: 'سنگ کلیه و مجاری ادراری (Nephrolithiasis)', isRoutine: false, detailHint: 'سابقه سنگ‌شکنی یا جراحی...' },
-      { id: 'pmh_bph', label: 'بزرگی خوش‌خیم پروستات (BPH)', isRoutine: false, detailHint: 'داروهای مصرفی (تامسولوسین و...)...' }
+      { id: 'pmh_ckd_esrd', label: 'بیماری مزمن کلیوی یا دیالیز (CKD / ESRD on Hemodialysis)', isCoreNegative: true, keywords: 'نارسایی کلیه کراتینین بالا دیالیز' },
+      { id: 'pmh_nephrolithiasis', label: 'سنگ کلیه و حالب (Nephrolithiasis / Urolithiasis)', isCoreNegative: false, keywords: 'سنگ ادراری TUL سنگ شکن' },
+      { id: 'pmh_bph', label: 'بزرگی خوشخیم پروستات (Benign Prostatic Hyperplasia - BPH)', isCoreNegative: false, keywords: 'پروستات' }
     ]
   },
   {
-    id: 'pmh_heme_oncology',
-    title: 'هماتولوژی، ترومبوآمبولی و بدخیمی (Heme & Oncology)',
+    catId: 'pmh_cat_heme_onc_rheum',
+    catTitle: '۶. هماتولوژی، ترومبوآمبولی، انکولوژی و روماتولوژی (Heme, Onc & Rheum)',
     items: [
-      { id: 'pmh_dvt_pte', label: 'سابقه ترومبوز ورید عمقی (DVT) یا آمبولی ریه (PTE)', isRoutine: false, detailHint: 'زمان رخداد و درمان ضدانعقادی...' },
-      { id: 'pmh_chronic_anemia', label: 'کم‌خونی مزمن (Chronic Anemia)', isRoutine: false, detailHint: 'نوع کم‌خونی و سابقه ترانسفوزیون...' },
-      { id: 'pmh_coagulopathy', label: 'اختلالات انعقادی و خونریزی‌دهنده (Coagulopathy)', isRoutine: false, detailHint: 'نوع اختلال فاکتوری یا پلاکتی...' },
-      { id: 'pmh_malignancy_chemo', label: 'سابقه کنسر / شیمی‌درمانی / رادیوتراپی', isRoutine: false, detailHint: 'نوع بدخیمی، سال تشخیص و اقدامات...' }
+      { id: 'pmh_dvt_pte', label: 'سابقه ترومبوز ورید عمقی یا آمبولی ریه (Prior DVT / Pulmonary Embolism - PTE)', isCoreNegative: true, keywords: 'لخته خون پا ریه' },
+      { id: 'pmh_malignancy', label: 'سابقه بدخیمی / کانسر، شیمیدرمانی یا رادیوتراپی (Malignancy / Chemo / RT)', isCoreNegative: true, keywords: 'سرطان تومور کنسر' },
+      { id: 'pmh_anemia_thalassemia', label: 'کمخونی فقر آهن، تالاسمی یا فاویسم (IDA / Thalassemia / G6PD Deficiency)', isCoreNegative: false, keywords: 'مینور فاویسم کم خونی' },
+      { id: 'pmh_coagulopathy', label: 'اختلالات انعقادی یا ترومبوفیلی (ITP / Hemophilia / Factor Deficiency)', isCoreNegative: false, keywords: 'پلاکت پایین هموفیلی' },
+      { id: 'pmh_rheum_autoimmune', label: 'بیماری روماتولوژیک - آرتریت روماتوئید، لوپوس، بهجت، اسکلرودرمی (RA / SLE / vasculitis)', isCoreNegative: false, keywords: 'روماتیسم لوپوس' }
     ]
   },
   {
-    id: 'pmh_neuro_psych',
-    title: 'بیماری‌های مغز و اعصاب و روان (Neuro & Psych)',
+    catId: 'pmh_cat_neuro_psych',
+    catTitle: '۷. مغز و اعصاب و روانپزشکی (Neurology & Psychiatry)',
     items: [
-      { id: 'pmh_cva_tia', label: 'سکته مغزی یا حمله ایسکمیک گذرا (CVA / TIA)', isRoutine: false, detailHint: 'سال رخداد، نقص نورولوژیک باقیمانده...' },
-      { id: 'pmh_seizure', label: 'صرع یا تشنج (Seizure / Epilepsy)', isRoutine: false, detailHint: 'داروهای ضدتشنج، زمان آخرین حمله...' }
+      { id: 'pmh_cva_tia', label: 'سابقه سکته مغزی ایسکمیک/هموراژیک یا TIA (Prior Stroke / CVA / TIA)', isCoreNegative: true, keywords: 'سکته مغزی فلج' },
+      { id: 'pmh_epilepsy_seizure', label: 'صرع و تشنج (Epilepsy / Seizure Disorder)', isCoreNegative: false, keywords: 'تشنج' },
+      { id: 'pmh_migraine_parkinson_ms', label: 'میگرن، پارکینسون، اماس (MS) یا آلزایمر/دمانس', isCoreNegative: false, keywords: 'ام اس فراموشی لرزش' },
+      { id: 'pmh_psych_disorder', label: 'افسردگی اساسی، اختلال اضطرابی، دوقطبی یا سایکوز (MDD / GAD / Bipolar)', isCoreNegative: false, keywords: 'اعصاب و روان' }
     ]
   }
 ];
+
+// Compatibility bridge: ensure both catId/id and catTitle/title are present
+MASTER_PMH_CATEGORIES.forEach(cat => {
+  if (!cat.id) cat.id = cat.catId;
+  if (!cat.title) cat.title = cat.catTitle;
+  if (cat.items) {
+    cat.items.forEach(it => {
+      if (it.isRoutine === undefined) it.isRoutine = !!it.isCoreNegative;
+    });
+  }
+});
+
+export const PMH_CATEGORIES = MASTER_PMH_CATEGORIES;
+export const ALL_MASTER_SYMPTOMS = MASTER_SYMPTOMS_BANK;
+export const ALL_MASTER_PMH_ITEMS = MASTER_PMH_CATEGORIES.flatMap(cat => 
+  (cat.items || []).map(it => ({ ...it, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
+);
 
 export const DH_SIG_OPTIONS = [
   'Daily (روزانه)',
@@ -474,82 +629,165 @@ export const DH_SIG_OPTIONS = [
   'Weekly'
 ];
 
-export const DH_CATEGORIES = [
+
+export const MASTER_DRUG_CATEGORIES = [
   {
-    id: 'anticoagulants',
-    title: '۱. ضدانعقادها و ضدپلاکت‌ها (حساس در جراحی)',
+    catId: 'dh_anticoag_antiplatelet',
+    catTitle: '۱. ضدپلاکتها و ضدانعقادها (داروهای پرخطر جراحی - High-Alert)',
     drugs: [
-      { id: 'aspirin', label: 'آسپرین (ASA)', defaultDose: '80mg' },
-      { id: 'clopidogrel', label: 'کلوپیدوگرل (Plavix)', defaultDose: '75mg' },
-      { id: 'warfarin', label: 'وارفارین (Warfarin)', defaultDose: '5mg' },
-      { id: 'rivaroxaban', label: 'ریواروکسابان (Xarelto)', defaultDose: '20mg' },
-      { id: 'apixaban', label: 'آپیکسابان (Eliquis)', defaultDose: '5mg' },
-      { id: 'enoxaparin', label: 'انوکساپارین (Clexane)', defaultDose: '40mg' },
-      { id: 'heparin', label: 'هپارین (Heparin)', defaultDose: '5000 IU' }
+      { id: 'drg_asa', label: 'آسپرین (Aspirin / ASA)', brands: 'Aspirin 80mg, 100mg, 325mg', defaultDose: '80mg', highAlert: true },
+      { id: 'drg_clopidogrel', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت', defaultDose: '75mg', highAlert: true },
+      { id: 'drg_ticagrelor', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticarel', defaultDose: '90mg', highAlert: true },
+      { id: 'drg_prasugrel', label: 'پرازوگرل (Prasugrel)', brands: 'Effient', defaultDose: '10mg', highAlert: true },
+      { id: 'drg_cilostazol', label: 'سیلوستازول (Cilostazol)', brands: 'Pletaal پلتال', defaultDose: '100mg', highAlert: true },
+      { id: 'drg_warfarin', label: 'وارفارین (Warfarin)', brands: 'Coumadin کومادین', defaultDose: '5mg', highAlert: true },
+      { id: 'drg_rivaroxaban', label: 'ریواروکسابان (Rivaroxaban)', brands: 'Xarelto زارلتو, ایکسارلتو, ریواکسان', defaultDose: '20mg', highAlert: true },
+      { id: 'drg_apixaban', label: 'آپیکسابان (Apixaban)', brands: 'Eliquis الیکوئیس, آپیکسابان', defaultDose: '5mg', highAlert: true },
+      { id: 'drg_dabigatran', label: 'دابیگاتران (Dabigatran)', brands: 'Pradaxa پراداکسا', defaultDose: '150mg', highAlert: true },
+      { id: 'drg_enoxaparin', label: 'انوکساپارین (Enoxaparin)', brands: 'Clexane کلکسان', defaultDose: '40mg SC', highAlert: true },
+      { id: 'drg_heparin', label: 'هپارین (Unfractionated Heparin)', brands: 'Heparin', defaultDose: '5000 IU', highAlert: true }
     ]
   },
   {
-    id: 'cardiovascular',
-    title: '۲. داروهای قلبی و فشار خون',
+    catId: 'dh_cardiovascular_htn',
+    catTitle: '۲. داروهای قلبی، فشار خون، ضدآریتمی و چربی خون',
     drugs: [
-      { id: 'losartan', label: 'لوزارتان (Losartan)', defaultDose: '25mg' },
-      { id: 'valsartan', label: 'والزارتان (Valsartan)', defaultDose: '80mg' },
-      { id: 'amlodipine', label: 'آملودیپین (Amlodipine)', defaultDose: '5mg' },
-      { id: 'metoprolol', label: 'متوپرولول (Metoral)', defaultDose: '50mg' },
-      { id: 'propranolol', label: 'پروپرانولول (Propranolol)', defaultDose: '20mg' },
-      { id: 'bisoprolol', label: 'بیزوپرولول (Concor)', defaultDose: '5mg' },
-      { id: 'atorvastatin', label: 'آتورواستاتین (Atorvastatin)', defaultDose: '20mg' },
-      { id: 'rosuvastatin', label: 'رزوواستاتین (Rosuvastatin)', defaultDose: '10mg' },
-      { id: 'furosemide', label: 'فوروزماید (Lasix)', defaultDose: '40mg' },
-      { id: 'spironolactone', label: 'اسپیرونولاکتون (Aldactone)', defaultDose: '25mg' },
-      { id: 'digoxin', label: 'دیگوکسین (Digoxin)', defaultDose: '0.25mg' },
-      { id: 'nitrocontin', label: 'نیتروکانتین (Nitrocontin)', defaultDose: '2.6mg' }
+      { id: 'drg_losartan', label: 'لوزارتان (Losartan)', brands: 'پوزارکس, Cozaar', defaultDose: '25mg / 50mg' },
+      { id: 'drg_valsartan', label: 'والزارتان (Valsartan)', brands: 'Diovan دیووان, والزومیکس', defaultDose: '80mg / 160mg' },
+      { id: 'drg_telmisartan', label: 'تلمیزارتان (Telmisartan)', brands: 'Micardis میکاردس', defaultDose: '40mg / 80mg' },
+      { id: 'drg_captopril', label: 'کاپتوپریل (Captopril)', brands: 'Capoten', defaultDose: '25mg / 50mg' },
+      { id: 'drg_enalapril', label: 'انالاپریل (Enalapril)', brands: 'Renitec', defaultDose: '5mg / 20mg' },
+      { id: 'drg_lisinopril', label: 'لیزینوپریل (Lisinopril)', brands: 'Zestril', defaultDose: '10mg' },
+      { id: 'drg_amlodipine', label: 'آملودیپین (Amlodipine)', brands: 'Norvasc نورواسک, آملوپرس', defaultDose: '5mg' },
+      { id: 'drg_nifedipine', label: 'نیفدیپین (Nifedipine)', brands: 'Adalat آدالات', defaultDose: '10mg / 30mg' },
+      { id: 'drg_diltiazem', label: 'دیلتیازم (Diltiazem)', brands: 'Cardizem', defaultDose: '60mg / 120mg' },
+      { id: 'drg_verapamil', label: 'وراپامیل (Verapamil)', brands: 'Isoptin ایزوپتین', defaultDose: '40mg / 80mg' },
+      { id: 'drg_metoprolol', label: 'متوپرولول (Metoprolol Tartrate / Succinate)', brands: 'Metoral متورال, Betaloc بتالوک, امتا', defaultDose: '50mg / 47.5mg' },
+      { id: 'drg_bisoprolol', label: 'بیزوپرولول (Bisoprolol)', brands: 'Concor کونکور, زباکور', defaultDose: '2.5mg / 5mg' },
+      { id: 'drg_carvedilol', label: 'کارودیلول (Carvedilol)', brands: 'Coryol کوریول', defaultDose: '6.25mg / 12.5mg' },
+      { id: 'drg_propranolol', label: 'پروپرانولول (Propranolol)', brands: 'Inderal ایندرال, پرانول', defaultDose: '10mg / 20mg / 40mg' },
+      { id: 'drg_atenolol', label: 'آتنولول (Atenolol)', brands: 'Tenormin', defaultDose: '50mg / 100mg' },
+      { id: 'drg_nebivolol', label: 'نبیوولول (Nebivolol)', brands: 'Nebilet نبیلت', defaultDose: '5mg' },
+      { id: 'drg_furosemide', label: 'فوروزماید (Furosemide)', brands: 'Lasix لازیکس', defaultDose: '20mg / 40mg' },
+      { id: 'drg_hydrochlorothiazide', label: 'هیدروکلروتیازید (Hydrochlorothiazide - HCTZ)', brands: 'HCT', defaultDose: '25mg / 50mg' },
+      { id: 'drg_indapamide', label: 'اینداپامید (Indapamide)', brands: 'Natrilix ناتریلیکس', defaultDose: '1.5mg' },
+      { id: 'drg_spironolactone', label: 'اسپیرونولاکتون (Spironolactone)', brands: 'Aldactone آلداکتون', defaultDose: '25mg / 100mg' },
+      { id: 'drg_eplerenone', label: 'اپلرنون (Eplerenone)', brands: 'Inspra', defaultDose: '25mg / 50mg' },
+      { id: 'drg_sacubitril_valsartan', label: 'ساکوبیترین / والزارتان (Sacubitril/Valsartan)', brands: 'Entresto انترستو, ویمپتو', defaultDose: '50mg / 100mg' },
+      { id: 'drg_digoxin', label: 'دیگوکسین (Digoxin)', brands: 'Lanoxin لانوکسین', defaultDose: '0.25mg' },
+      { id: 'drg_amiodarone', label: 'آمیودارون (Amiodarone)', brands: 'Cordarone کردارون', defaultDose: '200mg' },
+      { id: 'drg_flecainide_propafenone', label: 'فلکاینید / پروپافنون (Flecainide / Propafenone)', brands: 'Rytmonorm ریتمونورم', defaultDose: '150mg' },
+      { id: 'drg_nitroglycerin', label: 'نیتروگلیسیرین پیوستهرهش / زیرزبانی (Nitroglycerin / TNG)', brands: 'Nitrocontin نیتروکانتین, Sustac', defaultDose: '2.6mg / 6.4mg' },
+      { id: 'drg_isosorbide', label: 'ایزوسورباید دینیترات / منونیترات (Isosorbide)', brands: 'Isordil ایزوردیل, Imdur', defaultDose: '10mg / 40mg' },
+      { id: 'drg_atorvastatin', label: 'آتورواستاتین (Atorvastatin)', brands: 'Lipitor لیپیتور', defaultDose: '20mg / 40mg' },
+      { id: 'drg_rosuvastatin', label: 'رزوواستاتین (Rosuvastatin)', brands: 'Crestor کرستور, روپیکسون', defaultDose: '10mg / 20mg' },
+      { id: 'drg_simvastatin', label: 'سیمواستاتین (Simvastatin)', brands: 'Zocor', defaultDose: '20mg' },
+      { id: 'drg_ezetimibe', label: 'ازتیمیب (Ezetimibe)', brands: 'Ezetrol ازترول', defaultDose: '10mg' },
+      { id: 'drg_fenofibrate_gemfibrozil', label: 'فنوفیبرات / جمفیبروزیل (Fenofibrate / Gemfibrozil)', brands: 'Lipanthyl لیپانتیل, Lopid', defaultDose: '200mg / 300mg' },
+      { id: 'drg_prazosin_clonidine', label: 'پرازوسین / کلونیدین / هیدرالازین (Prazosin / Clonidine / Hydralazine)', brands: 'Minipress, Catapres', defaultDose: '1mg / 0.2mg' }
     ]
   },
   {
-    id: 'endocrine_steroid',
-    title: '۳. داروهای دیابت، تیروئید و کورتون',
+    catId: 'dh_diabetes_endocrine_steroid',
+    catTitle: '۳. داروهای دیابت، انسولینها، تیروئید، کورتونها و هورمونی',
     drugs: [
-      { id: 'metformin', label: 'متفورمین (Metformin)', defaultDose: '500mg' },
-      { id: 'glibenclamide_gliclazide', label: 'گلی‌بنکلامید / گلیکلازید', defaultDose: '5mg' },
-      { id: 'empagliflozin', label: 'امپاگلیفلوزین (Jardiance)', defaultDose: '10mg' },
-      { id: 'sitagliptin', label: 'سیتاگلیپتین (Januvia)', defaultDose: '100mg' },
-      { id: 'insulin', label: 'انسولین (لانتوس/نووراپید)', defaultDose: 'واحدهای تزریقی' },
-      { id: 'levothyroxine', label: 'لووتیروکسین (Levothyroxine)', defaultDose: '100mcg' },
-      { id: 'methimazole', label: 'متی‌مازول (Methimazole)', defaultDose: '5mg' },
-      { id: 'prednisolone', label: 'پردنیزولون (Prednisolone)', defaultDose: '5mg' },
-      { id: 'dexamethasone_hydrocortisone', label: 'دگزامتازون / هیدروکورتیزون', defaultDose: 'آمپول/قرص' }
+      { id: 'drg_metformin', label: 'متفورمین (Metformin)', brands: 'Glucophage گلوکوفاژ', defaultDose: '500mg / 1000mg', highAlert: true },
+      { id: 'drg_gliclazide', label: 'گلیکلازید (Gliclazide)', brands: 'Diamicron دیامیکرون', defaultDose: '30mg / 60mg / 80mg' },
+      { id: 'drg_glibenclamide', label: 'گلیبنکلامید (Glibenclamide / Glyburide)', brands: 'Daonil دائونیل', defaultDose: '5mg' },
+      { id: 'drg_glimepiride', label: 'گلیمپراید (Glimepiride)', brands: 'Amaryl آماریل', defaultDose: '2mg / 4mg' },
+      { id: 'drg_repaglinide', label: 'رپاگلینید (Repaglinide)', brands: 'Novonorm نوونورم', defaultDose: '1mg / 2mg' },
+      { id: 'drg_pioglitazone', label: 'پیوگلیتازون (Pioglitazone)', brands: 'Actos آکتوس', defaultDose: '15mg / 30mg' },
+      { id: 'drg_sitagliptin', label: 'سیتاگلیپتین / متفورمین (Sitagliptin)', brands: 'Januvia جانوویا, Ziptin زیپتین, زیپمت', defaultDose: '50mg / 100mg' },
+      { id: 'drg_linagliptin', label: 'لیناگلیپتین (Linagliptin)', brands: 'Trajenta تراجنتا, گلورنتا, لینامکس', defaultDose: '5mg' },
+      { id: 'drg_empagliflozin', label: 'امپاگلیفلوزین (Empagliflozin)', brands: 'Jardiance جاردیانس, گلوریپا, سینجاردی', defaultDose: '10mg / 25mg', highAlert: true },
+      { id: 'drg_dapagliflozin', label: 'داپاگلیفلوزین (Dapagliflozin)', brands: 'Forxiga فورکسیگا', defaultDose: '10mg', highAlert: true },
+      { id: 'drg_acarbose', label: 'آکاربوز (Acarbose)', brands: 'Glucobay', defaultDose: '50mg / 100mg' },
+      { id: 'drg_liraglutide_semaglutide', label: 'لیراگلوتاید / سماگلوتاید (Liraglutide / Semaglutide)', brands: 'Victoza ویکتوزا, Ozempic اوزمپیک, ملیتود', defaultDose: '0.6mg / 1.2mg SC' },
+      { id: 'drg_ins_glargine', label: 'انسولین گلارژین (Insulin Glargine)', brands: 'Lantus لانتوس, Toujeo توجئو, Basalin', defaultDose: 'Units SC', highAlert: true },
+      { id: 'drg_ins_aspart', label: 'انسولین آسپارت / دوقسمتی (Insulin Aspart)', brands: 'NovoRapid نووراپید, NovoMix نوومیکس', defaultDose: 'Units SC', highAlert: true },
+      { id: 'drg_ins_nph_reg', label: 'انسولین NPH / رگولار (NPH / Regular Insulin)', brands: 'Humulin, Insulatard', defaultDose: 'Units SC', highAlert: true },
+      { id: 'drg_levothyroxine', label: 'لووتیروکسین (Levothyroxine)', brands: 'Euthyrox یوتیروکس', defaultDose: '50mcg / 100mcg' },
+      { id: 'drg_methimazole', label: 'متیمازول / کاربیمازول (Methimazole)', brands: 'Tapazole تاپازول', defaultDose: '5mg / 10mg' },
+      { id: 'drg_ptu', label: 'پروپیلتیواوراسیل (Propylthiouracil - PTU)', brands: 'PTU', defaultDose: '50mg' },
+      { id: 'drg_prednisolone', label: 'پردنیزولون (Prednisolone)', brands: 'Nisolone نیزولون', defaultDose: '5mg / 50mg', highAlert: true },
+      { id: 'drg_dexamethasone', label: 'دگزامتازون (Dexamethasone)', brands: 'Decadron', defaultDose: '0.5mg / 4mg / 8mg', highAlert: true },
+      { id: 'drg_hydrocortisone', label: 'هیدروکورتیزون / متیلپردنیزولون (Hydrocortisone / Methylprednisolone)', brands: 'Solu-Cortef, Solu-Medrol', defaultDose: '100mg', highAlert: true },
+      { id: 'drg_cabergoline', label: 'کابرگولین / بروموکریپتین (Cabergoline / Bromocriptine)', brands: 'Dostinex داستینکس', defaultDose: '0.5mg' },
+      { id: 'drg_alendronate_calcium', label: 'آلندرونیت / کلسیم و ویتامین D / کلسیتریول (Alendronate / Rocaltrol)', brands: 'Fosamax فوزامکس, روکالترول', defaultDose: '70mg Weekly' },
+      { id: 'drg_ocp_progesterone', label: 'قرص ضدبارداری (OCP / LD / HD)، دوفاستون، مدروکسیپروژسترون یا دانازول/دیفرلین', brands: 'Duphaston دوفاستون, Yasmin یاسمین, Yaz, Dienogest وروژست', defaultDose: 'Daily' }
     ]
   },
   {
-    id: 'gi',
-    title: '۴. داروهای گوارشی',
+    catId: 'dh_gastrointestinal',
+    catTitle: '۴. داروهای گوارشی، کبدی و ضدتهوع',
     drugs: [
-      { id: 'pantoprazole', label: 'پنتوپرازول (Pantoprazole)', defaultDose: '40mg' },
-      { id: 'omeprazole', label: 'امپرازول (Omeprazole)', defaultDose: '20mg' },
-      { id: 'famotidine', label: 'فاموتیدین (Famotidine)', defaultDose: '40mg' },
-      { id: 'ondansetron', label: 'اندانسترون (Ondansetron)', defaultDose: '4mg' },
-      { id: 'metoclopramide', label: 'متوکلوپرامید (Plasil)', defaultDose: '10mg' },
-      { id: 'dimethicone', label: 'دایمتیکون (Dimethicone)', defaultDose: 'قرص جویدنی' },
-      { id: 'lactulose', label: 'لاکتولوز (Lactulose)', defaultDose: 'شربت' },
-      { id: 'mesalazine', label: 'مزالازین (Mesalazine)', defaultDose: '500mg' }
+      { id: 'drg_pantoprazole', label: 'پنتوپرازول (Pantoprazole)', brands: 'Nolpaza نولپازا, پنتوزول, Controloc', defaultDose: '20mg / 40mg' },
+      { id: 'drg_omeprazole', label: 'امپرازول (Omeprazole)', brands: 'Losec', defaultDose: '20mg' },
+      { id: 'drg_esomeprazole', label: 'اسامپرازول (Esomeprazole)', brands: 'Nexium نکسیوم, اسوپرکس', defaultDose: '20mg / 40mg' },
+      { id: 'drg_lansoprazole_rabeprazole', label: 'لنسوپرازول / رابپرازول (Lansoprazole / Rabeprazole)', brands: 'Pariet پاریت', defaultDose: '20mg / 30mg' },
+      { id: 'drg_famotidine', label: 'فاموتیدین (Famotidine)', brands: 'Pepcid', defaultDose: '20mg / 40mg' },
+      { id: 'drg_sucralfate_antacid', label: 'سوکرالفیت / شربت آلومینیوم امجیاس (Sucralfate / Aluminum MgS)', brands: 'Al-Mg-S', defaultDose: '10ml / 1g' },
+      { id: 'drg_ondansetron', label: 'اندانسترون (Ondansetron)', brands: 'Zofran زوفران, دمیترون', defaultDose: '4mg / 8mg' },
+      { id: 'drg_metoclopramide', label: 'متوکلوپرامید (Metoclopramide)', brands: 'Plasil پلازیل', defaultDose: '10mg' },
+      { id: 'drg_domperidone', label: 'دومپریدون (Domperidone)', brands: 'Motilium موتیلیوم', defaultDose: '10mg' },
+      { id: 'drg_hyoscine_dicyclomine', label: 'هیوسین / دیسیکلومین / کلیدینیوم سی / مبورین (Hyoscine / Dicyclomine / Mebeverine)', brands: 'Buscopan بوسکوپان, Colofac کلپرمین', defaultDose: '10mg / 135mg' },
+      { id: 'drg_dimethicone_bismuth', label: 'دایمتیکون / بیسموت سابسیترات (Dimethicone / Bismuth)', brands: 'Simethicone', defaultDose: '40mg' },
+      { id: 'drg_lactulose_peg', label: 'شربت لاکتولوز / پودر پیدرولاکس (Lactulose / PEG) / بیزاکودیل / سنا', brands: 'Pidrolax پیدرولاکس, Dulcolax', defaultDose: '15ml / 1 Sachet' },
+      { id: 'drg_loperamide_diphenoxylate', label: 'لوپرامید / دیفنوکسیلات (Loperamide / Diphenoxylate)', brands: 'Imodium ایمودیوم', defaultDose: '2mg' },
+      { id: 'drg_mesalazine_sulfasalazine', label: 'مزالازین / سولفاسالازین (Mesalazine / Sulfasalazine)', brands: 'Pentasa پنتاسا, Asacol آساکول', defaultDose: '500mg / 800mg' },
+      { id: 'drg_ursodeoxycholic', label: 'اورسودئوکسیکولیک اسید (Ursodeoxycholic Acid - UDCA)', brands: 'Ursobil اورسوبیل, Ursofalk', defaultDose: '300mg' }
     ]
   },
   {
-    id: 'analgesic_abx_psych',
-    title: '۵. مسکن‌ها، آنتی‌بیوتیک‌ها و اعصاب/سایر',
+    catId: 'dh_analgesics_rheum_immuno',
+    catTitle: '۵. مسکنها (NSAIDs / اپیوئیدها)، روماتولوژی و سرکوبکننده ایمنی',
     drugs: [
-      { id: 'acetaminophen', label: 'استامینوفن (Acetaminophen)', defaultDose: '500mg' },
-      { id: 'novafen', label: 'نووافن (Novafen)', defaultDose: 'کپسول' },
-      { id: 'ibuprofen_naproxen', label: 'ایبوپروفن / ناپروکسن', defaultDose: '400mg' },
-      { id: 'celecoxib', label: 'سلکوکسیب (Celebrex)', defaultDose: '100mg' },
-      { id: 'diclofenac', label: 'دیکلوفناک (Voltaren)', defaultDose: '100mg' },
-      { id: 'gabapentin_pregabalin', label: 'گاباپنتین / پرگابالین', defaultDose: '100mg' },
-      { id: 'sertraline_fluoxetine', label: 'سرترالین / فلوکستین', defaultDose: '50mg' },
-      { id: 'alprazolam_clonazepam', label: 'آلپرازولام / کلونازپام', defaultDose: '0.5mg' }
+      { id: 'drg_acetaminophen', label: 'استامینوفن ساده / کدئین (Acetaminophen / Apotel)', brands: 'Tylenol, Apotel آپوتل', defaultDose: '500mg / 1000mg' },
+      { id: 'drg_novafen_gelofen', label: 'نووافن / ژلوفن / ایبوپروفن (Novafen / Ibuprofen)', brands: 'Advil, Gelofen ژلوفن, نووافن', defaultDose: '400mg' },
+      { id: 'drg_naproxen', label: 'ناپروکسن (Naproxen)', brands: 'Aleve', defaultDose: '250mg / 500mg' },
+      { id: 'drg_diclofenac', label: 'دیکلوفناک سدیم / پتاسیم (Diclofenac)', brands: 'Voltaren ولتارن, آلفن ایکس ال', defaultDose: '50mg / 100mg' },
+      { id: 'drg_celecoxib', label: 'سلکوکسیب (Celecoxib)', brands: 'Celebrex سلبرکس', defaultDose: '100mg / 200mg' },
+      { id: 'drg_meloxicam_piroxicam', label: 'ملوکسیکام / پیروکسیکام / مفنامیک اسید / ایندومتاسین (Meloxicam / Indomethacin)', brands: 'Mobic موبیک, Ponstan', defaultDose: '7.5mg / 15mg' },
+      { id: 'drg_ketorolac', label: 'کتورولاک (Ketorolac)', brands: 'Toradol', defaultDose: '30mg IV/IM' },
+      { id: 'drg_tramadol_methadone', label: 'ترامادول / متادون / مورفین / پتیدین (Tramadol / Methadone / Morphine)', brands: 'Ultram', defaultDose: '50mg / 100mg' },
+      { id: 'drg_allopurinol_febuxostat', label: 'آلوپورینول / فبوکسوستات / کلشیسین (Allopurinol / Febuxostat / Colchicine)', brands: 'Zyloric, Adenuric', defaultDose: '100mg / 300mg' },
+      { id: 'drg_methotrexate_azathioprine', label: 'متوترکسات / آزاتیوپرین / سیکلوسپورین / تاکرولیموس / مایکوفنولات (MTX / Azathioprine / CellCept)', brands: 'Imuran ایموران, CellCept سلسپت, Prograf, هیدروکسی کلروکین', defaultDose: 'Daily / Weekly', highAlert: true },
+      { id: 'drg_tamoxifen_letrozole', label: 'تاموکسیفن / لتروزول / آناستروزول (Tamoxifen / Letrozole - هورموندرمانی پستان)', brands: 'Nolvadex, Femara فمارا', defaultDose: '20mg / 2.5mg' }
+    ]
+  },
+  {
+    catId: 'dh_respiratory_uro_neuro_psych_abx',
+    catTitle: '۶. تنفسی، اورولوژی، اعصاب و روان، مکملها و آنتیبیوتیکها',
+    drugs: [
+      { id: 'drg_salbutamol', label: 'اسپری سالبوتامول (Salbutamol / Albuterol Inhaler)', brands: 'Ventolin ونتولین', defaultDose: '2 Puffs PRN' },
+      { id: 'drg_atrovent_tiotropium', label: 'اسپری ایپراتروپیوم / تیوتروپیوم (Ipratropium / Tiotropium)', brands: 'Atrovent آتروونت, Spiriva اسپیریوا, کپسیهالر', defaultDose: '2 Puffs' },
+      { id: 'drg_symbicort_seretide', label: 'اسپری بودزوناید+فورموترول / فلوتیکازون+سالمترول (Budesonide/Formoterol)', brands: 'Symbicort سیمبیکورت, Seretide سرتاید, Pulmicort', defaultDose: '1-2 Puffs BD' },
+      { id: 'drg_montelukast_theophylline', label: 'مونتهلوکاست / تئوفیلین / استیلسیستئین (Montelukast / NAC)', brands: 'Singulair سینگولر, ACC', defaultDose: '10mg' },
+      { id: 'drg_cetirizine_fexofenadine', label: 'ستیریزین / لووستیریزین / فکسوفنادین / لوراتادین / هیدروکسیزین', brands: 'Zyrtec زیرتک, Telfast تلفست', defaultDose: '10mg / 180mg' },
+      { id: 'drg_tamsulosin', label: 'تامسولوسین / ترازوسین / فیناستراید / سولیفناسین (Tamsulosin / Finasteride / Solifenacin)', brands: 'Omnic امنیک, Proscar, Vesicare وزیکر', defaultDose: '0.4mg' },
+      { id: 'drg_gabapentin_pregabalin', label: 'گاباپنتین / پرگابالین (Gabapentin / Pregabalin)', brands: 'Neurontin نورونتین, Lyrica لیریکا', defaultDose: '100mg / 300mg / 75mg' },
+      { id: 'drg_levetiracetam_valproate', label: 'لوهتیراستام / والپروات سدیم / کاربامازپین / فنیتوئین / لاموتریژین', brands: 'Keppra کپرا, Depakine دپاکین, Tegretol', defaultDose: '500mg' },
+      { id: 'drg_levodopa_piribedil', label: 'لوودوپا-کاربیدوپا / پرامیپکسول / دونپزیل / ممانتین', brands: 'Sinemet سینمت, Madopar مادوپار, Ebixa', defaultDose: '100/25mg' },
+      { id: 'drg_sertraline_fluoxetine', label: 'سرترالین / فلوکستین / سیتالوپرام / اسسیتالوپرام (SSRIs)', brands: 'Zoloft زولوفت, Prozac, Lexapro لگزاتال, آسنترا', defaultDose: '50mg / 20mg / 10mg' },
+      { id: 'drg_nortriptyline_amitriptyline', label: 'نورتریپتیلین / آمیتریپتیلین / دولوکستین / ونلافاکسین', brands: 'Cymbalta سیمبالتا, Effexor', defaultDose: '10mg / 25mg / 30mg' },
+      { id: 'drg_alprazolam_clonazepam', label: 'آلپرازولام / کلونازپام / لورازپام / دیازپام / زولپیدم / کلردیازپوکساید', brands: 'Xanax زاناکس, Rivotril, Stilnox', defaultDose: '0.5mg / 1mg' },
+      { id: 'drg_quetiapine_olanzapine', label: 'کوئتیاپین / اولانزاپین / ریسپریدون / هالوپریدول / لیتیوم', brands: 'Seroquel سروکوئل, Zyprexa', defaultDose: '25mg / 5mg' },
+      { id: 'drg_ferrous_folic', label: 'فروس سولفات (قرص آهن) / فولیک اسید / ویتامین B12 / مولتیویتامین', brands: 'Ferfolic فرفولیک, فیفول Fefol', defaultDose: 'Daily' },
+      { id: 'drg_antibiotics_common', label: 'آنتیبیوتیک مصرفی اخیر (سفتریاکسون، سیپروفلوکساسین، مترونیدازول، کوآموکسیکلاو، سفالکسین، آزیترومایسین، مروپنم، وانکومایسین، کلیندامایسین)', brands: 'Rocephin, Flagyl, Augmentin', defaultDose: 'طبق دستور' }
     ]
   }
 ];
+
+// Compatibility bridge: ensure both catId/id and catTitle/title are present
+MASTER_DRUG_CATEGORIES.forEach(cat => {
+  if (!cat.id) cat.id = cat.catId;
+  if (!cat.title) cat.title = cat.catTitle;
+});
+
+export const DH_CATEGORIES = MASTER_DRUG_CATEGORIES;
+export const ALL_MASTER_DRUGS = MASTER_DRUG_CATEGORIES.flatMap(cat => 
+  (cat.drugs || []).map(drg => ({ ...drg, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
+);
 
 export const ROS_GROUPS_BILINGUAL = [
   {

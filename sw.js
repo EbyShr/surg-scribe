@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.6-universal-cache-v6';
+const CACHE_NAME = 'surg-v0.7-master-formulary-v7';
 
 const STATIC_ASSETS = [
   './',

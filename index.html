@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.6-Universal-Surg</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.7-Master-Formulary</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.6-Universal-Surg">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.7-Master-Formulary">
 
   <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.6-Surg</span>
+        <span class="version-pill">v0.7-Surg</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
@@ -270,7 +270,7 @@
           </div>
 
           <!-- نوار انتخاب سریع ۵ کهن‌الگو -->
-          <div class="archetype-selector-bar" id="archetypeSelectorBar"></div>
+          <div class="archetype-selector-grid" id="archetypeSelectorGrid"></div>
 
           <!-- Dynamic container for presentation cards (Archetype cards) -->
           <div id="hpiPresentationsContainer"></div>
@@ -292,6 +292,7 @@
           <div class="tag-quick-search-box">
             <input type="search" class="tag-quick-search-input" data-search-target="#tab-hpi" placeholder="🔍 جستجوی سریع تگ‌ها (مثلاً: تهوع، استفراغ، تب، ایکتر، دیسفاژی...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
           </div>
 
           <div class="form-group">
@@ -355,6 +356,7 @@
           <div class="tag-quick-search-box">
             <input type="search" class="tag-quick-search-input" data-search-target="#tab-pmh" placeholder="🔍 جستجوی سریع سوابق (مثلاً: دیابت، فشار خون، کبد، آسم، تیروئید...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
           </div>
 
           <!-- 7 دروازه دسته‌بندی PMH -->
@@ -486,6 +488,7 @@
           <div class="tag-quick-search-box">
             <input type="search" class="tag-quick-search-input" data-search-target="#tab-dh" placeholder="🔍 جستجوی سریع داروها (مثلاً: پلاویکس، آسپرین، لوزارتان، انسولین، وارفارین...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
           </div>
 
           <!-- ۵ دسته‌بندی دارویی -->
@@ -630,6 +633,7 @@
           <div class="tag-quick-search-box">
             <input type="search" class="tag-quick-search-input" data-search-target="#tab-ros" placeholder="🔍 جستجوی سریع علائم سیستم‌ها (مثلاً: ارتوپنه، دیسپنه، هماتوکزی، سرگیجه...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
           </div>
 
           <div id="rosGroupsAccordion"></div>
@@ -705,6 +709,7 @@
           <div class="tag-quick-search-box">
             <input type="search" class="tag-quick-search-input" data-search-target="#tab-pe" placeholder="🔍 جستجوی سریع معاینات (مثلاً: مورفی، مک‌برنی، گاردینگ، ریباند، سمع...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
           </div>
 
           <!-- ستون‌های ۵ گانه الزامی -->
@@ -887,7 +892,7 @@
     <div class="preview-top-toolbar">
       <div class="modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-        <span>پیش‌نمایش زنده شرح‌حال v0.5-Surg</span>
+        <span>پیش‌نمایش زنده شرح‌حال v0.7-Master-Formulary</span>
       </div>
       <div class="preview-actions">
         <button class="btn btn-secondary btn-sm" id="btnCopyNoteMobile">کپی متن</button>
@@ -1048,7 +1053,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js?v=0.6.1').then((reg) => {
-          console.log('[PWA v0.6] Service Worker registered:', reg.scope);
+          console.log('[PWA v0.7] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();
         }).catch((err) => {
