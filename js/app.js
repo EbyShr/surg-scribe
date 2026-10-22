@@ -2772,6 +2772,661 @@ function renderPeUnlockableModules() {
   });
 }
 
+/* ==========================================================================
+   Tab 6: Local Mass & Lesion Examination Module
+   ========================================================================== */
+function renderMassExamModule() {
+  const container = document.getElementById('peMassExamContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const list = clinicalState.pe.massExams || [];
+  list.forEach((exam, idx) => {
+    const card = document.createElement('div');
+    card.className = 'mass-exam-card';
+
+    const header = document.createElement('div');
+    header.className = 'mass-exam-header';
+
+    const title = document.createElement('span');
+    title.className = 'mass-exam-title';
+    title.innerHTML = `<span>🔘</span> <span>معاینه موضعی توده / ضایعه #${idx + 1}</span>`;
+    header.appendChild(title);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-delete-mass-exam';
+    delBtn.innerHTML = `<span>🗑️</span><span>حذف این کارت معاینه</span>`;
+    delBtn.addEventListener('click', () => {
+      list.splice(idx, 1);
+      renderMassExamModule();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    header.appendChild(delBtn);
+    card.appendChild(header);
+
+    const grid1 = document.createElement('div');
+    grid1.className = 'form-grid-2';
+
+    // Location
+    const locGroup = document.createElement('div');
+    locGroup.className = 'form-group';
+    locGroup.innerHTML = `<label class="form-label">محل آناتومیک توده</label>`;
+    const locInput = document.createElement('input');
+    locInput.type = 'text';
+    locInput.className = 'input-text';
+    locInput.value = exam.location || '';
+    locInput.placeholder = 'مثلاً پوست سر ناحیه اکسیپیتال، ربع فوقانی خارجی پستان راست...';
+    locInput.addEventListener('input', (e) => {
+      exam.location = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    locGroup.appendChild(locInput);
+    grid1.appendChild(locGroup);
+
+    // Dimensions
+    const dimGroup = document.createElement('div');
+    dimGroup.className = 'form-group';
+    dimGroup.innerHTML = `<label class="form-label">ابعاد تقریبی (طول × عرض)</label>`;
+    const dimInput = document.createElement('input');
+    dimInput.type = 'text';
+    dimInput.className = 'input-text';
+    dimInput.value = exam.dimensions || '';
+    dimInput.placeholder = 'مثلاً 3x2 cm یا قطب ۲ سانتی‌متری';
+    dimInput.addEventListener('input', (e) => {
+      exam.dimensions = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    dimGroup.appendChild(dimInput);
+    grid1.appendChild(dimGroup);
+
+    card.appendChild(grid1);
+
+    const grid2 = document.createElement('div');
+    grid2.className = 'form-grid-3';
+    grid2.style.marginTop = '0.5rem';
+
+    // Consistency
+    const conGroup = document.createElement('div');
+    conGroup.className = 'form-group';
+    conGroup.innerHTML = `<label class="form-label">قوام توده (Consistency)</label>`;
+    const conSelect = document.createElement('select');
+    conSelect.className = 'input-select';
+    MASS_EXAM_SCHEMA.consistencies.forEach((c) => {
+      const op = document.createElement('option');
+      op.value = c;
+      op.textContent = c;
+      if (exam.consistency === c) op.selected = true;
+      conSelect.appendChild(op);
+    });
+    conSelect.addEventListener('change', (e) => {
+      exam.consistency = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    conGroup.appendChild(conSelect);
+    grid2.appendChild(conGroup);
+
+    // Margins
+    const marGroup = document.createElement('div');
+    marGroup.className = 'form-group';
+    marGroup.innerHTML = `<label class="form-label">حدود و مارجین (Margins)</label>`;
+    const marSelect = document.createElement('select');
+    marSelect.className = 'input-select';
+    MASS_EXAM_SCHEMA.margins.forEach((m) => {
+      const op = document.createElement('option');
+      op.value = m;
+      op.textContent = m;
+      if (exam.margin === m) op.selected = true;
+      marSelect.appendChild(op);
+    });
+    marSelect.addEventListener('change', (e) => {
+      exam.margin = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    marGroup.appendChild(marSelect);
+    grid2.appendChild(marGroup);
+
+    // Mobility
+    const mobGroup = document.createElement('div');
+    mobGroup.className = 'form-group';
+    mobGroup.innerHTML = `<label class="form-label">تحرک‌پذیری (Mobility)</label>`;
+    const mobSelect = document.createElement('select');
+    mobSelect.className = 'input-select';
+    MASS_EXAM_SCHEMA.mobilities.forEach((mb) => {
+      const op = document.createElement('option');
+      op.value = mb;
+      op.textContent = mb;
+      if (exam.mobility === mb) op.selected = true;
+      mobSelect.appendChild(op);
+    });
+    mobSelect.addEventListener('change', (e) => {
+      exam.mobility = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    mobGroup.appendChild(mobSelect);
+    grid2.appendChild(mobGroup);
+
+    card.appendChild(grid2);
+
+    const grid3 = document.createElement('div');
+    grid3.className = 'form-grid-2';
+    grid3.style.marginTop = '0.5rem';
+
+    // Skin findings
+    const skinGroup = document.createElement('div');
+    skinGroup.className = 'form-group';
+    skinGroup.innerHTML = `<label class="form-label">یافته‌های پوست رویی و تندرنس</label>`;
+    const skinSelect = document.createElement('select');
+    skinSelect.className = 'input-select';
+    MASS_EXAM_SCHEMA.skinFindings.forEach((sf) => {
+      const op = document.createElement('option');
+      op.value = sf;
+      op.textContent = sf;
+      if (exam.skinSign === sf) op.selected = true;
+      skinSelect.appendChild(op);
+    });
+    skinSelect.addEventListener('change', (e) => {
+      exam.skinSign = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    skinGroup.appendChild(skinSelect);
+    grid3.appendChild(skinGroup);
+
+    // Note
+    const noteGroup = document.createElement('div');
+    noteGroup.className = 'form-group';
+    noteGroup.innerHTML = `<label class="form-label">توضیحات تکمیلی معاینه توده</label>`;
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.className = 'input-text';
+    noteInput.value = exam.note || '';
+    noteInput.placeholder = 'مثلاً عدم ترانس‌ایلومیناسیون، بدون ضربان...';
+    noteInput.addEventListener('input', (e) => {
+      exam.note = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    noteGroup.appendChild(noteInput);
+    grid3.appendChild(noteGroup);
+
+    card.appendChild(grid3);
+    container.appendChild(card);
+  });
+}
+
+function initMassExamHandlers() {
+  document.getElementById('btnAddMassExam')?.addEventListener('click', () => {
+    if (!clinicalState.pe.massExams) clinicalState.pe.massExams = [];
+    clinicalState.pe.massExams.push({
+      id: Date.now(),
+      location: '',
+      dimensions: '',
+      consistency: 'نرم و خمیری (Soft / Doughy)',
+      margin: 'منظم و کاملاً مشخص (Well-defined / Circumscribed)',
+      mobility: 'کاملاً متحرک در هر دو جهت (Freely Mobile)',
+      skinSign: 'پوست نرمال و بدون تندرنس (Non-tender / Normal skin)',
+      note: ''
+    });
+    renderMassExamModule();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+}
+
+/* ==========================================================================
+   Tab 6: ATLS Primary & Secondary Survey Trauma & Burn Module
+   ========================================================================== */
+function renderAtlsExamModule() {
+  const container = document.getElementById('peAtlsExamContainer');
+  const toggleBtn = document.getElementById('btnToggleAtlsExam');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const atls = clinicalState.pe.atlsExam;
+  if (!atls || !atls.active) {
+    if (toggleBtn) {
+      toggleBtn.innerHTML = `<span>🚨</span> <span>باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)</span>`;
+    }
+    return;
+  }
+
+  if (toggleBtn) {
+    toggleBtn.innerHTML = `<span>✕</span> <span>بستن ماژول تروما و ATLS</span>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'atls-exam-card';
+
+  // Primary survey header
+  const title = document.createElement('div');
+  title.className = 'atls-exam-title';
+  title.innerHTML = `<span>🚨</span> <span>ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE)</span>`;
+  card.appendChild(title);
+
+  // Survey Form
+  const psGrid = document.createElement('div');
+  psGrid.className = 'form-grid-2';
+
+  // Airway (A)
+  const aGroup = document.createElement('div');
+  aGroup.className = 'form-group';
+  aGroup.innerHTML = `<label class="form-label">A - راه هوایی و ستون فقرات گردنی (Airway & C-Spine)</label>`;
+  const aSelect = document.createElement('select');
+  aSelect.className = 'input-select';
+  aSelect.innerHTML = `<option value="">-- وضعیت راه هوایی --</option>`;
+  ATLS_EXAM_SCHEMA.primarySurvey.airway.forEach((item) => {
+    const op = document.createElement('option');
+    op.value = item.label;
+    op.textContent = item.label;
+    if (atls.primarySurvey?.airway === item.label) op.selected = true;
+    aSelect.appendChild(op);
+  });
+  aSelect.addEventListener('change', (e) => {
+    atls.primarySurvey.airway = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  aGroup.appendChild(aSelect);
+  psGrid.appendChild(aGroup);
+
+  // Breathing (B)
+  const bGroup = document.createElement('div');
+  bGroup.className = 'form-group';
+  bGroup.innerHTML = `<label class="form-label">B - تنفس و تهویه ریوی (Breathing & Ventilation)</label>`;
+  const bSelect = document.createElement('select');
+  bSelect.className = 'input-select';
+  bSelect.innerHTML = `<option value="">-- وضعیت تنفس --</option>`;
+  ATLS_EXAM_SCHEMA.primarySurvey.breathing.forEach((item) => {
+    const op = document.createElement('option');
+    op.value = item.label;
+    op.textContent = item.label;
+    if (atls.primarySurvey?.breathing === item.label) op.selected = true;
+    bSelect.appendChild(op);
+  });
+  bSelect.addEventListener('change', (e) => {
+    atls.primarySurvey.breathing = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  bGroup.appendChild(bSelect);
+  psGrid.appendChild(bGroup);
+
+  // Circulation (C)
+  const cGroup = document.createElement('div');
+  cGroup.className = 'form-group';
+  cGroup.innerHTML = `<label class="form-label">C - گردش خون و کنترل خونریزی (Circulation & Hemorrhage)</label>`;
+  const cSelect = document.createElement('select');
+  cSelect.className = 'input-select';
+  cSelect.innerHTML = `<option value="">-- وضعیت همودینامیک و خونریزی --</option>`;
+  ATLS_EXAM_SCHEMA.primarySurvey.circulation.forEach((item) => {
+    const op = document.createElement('option');
+    op.value = item.label;
+    op.textContent = item.label;
+    if (atls.primarySurvey?.circulation === item.label) op.selected = true;
+    cSelect.appendChild(op);
+  });
+  cSelect.addEventListener('change', (e) => {
+    atls.primarySurvey.circulation = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  cGroup.appendChild(cSelect);
+  psGrid.appendChild(cGroup);
+
+  // Disability (D)
+  const dGroup = document.createElement('div');
+  dGroup.className = 'form-group';
+  dGroup.innerHTML = `<label class="form-label">D - وضعیت هوشیاری و مردمک‌ها (Disability & GCS)</label>`;
+  const dSelect = document.createElement('select');
+  dSelect.className = 'input-select';
+  dSelect.innerHTML = `<option value="">-- وضعیت مردمک‌ها و علائم فوکال --</option>`;
+  ATLS_EXAM_SCHEMA.primarySurvey.disability.forEach((item) => {
+    const op = document.createElement('option');
+    op.value = item.label;
+    op.textContent = item.label;
+    if (atls.primarySurvey?.disability === item.label) op.selected = true;
+    dSelect.appendChild(op);
+  });
+  dSelect.addEventListener('change', (e) => {
+    atls.primarySurvey.disability = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  dGroup.appendChild(dSelect);
+  psGrid.appendChild(dGroup);
+
+  card.appendChild(psGrid);
+
+  // Secondary Survey: Wound Registry Table
+  const woundHeader = document.createElement('div');
+  woundHeader.className = 'subsystem-header';
+  woundHeader.style.marginTop = '1rem';
+  woundHeader.innerHTML = `
+    <span class="subsystem-title" style="font-size: 0.95rem;">🔪 ثبت زخم‌ها و جراحات تروما (Wound & Injury Registry)</span>
+  `;
+  const addWoundBtn = document.createElement('button');
+  addWoundBtn.type = 'button';
+  addWoundBtn.className = 'btn btn-secondary btn-sm';
+  addWoundBtn.innerHTML = `<span>➕</span><span>افزودن زخم / جراحت جدید</span>`;
+  addWoundBtn.addEventListener('click', () => {
+    if (!atls.wounds) atls.wounds = [];
+    atls.wounds.push({
+      id: Date.now(),
+      type: 'ورودی چاقو / جسم تیز (Stab Wound)',
+      location: '',
+      dimensions: '',
+      bleedingStatus: 'بدون خونریزی فعال (No Active Bleeding / Clotted)',
+      distalNv: 'نبض دیستال لمس، حس و حرکت کاملاً سالم (Intact Distal Neurovascular)'
+    });
+    renderAtlsExamModule();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  woundHeader.appendChild(addWoundBtn);
+  card.appendChild(woundHeader);
+
+  if (atls.wounds && atls.wounds.length > 0) {
+    const tableWrap = document.createElement('div');
+    tableWrap.style.overflowX = 'auto';
+
+    const table = document.createElement('table');
+    table.className = 'atls-wounds-table';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>نوع آسیب / زخم</th>
+          <th>محل دقیق آناتومیک</th>
+          <th>ابعاد (cm)</th>
+          <th>وضعیت خونریزی</th>
+          <th>وضعیت عصب و نبض دیستال</th>
+          <th style="width: 40px;">عملیات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector('tbody');
+
+    atls.wounds.forEach((w, wIdx) => {
+      const tr = document.createElement('tr');
+
+      // Type
+      const tdType = document.createElement('td');
+      const selType = document.createElement('select');
+      selType.className = 'input-select';
+      selType.style.padding = '0.3rem';
+      ATLS_EXAM_SCHEMA.woundTypes.forEach((wt) => {
+        const op = document.createElement('option');
+        op.value = wt;
+        op.textContent = wt;
+        if (w.type === wt) op.selected = true;
+        selType.appendChild(op);
+      });
+      selType.addEventListener('change', (e) => {
+        w.type = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdType.appendChild(selType);
+      tr.appendChild(tdType);
+
+      // Location
+      const tdLoc = document.createElement('td');
+      const inLoc = document.createElement('input');
+      inLoc.type = 'text';
+      inLoc.className = 'input-text';
+      inLoc.style.padding = '0.3rem';
+      inLoc.value = w.location || '';
+      inLoc.placeholder = 'مثلاً LUQ یا ساعد چپ';
+      inLoc.addEventListener('input', (e) => {
+        w.location = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdLoc.appendChild(inLoc);
+      tr.appendChild(tdLoc);
+
+      // Dimensions
+      const tdDim = document.createElement('td');
+      const inDim = document.createElement('input');
+      inDim.type = 'text';
+      inDim.className = 'input-text';
+      inDim.style.padding = '0.3rem';
+      inDim.value = w.dimensions || '';
+      inDim.placeholder = 'مثلاً 4x1 cm';
+      inDim.addEventListener('input', (e) => {
+        w.dimensions = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdDim.appendChild(inDim);
+      tr.appendChild(tdDim);
+
+      // Bleeding
+      const tdBleed = document.createElement('td');
+      const selBleed = document.createElement('select');
+      selBleed.className = 'input-select';
+      selBleed.style.padding = '0.3rem';
+      ATLS_EXAM_SCHEMA.bleedingStatuses.forEach((bs) => {
+        const op = document.createElement('option');
+        op.value = bs;
+        op.textContent = bs;
+        if (w.bleedingStatus === bs) op.selected = true;
+        selBleed.appendChild(op);
+      });
+      selBleed.addEventListener('change', (e) => {
+        w.bleedingStatus = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdBleed.appendChild(selBleed);
+      tr.appendChild(tdBleed);
+
+      // Distal NV
+      const tdNv = document.createElement('td');
+      const selNv = document.createElement('select');
+      selNv.className = 'input-select';
+      selNv.style.padding = '0.3rem';
+      ATLS_EXAM_SCHEMA.distalNeurovascularStatuses.forEach((nv) => {
+        const op = document.createElement('option');
+        op.value = nv;
+        op.textContent = nv;
+        if (w.distalNv === nv) op.selected = true;
+        selNv.appendChild(op);
+      });
+      selNv.addEventListener('change', (e) => {
+        w.distalNv = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdNv.appendChild(selNv);
+      tr.appendChild(tdNv);
+
+      // Delete
+      const tdDel = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'btn-delete-wound-row';
+      delBtn.innerHTML = '🗑️';
+      delBtn.title = 'حذف این ردیف زخم';
+      delBtn.addEventListener('click', () => {
+        atls.wounds.splice(wIdx, 1);
+        renderAtlsExamModule();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      tdDel.appendChild(delBtn);
+      tr.appendChild(tdDel);
+
+      tbody.appendChild(tr);
+    });
+
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+  }
+
+  // Burn Assessment Section
+  const burnHeader = document.createElement('div');
+  burnHeader.style.marginTop = '1rem';
+  burnHeader.innerHTML = `
+    <label class="form-label" style="font-weight: 700; color: var(--text-primary);">
+      🔥 ارزیابی سوختگی، درصد TBSA و آسیب استنشاقی (Burns & Inhalation Injury):
+    </label>
+  `;
+  card.appendChild(burnHeader);
+
+  if (!atls.burn) atls.burn = { tbsa: '', degree: '', inhalationSigns: [] };
+
+  const burnGrid = document.createElement('div');
+  burnGrid.className = 'form-grid-2';
+
+  const tbsaGroup = document.createElement('div');
+  tbsaGroup.className = 'form-group';
+  tbsaGroup.innerHTML = `<label class="form-label">درصد سوختگی بر اساس قانون ۹ها (% TBSA)</label>`;
+  const tbsaInput = document.createElement('input');
+  tbsaInput.type = 'text';
+  tbsaInput.className = 'input-text dir-ltr';
+  tbsaInput.value = atls.burn.tbsa || '';
+  tbsaInput.placeholder = 'مثلاً 18%';
+  tbsaInput.addEventListener('input', (e) => {
+    atls.burn.tbsa = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  tbsaGroup.appendChild(tbsaInput);
+  burnGrid.appendChild(tbsaGroup);
+
+  const degGroup = document.createElement('div');
+  degGroup.className = 'form-group';
+  degGroup.innerHTML = `<label class="form-label">حداکثر عمق و درجه سوختگی</label>`;
+  const degSelect = document.createElement('select');
+  degSelect.className = 'input-select';
+  degSelect.innerHTML = `<option value="">-- درجه سوختگی --</option>`;
+  ATLS_EXAM_SCHEMA.burnDegrees.forEach((deg) => {
+    const op = document.createElement('option');
+    op.value = deg;
+    op.textContent = deg;
+    if (atls.burn.degree === deg) op.selected = true;
+    degSelect.appendChild(op);
+  });
+  degSelect.addEventListener('change', (e) => {
+    atls.burn.degree = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  degGroup.appendChild(degSelect);
+  burnGrid.appendChild(degGroup);
+
+  card.appendChild(burnGrid);
+
+  // Inhalation signs
+  const inhGroup = document.createElement('div');
+  inhGroup.className = 'form-group';
+  inhGroup.style.marginTop = '0.5rem';
+  inhGroup.innerHTML = `<label class="form-label">علائم هشدار آسیب استنشاقی (Inhalation Injury Signs)</label>`;
+  const inhChips = document.createElement('div');
+  inhChips.className = 'tag-selector-grid';
+
+  if (!atls.burn.inhalationSigns) atls.burn.inhalationSigns = [];
+
+  ATLS_EXAM_SCHEMA.burnInhalationSigns.forEach((sign) => {
+    const isAct = atls.burn.inhalationSigns.includes(sign.label);
+    const chip = document.createElement('span');
+    chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+    chip.textContent = sign.label;
+    chip.addEventListener('click', () => {
+      if (atls.burn.inhalationSigns.includes(sign.label)) {
+        atls.burn.inhalationSigns = atls.burn.inhalationSigns.filter((s) => s !== sign.label);
+        chip.classList.remove('active');
+      } else {
+        atls.burn.inhalationSigns.push(sign.label);
+        chip.classList.add('active');
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    inhChips.appendChild(chip);
+  });
+  inhGroup.appendChild(inhChips);
+  card.appendChild(inhGroup);
+
+  container.appendChild(card);
+}
+
+function initAtlsExamHandlers() {
+  document.getElementById('btnToggleAtlsExam')?.addEventListener('click', () => {
+    if (!clinicalState.pe.atlsExam) {
+      clinicalState.pe.atlsExam = {
+        active: true,
+        primarySurvey: {},
+        wounds: [],
+        burn: { inhalationSigns: [] }
+      };
+    } else {
+      clinicalState.pe.atlsExam.active = !clinicalState.pe.atlsExam.active;
+    }
+    renderAtlsExamModule();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+}
+
+/* ==========================================================================
+   Live Quick Search & Tag Filter
+   ========================================================================== */
+function initTagQuickSearch() {
+  const searchInputs = document.querySelectorAll('.tag-quick-search-input');
+  searchInputs.forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const query = (e.target.value || '').trim().toLowerCase();
+      const targetSelector = input.dataset.searchTarget;
+      const targetContainer = targetSelector
+        ? document.querySelector(targetSelector)
+        : input.closest('.clinical-card, .tab-pane');
+      if (!targetContainer) return;
+
+      const items = targetContainer.querySelectorAll(
+        '.split-chip-wrap, .tristate-chip-wrapper, .tree-leaf-item, .dh-drug-card, .ros-item-row, .factor-chip, .pattern-pill-btn'
+      );
+
+      if (!query) {
+        items.forEach((item) => {
+          item.classList.remove('search-hidden');
+          item.style.display = '';
+        });
+        return;
+      }
+
+      items.forEach((item) => {
+        const text = (item.textContent || '').toLowerCase();
+        if (text.includes(query)) {
+          item.classList.remove('search-hidden');
+          item.style.display = '';
+          let parent = item.parentElement;
+          while (parent && parent !== targetContainer) {
+            if (parent.classList.contains('subsystem-accordion') || parent.classList.contains('pmh-tree-card')) {
+              parent.classList.remove('is-collapsed');
+            }
+            if (parent.classList.contains('tree-leaves-container')) {
+              parent.style.display = 'block';
+            }
+            parent = parent.parentElement;
+          }
+        } else {
+          item.classList.add('search-hidden');
+          item.style.display = 'none';
+        }
+      });
+    });
+  });
+}
+
 function initPeMasterNegativeHandler() {
   document.getElementById('btnPeMasterNegative')?.addEventListener('click', () => {
     PE_MANDATORY_PILLARS.forEach((pillar) => {
@@ -3691,7 +4346,7 @@ export function initApp() {
     updateShiftCasesCount();
     console.log('[Surg-Scribe v0.6] Application initialized successfully.');
   } catch (err) {
-    console.error('[Surg-Scribe] Error during initApp:', err);
+    console.error('[Surg-Scribe] Error during initApp:', err ? (err.message + '\n' + err.stack) : 'unknown error');
   }
 }
 
