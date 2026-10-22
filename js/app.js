@@ -301,7 +301,7 @@ export function createDefaultClinicalState() {
   };
 }
 
-let clinicalState = createDefaultClinicalState();
+export let clinicalState = createDefaultClinicalState();
 
 /* ==========================================================================
    UI Helpers & Notification Toasts
@@ -502,6 +502,13 @@ function initAdmissionPathwayHandlers() {
     chipTransfer?.classList.toggle('active', pathway === 'inpatient_transfer');
     chipPostop?.classList.toggle('active', pathway === 'postop_complication');
 
+    const rEmerg = chipEmerg?.querySelector('input[type="radio"]');
+    if (rEmerg) rEmerg.checked = (pathway === 'emergency_acute' || pathway === 'emergency_symptom');
+    const rClinic = chipClinic?.querySelector('input[type="radio"]');
+    if (rClinic) rClinic.checked = (pathway === 'elective_clinic' || pathway === 'clinic_referral');
+    const rTransfer = chipTransfer?.querySelector('input[type="radio"]');
+    if (rTransfer) rTransfer.checked = (pathway === 'inpatient_transfer');
+
     if (cardClinic) {
       cardClinic.style.display = (pathway === 'elective_clinic' || pathway === 'clinic_referral') ? 'block' : 'none';
     }
@@ -512,10 +519,25 @@ function initAdmissionPathwayHandlers() {
     updateLivePreview();
   }
 
-  chipEmerg?.addEventListener('click', () => setPathway('emergency_acute'));
-  chipClinic?.addEventListener('click', () => setPathway('elective_clinic'));
-  chipTransfer?.addEventListener('click', () => setPathway('inpatient_transfer'));
-  chipPostop?.addEventListener('click', () => setPathway('postop_complication'));
+  chipEmerg?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setPathway('emergency_acute');
+  });
+  chipClinic?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setPathway('elective_clinic');
+  });
+  chipTransfer?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setPathway('inpatient_transfer');
+  });
+  chipPostop?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setPathway('postop_complication');
+  });
+
+  // Initial sync
+  setPathway(clinicalState.cc?.pathway || 'emergency_acute');
 
   [
     'ccEstablishedDiagnosis',
@@ -715,29 +737,33 @@ export function renderHpiPresentations() {
     header.className = 'archetype-card-header';
 
     const titleArea = document.createElement('div');
-    titleArea.className = 'archetype-card-title';
+    titleArea.className = 'archetype-card-title-area';
 
     const iconSpan = document.createElement('span');
-    iconSpan.className = 'arch-icon';
+    iconSpan.className = 'archetype-card-icon-pill';
     iconSpan.textContent = iconMap[archType] || '📍';
     titleArea.appendChild(iconSpan);
+
+    const badge = document.createElement('span');
+    badge.className = 'archetype-num-badge';
+    badge.textContent = `مواجهه #${index + 1}`;
+    titleArea.appendChild(badge);
+
+    let cleanTitle = (pres.title || '').replace(/^مواجهه\s*#\d+\s*:\s*/, '').trim();
+    if (!cleanTitle) cleanTitle = badgeMap[archType] || 'شکایت بیمار';
+    pres.title = cleanTitle;
 
     const titleInput = document.createElement('input');
     titleInput.type = 'text';
     titleInput.className = 'archetype-title-input';
-    titleInput.value = pres.title || `مواجهه #${index + 1}: ${badgeMap[archType] || archType}`;
-    titleInput.placeholder = 'عنوان شکایت...';
+    titleInput.value = cleanTitle;
+    titleInput.placeholder = 'عنوان یا توضیح شکایت...';
     titleInput.addEventListener('input', (e) => {
       pres.title = e.target.value;
       saveCurrentCase();
       updateLivePreview();
     });
     titleArea.appendChild(titleInput);
-
-    const badge = document.createElement('span');
-    badge.className = 'archetype-badge';
-    badge.textContent = `مواجهه #${index + 1}`;
-    titleArea.appendChild(badge);
 
     header.appendChild(titleArea);
 
@@ -749,12 +775,26 @@ export function renderHpiPresentations() {
     collapseBtn.type = 'button';
     collapseBtn.className = 'btn-archetype-collapse';
     collapseBtn.title = pres._collapsed ? 'باز کردن' : 'جمع کردن';
-    collapseBtn.textContent = pres._collapsed ? '▲ باز کردن' : '▼ جمع کردن';
+    collapseBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform: ${pres._collapsed ? 'rotate(180deg)' : 'none'}; transition: transform 0.2s ease;">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+      <span>${pres._collapsed ? 'باز کردن' : 'جمع کردن'}</span>
+    `;
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'btn-delete-archetype-card';
-    delBtn.innerHTML = `<span>🗑️</span><span>حذف این مواجهه</span>`;
+    delBtn.title = 'حذف این مواجهه';
+    delBtn.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+      <span>حذف مواجهه</span>
+    `;
     delBtn.addEventListener('click', () => {
       clinicalState.hpi.presentations.splice(index, 1);
       renderHpiPresentations();
@@ -778,7 +818,12 @@ export function renderHpiPresentations() {
     collapseBtn.addEventListener('click', () => {
       pres._collapsed = !pres._collapsed;
       bodyContainer.style.display = pres._collapsed ? 'none' : 'block';
-      collapseBtn.textContent = pres._collapsed ? '▲ باز کردن' : '▼ جمع کردن';
+      collapseBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform: ${pres._collapsed ? 'rotate(180deg)' : 'none'}; transition: transform 0.2s ease;">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        <span>${pres._collapsed ? 'باز کردن' : 'جمع کردن'}</span>
+      `;
     });
 
     if (archType === 'mass_lesion_archetype') {
@@ -3986,7 +4031,7 @@ function initAtlsExamHandlers() {
  * Direct Schema Search Engine: searches directly in master clinical banks
  * without relying on DOM elements or open accordions.
  */
-export export function filterSchemaItems(query, itemsArray) {
+export function filterSchemaItems(query, itemsArray) {
   return smartClinicalSearch(query, itemsArray);
 }
 
@@ -4384,8 +4429,8 @@ function renderLabSearchTray(query, tray, input) {
   const header = document.createElement('div');
   header.className = 'search-tray-header';
   header.innerHTML = `
-    <span>نتایج آزمایش‌های تکمیلی: <span class="search-tray-count">${matches.length} مورد</span></span>
-    <span>کلیک جهت افزودن به جدول</span>
+    <span>نتایج آزمایش‌های تکمیلی و تخصصی: <span class="search-tray-count">${matches.length} مورد</span></span>
+    <span>روی + کلیک کنید تا به جدول آزمایش‌ها اضافه شود</span>
   `;
   tray.appendChild(header);
 
@@ -4402,9 +4447,10 @@ function renderLabSearchTray(query, tray, input) {
 
     const info = document.createElement('div');
     info.className = 'dh-tray-main-info';
+    const rangeText = test.normalRange ? `[نرمال: ${test.normalRange}]` : ((test.min !== undefined && test.max !== undefined) ? `[نرمال: ${test.min}-${test.max}]` : '');
     info.innerHTML = `
       <div class="dh-tray-drug-name">🧪 ${test.label} ${test.unit ? `<span class="additional-lab-unit">${test.unit}</span>` : ''}</div>
-      ${test.category ? `<div class="dh-tray-brands">پنل: ${test.category} ${test.min !== undefined && test.max !== undefined ? `[نرمال: ${test.min}-${test.max}]` : ''}</div>` : ''}
+      ${test.category ? `<div class="dh-tray-brands">پنل: ${test.category} ${rangeText}</div>` : (rangeText ? `<div class="dh-tray-brands">${rangeText}</div>` : '')}
     `;
     topRow.appendChild(info);
 
@@ -4413,13 +4459,19 @@ function renderLabSearchTray(query, tray, input) {
     actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
     actionBtn.innerHTML = isAdded ? '✓ در جدول موجود است' : '+ افزودن به جدول آزمایش‌ها';
 
-    actionBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    const handleAdd = (e) => {
+      e?.stopPropagation();
       addAdditionalLab(test);
       actionBtn.classList.add('active');
       actionBtn.innerHTML = '✓ اضافه شد';
       card.classList.add('is-active');
-    });
+      // Highlight in table
+      const el = document.getElementById('additionalLabsSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    actionBtn.addEventListener('click', handleAdd);
+    card.addEventListener('click', handleAdd);
 
     topRow.appendChild(actionBtn);
     card.appendChild(topRow);
@@ -4428,16 +4480,16 @@ function renderLabSearchTray(query, tray, input) {
 
   tray.appendChild(list);
 
-  // Fallback box
+  // Fallback box for arbitrary lab tests
   const fallbackBox = document.createElement('div');
   fallbackBox.className = 'search-tray-fallback-box';
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان آزمایش جدید`;
+  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان آزمایش تشخیصی جدید`;
   addBtn.addEventListener('click', () => {
-    addAdditionalLab({ id: 'ext_lab_' + Date.now(), label: query, name: query, unit: '' });
-    addBtn.innerHTML = `✓ آزمایش «${query}» با موفقیت اضافه شد`;
+    addAdditionalLab({ id: 'ext_lab_' + Date.now(), label: query, name: query, unit: '', normalRange: '' });
+    addBtn.innerHTML = `✓ آزمایش «${query}» به جدول اضافه شد`;
     addBtn.style.borderColor = '#10b981';
     addBtn.style.color = '#10b981';
   });
@@ -4503,12 +4555,12 @@ function initSchemaOmnisearch() {
       tray.classList.add('is-active');
       tray.innerHTML = '';
 
-      if (targetSection === '#tab-dh') {
-        renderDrugSearchTray(query, tray, input);
-      } else if (targetSection === '#tab-fh') {
-        renderFhSearchTray(query, tray, input);
-      } else if (targetSection === '#tab-lab') {
+      if (input.id === 'labQuickSearchInput' || targetSection === '#tab-lab' || targetSection === '#tab-paraclinic' || targetSection === '#tab-paraclinics') {
         renderLabSearchTray(query, tray, input);
+      } else if (targetSection === '#tab-dh') {
+        renderDrugSearchTray(query, tray, input);
+      } else if (targetSection === '#tab-fh' || input.id === 'fhQuickSearchInput') {
+        renderFhSearchTray(query, tray, input);
       } else if (targetSection === '#tab-pmh') {
         renderTriStateSearchTray(query, tray, input, ALL_MASTER_PMH_ITEMS, 'pmh');
       } else if (targetSection === '#tab-ros') {
@@ -4681,28 +4733,38 @@ export function renderParaclinicLabs() {
     updateLivePreview();
   });
 
-  // Quick Panels Wiring
-  document.getElementById('btnAddVbgPanel')?.addEventListener('click', () => {
-    const vbgTests = [
-      { id: 'ext_lab_ph', name: 'pH', unit: '', normalRange: '7.35-7.45' },
-      { id: 'ext_lab_pco2', name: 'PCO2 (VBG)', unit: 'mmHg', normalRange: '40-50' },
-      { id: 'ext_lab_po2', name: 'PO2 (VBG)', unit: 'mmHg', normalRange: '30-45' },
-      { id: 'ext_lab_hco3', name: 'HCO3', unit: 'mEq/L', normalRange: '22-26' },
-      { id: 'ext_lab_be', name: 'Base Excess (BE)', unit: 'mEq/L', normalRange: '-2 to +2' },
-      { id: 'ext_lab_spo2_vbg', name: 'O2 Sat (VBG)', unit: '%', normalRange: '70-80' }
-    ];
-    vbgTests.forEach((t) => addAdditionalLab(t));
-  });
+  // Quick Panels Wiring (guarded against duplicate event listener registration)
+  const btnVbg = document.getElementById('btnAddVbgPanel');
+  if (btnVbg && !btnVbg.dataset.bound) {
+    btnVbg.dataset.bound = 'true';
+    btnVbg.addEventListener('click', () => {
+      const vbgTests = [
+        { id: 'lab_ph', name: 'pH (VBG / ABG)', label: 'pH (VBG / ABG)', unit: '', normalRange: '7.35 - 7.45' },
+        { id: 'lab_pco2', name: 'PCO2 (VBG)', label: 'PCO2 (VBG)', unit: 'mmHg', normalRange: '35 - 45' },
+        { id: 'lab_po2', name: 'PO2 (VBG)', label: 'PO2 (VBG)', unit: 'mmHg', normalRange: '30 - 50' },
+        { id: 'lab_hco3', name: 'HCO3', label: 'HCO3', unit: 'mEq/L', normalRange: '22 - 26' },
+        { id: 'lab_be', name: 'Base Excess (BE)', label: 'Base Excess (BE)', unit: 'mEq/L', normalRange: '-2 - +2' },
+        { id: 'lab_o2_sat_vbg', name: 'O2 Sat (VBG)', label: 'O2 Sat (VBG)', unit: '%', normalRange: '70 - 80' }
+      ];
+      vbgTests.forEach((t) => addAdditionalLab(t));
+      showToast('پنل گازهای خونی (VBG / ABG) به جدول اضافه شد.', 'info');
+    });
+  }
 
-  document.getElementById('btnAddUaPanel')?.addEventListener('click', () => {
-    const uaTests = [
-      { id: 'ext_lab_ua_wbc', name: 'U/A WBC', unit: '/hpf', normalRange: '0-5' },
-      { id: 'ext_lab_ua_rbc', name: 'U/A RBC', unit: '/hpf', normalRange: '0-3' },
-      { id: 'ext_lab_ua_bact', name: 'U/A Bacteria / Nitrite', unit: '', normalRange: 'Negative' },
-      { id: 'ext_lab_uc', name: 'Urine Culture (U/C)', unit: '', normalRange: 'No growth' }
-    ];
-    uaTests.forEach((t) => addAdditionalLab(t));
-  });
+  const btnUa = document.getElementById('btnAddUaPanel');
+  if (btnUa && !btnUa.dataset.bound) {
+    btnUa.dataset.bound = 'true';
+    btnUa.addEventListener('click', () => {
+      const uaTests = [
+        { id: 'lab_ua_wbc', name: 'U/A WBC', label: 'U/A WBC (گلبول سفید ادرار)', unit: '/HPF', normalRange: '0 - 4' },
+        { id: 'lab_ua_rbc', name: 'U/A RBC', label: 'U/A RBC (گلبول قرمز ادرار)', unit: '/HPF', normalRange: '0 - 3' },
+        { id: 'lab_ua_bacteria_nitrite', name: 'U/A Bacteria & Nitrite', label: 'U/A Bacteria & Nitrite', unit: '', normalRange: 'Negative' },
+        { id: 'lab_uc', name: 'Urine Culture (U/C)', label: 'Urine Culture (کشت ادرار U/C)', unit: '', normalRange: 'No growth' }
+      ];
+      uaTests.forEach((t) => addAdditionalLab(t));
+      showToast('پنل آنالیز و کشت ادرار (U/A & U/C) به جدول اضافه شد.', 'info');
+    });
+  }
 
   renderAdditionalLabs();
 }
@@ -4737,30 +4799,18 @@ export function renderAdditionalLabs() {
     const card = document.createElement('div');
     card.className = 'additional-lab-card';
 
-    const info = document.createElement('div');
-    info.className = 'additional-lab-info';
-    info.innerHTML = `<strong>${labData.name}</strong>${labData.unit ? ` <span class="additional-lab-unit">${labData.unit}</span>` : ''}${labData.normalRange ? ` <span class="additional-lab-range">[${labData.normalRange}]</span>` : ''}`;
+    const header = document.createElement('div');
+    header.className = 'additional-lab-header';
 
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'input-text additional-lab-input';
-    inp.placeholder = 'مقدار...';
-    inp.value = typeof labData === 'object' ? (labData.value || '') : labData;
-    inp.addEventListener('input', (e) => {
-      if (typeof clinicalState.paraclinics.additionalLabs[labId] === 'object') {
-        clinicalState.paraclinics.additionalLabs[labId].value = e.target.value;
-      } else {
-        clinicalState.paraclinics.additionalLabs[labId] = e.target.value;
-      }
-      saveCurrentCase();
-      updateLivePreview();
-    });
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'additional-lab-label';
+    labelSpan.textContent = labData.name || labId;
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
-    delBtn.className = 'btn-delete-card';
-    delBtn.innerHTML = `<span>🗑️</span>`;
+    delBtn.className = 'btn-remove-additional-lab';
     delBtn.title = 'حذف این آزمایش';
+    delBtn.innerHTML = '✕';
     delBtn.addEventListener('click', () => {
       delete clinicalState.paraclinics.additionalLabs[labId];
       renderAdditionalLabs();
@@ -4768,9 +4818,76 @@ export function renderAdditionalLabs() {
       updateLivePreview();
     });
 
-    card.appendChild(info);
-    card.appendChild(inp);
-    card.appendChild(delBtn);
+    header.appendChild(labelSpan);
+    header.appendChild(delBtn);
+    card.appendChild(header);
+
+    const inputRow = document.createElement('div');
+    inputRow.className = 'additional-lab-input-row';
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'additional-lab-input';
+    inp.placeholder = labData.normalRange ? `نرمال: ${labData.normalRange}` : 'مقدار...';
+    const curVal = typeof labData === 'object' ? (labData.value || '') : labData;
+    inp.value = curVal;
+
+    function checkRange(valStr) {
+      inp.classList.remove('is-high', 'is-low');
+      if (!valStr || !labData.normalRange) return;
+      const num = parseFloat(valStr);
+      if (isNaN(num)) return;
+      const rng = String(labData.normalRange);
+      if (rng.includes('-')) {
+        const parts = rng.split('-').map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+        if (parts.length === 2) {
+          if (num > parts[1]) inp.classList.add('is-high');
+          else if (num < parts[0]) inp.classList.add('is-low');
+        }
+      } else if (rng.startsWith('<')) {
+        const limit = parseFloat(rng.replace('<', '').trim());
+        if (!isNaN(limit) && num > limit) inp.classList.add('is-high');
+      } else if (rng.startsWith('>')) {
+        const limit = parseFloat(rng.replace('>', '').trim());
+        if (!isNaN(limit) && num < limit) inp.classList.add('is-low');
+      }
+    }
+    checkRange(curVal);
+
+    inp.addEventListener('input', (e) => {
+      const v = e.target.value;
+      if (typeof clinicalState.paraclinics.additionalLabs[labId] === 'object') {
+        clinicalState.paraclinics.additionalLabs[labId].value = v;
+      } else {
+        clinicalState.paraclinics.additionalLabs[labId] = {
+          name: labData.name || labId,
+          value: v,
+          unit: labData.unit || '',
+          normalRange: labData.normalRange || ''
+        };
+      }
+      checkRange(v);
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    inputRow.appendChild(inp);
+    if (labData.unit) {
+      const unitSpan = document.createElement('span');
+      unitSpan.className = 'additional-lab-unit';
+      unitSpan.style.cssText = 'font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; margin-right: 4px;';
+      unitSpan.textContent = labData.unit;
+      inputRow.appendChild(unitSpan);
+    }
+    card.appendChild(inputRow);
+
+    if (labData.normalRange) {
+      const rangeDiv = document.createElement('div');
+      rangeDiv.className = 'additional-lab-range';
+      rangeDiv.textContent = `نرمال: ${labData.normalRange}`;
+      card.appendChild(rangeDiv);
+    }
+
     container.appendChild(card);
   });
 }

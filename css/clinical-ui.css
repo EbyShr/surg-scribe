@@ -3000,31 +3000,129 @@ html[dir="ltr"] .archetype-card[data-archetype="elective_asymptomatic_archetype"
   border-left: 4px solid #10B981;
 }
 
+/* Archetype Presentation Card Header Styling */
 .archetype-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 0.75rem;
   margin-bottom: 0.85rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px dashed var(--border-subtle);
+  border-bottom: 1px solid var(--border-medium);
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.archetype-card-title {
+.archetype-card-title-area {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 260px;
+}
+
+.archetype-card-icon-pill {
+  font-size: 1.15rem;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-medium);
+  flex-shrink: 0;
+}
+
+.archetype-num-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.archetype-title-input {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  padding: 5px 10px;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 380px;
+}
+
+.archetype-title-input:hover {
+  background: var(--bg-canvas);
+  border-color: var(--border-strong);
+}
+
+.archetype-title-input:focus {
+  background: var(--bg-canvas);
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+.archetype-card-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text-primary);
+  flex-shrink: 0;
 }
 
-.archetype-type-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-xs);
-  background: var(--bg-surface);
+.btn-archetype-collapse {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-archetype-collapse:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-canvas);
+}
+
+.btn-delete-archetype-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-archetype-card:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete-archetype-card svg {
+  stroke: currentColor;
 }
 
 /* Quick Search Box across categorical pillars */

@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Readex+Pro:wght@400;600;700&family=Rubik:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheet with Cache-Busting -->
-  <link rel="stylesheet" href="css/clinical-ui.css?v=0.6.1">
+  <link rel="stylesheet" href="css/clinical-ui.css?v=0.8.2">
 </head>
 <body class="dark-mode">
 
@@ -197,9 +197,10 @@
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
               <span>مسیر پذیرش بیمار (Admission Pathway)</span>
             </div>
+            <span class="card-badge">نحوه ورود به بخش جراحی</span>
           </div>
           <div class="form-grid-3">
-            <label class="toggle-chip" id="chipPathwayEmergency">
+            <label class="toggle-chip active" id="chipPathwayEmergency">
               <input type="radio" name="admissionPathway" value="emergency_acute" checked style="display:none;">
               <span>🚨 ۱. مراجعه حاد / اورژانس (Emergency)</span>
             </label>
@@ -211,6 +212,50 @@
               <input type="radio" name="admissionPathway" value="inpatient_transfer" style="display:none;">
               <span>🏥 ۳. انتقال بین‌بخشی / اعزام (Transfer)</span>
             </label>
+          </div>
+
+          <!-- فیلدهای تکمیلی بستری الکتیو / ارجاع از درمانگاه -->
+          <div class="pathway-subcard" id="cardCCReferral" style="display:none; margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.85rem;">
+            <div class="card-title" style="margin-bottom: 0.65rem; font-size: 0.88rem; color: var(--primary); font-weight: 700;">
+              <span class="icon-holder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+              <span>اطلاعات بستری الکتیو و ارجاع از درمانگاه:</span>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">استاد محترم ارجاع‌دهنده</label>
+                <input type="text" class="input-text" id="ccReferringAttending" placeholder="مثلاً دکتر احمدی">
+              </div>
+              <div class="form-group">
+                <label class="form-label">تشخیص اولیه درمانگاه</label>
+                <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کوله‌سیستیت مزمن با سنگ کیسه صفرا">
+              </div>
+              <div class="form-group">
+                <label class="form-label">اقدام یا عمل جراحی برنامه‌ریزی‌شده</label>
+                <input type="text" class="input-text" id="ccPlannedProcedure" placeholder="مثلاً کوله‌سیستکتومی لاپاروسکوپیک">
+              </div>
+            </div>
+          </div>
+
+          <!-- فیلدهای تکمیلی انتقال بین‌بخشی / مشاوره بستری یا اعزام -->
+          <div class="pathway-subcard" id="cardCCTransfer" style="display:none; margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.85rem;">
+            <div class="card-title" style="margin-bottom: 0.65rem; font-size: 0.88rem; color: #f59e0b; font-weight: 700;">
+              <span class="icon-holder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg></span>
+              <span>اطلاعات انتقال بین‌بخشی، اعزام یا مشاوره بستری:</span>
+            </div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label class="form-label">بخش یا بیمارستان مبدأ</label>
+                <input type="text" class="input-text" id="ccOriginWardHospital" placeholder="مثلاً بخش ICU داخلی یا بیمارستان شهرستان">
+              </div>
+              <div class="form-group">
+                <label class="form-label">علت بستری اولیه در مبدأ</label>
+                <input type="text" class="input-text" id="ccPrimaryAdmissionReason" placeholder="مثلاً سپسیس ناشی از پنومونی">
+              </div>
+              <div class="form-group">
+                <label class="form-label">علت مشاوره و انتقال به سرویس جراحی</label>
+                <input type="text" class="input-text" id="ccTransferConsultReason" placeholder="مثلاً افتادگی هموگلوبین و شک به خونریزی داخل شکمی">
+              </div>
+            </div>
           </div>
         </div>
 
@@ -227,54 +272,6 @@
           <div class="form-group">
             <label class="form-label">شکایت اصلی از زبان بیمار (صرفاً عبارت شکایت)</label>
             <input type="text" class="input-text" id="ccPatientQuote" placeholder="مثلاً درد ربع تحتانی چپ شکم (LLQ) و درد پستان چپ">
-          </div>
-        </div>
-
-        <!-- فیلدهای تکمیلی بستری الکتیو / ارجاع از درمانگاه -->
-        <div class="clinical-card" id="cardCCReferral" style="display:none;">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
-              <span>اطلاعات بستری الکتیو و نامه ارجاع استاد</span>
-            </div>
-          </div>
-          <div class="form-grid-3">
-            <div class="form-group">
-              <label class="form-label">استاد محترم ارجاع‌دهنده</label>
-              <input type="text" class="input-text" id="ccReferringAttending" placeholder="مثلاً دکتر احمدی">
-            </div>
-            <div class="form-group">
-              <label class="form-label">تشخیص اولیه درمانگاه</label>
-              <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کوله‌سیستیت مزمن با سنگ کیسه صفرا">
-            </div>
-            <div class="form-group">
-              <label class="form-label">اقدام یا عمل جراحی برنامه‌ریزی‌شده</label>
-              <input type="text" class="input-text" id="ccPlannedProcedure" placeholder="مثلاً کوله‌سیستکتومی لاپاروسکوپیک">
-            </div>
-          </div>
-        </div>
-
-        <!-- فیلدهای تکمیلی انتقال بین‌بخشی / مشاوره بستری یا اعزام -->
-        <div class="clinical-card" id="cardCCTransfer" style="display:none;">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg></span>
-              <span>اطلاعات انتقال بین‌بخشی، اعزام یا مشاوره بستری</span>
-            </div>
-          </div>
-          <div class="form-grid-3">
-            <div class="form-group">
-              <label class="form-label">بخش یا بیمارستان مبدأ</label>
-              <input type="text" class="input-text" id="ccOriginWardHospital" placeholder="مثلاً بخش ICU داخلی یا بیمارستان شهرستان">
-            </div>
-            <div class="form-group">
-              <label class="form-label">علت بستری اولیه در مبدأ</label>
-              <input type="text" class="input-text" id="ccPrimaryAdmissionReason" placeholder="مثلاً سپسیس ناشی از پنومونی">
-            </div>
-            <div class="form-group">
-              <label class="form-label">علت مشاوره و انتقال به سرویس جراحی</label>
-              <input type="text" class="input-text" id="ccTransferConsultReason" placeholder="مثلاً افتادگی هموگلوبین و شک به خونریزی داخل شکمی">
-            </div>
           </div>
         </div>
 
@@ -859,7 +856,7 @@
 
           <!-- کادر سرچ هوشمند آزمایشگاه -->
           <div class="tag-quick-search-box">
-            <input type="search" class="tag-quick-search-input" data-search-target="#tab-lab" id="labQuickSearchInput" placeholder="🔍 جستجو و افزودن سایر آزمایش‌ها، الکترولیت‌ها، VBG، تومورمارکرها، ادرار و... (مثلاً کلسیم، تروپونین، گاز خون، CEA...)" data-i18n-ph="quick_search_ph">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-paraclinics" id="labQuickSearchInput" placeholder="🔍 جستجو و افزودن سایر آزمایش‌ها، الکترولیت‌ها، VBG، تومورمارکرها، ادرار و... (مثلاً کلسیم، تروپونین، گاز خون، CEA...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
             <div class="search-results-tray"></div>
           </div>
@@ -1154,13 +1151,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=0.6.1"></script>
+  <script type="module" src="js/app.js?v=0.8.2"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=0.6.1').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=0.8.2').then((reg) => {
           console.log('[PWA v0.8] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();

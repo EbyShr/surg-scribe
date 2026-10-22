@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.8-omnisearch-cache-v8';
+const CACHE_NAME = 'surg-v0.8.2-omnisearch-cache-v82';
 
 const STATIC_ASSETS = [
   './',
@@ -64,27 +64,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-First strategy for local app assets
+  // Network-First strategy for local app assets to prevent stale code caching
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          // Revalidate in background
-          fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-            }
-          }).catch(() => {/* Offline */});
-          return cachedResponse;
-        }
-        return fetch(event.request).then((networkResponse) => {
+      fetch(event.request)
+        .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           }
           return networkResponse;
-        });
-      })
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }
