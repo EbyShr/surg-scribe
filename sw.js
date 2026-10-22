@@ -1,9 +1,10 @@
-const CACHE_NAME = 'surg-v0.7-master-formulary-v7';
+const CACHE_NAME = 'surg-v0.8-omnisearch-cache-v8';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/clinical-ui.css',
+  './js/fuzzy-search.js',
   './js/schema.js',
   './js/telemetry.js',
   './js/generator.js',

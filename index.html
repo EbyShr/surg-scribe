@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.7-Master-Formulary</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.8-Omnisearch</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.7-Master-Formulary">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.8-Omnisearch">
 
   <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.7-Surg</span>
+        <span class="version-pill">v0.8-Omnisearch</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
@@ -200,16 +200,16 @@
           </div>
           <div class="form-grid-3">
             <label class="toggle-chip" id="chipPathwayEmergency">
-              <input type="radio" name="admissionPathway" value="emergency_symptom" checked style="display:none;">
-              <span>🚨 اورژانس / علامت حاد</span>
+              <input type="radio" name="admissionPathway" value="emergency_acute" checked style="display:none;">
+              <span>🚨 ۱. مراجعه حاد / اورژانس (Emergency)</span>
             </label>
             <label class="toggle-chip" id="chipPathwayClinic">
-              <input type="radio" name="admissionPathway" value="clinic_referral" style="display:none;">
-              <span>📋 ارجاع درمانگاه / بستری الکتیو</span>
+              <input type="radio" name="admissionPathway" value="elective_clinic" style="display:none;">
+              <span>📋 ۲. بستری الکتیو / درمانگاه (Elective)</span>
             </label>
-            <label class="toggle-chip" id="chipPathwayPostop">
-              <input type="radio" name="admissionPathway" value="postop_complication" style="display:none;">
-              <span>🏥 عوارض پس از عمل / درن</span>
+            <label class="toggle-chip" id="chipPathwayTransfer">
+              <input type="radio" name="admissionPathway" value="inpatient_transfer" style="display:none;">
+              <span>🏥 ۳. انتقال بین‌بخشی / اعزام (Transfer)</span>
             </label>
           </div>
         </div>
@@ -230,12 +230,12 @@
           </div>
         </div>
 
-        <!-- فیلدهای تکمیلی ارجاع از درمانگاه -->
+        <!-- فیلدهای تکمیلی بستری الکتیو / ارجاع از درمانگاه -->
         <div class="clinical-card" id="cardCCReferral" style="display:none;">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
-              <span>اطلاعات ارجاع از درمانگاه و نامه بستری استاد</span>
+              <span>اطلاعات بستری الکتیو و نامه ارجاع استاد</span>
             </div>
           </div>
           <div class="form-grid-3">
@@ -245,11 +245,35 @@
             </div>
             <div class="form-group">
               <label class="form-label">تشخیص اولیه درمانگاه</label>
-              <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کله‌سیستیت مزمن با سنگ کیسه صفرا">
+              <input type="text" class="input-text" id="ccEstablishedDiagnosis" placeholder="مثلاً کوله‌سیستیت مزمن با سنگ کیسه صفرا">
             </div>
             <div class="form-group">
-              <label class="form-label">عمل جراحی برنامه‌ریزی‌شده</label>
-              <input type="text" class="input-text" id="ccPlannedProcedure" placeholder="مثلاً کله‌سیستکتومی لاپاروسکوپیک">
+              <label class="form-label">اقدام یا عمل جراحی برنامه‌ریزی‌شده</label>
+              <input type="text" class="input-text" id="ccPlannedProcedure" placeholder="مثلاً کوله‌سیستکتومی لاپاروسکوپیک">
+            </div>
+          </div>
+        </div>
+
+        <!-- فیلدهای تکمیلی انتقال بین‌بخشی / مشاوره بستری یا اعزام -->
+        <div class="clinical-card" id="cardCCTransfer" style="display:none;">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg></span>
+              <span>اطلاعات انتقال بین‌بخشی، اعزام یا مشاوره بستری</span>
+            </div>
+          </div>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label class="form-label">بخش یا بیمارستان مبدأ</label>
+              <input type="text" class="input-text" id="ccOriginWardHospital" placeholder="مثلاً بخش ICU داخلی یا بیمارستان شهرستان">
+            </div>
+            <div class="form-group">
+              <label class="form-label">علت بستری اولیه در مبدأ</label>
+              <input type="text" class="input-text" id="ccPrimaryAdmissionReason" placeholder="مثلاً سپسیس ناشی از پنومونی">
+            </div>
+            <div class="form-group">
+              <label class="form-label">علت مشاوره و انتقال به سرویس جراحی</label>
+              <input type="text" class="input-text" id="ccTransferConsultReason" placeholder="مثلاً افتادگی هموگلوبین و شک به خونریزی داخل شکمی">
             </div>
           </div>
         </div>
@@ -474,32 +498,49 @@
       <!-- ================= TAB 4: دارو، حساسیت و عادات (DH/AH/SH/FH) ================= -->
       <section class="tab-pane" id="tab-dh" data-section-id="dh_ah_sh_fh">
         
-        <!-- کاتالوگ دسته‌بندی‌شده داروها با ۳ کادر دوز و طریقه مصرف -->
+        <!-- سوابق دارویی فشرده با جستجوی هوشمند (v0.8-Omnisearch) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path><path d="m8.5 8.5 7 7"></path></svg></span>
-              <span>سوابق دارویی دسته‌بندی‌شده (Drug History - DH) با دوز و نحوه مصرف</span>
+              <span>سوابق دارویی (Drug History - DH) با دوز و نحوه مصرف</span>
             </div>
-            <span class="card-badge">دوز + نحوه مصرف + آخرین دوز</span>
+            <button type="button" class="btn-no-routine-meds" id="btnNoRoutineMedications">
+              <span class="btn-icon">✓</span>
+              <span>عدم مصرف داروی روتین (No Routine Medications)</span>
+            </button>
           </div>
 
-          <!-- نوار جستجوی زنده داروها -->
+          <!-- نوار جستجوی زنده داروها با موتور هوشمند فازی -->
           <div class="tag-quick-search-box">
-            <input type="search" class="tag-quick-search-input" data-search-target="#tab-dh" placeholder="🔍 جستجوی سریع داروها (مثلاً: پلاویکس، آسپرین، لوزارتان، انسولین، وارفارین...)" data-i18n-ph="quick_search_ph">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-dh" placeholder="🔍 جستجوی نام دارو، نام تجاری یا گروه دارویی — با تحمل غلط املایی (مثلاً پلاویکس، آشپرین، کترولاک...)" data-i18n-ph="quick_search_ph">
             <span class="tag-search-icon">🔍</span>
             <div class="search-results-tray"></div>
           </div>
 
-          <!-- ۵ دسته‌بندی دارویی -->
-          <div id="dhCategoriesContainer"></div>
+          <!-- لیست داروهای انتخاب‌شده برای بیمار فعلی -->
+          <div class="dh-active-drugs-section">
+            <label class="form-label" style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+              💊 داروهای مصرفی فعال بیمار (همراه با دوز و طریقه مصرف):
+            </label>
+            <div id="dhActiveDrugsContainer" class="dh-active-drugs-container"></div>
+          </div>
+
+          <!-- دسته‌بندی‌های دارویی بسته (Collapsed Pills) -->
+          <div class="dh-category-pills-section">
+            <label class="form-label" style="font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">
+              دسته‌بندی‌های دارویی (جهت باز کردن و مرور دستی):
+            </label>
+            <div class="dh-category-pills-bar" id="dhCategoryPillsBar"></div>
+            <div id="dhCategoryDrawerContainer" class="dh-category-drawer-container"></div>
+          </div>
 
           <!-- داروهای دستی اضافه شده -->
           <div id="dhCustomDrugsContainer"></div>
 
           <button type="button" class="btn-add-custom-drug" id="btnAddCustomDrug">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>➕ افزودن داروی دستی (با دوز و طریقه مصرف)</span>
+            <span>➕ افزودن داروی خارج از لیست (با دوز و طریقه مصرف)</span>
           </button>
 
           <div class="form-group" style="margin-top: 0.75rem;">
@@ -546,7 +587,7 @@
           </div>
         </div>
 
-        <!-- Social History (SH) -->
+        <!-- Social History (SH) با دکمه‌های تایید بصری منفی -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
@@ -555,7 +596,24 @@
             </div>
             <span class="card-badge" id="packYearBadge">0.0 Pack-Year</span>
           </div>
-          <div class="form-grid-3">
+
+          <!-- دکمه‌های تایید بصری نفی مصرف -->
+          <div class="sh-neg-buttons-bar">
+            <button type="button" class="btn-sh-neg" id="btnNegSmoking">
+              <span class="sh-neg-icon">✓</span>
+              <span>عدم مصرف سیگار و دخانیات</span>
+            </button>
+            <button type="button" class="btn-sh-neg" id="btnNegOpium">
+              <span class="sh-neg-icon">✓</span>
+              <span>عدم مصرف اپیوم و مواد مخدر</span>
+            </button>
+            <button type="button" class="btn-sh-neg" id="btnNegAlcohol">
+              <span class="sh-neg-icon">✓</span>
+              <span>عدم مصرف الکل</span>
+            </button>
+          </div>
+
+          <div class="form-grid-3" style="margin-top: 0.75rem;">
             <div class="form-group">
               <label class="form-label">تعداد نخ سیگار در روز</label>
               <input type="number" class="input-text dir-ltr" id="shCigsPerDay" placeholder="مثلاً 20" min="0">
@@ -570,7 +628,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">سایر عادات و سوابق اجتماعی</label>
+            <label class="form-label">سایر عادات و سوابق اجتماعی (الکل، تغذیه، شغل، سفر)</label>
             <input type="text" class="input-text" id="shNote" placeholder="مثلاً عدم مصرف الکل، بدون سفر خارجی اخیر">
           </div>
           <!-- Gap Logger for SH -->
@@ -583,18 +641,40 @@
           </div>
         </div>
 
-        <!-- Family History (FH) -->
+        <!-- Family History (FH) ساختاریافته با وضعیت فوت و سن -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-              <span>سوابق خانوادگی (Family History - FH)</span>
+              <span>سوابق خانوادگی ساختاریافته (Family History - FH)</span>
             </div>
+            <button type="button" class="btn-fh-master-neg" id="btnNegFamilyHistory">
+              <span class="fh-neg-icon">✓</span>
+              <span>عدم سابقه بیماری خاص یا بدخیمی در بستگان درجه یک</span>
+            </button>
           </div>
-          <div class="chips-container" id="fhChipsContainer"></div>
-          <div class="form-group">
+
+          <!-- نوار سرچ هوشمند بیماری‌های خانوادگی -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-fh" id="fhQuickSearchInput" placeholder="🔍 جستجوی بیماری ارثی، قلبی یا انواع سرطان در خانواده (مثلاً کانسر پستان، سکته قلبی، دیابت...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
+          </div>
+
+          <!-- ۶ دکمه پرتکرار پیش‌فرض -->
+          <div class="fh-quick-pills-section">
+            <label class="form-label" style="font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">
+              بیماری‌های شایع خانوادگی (افزودن سریع):
+            </label>
+            <div class="fh-quick-pills-bar" id="fhQuickPillsBar"></div>
+          </div>
+
+          <!-- کارت‌های بیماری‌های انتخاب‌شده خانوادگی -->
+          <div id="fhActiveDiseasesContainer" class="fh-active-diseases-container"></div>
+
+          <div class="form-group" style="margin-top: 0.75rem;">
             <label class="form-label">توضیحات تکمیلی FH</label>
-            <input type="text" class="input-text" id="fhNote" placeholder="مثلاً کانسر کولون در پدر در سن ۵۲ سالگی">
+            <input type="text" class="input-text" id="fhNote" placeholder="هرگونه نکته خاص در خصوص شجره‌نامه خانوادگی، خویشاوندی والدین و...">
           </div>
           <!-- Gap Logger for FH -->
           <div class="system-gap-box">
@@ -736,13 +816,15 @@
             </button>
           </div>
 
-          <!-- ۵ ماژول معاینه موضعی قابل آنلاک توسط اپراتور -->
-          <div style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">
-            <label class="form-label" style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
-              ➕ ماژول‌های معاینه موضعی تخصصی (صرفاً در صورت انجام آنلاک شوند):
-            </label>
-            <div class="unlockable-modules-bar" id="peUnlockableModulesBar"></div>
-            <div id="peUnlockedModulesContainer"></div>
+          <!-- معاینه فیزیکی جامع ۱۲ سیستمی (پیش‌فرض خاموش/جمع‌شده جهت تکمیل به نیاز) -->
+          <div style="margin-top: 1.25rem; border-top: 2px solid var(--border-medium); padding-top: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <label class="form-label" style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0;">
+                🩺 معاینه فیزیکی سایر سیستم‌ها (HEENT، ریه، قلب، پستان، رکتال، اعصاب، اسکلتی):
+              </label>
+              <span class="card-badge">پیش‌فرض فشرده — ورود به شرح‌حال در صورت معاینه</span>
+            </div>
+            <div id="peComprehensiveSystemsContainer" class="pe-comprehensive-systems-container"></div>
           </div>
 
           <div class="form-group" style="margin-top: 0.75rem;">
@@ -765,21 +847,47 @@
       <!-- ================= TAB 7: پاراکلینیک جامع ================= -->
       <section class="tab-pane" id="tab-paraclinics" data-section-id="paraclinics">
         
-        <!-- Labs & Enzymes Panels -->
+        <!-- Labs: Two-Layer Architecture (Core Routine + Searchable Extended) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg></span>
-              <span>۶ پنل آزمایشگاهی استاندارد جراحی (Lab Panels)</span>
+              <span>آزمایشگاه بالینی جراحی (Core Routine + Searchable Extended)</span>
             </div>
             <span class="card-badge">هشدار خودکار ↑ High و ↓ Low</span>
           </div>
 
+          <!-- کادر سرچ هوشمند آزمایشگاه -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-lab" id="labQuickSearchInput" placeholder="🔍 جستجو و افزودن سایر آزمایش‌ها، الکترولیت‌ها، VBG، تومورمارکرها، ادرار و... (مثلاً کلسیم، تروپونین، گاز خون، CEA...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
+            <div class="search-results-tray"></div>
+          </div>
+
+          <!-- دکمه‌های پنل‌های سریع VBG و U/A -->
+          <div class="lab-quick-actions-bar">
+            <button type="button" class="btn-lab-quick-panel" id="btnAddVbgPanel">
+              <span>➕ افزودن یکجای پنل گازهای خونی (VBG / ABG)</span>
+            </button>
+            <button type="button" class="btn-lab-quick-panel" id="btnAddUaPanel">
+              <span>➕ افزودن پنل کامل آنالیز ادرار (U/A & U/C)</span>
+            </button>
+          </div>
+
+          <!-- آزمایش‌های روتین هسته اصلی (Core Routine Panels) -->
           <div id="paraclinicLabPanelsContainer"></div>
 
+          <!-- آزمایش‌های تکمیلی اضافه شده برای بیمار -->
+          <div class="additional-labs-section" id="additionalLabsSection" style="display:none; margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">
+            <label class="form-label" style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+              🧪 آزمایش‌های تکمیلی و تخصصی بیمار:
+            </label>
+            <div id="additionalLabsContainer" class="additional-labs-container"></div>
+          </div>
+
           <div class="form-group" style="margin-top: 0.75rem;">
-            <label class="form-label">سایر آزمایش‌ها (ABG، آنالیز ادرار U/A، کشت و تست‌های سرولوژی)</label>
-            <input type="text" class="input-text" id="paraclinicLabNote" placeholder="مثلاً U/A: WBC 20-25, RBC 4-6 | ABG: pH 7.34, HCO3 19, Lactate 2.8">
+            <label class="form-label">توضیحات تکمیلی آزمایشگاه و سیر تغییرات</label>
+            <input type="text" class="input-text" id="paraclinicLabNote" placeholder="مثلاً سیر افت هموگلوبین از ۱۲ به ۹ در ۶ ساعت اخیر...">
           </div>
         </div>
 
@@ -892,7 +1000,7 @@
     <div class="preview-top-toolbar">
       <div class="modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-        <span>پیش‌نمایش زنده شرح‌حال v0.7-Master-Formulary</span>
+        <span>پیش‌نمایش زنده شرح‌حال v0.8-Omnisearch</span>
       </div>
       <div class="preview-actions">
         <button class="btn btn-secondary btn-sm" id="btnCopyNoteMobile">کپی متن</button>
@@ -1053,7 +1161,7 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js?v=0.6.1').then((reg) => {
-          console.log('[PWA v0.7] Service Worker registered:', reg.scope);
+          console.log('[PWA v0.8] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();
         }).catch((err) => {

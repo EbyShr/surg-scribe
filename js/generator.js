@@ -7,6 +7,7 @@ import {
   DH_CATEGORIES,
   PE_MANDATORY_PILLARS,
   PE_UNLOCKABLE_MODULES,
+  PE_COMPREHENSIVE_SYSTEMS,
   HPI_UNLOCKABLE_MODULES,
   HPI_BASIC_SYMPTOMS,
   PAIN_BODY_REGIONS,
@@ -289,12 +290,21 @@ export function generateNarrativeCCAndHPI(state) {
     const genderNoun = demo.gender === 'female' ? 'female' : demo.gender === 'male' ? 'male' : 'patient';
     const agePhrase = demo.age ? `${demo.age}-year-old` : '';
     let introSentence = `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
-    if (cc.pathway === 'clinic_referral') {
-      introSentence += ` Admitted from surgical clinic under Dr. ${cc.attendingPhysician || cc.referringAttending || 'Attending Surgeon'} for ${cc.plannedProcedure || 'planned surgical evaluation'}.`;
+    if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
+      const att = cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || 'Attending Surgeon';
+      const diag = cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis;
+      const proc = cc.clinicPlannedProcedure || cc.plannedProcedure;
+      introSentence += ` Admitted electively from surgical clinic under Dr. ${att}${diag ? ` with initial diagnosis of "${diag}"` : ''}${proc ? ` for planned "${proc}"` : ''}.`;
+    } else if (cc.pathway === 'inpatient_transfer') {
+      const src = cc.transferSource || cc.originWardHospital || 'inpatient service';
+      const rsn = cc.transferReason || cc.primaryAdmissionReason;
+      const ind = cc.transferSurgIndication || cc.transferConsultReason;
+      introSentence += ` Admitted via inpatient transfer from "${src}"${rsn ? ` (initial admission reason: ${rsn})` : ''} following surgical consultation${ind ? ` for "${ind}"` : ''}.`;
     } else if (cc.pathway === 'postop_complication') {
       introSentence += ` Presenting with acute post-operative complaint/complication following recent surgical intervention.`;
     } else {
-      introSentence += ` Evaluated in the Emergency Department for acute surgical management.`;
+      // emergency_acute
+      introSentence += ` Evaluated acutely in the Emergency Department / Surgical Service for emergent management.`;
     }
     narrativeSentences.push(introSentence);
 
@@ -350,32 +360,32 @@ export function generateNarrativeCCAndHPI(state) {
   const cityPhrase = demo.city ? `، اهل و ساکن ${normalizePersianClinicalText(demo.city)}` : '';
   const jobPhrase = demo.occupation ? `، شغل ${normalizePersianClinicalText(demo.occupation)}` : '';
 
-  // جمله اول: معرفی بیمار و زمینه مراجعه، ارجاع درمانگاه یا عوارض پس از عمل
-  if (cc.pathway === 'clinic_referral') {
-    let refSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت «${ccText}» مراجعه نموده و با نامه بستری استاد محترم **${normalizePersianClinicalText(cc.referringAttending || cc.attendingPhysician || 'بخش جراحی')}**`;
-    if (cc.establishedDiagnosis || cc.preliminaryDiagnosis) {
-      refSentence += ` با تشخیص اولیه «${normalizePersianClinicalText(cc.establishedDiagnosis || cc.preliminaryDiagnosis)}»`;
-    }
-    if (cc.plannedProcedure) {
-      refSentence += ` جهت انجام «${normalizePersianClinicalText(cc.plannedProcedure)}»`;
-    }
-    refSentence += ` از درمانگاه جراحی در این بخش بستری شده‌اند.`;
+  // جمله اول: معرفی بیمار بر اساس ۳ مسیر بالینی پذیرش
+  if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
+    const att = normalizePersianClinicalText(cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || '');
+    const diag = normalizePersianClinicalText(cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis || '');
+    const proc = normalizePersianClinicalText(cc.clinicPlannedProcedure || cc.plannedProcedure || '');
+    let refSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت «${ccText}» مراجعه نموده و با نامه ارجاع استاد محترم ${att ? '**' + att + '**' : 'درمانگاه جراحی'}`;
+    if (diag) refSentence += ` با تشخیص اولیه «${diag}»`;
+    if (proc) refSentence += ` جهت اقدام برنامه‌ریزی‌شده «${proc}»`;
+    refSentence += ` از درمانگاه به صورت الکتیو در این بخش بستری شده‌اند.`;
     narrativeSentences.push(refSentence);
+  } else if (cc.pathway === 'inpatient_transfer') {
+    const src = normalizePersianClinicalText(cc.transferSource || cc.originWardHospital || '');
+    const rsn = normalizePersianClinicalText(cc.transferReason || cc.primaryAdmissionReason || '');
+    const ind = normalizePersianClinicalText(cc.transferSurgIndication || cc.transferConsultReason || '');
+    let transSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به صورت انتقال بین‌بخشی / اعزام از ${src ? '«' + src + '»' : 'بخش/مرکز دیگر'}`;
+    if (rsn) transSentence += ` (علت بستری اولیه: «${rsn}»)`;
+    if (ind) transSentence += `، به دنبال مشاوره و با اندیکاسیون «${ind}» به سرویس جراحی منتقل و پذیرش گردیدند.`;
+    else transSentence += `، جهت ادامه درمان تحت نظر سرویس جراحی پذیرش گردیدند.`;
+    narrativeSentences.push(transSentence);
   } else if (cc.pathway === 'postop_complication') {
     narrativeSentences.push(
       `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به دنبال عمل جراحی اخیر، با شکایت «${ccText}» به این مرکز مراجعه کرده‌اند.`
     );
   } else {
-    let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت اصلی «${ccText}» به اورژانس/بخش جراحی مراجعه نموده‌اند.`;
-    if (cc.attendingPhysician) {
-      admSentence += ` تحت نظر استاد محترم **${normalizePersianClinicalText(cc.attendingPhysician)}**`;
-    }
-    if (cc.preliminaryDiagnosis) {
-      admSentence += ` با تشخیص احتمالی اولیه «${normalizePersianClinicalText(cc.preliminaryDiagnosis)}»`;
-    }
-    if (cc.plannedProcedure) {
-      admSentence += ` جهت بررسی و تصمیم‌گیری در خصوص «${normalizePersianClinicalText(cc.plannedProcedure)}» پذیرش شدند.`;
-    }
+    // emergency_acute
+    let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت اصلی «${ccText}» به صورت حاد به اورژانس / بخش جراحی مراجعه و پذیرش نموده‌اند.`;
     narrativeSentences.push(admSentence);
   }
 
@@ -538,23 +548,61 @@ export function generateClinicalNote(state) {
       lines.push(`- **Allergies:** NKDA.`);
     }
 
-    const dhRows = state.dh?.drugs || [];
-    if (dhRows.length > 0) {
-      const drugList = dhRows.map(d => `${d.name || ''} ${d.dose || ''} ${d.sig || ''} ${d.note ? '(' + d.note + ')' : ''}`.trim()).join(', ');
-      lines.push(`- **Current Medications:** ${drugList}`);
+    const dhState = state.dh || {};
+    if (dhState.noRoutineMeds) {
+      lines.push(`- **Current Medications (DH):** Denies routine medication use (No routine medications).`);
     } else {
-      lines.push(`- **Current Medications:** Denies regular prescription medication use.`);
+      const activeList = [];
+      if (dhState.activeDrugs && Array.isArray(dhState.activeDrugs)) {
+        dhState.activeDrugs.forEach(ad => {
+          const parts = [ad.dose ? `dose: ${ad.dose}` : '', ad.sig ? `sig: ${ad.sig}` : '', ad.note ? `note: ${ad.note}` : ''].filter(Boolean);
+          activeList.push(`${ad.name || ad.label || ad.id}${parts.length ? ' (' + parts.join(' | ') + ')' : ''}`);
+        });
+      }
+      if (dhState.drugs && Array.isArray(dhState.drugs)) {
+        dhState.drugs.forEach(d => {
+          const parts = [d.dose, d.sig, d.note ? '(' + d.note + ')' : ''].filter(Boolean);
+          activeList.push(`${d.name || ''}${parts.length ? ' ' + parts.join(' ') : ''}`.trim());
+        });
+      }
+      if (activeList.length > 0) {
+        lines.push(`- **Current Medications (DH):** ${activeList.join(', ')}`);
+      } else {
+        lines.push(`- **Current Medications (DH):** Denies regular prescription medication use.`);
+      }
     }
 
     const shState = state.sh || {};
     const shParts = [];
-    if (shState.smoking) shParts.push(`Tobacco: ${shState.smoking}`);
-    if (shState.alcohol) shParts.push(`Alcohol: ${shState.alcohol}`);
-    if (shState.substance) shParts.push(`Substances: ${shState.substance}`);
-    lines.push(`- **Social History:** ${shParts.length > 0 ? shParts.join('; ') : 'Non-contributory (denies tobacco, alcohol or substance use).'}`);
+    if (shState.negSmoking) shParts.push('Tobacco: Denies smoking/tobacco');
+    else if (shState.cigsPerDay && shState.yearsSmoked) {
+      const py = ((Number(shState.cigsPerDay) / 20) * Number(shState.yearsSmoked)).toFixed(1);
+      shParts.push(`Tobacco: ${shState.cigsPerDay} cigs/day for ${shState.yearsSmoked} yrs (~${py} pack-years)`);
+    } else if (shState.smoking) shParts.push(`Tobacco: ${shState.smoking}`);
+
+    if (shState.negOpium) shParts.push('Substances: Denies opium/substance use');
+    else if (shState.opium) shParts.push(`Substances: ${shState.opium}`);
+    else if (shState.substance) shParts.push(`Substances: ${shState.substance}`);
+
+    if (shState.negAlcohol) shParts.push('Alcohol: Denies alcohol use');
+    else if (shState.alcohol) shParts.push(`Alcohol: ${shState.alcohol}`);
+
+    lines.push(`- **Social History (SH):** ${shParts.length > 0 ? shParts.join('; ') : 'Non-contributory (denies tobacco, alcohol or substance use).'}`);
 
     const fhState = state.fh || {};
-    lines.push(`- **Family History:** ${fhState.noncontributory ? 'Non-contributory (denies familial GI cancers or early deaths).' : (fhState.notes || 'Non-contributory.')}`);
+    if (fhState.negFamilyHistory || fhState.masterNeg) {
+      lines.push(`- **Family History (FH):** Negative for familial malignancies or premature CAD in first-degree relatives.`);
+    } else if (fhState.diseases && Array.isArray(fhState.diseases) && fhState.diseases.length > 0) {
+      const fhListEn = fhState.diseases.map(d => {
+        const rels = (d.relatives && d.relatives.length > 0) ? `in ${d.relatives.join(' & ')}` : 'in family';
+        const vit = (d.status === 'deceased' || d.isAlive === false) ? 'deceased' : 'living';
+        const age = (d.ageNotes || d.ageNote) ? `, ${d.ageNotes || d.ageNote}` : '';
+        return `${d.en || d.name || d.label} ${rels} (${vit}${age})`;
+      });
+      lines.push(`- **Family History (FH):** Positive for ${fhListEn.join('; ')}.`);
+    } else {
+      lines.push(`- **Family History (FH):** ${fhState.noncontributory ? 'Non-contributory (denies familial GI cancers or early deaths).' : (fhState.notes || 'Non-contributory.')}`);
+    }
 
     // 5. ROS
     lines.push(`\n### 5. Review of Systems (ROS)`);
@@ -591,6 +639,31 @@ export function generateClinicalNote(state) {
     if (pePos.length > 0) lines.push(`  * **Pertinent Positive Findings:** ${pePos.join(', ')}`);
     if (peNeg.length > 0) lines.push(`  * **Normal / Negative Findings:** ${peNeg.join(', ')}`);
 
+    // Systemic Examination (Only included if examined, marked normal or has findings)
+    const compSystemsEn = state.pe?.comprehensiveSystems || {};
+    const otherSysLinesEn = [];
+    PE_COMPREHENSIVE_SYSTEMS.filter(s => !s.isPrioritySurgical).forEach((sys) => {
+      const sysData = compSystemsEn[sys.id] || {};
+      const sysTitleEn = sys.title.match(/\(([^)]+)\)/)?.[1] || sys.title;
+      const hasNormal = !!sysData.isNormal;
+      const tags = Array.isArray(sysData.selectedTags) ? sysData.selectedTags : [];
+      const note = sysData.text ? sysData.text.trim() : '';
+
+      if (hasNormal && tags.length === 0 && !note) {
+        otherSysLinesEn.push(`  * **${sysTitleEn}:** Normal baseline examination; unremarkable.`);
+      } else if (tags.length > 0 || note) {
+        const parts = [];
+        if (tags.length > 0) parts.push(`Findings: ${tags.join(', ')}`);
+        if (note) parts.push(note);
+        if (hasNormal) parts.push('Otherwise unremarkable');
+        otherSysLinesEn.push(`  * **${sysTitleEn}:** ${parts.join('; ')}`);
+      }
+    });
+    if (otherSysLinesEn.length > 0) {
+      lines.push(`- **Systemic Examination (Non-Abdominal Systems):**`);
+      lines.push(otherSysLinesEn.join('\n'));
+    }
+
     // Local Mass Exam Module
     const massExamsEn = state.pe?.massExams || state.pe?.massExamList || [];
     if (massExamsEn.length > 0) {
@@ -623,8 +696,22 @@ export function generateClinicalNote(state) {
     lines.push(`\n### 7. Diagnostic Studies & Paraclinics`);
     const labs = state.paraclinics?.labs || {};
     const labEntries = Object.entries(labs).filter(([k, v]) => v && String(v).trim());
-    if (labEntries.length > 0) {
-      lines.push(`- **Laboratory Investigations:** ${labEntries.map(([k, v]) => `${k}: ${v}`).join(' | ')}`);
+    const addLabsEn = state.paraclinics?.additionalLabs || {};
+    const addEntriesEn = Object.entries(addLabsEn).filter(([k, v]) => {
+      if (!v) return false;
+      if (typeof v === 'object') return v.value && String(v.value).trim();
+      return String(v).trim();
+    });
+
+    if (labEntries.length > 0 || addEntriesEn.length > 0) {
+      const parts = labEntries.map(([k, v]) => `${k}: ${v}`);
+      addEntriesEn.forEach(([k, v]) => {
+        const val = typeof v === 'object' ? v.value : v;
+        const unit = typeof v === 'object' && v.unit ? ` ${v.unit}` : '';
+        const name = typeof v === 'object' && v.name ? v.name : k;
+        parts.push(`${name}: ${val}${unit}`);
+      });
+      lines.push(`- **Laboratory Investigations:** ${parts.join(' | ')}`);
     } else {
       lines.push(`- **Laboratory Investigations:** Results pending at time of admission.`);
     }
@@ -737,41 +824,60 @@ export function generateClinicalNote(state) {
   lines.push(`\n### ۴. سوابق دارویی، حساسیت، عادات و خانوادگی (DH / AH / SH / FH)`);
 
   const dhState = state.dh || {};
-  const activeDrugsList = [];
-
-  // پیمایش دسته‌بندی ۵ گانه DH
-  DH_CATEGORIES.forEach((cat) => {
-    const catDrugsState = dhState.categories?.[cat.id]?.drugs || {};
-    cat.drugs.forEach((drug) => {
-      const entry = catDrugsState[drug.id];
-      if (entry && (entry.active || entry === true)) {
-        const doseStr = entry.dose ? `دوز: ${normalizePersianClinicalText(entry.dose)}` : `دوز: ${drug.defaultDose}`;
-        const sigStr = entry.sig ? `طریقه: ${entry.sig}` : '';
-        const noteStr = entry.note ? `ملاحظات: ${normalizePersianClinicalText(entry.note)}` : '';
-        const parts = [doseStr, sigStr, noteStr].filter(Boolean);
-        activeDrugsList.push(`**${drug.label}** (${parts.join(' | ')})`);
-      }
-    });
-  });
-
-  // داروهای دستی خارج از لیست
-  if (dhState.customDrugs && Array.isArray(dhState.customDrugs)) {
-    dhState.customDrugs.forEach((cd) => {
-      if (cd.name && cd.name.trim()) {
-        const parts = [
-          cd.dose ? `دوز: ${normalizePersianClinicalText(cd.dose)}` : '',
-          cd.sig ? `طریقه: ${cd.sig}` : '',
-          cd.note ? `ملاحظات: ${normalizePersianClinicalText(cd.note)}` : ''
-        ].filter(Boolean);
-        activeDrugsList.push(`**${normalizePersianClinicalText(cd.name)}** (${parts.join(' | ')})`);
-      }
-    });
-  }
-
-  if (activeDrugsList.length > 0) {
-    lines.push(`- **سوابق دارویی (DH):**\n  * ${activeDrugsList.join('\n  * ')}`);
+  if (dhState.noRoutineMeds) {
+    lines.push(`- **سوابق دارویی (DH):** عدم مصرف داروی روتین (No routine medications).`);
   } else {
-    lines.push(`- **سوابق دارویی (DH):** مصرف داروی روتین خاصی را ذکر نمی‌کند.`);
+    const activeDrugsList = [];
+
+    // داروها در دیتابیس فعال v0.8
+    if (dhState.activeDrugs && Array.isArray(dhState.activeDrugs) && dhState.activeDrugs.length > 0) {
+      dhState.activeDrugs.forEach((ad) => {
+        const parts = [
+          ad.dose ? `دوز: ${normalizePersianClinicalText(ad.dose)}` : '',
+          ad.sig ? `طریقه: ${ad.sig}` : '',
+          ad.note ? `ملاحظات: ${normalizePersianClinicalText(ad.note)}` : ''
+        ].filter(Boolean);
+        const desc = parts.length > 0 ? ` (${parts.join(' | ')})` : '';
+        activeDrugsList.push(`**${normalizePersianClinicalText(ad.name || ad.label || ad.id)}**${desc}`);
+      });
+    }
+
+    // پشتیبانی تکمیلی از دسته‌بندی‌های قبلی
+    DH_CATEGORIES.forEach((cat) => {
+      const catDrugsState = dhState.categories?.[cat.id]?.drugs || {};
+      cat.drugs.forEach((drug) => {
+        const entry = catDrugsState[drug.id];
+        if (entry && (entry.active || entry === true)) {
+          const already = dhState.activeDrugs?.some((a) => a.id === drug.id);
+          if (!already) {
+            const doseStr = entry.dose ? `دوز: ${normalizePersianClinicalText(entry.dose)}` : `دوز: ${drug.defaultDose}`;
+            const sigStr = entry.sig ? `طریقه: ${entry.sig}` : '';
+            const noteStr = entry.note ? `ملاحظات: ${normalizePersianClinicalText(entry.note)}` : '';
+            const parts = [doseStr, sigStr, noteStr].filter(Boolean);
+            activeDrugsList.push(`**${drug.label}** (${parts.join(' | ')})`);
+          }
+        }
+      });
+    });
+
+    if (dhState.customDrugs && Array.isArray(dhState.customDrugs)) {
+      dhState.customDrugs.forEach((cd) => {
+        if (cd.name && cd.name.trim()) {
+          const parts = [
+            cd.dose ? `دوز: ${normalizePersianClinicalText(cd.dose)}` : '',
+            cd.sig ? `طریقه: ${cd.sig}` : '',
+            cd.note ? `ملاحظات: ${normalizePersianClinicalText(cd.note)}` : ''
+          ].filter(Boolean);
+          activeDrugsList.push(`**${normalizePersianClinicalText(cd.name)}** (${parts.join(' | ')})`);
+        }
+      });
+    }
+
+    if (activeDrugsList.length > 0) {
+      lines.push(`- **سوابق دارویی (DH):**\n  * ${activeDrugsList.join('\n  * ')}`);
+    } else {
+      lines.push(`- **سوابق دارویی (DH):** مصرف داروی روتین خاصی را ذکر نمی‌کند.`);
+    }
   }
 
   if (dhState.note) {
@@ -796,34 +902,73 @@ export function generateClinicalNote(state) {
     lines.push(`- **سایر حساسیت‌های خارج از لیست:** ${normalizePersianClinicalText(state.ah.systemGapNote)}`);
   }
 
-  // SH
-  const packYear = (state.sh?.cigsPerDay && state.sh?.yearsSmoked)
-    ? ((Number(state.sh.cigsPerDay) / 20) * Number(state.sh.yearsSmoked)).toFixed(1)
-    : null;
+  // SH (با پشتیبانی از دکمه‌های منفی بصری)
+  const shState = state.sh || {};
   const shParts = [];
   if (demo.occupation) shParts.push(`شغل: ${normalizePersianClinicalText(demo.occupation)}`);
-  if (packYear) shParts.push(`مصرف سیگار به میزان ${packYear} Pack-Year`);
-  else shParts.push('عدم مصرف سیگار');
-  if (state.sh?.opium) shParts.push(`مصرف اپیوم/مواد: ${normalizePersianClinicalText(state.sh.opium)}`);
-  else shParts.push('عدم مصرف اپیوم و الکل');
-  if (state.sh?.note) shParts.push(normalizePersianClinicalText(state.sh.note));
+
+  if (shState.negSmoking) {
+    shParts.push('عدم مصرف سیگار و دخانیات (Non-smoker)');
+  } else if (shState.cigsPerDay && shState.yearsSmoked) {
+    const packYear = ((Number(shState.cigsPerDay) / 20) * Number(shState.yearsSmoked)).toFixed(1);
+    shParts.push(`مصرف سیگار به میزان ${shState.cigsPerDay} نخ/روز به مدت ${shState.yearsSmoked} سال (~${packYear} Pack-Year)`);
+  } else {
+    shParts.push('عدم مصرف سیگار');
+  }
+
+  if (shState.negOpium) {
+    shParts.push('عدم مصرف تریاک یا سایر مواد مخدر (Denies substance use)');
+  } else if (shState.opium) {
+    shParts.push(`مصرف اپیوم/مواد: ${normalizePersianClinicalText(shState.opium)}`);
+  } else {
+    shParts.push('عدم مصرف اپیوم و مواد مخدر');
+  }
+
+  if (shState.negAlcohol) {
+    shParts.push('عدم مصرف الکل (Denies alcohol use)');
+  } else if (shState.alcohol) {
+    shParts.push(`مصرف الکل: ${normalizePersianClinicalText(shState.alcohol)}`);
+  }
+
+  if (shState.note) shParts.push(normalizePersianClinicalText(shState.note));
   lines.push(`- **سوابق اجتماعی و عادات (SH):** ${shParts.join(' | ')}.`);
   if (state.sh?.systemGapNote) {
     lines.push(`- **سایر عادات و سوابق اجتماعی خارج از لیست:** ${normalizePersianClinicalText(state.sh.systemGapNote)}`);
   }
 
-  // FH
-  const fhItems = (state.fh?.selected || []).map((item) => {
-    if (typeof item === 'object') {
-      return item.detail ? `${item.label} (${normalizePersianClinicalText(item.detail)})` : item.label;
-    }
-    return item;
-  });
-  const fhText = [
-    ...(fhItems.length ? [fhItems.join('، ')] : []),
-    ...(state.fh?.note ? [normalizePersianClinicalText(state.fh.note)] : [])
-  ].join(' — ') || 'سابقه بدخیمی یا بیماری ارثی خاص در بستگان درجه یک ذکر نمی‌شود.';
-  lines.push(`- **سوابق خانوادگی (FH):** ${fhText}`);
+  // FH (سوابق خانوادگی ساختاریافته)
+  const fhState = state.fh || {};
+  if (fhState.negFamilyHistory || fhState.masterNeg) {
+    lines.push(`- **سوابق خانوادگی (FH):** سابقه بیماری خاص، سکته قلبی زودرس یا بدخیمی در بستگان درجه یک بیمار نفی می‌شود (Negative for familial malignancies or premature CAD).`);
+  } else if (fhState.diseases && Array.isArray(fhState.diseases) && fhState.diseases.length > 0) {
+    const fhList = fhState.diseases.map((d) => {
+      const rels = (d.relatives && d.relatives.length > 0) ? `در ${d.relatives.join(' و ')}` : 'در بستگان';
+      const vit = (d.status === 'deceased' || d.isAlive === false) ? 'فوت‌شده در اثر این بیماری' : 'در قید حیات';
+      const rawAge = normalizePersianClinicalText(d.ageNotes || d.ageNote || '');
+      let vitDesc = vit;
+      if (rawAge) {
+        if (rawAge.includes('فوت') || rawAge.includes('حیات')) {
+          vitDesc = rawAge;
+        } else {
+          vitDesc = `${vit}، ${rawAge}`;
+        }
+      }
+      return `سابقه ${d.name || d.label || 'بیماری'} ${rels} (${vitDesc})`;
+    });
+    lines.push(`- **سوابق خانوادگی (FH):** ${fhList.join(' و ')}.`);
+  } else {
+    const fhItems = (state.fh?.selected || []).map((item) => {
+      if (typeof item === 'object') {
+        return item.detail ? `${item.label} (${normalizePersianClinicalText(item.detail)})` : item.label;
+      }
+      return item;
+    });
+    const fhText = [
+      ...(fhItems.length ? [fhItems.join('، ')] : []),
+      ...(state.fh?.note ? [normalizePersianClinicalText(state.fh.note)] : [])
+    ].join(' — ') || 'سابقه بدخیمی یا بیماری ارثی خاص در بستگان درجه یک ذکر نمی‌شود.';
+    lines.push(`- **سوابق خانوادگی (FH):** ${fhText}`);
+  }
   if (state.fh?.systemGapNote) {
     lines.push(`- **سایر سوابق خانوادگی خارج از لیست:** ${normalizePersianClinicalText(state.fh.systemGapNote)}`);
   }
@@ -995,6 +1140,31 @@ export function generateClinicalNote(state) {
     }
   }
 
+  // سایر سیستم‌های جامع معاینه فیزیکی (فقط در صورت تایید نرمال، انتخاب تگ یا ثبت یافته درج می‌شوند)
+  const compSystemsFa = state.pe?.comprehensiveSystems || {};
+  const otherSystemsLines = [];
+  PE_COMPREHENSIVE_SYSTEMS.filter((s) => !s.isPrioritySurgical).forEach((sys) => {
+    const sysData = compSystemsFa[sys.id] || {};
+    const hasNormal = !!sysData.isNormal;
+    const hasExamined = !!sysData.examined;
+    const tags = Array.isArray(sysData.selectedTags) ? sysData.selectedTags : [];
+    const note = sysData.text ? normalizePersianClinicalText(sysData.text) : '';
+
+    if (hasNormal && tags.length === 0 && !note) {
+      otherSystemsLines.push(`  * **${sys.title}:** ${sys.normalBaseline || 'معاینه طبیعی و بدون نکته پاتولوژیک.'}`);
+    } else if (tags.length > 0 || note || (hasExamined && !hasNormal)) {
+      const parts = [];
+      if (tags.length > 0) parts.push(`یافته‌ها: ${tags.join('، ')}`);
+      if (note) parts.push(note);
+      if (hasNormal) parts.push('(سایر جهات نرمال)');
+      otherSystemsLines.push(`  * **${sys.title}:** ${parts.join(' — ')}`);
+    }
+  });
+  if (otherSystemsLines.length > 0) {
+    lines.push(`- **سایر سیستم‌های معاینه فیزیکی (Systemic Physical Exam):**`);
+    lines.push(otherSystemsLines.join('\n'));
+  }
+
   if (state.pe?.note) lines.push(`- **توضیحات تکمیلی معاینه:** ${normalizePersianClinicalText(state.pe.note)}`);
   if (state.pe?.systemGapNote) {
     lines.push(`- **یافته‌های خارج از لیست معاینه فیزیکی:** ${normalizePersianClinicalText(state.pe.systemGapNote)}`);
@@ -1056,6 +1226,23 @@ export function generateClinicalNote(state) {
       lines.push(`  * **${panel.title}:** ${panelTests.join(' | ')}`);
     }
   });
+
+  // آزمایش‌های تکمیلی و تخصصی (EXTENDED_LAB_DATABASE)
+  const addLabsFa = state.paraclinics?.additionalLabs || {};
+  const addLabEntriesFa = Object.entries(addLabsFa).filter(([k, v]) => {
+    if (!v) return false;
+    if (typeof v === 'object') return v.value && String(v.value).trim();
+    return String(v).trim();
+  });
+  if (addLabEntriesFa.length > 0) {
+    const addParts = addLabEntriesFa.map(([k, v]) => {
+      const val = typeof v === 'object' ? v.value : v;
+      const unit = typeof v === 'object' && v.unit ? ` ${v.unit}` : '';
+      const name = typeof v === 'object' && v.name ? v.name : k;
+      return `${name}: ${val}${unit}`;
+    });
+    lines.push(`  * **سایر آزمایش‌های تکمیلی و تخصصی (Additional Labs):** ${addParts.join(' | ')}`);
+  }
 
   if (state.paraclinics?.labNote) {
     lines.push(`- **سایر آزمایش‌ها (ABG / U/A / کشت):** ${normalizePersianClinicalText(state.paraclinics.labNote)}`);

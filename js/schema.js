@@ -399,64 +399,64 @@ export const HPI_UNLOCKABLE_MODULES = [
 
 export const MASTER_SYMPTOMS_BANK = [
   // ۱. علائم عمومی و سیستمیک (Constitutional)
-  { id: 'sym_fever', label: 'تب (Fever / Pyrexia)', category: 'عمومی (Constitutional)', keywords: 'داغی بدن حرارت' },
-  { id: 'sym_chills', label: 'لرز و لرز تکانی (Chills / Rigors)', category: 'عمومی (Constitutional)', keywords: 'سرما لرزش' },
-  { id: 'sym_night_sweats', label: 'تعریق شبانه (Night Sweats / Diaphoresis)', category: 'عمومی (Constitutional)', keywords: 'عرق سرد خیس شدن' },
-  { id: 'sym_weight_loss', label: 'کاهش وزن ناخواسته (Unintentional Weight Loss)', category: 'عمومی (Constitutional)', keywords: 'لاغری کاشکسی' },
+  { id: 'sym_fever', aliases: 'تب حرارت بالا داغی بدن پیرکسی fever pyrexia', label: 'تب (Fever / Pyrexia)', category: 'عمومی (Constitutional)', keywords: 'داغی بدن حرارت' },
+  { id: 'sym_chills', aliases: 'لرز لرز تکانی سرما chills rigors', label: 'لرز و لرز تکانی (Chills / Rigors)', category: 'عمومی (Constitutional)', keywords: 'سرما لرزش' },
+  { id: 'sym_night_sweats', aliases: 'تعریق شبانه عرق سرد night sweats diaphoresis', label: 'تعریق شبانه (Night Sweats / Diaphoresis)', category: 'عمومی (Constitutional)', keywords: 'عرق سرد خیس شدن' },
+  { id: 'sym_weight_loss', aliases: 'کاهش وزن لاغری کاشکسی weight loss', label: 'کاهش وزن ناخواسته (Unintentional Weight Loss)', category: 'عمومی (Constitutional)', keywords: 'لاغری کاشکسی' },
   { id: 'sym_weight_gain', label: 'افزایش وزن اخیر (Weight Gain)', category: 'عمومی (Constitutional)', keywords: 'چاقی ورم' },
-  { id: 'sym_anorexia', label: 'بیاشتهایی و کاهش اشتها (Anorexia / Loss of Appetite)', category: 'عمومی (Constitutional)', keywords: 'غذا نخوردن میل' },
+  { id: 'sym_anorexia', aliases: 'انورکسی آنورکسی کم اشتهایی بیاشتهایی غذا نخوردن anorexia loss of appetite', label: 'بیاشتهایی و کاهش اشتها (Anorexia / Loss of Appetite)', category: 'عمومی (Constitutional)', keywords: 'غذا نخوردن میل' },
   { id: 'sym_fatigue', label: 'ضعف، بیحالی و خستگی مفرط (Fatigue / Malaise / Lethargy)', category: 'عمومی (Constitutional)', keywords: 'سستی کرختی' },
   { id: 'sym_insomnia', label: 'بیخوابی یا اختلال خواب (Insomnia / Sleep Disturbance)', category: 'عمومی (Constitutional)', keywords: 'بیداری شبانه' },
 
   // ۲. گوارش فوقانی و تحتانی (Gastrointestinal)
-  { id: 'sym_nausea', label: 'تهوع (Nausea)', category: 'گوارش (GI)', keywords: 'حالت بهم خوردگی دل آشوب' },
-  { id: 'sym_vomiting', label: 'استفراغ (Vomiting / Emesis)', category: 'گوارش (GI)', keywords: 'بالا آوردن استفراغ غذایی' },
-  { id: 'sym_bilious_vomiting', label: 'استفراغ صفراوی سبز/زرد (Bilious Vomiting)', category: 'گوارش (GI)', keywords: 'تلخ زردآب' },
+  { id: 'sym_nausea', aliases: 'تهوع دل اشوب حالت تهوع nausea', label: 'تهوع (Nausea)', category: 'گوارش (GI)', keywords: 'حالت بهم خوردگی دل آشوب' },
+  { id: 'sym_vomiting', aliases: 'استفراغ بالا اوردن قی emesis vomiting', label: 'استفراغ (Vomiting / Emesis)', category: 'گوارش (GI)', keywords: 'بالا آوردن استفراغ غذایی' },
+  { id: 'sym_bilious_vomiting', aliases: 'استفراغ صفراوی زرد اب تلخ bilious vomiting', label: 'استفراغ صفراوی سبز/زرد (Bilious Vomiting)', category: 'گوارش (GI)', keywords: 'تلخ زردآب' },
   { id: 'sym_fecaloid_vomiting', label: 'استفراغ فکالوئید بدبو (Feculent Vomiting)', category: 'گوارش (GI)', keywords: 'انسداد روده' },
-  { id: 'sym_hematemesis', label: 'هماتمز / استفراغ خونی یا قهوهای (Hematemesis / Coffee-ground Emesis)', category: 'گوارش (GI)', keywords: 'خون بالا آوردن' },
-  { id: 'sym_dysphagia_solids', label: 'دیسفاژی به جامدات (Dysphagia to Solids)', category: 'گوارش (GI)', keywords: 'گیر کردن لقمه بلع' },
-  { id: 'sym_dysphagia_liquids', label: 'دیسفاژی به مایعات (Dysphagia to Liquids)', category: 'گوارش (GI)', keywords: 'مشکل قورت دادن آب' },
-  { id: 'sym_odynophagia', label: 'ادینوفاژی / بلع دردناک (Odynophagia)', category: 'گوارش (GI)', keywords: 'درد قورت دادن' },
+  { id: 'sym_hematemesis', aliases: 'هماتمز بالا اوردن خون کافی گراند hematemesis coffee ground استفراغ خونی قهوه ای', label: 'هماتمز / استفراغ خونی یا قهوهای (Hematemesis / Coffee-ground Emesis)', category: 'گوارش (GI)', keywords: 'خون بالا آوردن' },
+  { id: 'sym_dysphagia_solids', aliases: 'دیسفاژی گیر کردن غذا لقمه جامد بلع dysphagia solids', label: 'دیسفاژی به جامدات (Dysphagia to Solids)', category: 'گوارش (GI)', keywords: 'گیر کردن لقمه بلع' },
+  { id: 'sym_dysphagia_liquids', aliases: 'دیسفاژی مایعات گیر کردن اب قورت دادن dysphagia liquids', label: 'دیسفاژی به مایعات (Dysphagia to Liquids)', category: 'گوارش (GI)', keywords: 'مشکل قورت دادن آب' },
+  { id: 'sym_odynophagia', aliases: 'ادینوفاژی اودینوفاژی درد قورت دادن درد بلع odynophagia', label: 'ادینوفاژی / بلع دردناک (Odynophagia)', category: 'گوارش (GI)', keywords: 'درد قورت دادن' },
   { id: 'sym_globus', label: 'احساس توده در گلو (Globus Pharyngeus)', category: 'گوارش (GI)', keywords: 'بغض گیر کردن گلو' },
   { id: 'sym_heartburn', label: 'سوزش سردل و ریفلاکس اسید (Pyrosis / Heartburn / Regurgitation)', category: 'گوارش (GI)', keywords: 'ترش کردن اسید معده' },
   { id: 'sym_early_satiety', label: 'سیری زودرس (Early Satiety)', category: 'گوارش (GI)', keywords: 'پر شدن سریع معده' },
   { id: 'sym_dyspepsia_bloating', label: 'سوءهاضمه، نفخ و سنگینی سر دل (Dyspepsia / Bloating / Fullness)', category: 'گوارش (GI)', keywords: 'باد شکم گاز' },
   { id: 'sym_hiccups', label: 'سکسکه مداوم (Intractable Hiccups / Singultus)', category: 'گوارش (GI)', keywords: 'تحریک دیافراگم' },
-  { id: 'sym_constipation', label: 'یبوست (Constipation)', category: 'گوارش (GI)', keywords: 'سفتی مدفوع کار نکردن شکم' },
-  { id: 'sym_obstipation', label: 'عدم دفع گاز و مدفوع (Obstipation)', category: 'گوارش (GI)', keywords: 'انسداد کامل بسته شدن شکم' },
-  { id: 'sym_inability_flatus', label: 'عدم دفع گاز (Inability to Pass Flatus)', category: 'گوارش (GI)', keywords: 'باد شکم' },
-  { id: 'sym_diarrhea_watery', label: 'اسهال آبکی (Watery Diarrhea)', category: 'گوارش (GI)', keywords: 'شل بودن شکم' },
-  { id: 'sym_dysentery', label: 'اسهال خونی و موکوسی (Bloody/Mucoid Diarrhea / Dysentery)', category: 'گوارش (GI)', keywords: 'اسهال بلغمی خونی' },
+  { id: 'sym_constipation', aliases: 'یبوست کار نکردن شکم سفتی مدفوع constipation', label: 'یبوست (Constipation)', category: 'گوارش (GI)', keywords: 'سفتی مدفوع کار نکردن شکم' },
+  { id: 'sym_obstipation', aliases: 'ابسپتیپاسیون ابستیپیشن انسداد شکم عدم دفع گاز و مدفوع obstipation', label: 'عدم دفع گاز و مدفوع (Obstipation)', category: 'گوارش (GI)', keywords: 'انسداد کامل بسته شدن شکم' },
+  { id: 'sym_inability_flatus', aliases: 'عدم دفع گاز باد شکم inability flatus', label: 'عدم دفع گاز (Inability to Pass Flatus)', category: 'گوارش (GI)', keywords: 'باد شکم' },
+  { id: 'sym_diarrhea_watery', aliases: 'اسهال ابکی شکم روش روان بودن شکم diarrhea', label: 'اسهال آبکی (Watery Diarrhea)', category: 'گوارش (GI)', keywords: 'شل بودن شکم' },
+  { id: 'sym_dysentery', aliases: 'اسهال خونی بلغمی دیسانتری dysentery', label: 'اسهال خونی و موکوسی (Bloody/Mucoid Diarrhea / Dysentery)', category: 'گوارش (GI)', keywords: 'اسهال بلغمی خونی' },
   { id: 'sym_steatorrhea', label: 'استئاتوره / مدفوع چرب و بدبو (Steatorrhea)', category: 'گوارش (GI)', keywords: 'سوءجذب چربی' },
   { id: 'sym_stool_caliber', label: 'تغییر کالیبر و باریک شدن مدفوع (Decreased Stool Caliber / Pencil-thin)', category: 'گوارش (GI)', keywords: 'مدفوع نواری' },
-  { id: 'sym_melena', label: 'ملنا / مدفوع قیری و سیاه (Melena)', category: 'گوارش (GI)', keywords: 'مدفوع سیاه خونریزی فوقانی' },
-  { id: 'sym_hematochezia', label: 'هماتوشزی / رکتوراژی / دفع خون روشن (Hematochezia / Rectorrhagia)', category: 'گوارش (GI)', keywords: 'خونریزی مقعدی' },
-  { id: 'sym_tenesmus', label: 'زورپیچ و احساس دفع ناکامل (Tenesmus)', category: 'گوارش (GI)', keywords: 'پیچش مقعد' },
+  { id: 'sym_melena', aliases: 'ملنا مدفوع سیاه قیری بدبو melena خونریزی معده اثنی عشر', label: 'ملنا / مدفوع قیری و سیاه (Melena)', category: 'گوارش (GI)', keywords: 'مدفوع سیاه خونریزی فوقانی' },
+  { id: 'sym_hematochezia', aliases: 'هماتوشزی رکتوراژی خونریزی مقعدی دفع خون روشن hematochezia rectorrhagia', label: 'هماتوشزی / رکتوراژی / دفع خون روشن (Hematochezia / Rectorrhagia)', category: 'گوارش (GI)', keywords: 'خونریزی مقعدی' },
+  { id: 'sym_tenesmus', aliases: 'زورپیچ تنسموس احساس دفع ناکامل tenesmus', label: 'زورپیچ و احساس دفع ناکامل (Tenesmus)', category: 'گوارش (GI)', keywords: 'پیچش مقعد' },
   { id: 'sym_proctalgia', label: 'درد مقعدی حین یا پس از دفع (Proctalgia / Anal Pain / Dyschezia)', category: 'گوارش (GI)', keywords: 'شقاق فیشر هموروئید' },
   { id: 'sym_perianal_discharge_itch', label: 'ترشح یا خارش ناحیه پریآنال (Perianal Discharge / Pruritus Ani)', category: 'گوارش (GI)', keywords: 'فیستول آبسه مقعد' },
   { id: 'sym_fecal_incontinence', label: 'بیاختیاری مدفوع یا گاز (Fecal Incontinence)', category: 'گوارش (GI)', keywords: 'اسفنکتر' },
 
   // ۳. کبد، مجاری صفراوی و پانکراس (Hepatobiliary & Pancreatic)
-  { id: 'sym_jaundice', label: 'زردی پوست و اسکلرا (Jaundice / Icterus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'یرقان زرد شدن چشم' },
-  { id: 'sym_cholestatic_pruritus', label: 'خارش پوستی کلستاتیک (Cholestatic Pruritus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'خارش بدن زردی' },
-  { id: 'sym_dark_urine', label: 'تیره یا چایرنگ شدن ادرار (Dark / Tea-colored Urine)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'بیلی روبین ادرار پررنگ' },
-  { id: 'sym_acholic_stool', label: 'سفید یا بیرنگ شدن مدفوع (Acholic / Clay-colored Stool)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'مدفوع گچی انسداد صفرا' },
+  { id: 'sym_jaundice', aliases: 'ایکتر ایکتریک یرقان زرد شدن چشم و پوست icterus jaundice hyperbilirubinemia', label: 'زردی پوست و اسکلرا (Jaundice / Icterus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'یرقان زرد شدن چشم' },
+  { id: 'sym_cholestatic_pruritus', aliases: 'پروریتوس خارش پوست pruritus itching کلستاز', label: 'خارش پوستی کلستاتیک (Cholestatic Pruritus)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'خارش بدن زردی' },
+  { id: 'sym_dark_urine', aliases: 'ادرار چایرنگ ادرار تیره بیلی روبین dark urine', label: 'تیره یا چایرنگ شدن ادرار (Dark / Tea-colored Urine)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'بیلی روبین ادرار پررنگ' },
+  { id: 'sym_acholic_stool', aliases: 'مدفوع بیرنگ مدفوع گچی سفید acholic clay colored stool', label: 'سفید یا بیرنگ شدن مدفوع (Acholic / Clay-colored Stool)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'مدفوع گچی انسداد صفرا' },
   { id: 'sym_abd_distension_ascites', label: 'اتساع شکم و آسیت (Abdominal Distension / Ascites)', category: 'کبد و صفرا (Hepatobiliary)', keywords: 'آب آوردن شکم بزرگی شکم' },
 
   // ۴. قلب و عروق و عروق محیطی (Cardiovascular & Vascular)
   { id: 'sym_chest_pain_angina', label: 'درد یا فشار قفسه سینه فعالیتی (Exertional Chest Pain / Angina)', category: 'قلب و عروق (Cardiovascular)', keywords: 'سنگینی سینه آنژین قلبی' },
   { id: 'sym_palpitation', label: 'تپش قلب (Palpitations)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ضربان تند نامنظم قلب' },
-  { id: 'sym_doe', label: 'تنگی نفس فعالیتی (Dyspnea on Exertion - DOE)', category: 'قلب و عروق (Cardiovascular)', keywords: 'کم آوردن نفس راه رفتن پله' },
-  { id: 'sym_orthopnea', label: 'ارتوپنه / تنگی نفس در حالت درازکش (Orthopnea)', category: 'قلب و عروق (Cardiovascular)', keywords: 'چند بالش زیر سر' },
-  { id: 'sym_pnd', label: 'تنگی نفس حملهای شبانه (Paroxysmal Nocturnal Dyspnea - PND)', category: 'قلب و عروق (Cardiovascular)', keywords: 'پریدن از خواب با خفگی' },
-  { id: 'sym_syncope', label: 'سنکوپ / غش کردن و کاهش گذرای هوشیاری (Syncope)', category: 'قلب و عروق (Cardiovascular)', keywords: 'بیهوش شدن افتادن' },
-  { id: 'sym_presyncope', label: 'پیشسنکوپ و سیاهی رفتن چشم (Presyncope / Lightheadedness)', category: 'قلب و عروق (Cardiovascular)', keywords: 'سرگیجه ارتواستاتیک' },
+  { id: 'sym_doe', aliases: 'دیسپنه فعالیتی تنگی نفس فعالیت پله کم اوردن نفس dyspnea on exertion doe', label: 'تنگی نفس فعالیتی (Dyspnea on Exertion - DOE)', category: 'قلب و عروق (Cardiovascular)', keywords: 'کم آوردن نفس راه رفتن پله' },
+  { id: 'sym_orthopnea', aliases: 'ارتوپنه تنگی نفس خوابیده بالشت زیر سر orthopnea', label: 'ارتوپنه / تنگی نفس در حالت درازکش (Orthopnea)', category: 'قلب و عروق (Cardiovascular)', keywords: 'چند بالش زیر سر' },
+  { id: 'sym_pnd', aliases: 'پی ان دی تنگی نفس شبانه حمله شبانه خفگی pnd', label: 'تنگی نفس حملهای شبانه (Paroxysmal Nocturnal Dyspnea - PND)', category: 'قلب و عروق (Cardiovascular)', keywords: 'پریدن از خواب با خفگی' },
+  { id: 'sym_syncope', aliases: 'سنکوپ بیهوش شدن سیاهی رفتن چشم syncope fainting غش کردن', label: 'سنکوپ / غش کردن و کاهش گذرای هوشیاری (Syncope)', category: 'قلب و عروق (Cardiovascular)', keywords: 'بیهوش شدن افتادن' },
+  { id: 'sym_presyncope', aliases: 'پیش سنکوپ سیاهی رفتن چشم سبکی سر presyncope lightheadedness', label: 'پیشسنکوپ و سیاهی رفتن چشم (Presyncope / Lightheadedness)', category: 'قلب و عروق (Cardiovascular)', keywords: 'سرگیجه ارتواستاتیک' },
   { id: 'sym_lower_edema', label: 'ادم و ورم اندام تحتانی (Bilateral/Unilateral Lower Extremity Edema)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ورم پا قوزک' },
   { id: 'sym_claudication', label: 'لنگش متناوب عروقی (Intermittent Claudication)', category: 'قلب و عروق (Cardiovascular)', keywords: 'درد ساق پا موقع راه رفتن ایسکمی' },
   { id: 'sym_rest_limb_pain', label: 'درد استراحت و سردی/سیانوز اندام (Ischemic Rest Pain / Cyanosis)', category: 'قلب و عروق (Cardiovascular)', keywords: 'ایسکمی حاد اندام آمبولی' },
 
   // ۵. دستگاه تنفسی و توراکس (Respiratory & Thoracic)
-  { id: 'sym_dyspnea_rest', label: 'تنگی نفس در حال استراحت (Resting Dyspnea / Shortness of Breath)', category: 'تنفسی (Respiratory)', keywords: 'نفس تنگی حاد' },
+  { id: 'sym_dyspnea_rest', aliases: 'دیسپنه دیسپنه نفس تنگی کم آوردن نفس dyspnea sob تنگی نفس استراحت', label: 'تنگی نفس در حال استراحت (Resting Dyspnea / Shortness of Breath)', category: 'تنفسی (Respiratory)', keywords: 'نفس تنگی حاد' },
   { id: 'sym_cough_dry', label: 'سرفه خشک (Dry / Non-productive Cough)', category: 'تنفسی (Respiratory)', keywords: 'سرفه بدون خلط' },
   { id: 'sym_cough_productive', label: 'سرفه خلطدار (Productive Cough / Sputum)', category: 'تنفسی (Respiratory)', keywords: 'خلط چرکی سبز زرد' },
   { id: 'sym_hemoptysis', label: 'هموپتزی / دفع خلط خونی (Hemoptysis)', category: 'تنفسی (Respiratory)', keywords: 'سرفه خونی ریه' },
@@ -464,11 +464,11 @@ export const MASTER_SYMPTOMS_BANK = [
   { id: 'sym_wheezing_stridor', label: 'خسخس سینه یا استریدور (Wheezing / Stridor)', category: 'تنفسی (Respiratory)', keywords: 'صدای سوت ریه انسداد راه هوایی' },
 
   // ۶. کلیه و مجاری ادراری و تناسلی آقایان (Genitourinary & Urology)
-  { id: 'sym_dysuria', label: 'سوزش ادرار (Dysuria)', category: 'ادراری و تناسلی (GU)', keywords: 'درد موقع ادرار عفونت' },
+  { id: 'sym_dysuria', aliases: 'دیزوری دیس اوری درد ادرار سوزش ادرار dysuria', label: 'سوزش ادرار (Dysuria)', category: 'ادراری و تناسلی (GU)', keywords: 'درد موقع ادرار عفونت' },
   { id: 'sym_frequency', label: 'تکرر ادرار (Urinary Frequency)', category: 'ادراری و تناسلی (GU)', keywords: 'زیاد دستشویی رفتن' },
   { id: 'sym_urgency', label: 'فوریت ادراری (Urinary Urgency)', category: 'ادراری و تناسلی (GU)', keywords: 'عجله در دفع ادرار' },
   { id: 'sym_nocturia', label: 'نوکتوری / بیدار شدن شبانه برای ادرار (Nocturia)', category: 'ادراری و تناسلی (GU)', keywords: 'ادرار شبانه پروستات' },
-  { id: 'sym_hematuria_gross', label: 'هماچوری واضح یا دفع لخته در ادرار (Gross Hematuria / Clots)', category: 'ادراری و تناسلی (GU)', keywords: 'ادرار خونی قرمز' },
+  { id: 'sym_hematuria_gross', aliases: 'هماچوری هماتوری ادرار خونی دفع لخته خون در ادرار hematuria', label: 'هماچوری واضح یا دفع لخته در ادرار (Gross Hematuria / Clots)', category: 'ادراری و تناسلی (GU)', keywords: 'ادرار خونی قرمز' },
   { id: 'sym_flank_renal_colic', label: 'درد پهلو و کولیک کلیوی (Flank Pain / Renal Colic)', category: 'ادراری و تناسلی (GU)', keywords: 'سنگ کلیه درد پهلو' },
   { id: 'sym_urinary_retention', label: 'احتباس ادراری یا کاهش قطر و فشار جریان ادرار (Urinary Retention / Weak Stream / Hesitancy)', category: 'ادراری و تناسلی (GU)', keywords: 'بند آمدن ادرار قطره قطره' },
   { id: 'sym_urinary_incontinence', label: 'بیاختیاری ادرار (Urinary Incontinence)', category: 'ادراری و تناسلی (GU)', keywords: 'ریزش ادرار' },
@@ -484,26 +484,26 @@ export const MASTER_SYMPTOMS_BANK = [
   { id: 'sym_postmenopausal_bleeding', label: 'خونریزی پس از یائسگی (Postmenopausal Bleeding - PMB)', category: 'زنان (Ob/Gyn)', keywords: 'خونریزی یائسگی' },
 
   // ۸. پستان، پوست و بافت نرم (Breast, Skin & Soft Tissue)
-  { id: 'sym_breast_mass', label: 'لمس توده در پستان یا زیربغل (Palpable Breast / Axillary Mass)', category: 'پستان و پوست (Breast & Skin)', keywords: 'غده سینه کیست سینه' },
+  { id: 'sym_breast_mass', aliases: 'توده پستان غده سینه توده سینه کیست سینه breast mass', label: 'لمس توده در پستان یا زیربغل (Palpable Breast / Axillary Mass)', category: 'پستان و پوست (Breast & Skin)', keywords: 'غده سینه کیست سینه' },
   { id: 'sym_mastalgia', label: 'درد پستان (Mastalgia / Mastodynia)', category: 'پستان و پوست (Breast & Skin)', keywords: 'درد سینه سیکلیک' },
-  { id: 'sym_nipple_discharge', label: 'ترشح از نوک پستان - خونی/سروزی/شیری (Nipple Discharge / Galactorrhea)', category: 'پستان و پوست (Breast & Skin)', keywords: 'ترشح نیپل پاژه' },
+  { id: 'sym_nipple_discharge', aliases: 'ترشح نیپل ترشح نوک سینه گالاکتوره nipple discharge', label: 'ترشح از نوک پستان - خونی/سروزی/شیری (Nipple Discharge / Galactorrhea)', category: 'پستان و پوست (Breast & Skin)', keywords: 'ترشح نیپل پاژه' },
   { id: 'sym_nipple_retraction_peau', label: 'فرورفتگی نیپل، کشیدگی پوست یا نمای پوستپرتقالی (Nipple Inversion / Skin Dimpling / Peau d’orange)', category: 'پستان و پوست (Breast & Skin)', keywords: 'تغییر پوست سینه' },
   { id: 'sym_skin_ulcer_abscess', label: 'زخم مزمن، آبسه، سلولیت یا ترشح چرکی پوست (Cutaneous Ulcer / Abscess / Cellulitis)', category: 'پستان و پوست (Breast & Skin)', keywords: 'جوش چرکی دمل پای دیابتی' },
   { id: 'sym_skin_rash_erythema', label: 'بثورات جلدی، کهیر یا اریتم (Skin Rash / Urticaria / Erythema)', category: 'پستان و پوست (Breast & Skin)', keywords: 'حساسیت پوستی قرمزی' },
   { id: 'sym_ecchymosis_petechiae', label: 'کبودی آسان، اکیموز یا پتشی و پورپورا (Easy Bruising / Ecchymosis / Petechiae)', category: 'پستان و پوست (Breast & Skin)', keywords: 'خونمردگی پلاکت' },
 
   // ۹. سر، صورت، فک، چشم، گوش، حلق و گردن (HEENT, Maxillofacial & Neck)
-  { id: 'sym_headache', label: 'سردرد (Headache / Cephalgia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'میگرن درد سر' },
+  { id: 'sym_headache', aliases: 'سردرد میگرن درد سر cephalgia headache', label: 'سردرد (Headache / Cephalgia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'میگرن درد سر' },
   { id: 'sym_facial_jaw_swelling', label: 'توده یا تورم فک، صورت، مندیبل یا غدد بزاقی (Maxillofacial / Mandibular / Parotid Mass)', category: 'سر و گردن (HEENT & Neck)', keywords: 'پاروتید زاویه فک کیست سر' },
   { id: 'sym_trismus', label: 'محدودیت باز کردن دهان / تریسموس (Trismus)', category: 'سر و گردن (HEENT & Neck)', keywords: 'قفل شدن فک آبسه دندانی' },
   { id: 'sym_neck_thyroid_mass', label: 'توده گردنی، بزرگی تیروئید یا گواتر (Neck Mass / Goiter / Thyroid Nodule)', category: 'سر و گردن (HEENT & Neck)', keywords: 'ندول تیروئید غده لنفاوی گردن' },
-  { id: 'sym_hoarseness', label: 'خشونت یا تغییر صدا (Hoarseness / Dysphonia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'گرفتگی صدا عصب راجعه حنجره' },
+  { id: 'sym_hoarseness', aliases: 'دیسفونی گرفتگی صدا دورگه شدن صدا خشونت صدا hoarseness dysphonia عصب راجعه', label: 'خشونت یا تغییر صدا (Hoarseness / Dysphonia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'گرفتگی صدا عصب راجعه حنجره' },
   { id: 'sym_blurred_vision_diplopia', label: 'تاری دید، کاهش بینایی یا دوبینی (Blurred Vision / Visual Loss / Diplopia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'چشم دیدن' },
   { id: 'sym_vertigo_tinnitus', label: 'سرگیجه چرخشی حقیقی یا وزوز گوش (True Vertigo / Tinnitus / Otalgia)', category: 'سر و گردن (HEENT & Neck)', keywords: 'گوش درد تعادل' },
-  { id: 'sym_epistaxis_gingival', label: 'خوندماغ یا خونریزی لثه (Epistaxis / Gingival Bleeding)', category: 'سر و گردن (HEENT & Neck)', keywords: 'خونریزی بینی' },
+  { id: 'sym_epistaxis_gingival', aliases: 'خوندماغ خونریزی بینی خونریزی لثه epistaxis', label: 'خوندماغ یا خونریزی لثه (Epistaxis / Gingival Bleeding)', category: 'سر و گردن (HEENT & Neck)', keywords: 'خونریزی بینی' },
 
   // ۱۰. مغز و اعصاب و عضلانی-اسکلتی (Neurology & Musculoskeletal)
-  { id: 'sym_loc_confusion', label: 'کاهش سطح هوشیاری، گیجی یا دلیریوم (Altered Mental Status / Confusion / LOC)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'خواب آلودگی کما فراموشی' },
+  { id: 'sym_loc_confusion', aliases: 'کاهش هوشیاری گیجی دلیریوم خواب الودگی LOC altered mental status', label: 'کاهش سطح هوشیاری، گیجی یا دلیریوم (Altered Mental Status / Confusion / LOC)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'خواب آلودگی کما فراموشی' },
   { id: 'sym_seizure', label: 'تشنج و حرکات تونیک-کلونیک (Seizure / Convulsion)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'صرع غش' },
   { id: 'sym_focal_weakness_plegia', label: 'ضعف حرکتی، پارزی یا فلج اندام/صورت (Focal Weakness / Hemiparesis / Palsy)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'سکته بی حرکتی دست و پا' },
   { id: 'sym_paresthesia_numbness', label: 'گزگز، مورمور و بیحسی (Paresthesia / Numbness / Hypoesthesia)', category: 'اعصاب و عضلانی (Neuro & MSK)', keywords: 'خواب رفتن دست و پا عصب' },
@@ -615,9 +615,6 @@ MASTER_PMH_CATEGORIES.forEach(cat => {
 
 export const PMH_CATEGORIES = MASTER_PMH_CATEGORIES;
 export const ALL_MASTER_SYMPTOMS = MASTER_SYMPTOMS_BANK;
-export const ALL_MASTER_PMH_ITEMS = MASTER_PMH_CATEGORIES.flatMap(cat => 
-  (cat.items || []).map(it => ({ ...it, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
-);
 
 export const DH_SIG_OPTIONS = [
   'Daily (روزانه)',
@@ -632,46 +629,64 @@ export const DH_SIG_OPTIONS = [
 
 export const MASTER_DRUG_CATEGORIES = [
   {
+    catId: 'dh_antibiotics_surgical',
+    id: 'dh_antibiotics_surgical',
+    catTitle: '۷. آنتی‌بیوتیک‌های پروفیلاکسی و درمانی جراحی (Surgical Antibiotics)',
+    title: '۷. آنتی‌بیوتیک‌های پروفیلاکسی و درمانی جراحی (Surgical Antibiotics)',
+    drugs: [
+      { id: 'drg_cefazolin', label: 'سفازولین (Cefazolin)', brands: 'Kefzol سفازول', defaultDose: '1g / 2g IV', aliases: 'سفازلین سفازولین cefazolin kefzol پروفیلاکسی جراحی' },
+      { id: 'drg_ceftriaxone', label: 'سفتریاکسون (Ceftriaxone)', brands: 'Rocephin روسفین', defaultDose: '1g / 2g IV', aliases: 'سفتریاکسن روسفین سفتریاکسون ceftriaxone سفالوسپورین' },
+      { id: 'drg_metronidazole', label: 'مترونیدازول (Metronidazole)', brands: 'Flagyl فلاجیل', defaultDose: '500mg IV/PO', aliases: 'مترونیدازل فلاجیل متوکسی flagyl metronidazole بی هوازی' },
+      { id: 'drg_ciprofloxacin', label: 'سیپروفلوکساسین (Ciprofloxacin)', brands: 'Ciprobay سیپروبای', defaultDose: '400mg IV / 500mg PO', aliases: 'سیپرو سیپروفلوکساسین ciprofloxacin cipro کینولون' },
+      { id: 'drg_piperacillin_tazobactam', label: 'پیپراسیلین-تازوباکتام (Tazocin / Pip-Tazo)', brands: 'Tazocin تازوسین, پیپتاز', defaultDose: '4.5g / 3.375g IV', highAlert: true, aliases: 'تازوسین پیپتاز پیپراسیلین piperacillin tazobactam tazocin سودومونا' },
+      { id: 'drg_meropenem', label: 'مروپنم (Meropenem)', brands: 'Meronem مرونم', defaultDose: '1g IV', highAlert: true, aliases: 'مروپنم مرونم meropenem meronem کارباپنم' },
+      { id: 'drg_imipenem', label: 'ایمی‌پنم (Imipenem/Cilastatin)', brands: 'Tienam تینام', defaultDose: '500mg IV', highAlert: true, aliases: 'ایمیپنم تینام imipenem tienam کارباپنم' },
+      { id: 'drg_vancomycin', label: 'وانکومایسین (Vancomycin)', brands: 'Vancocin', defaultDose: '1g IV', highAlert: true, aliases: 'ونکومایسین وانکومایسین vancomycin vanco ضد mrsa' },
+      { id: 'drg_clindamycin', label: 'کلیندامایسین (Clindamycin)', brands: 'Dalacin دالاسین', defaultDose: '600mg IV', aliases: 'کلیندامایسین کلیندا clindamycin dalacin' },
+      { id: 'drg_co_amoxiclav', label: 'کوآموکسیکلاو / آموکسی‌کلاو (Co-Amoxiclav)', brands: 'Augmentin آگمنتین, فارمنتین', defaultDose: '625mg / 1.2g IV', aliases: 'اموکسی کلاو کواموکسی کلاو co amoxiclav augmentin' }
+    ]
+  },
+  {
     catId: 'dh_anticoag_antiplatelet',
     catTitle: '۱. ضدپلاکتها و ضدانعقادها (داروهای پرخطر جراحی - High-Alert)',
     drugs: [
-      { id: 'drg_asa', label: 'آسپرین (Aspirin / ASA)', brands: 'Aspirin 80mg, 100mg, 325mg', defaultDose: '80mg', highAlert: true },
-      { id: 'drg_clopidogrel', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت', defaultDose: '75mg', highAlert: true },
-      { id: 'drg_ticagrelor', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticarel', defaultDose: '90mg', highAlert: true },
+      { id: 'drg_asa', aliases: 'اسپرین آشپرین اشپرین آ.اس.آ آ اس آ asa aspirin 80 100 325 antiplatelet', label: 'آسپرین (Aspirin / ASA)', brands: 'Aspirin 80mg, 100mg, 325mg', defaultDose: '80mg', highAlert: true },
+      { id: 'drg_clopidogrel', aliases: 'پلاویکس پلاوکس اسویکس زیلیت کلوپیدگرل clopidogrel plavix osvix zyllt', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت', defaultDose: '75mg', highAlert: true },
+      { id: 'drg_ticagrelor', aliases: 'بریلینتا تیکاگرلور ticagrelor brilinta', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticarel', defaultDose: '90mg', highAlert: true },
       { id: 'drg_prasugrel', label: 'پرازوگرل (Prasugrel)', brands: 'Effient', defaultDose: '10mg', highAlert: true },
       { id: 'drg_cilostazol', label: 'سیلوستازول (Cilostazol)', brands: 'Pletaal پلتال', defaultDose: '100mg', highAlert: true },
-      { id: 'drg_warfarin', label: 'وارفارین (Warfarin)', brands: 'Coumadin کومادین', defaultDose: '5mg', highAlert: true },
-      { id: 'drg_rivaroxaban', label: 'ریواروکسابان (Rivaroxaban)', brands: 'Xarelto زارلتو, ایکسارلتو, ریواکسان', defaultDose: '20mg', highAlert: true },
-      { id: 'drg_apixaban', label: 'آپیکسابان (Apixaban)', brands: 'Eliquis الیکوئیس, آپیکسابان', defaultDose: '5mg', highAlert: true },
-      { id: 'drg_dabigatran', label: 'دابیگاتران (Dabigatran)', brands: 'Pradaxa پراداکسا', defaultDose: '150mg', highAlert: true },
-      { id: 'drg_enoxaparin', label: 'انوکساپارین (Enoxaparin)', brands: 'Clexane کلکسان', defaultDose: '40mg SC', highAlert: true },
-      { id: 'drg_heparin', label: 'هپارین (Unfractionated Heparin)', brands: 'Heparin', defaultDose: '5000 IU', highAlert: true }
+      { id: 'drg_warfarin', aliases: 'کومادین وارفارین warfarin coumadin ضدانعقاد', label: 'وارفارین (Warfarin)', brands: 'Coumadin کومادین', defaultDose: '5mg', highAlert: true },
+      { id: 'drg_rivaroxaban', aliases: 'زارلتو زارالتو ایکسارلتو ریوارکسابان rivaroxaban xarelto نوآک doac', label: 'ریواروکسابان (Rivaroxaban)', brands: 'Xarelto زارلتو, ایکسارلتو, ریواکسان', defaultDose: '20mg', highAlert: true },
+      { id: 'drg_apixaban', aliases: 'الیکوئیس اپیکسابان apixaban eliquis', label: 'آپیکسابان (Apixaban)', brands: 'Eliquis الیکوئیس, آپیکسابان', defaultDose: '5mg', highAlert: true },
+      { id: 'drg_dabigatran', aliases: 'پراداکسا دابیگاتران dabigatran pradaxa', label: 'دابیگاتران (Dabigatran)', brands: 'Pradaxa پراداکسا', defaultDose: '150mg', highAlert: true },
+      { id: 'drg_enoxaparin', aliases: 'کلکسan کلکسان انکساپارین انوکساپارین هپارین زیرجلدی enoxaparin clexane lmwh', label: 'انوکساپارین (Enoxaparin)', brands: 'Clexane کلکسان', defaultDose: '40mg SC', highAlert: true },
+      { id: 'drg_heparin', aliases: 'هپارین heparin ufh هپارین وریدی', label: 'هپارین (Unfractionated Heparin)', brands: 'Heparin', defaultDose: '5000 IU', highAlert: true }
     ]
   },
   {
     catId: 'dh_cardiovascular_htn',
     catTitle: '۲. داروهای قلبی، فشار خون، ضدآریتمی و چربی خون',
     drugs: [
-      { id: 'drg_losartan', label: 'لوزارتان (Losartan)', brands: 'پوزارکس, Cozaar', defaultDose: '25mg / 50mg' },
-      { id: 'drg_valsartan', label: 'والزارتان (Valsartan)', brands: 'Diovan دیووان, والزومیکس', defaultDose: '80mg / 160mg' },
+      { id: 'drg_losartan', aliases: 'لوزارتان پوزارکس لوزار cozaar losartan ار بی arb', label: 'لوزارتان (Losartan)', brands: 'پوزارکس, Cozaar', defaultDose: '25mg / 50mg' },
+      { id: 'drg_valsartan', aliases: 'والزارتان دیووان والزومیکس valsartan diovan', label: 'والزارتان (Valsartan)', brands: 'Diovan دیووان, والزومیکس', defaultDose: '80mg / 160mg' },
       { id: 'drg_telmisartan', label: 'تلمیزارتان (Telmisartan)', brands: 'Micardis میکاردس', defaultDose: '40mg / 80mg' },
       { id: 'drg_captopril', label: 'کاپتوپریل (Captopril)', brands: 'Capoten', defaultDose: '25mg / 50mg' },
       { id: 'drg_enalapril', label: 'انالاپریل (Enalapril)', brands: 'Renitec', defaultDose: '5mg / 20mg' },
       { id: 'drg_lisinopril', label: 'لیزینوپریل (Lisinopril)', brands: 'Zestril', defaultDose: '10mg' },
-      { id: 'drg_amlodipine', label: 'آملودیپین (Amlodipine)', brands: 'Norvasc نورواسک, آملوپرس', defaultDose: '5mg' },
+      { id: 'drg_amlodipine', aliases: 'املودیپین املوپرس نورواسک amlodipine norvasc ccb', label: 'آملودیپین (Amlodipine)', brands: 'Norvasc نورواسک, آملوپرس', defaultDose: '5mg' },
       { id: 'drg_nifedipine', label: 'نیفدیپین (Nifedipine)', brands: 'Adalat آدالات', defaultDose: '10mg / 30mg' },
       { id: 'drg_diltiazem', label: 'دیلتیازم (Diltiazem)', brands: 'Cardizem', defaultDose: '60mg / 120mg' },
       { id: 'drg_verapamil', label: 'وراپامیل (Verapamil)', brands: 'Isoptin ایزوپتین', defaultDose: '40mg / 80mg' },
-      { id: 'drg_metoprolol', label: 'متوپرولول (Metoprolol Tartrate / Succinate)', brands: 'Metoral متورال, Betaloc بتالوک, امتا', defaultDose: '50mg / 47.5mg' },
-      { id: 'drg_bisoprolol', label: 'بیزوپرولول (Bisoprolol)', brands: 'Concor کونکور, زباکور', defaultDose: '2.5mg / 5mg' },
-      { id: 'drg_carvedilol', label: 'کارودیلول (Carvedilol)', brands: 'Coryol کوریول', defaultDose: '6.25mg / 12.5mg' },
-      { id: 'drg_propranolol', label: 'پروپرانولول (Propranolol)', brands: 'Inderal ایندرال, پرانول', defaultDose: '10mg / 20mg / 40mg' },
+      { id: 'drg_metoprolol', aliases: 'متورال مترال بتالوک امتا متپرولول metoprolol metoral betaloc بتابلاکر', label: 'متوپرولول (Metoprolol Tartrate / Succinate)', brands: 'Metoral متورال, Betaloc بتالوک, امتا', defaultDose: '50mg / 47.5mg' },
+      { id: 'drg_bisoprolol', aliases: 'کونکور کنکور بیزپرولول زباکور bisoprolol concor', label: 'بیزوپرولول (Bisoprolol)', brands: 'Concor کونکور, زباکور', defaultDose: '2.5mg / 5mg' },
+      { id: 'drg_carvedilol', aliases: 'کوریول کارودیلول carvedilol coryol', label: 'کارودیلول (Carvedilol)', brands: 'Coryol کوریول', defaultDose: '6.25mg / 12.5mg' },
+      { id: 'drg_propranolol', aliases: 'پرانول ایندرال پروپرانولول propranolol inderal', label: 'پروپرانولول (Propranolol)', brands: 'Inderal ایندرال, پرانول', defaultDose: '10mg / 20mg / 40mg' },
       { id: 'drg_atenolol', label: 'آتنولول (Atenolol)', brands: 'Tenormin', defaultDose: '50mg / 100mg' },
       { id: 'drg_nebivolol', label: 'نبیوولول (Nebivolol)', brands: 'Nebilet نبیلت', defaultDose: '5mg' },
-      { id: 'drg_furosemide', label: 'فوروزماید (Furosemide)', brands: 'Lasix لازیکس', defaultDose: '20mg / 40mg' },
+      { id: 'drg_furosemide', aliases: 'فروزماید فورزماید لازیکس لاسیکس furosemide lasix دیورتیک', label: 'فوروزماید (Furosemide)', brands: 'Lasix لازیکس', defaultDose: '20mg / 40mg' },
       { id: 'drg_hydrochlorothiazide', label: 'هیدروکلروتیازید (Hydrochlorothiazide - HCTZ)', brands: 'HCT', defaultDose: '25mg / 50mg' },
       { id: 'drg_indapamide', label: 'اینداپامید (Indapamide)', brands: 'Natrilix ناتریلیکس', defaultDose: '1.5mg' },
-      { id: 'drg_spironolactone', label: 'اسپیرونولاکتون (Spironolactone)', brands: 'Aldactone آلداکتون', defaultDose: '25mg / 100mg' },
+      { id: 'drg_spironolactone', aliases: 'اسپیرنولاکتون آلداکتون الداکتون spironolactone aldactone', label: 'اسپیرونولاکتون (Spironolactone)', brands: 'Aldactone آلداکتون', defaultDose: '25mg / 100mg' },
       { id: 'drg_eplerenone', label: 'اپلرنون (Eplerenone)', brands: 'Inspra', defaultDose: '25mg / 50mg' },
       { id: 'drg_sacubitril_valsartan', label: 'ساکوبیترین / والزارتان (Sacubitril/Valsartan)', brands: 'Entresto انترستو, ویمپتو', defaultDose: '50mg / 100mg' },
       { id: 'drg_digoxin', label: 'دیگوکسین (Digoxin)', brands: 'Lanoxin لانوکسین', defaultDose: '0.25mg' },
@@ -679,8 +694,8 @@ export const MASTER_DRUG_CATEGORIES = [
       { id: 'drg_flecainide_propafenone', label: 'فلکاینید / پروپافنون (Flecainide / Propafenone)', brands: 'Rytmonorm ریتمونورم', defaultDose: '150mg' },
       { id: 'drg_nitroglycerin', label: 'نیتروگلیسیرین پیوستهرهش / زیرزبانی (Nitroglycerin / TNG)', brands: 'Nitrocontin نیتروکانتین, Sustac', defaultDose: '2.6mg / 6.4mg' },
       { id: 'drg_isosorbide', label: 'ایزوسورباید دینیترات / منونیترات (Isosorbide)', brands: 'Isordil ایزوردیل, Imdur', defaultDose: '10mg / 40mg' },
-      { id: 'drg_atorvastatin', label: 'آتورواستاتین (Atorvastatin)', brands: 'Lipitor لیپیتور', defaultDose: '20mg / 40mg' },
-      { id: 'drg_rosuvastatin', label: 'رزوواستاتین (Rosuvastatin)', brands: 'Crestor کرستور, روپیکسون', defaultDose: '10mg / 20mg' },
+      { id: 'drg_atorvastatin', aliases: 'اتورواستاتین لیپیتور چربی خون atorvastatin lipitor', label: 'آتورواستاتین (Atorvastatin)', brands: 'Lipitor لیپیتور', defaultDose: '20mg / 40mg' },
+      { id: 'drg_rosuvastatin', aliases: 'رزوواستاتین کرستور روپیکسون rosuvastatin crestor', label: 'رزوواستاتین (Rosuvastatin)', brands: 'Crestor کرستور, روپیکسون', defaultDose: '10mg / 20mg' },
       { id: 'drg_simvastatin', label: 'سیمواستاتین (Simvastatin)', brands: 'Zocor', defaultDose: '20mg' },
       { id: 'drg_ezetimibe', label: 'ازتیمیب (Ezetimibe)', brands: 'Ezetrol ازترول', defaultDose: '10mg' },
       { id: 'drg_fenofibrate_gemfibrozil', label: 'فنوفیبرات / جمفیبروزیل (Fenofibrate / Gemfibrozil)', brands: 'Lipanthyl لیپانتیل, Lopid', defaultDose: '200mg / 300mg' },
@@ -691,27 +706,27 @@ export const MASTER_DRUG_CATEGORIES = [
     catId: 'dh_diabetes_endocrine_steroid',
     catTitle: '۳. داروهای دیابت، انسولینها، تیروئید، کورتونها و هورمونی',
     drugs: [
-      { id: 'drg_metformin', label: 'متفورمین (Metformin)', brands: 'Glucophage گلوکوفاژ', defaultDose: '500mg / 1000mg', highAlert: true },
+      { id: 'drg_metformin', aliases: 'متفورمین گلوکوفاژ قند دیابت metformin glucophage', label: 'متفورمین (Metformin)', brands: 'Glucophage گلوکوفاژ', defaultDose: '500mg / 1000mg', highAlert: true },
       { id: 'drg_gliclazide', label: 'گلیکلازید (Gliclazide)', brands: 'Diamicron دیامیکرون', defaultDose: '30mg / 60mg / 80mg' },
-      { id: 'drg_glibenclamide', label: 'گلیبنکلامید (Glibenclamide / Glyburide)', brands: 'Daonil دائونیل', defaultDose: '5mg' },
+      { id: 'drg_glibenclamide', aliases: 'گلی بن کلامید دائونیل glibenclamide daonil', label: 'گلیبنکلامید (Glibenclamide / Glyburide)', brands: 'Daonil دائونیل', defaultDose: '5mg' },
       { id: 'drg_glimepiride', label: 'گلیمپراید (Glimepiride)', brands: 'Amaryl آماریل', defaultDose: '2mg / 4mg' },
       { id: 'drg_repaglinide', label: 'رپاگلینید (Repaglinide)', brands: 'Novonorm نوونورم', defaultDose: '1mg / 2mg' },
       { id: 'drg_pioglitazone', label: 'پیوگلیتازون (Pioglitazone)', brands: 'Actos آکتوس', defaultDose: '15mg / 30mg' },
-      { id: 'drg_sitagliptin', label: 'سیتاگلیپتین / متفورمین (Sitagliptin)', brands: 'Januvia جانوویا, Ziptin زیپتین, زیپمت', defaultDose: '50mg / 100mg' },
+      { id: 'drg_sitagliptin', aliases: 'سیتاگلیپتین جانوویا زیپتین زیپمت sitagliptin januvia ziptin', label: 'سیتاگلیپتین / متفورمین (Sitagliptin)', brands: 'Januvia جانوویا, Ziptin زیپتین, زیپمت', defaultDose: '50mg / 100mg' },
       { id: 'drg_linagliptin', label: 'لیناگلیپتین (Linagliptin)', brands: 'Trajenta تراجنتا, گلورنتا, لینامکس', defaultDose: '5mg' },
-      { id: 'drg_empagliflozin', label: 'امپاگلیفلوزین (Empagliflozin)', brands: 'Jardiance جاردیانس, گلوریپا, سینجاردی', defaultDose: '10mg / 25mg', highAlert: true },
+      { id: 'drg_empagliflozin', aliases: 'امپاگلیفلوزین جاردیانس گلوریپا سینجاردی empagliflozin jardiance sglt2', label: 'امپاگلیفلوزین (Empagliflozin)', brands: 'Jardiance جاردیانس, گلوریپا, سینجاردی', defaultDose: '10mg / 25mg', highAlert: true },
       { id: 'drg_dapagliflozin', label: 'داپاگلیفلوزین (Dapagliflozin)', brands: 'Forxiga فورکسیگا', defaultDose: '10mg', highAlert: true },
       { id: 'drg_acarbose', label: 'آکاربوز (Acarbose)', brands: 'Glucobay', defaultDose: '50mg / 100mg' },
       { id: 'drg_liraglutide_semaglutide', label: 'لیراگلوتاید / سماگلوتاید (Liraglutide / Semaglutide)', brands: 'Victoza ویکتوزا, Ozempic اوزمپیک, ملیتود', defaultDose: '0.6mg / 1.2mg SC' },
-      { id: 'drg_ins_glargine', label: 'انسولین گلارژین (Insulin Glargine)', brands: 'Lantus لانتوس, Toujeo توجئو, Basalin', defaultDose: 'Units SC', highAlert: true },
-      { id: 'drg_ins_aspart', label: 'انسولین آسپارت / دوقسمتی (Insulin Aspart)', brands: 'NovoRapid نووراپید, NovoMix نوومیکس', defaultDose: 'Units SC', highAlert: true },
+      { id: 'drg_ins_glargine', aliases: 'لانتوس توجئو انسولین پایه گلارژین lantus toujeo insulin', label: 'انسولین گلارژین (Insulin Glargine)', brands: 'Lantus لانتوس, Toujeo توجئو, Basalin', defaultDose: 'Units SC', highAlert: true },
+      { id: 'drg_ins_aspart', aliases: 'نووراپید نوومیکس انسولین قلمی aspart novorapid', label: 'انسولین آسپارت / دوقسمتی (Insulin Aspart)', brands: 'NovoRapid نووراپید, NovoMix نوومیکس', defaultDose: 'Units SC', highAlert: true },
       { id: 'drg_ins_nph_reg', label: 'انسولین NPH / رگولار (NPH / Regular Insulin)', brands: 'Humulin, Insulatard', defaultDose: 'Units SC', highAlert: true },
-      { id: 'drg_levothyroxine', label: 'لووتیروکسین (Levothyroxine)', brands: 'Euthyrox یوتیروکس', defaultDose: '50mcg / 100mcg' },
-      { id: 'drg_methimazole', label: 'متیمازول / کاربیمازول (Methimazole)', brands: 'Tapazole تاپازول', defaultDose: '5mg / 10mg' },
+      { id: 'drg_levothyroxine', aliases: 'لووتیروکسین یوتیروکس تیروئید کم کار levothyroxine euthyrox', label: 'لووتیروکسین (Levothyroxine)', brands: 'Euthyrox یوتیروکس', defaultDose: '50mcg / 100mcg' },
+      { id: 'drg_methimazole', aliases: 'متیمازول تاپازول تیروئید پرکار methimazole tapazole', label: 'متیمازول / کاربیمازول (Methimazole)', brands: 'Tapazole تاپازول', defaultDose: '5mg / 10mg' },
       { id: 'drg_ptu', label: 'پروپیلتیواوراسیل (Propylthiouracil - PTU)', brands: 'PTU', defaultDose: '50mg' },
-      { id: 'drg_prednisolone', label: 'پردنیزولون (Prednisolone)', brands: 'Nisolone نیزولون', defaultDose: '5mg / 50mg', highAlert: true },
-      { id: 'drg_dexamethasone', label: 'دگزامتازون (Dexamethasone)', brands: 'Decadron', defaultDose: '0.5mg / 4mg / 8mg', highAlert: true },
-      { id: 'drg_hydrocortisone', label: 'هیدروکورتیزون / متیلپردنیزولون (Hydrocortisone / Methylprednisolone)', brands: 'Solu-Cortef, Solu-Medrol', defaultDose: '100mg', highAlert: true },
+      { id: 'drg_prednisolone', aliases: 'پردنیزولون کورتون استروئید نیزولون prednisolone nisolone', label: 'پردنیزولون (Prednisolone)', brands: 'Nisolone نیزولون', defaultDose: '5mg / 50mg', highAlert: true },
+      { id: 'drg_dexamethasone', aliases: 'دگزامتازون دگزا کورتون دکادرون dexamethasone decadron', label: 'دگزامتازون (Dexamethasone)', brands: 'Decadron', defaultDose: '0.5mg / 4mg / 8mg', highAlert: true },
+      { id: 'drg_hydrocortisone', aliases: 'هیدروکورتیزون سولوکورتف کورتون hydrocortisone solu cortef', label: 'هیدروکورتیزون / متیلپردنیزولون (Hydrocortisone / Methylprednisolone)', brands: 'Solu-Cortef, Solu-Medrol', defaultDose: '100mg', highAlert: true },
       { id: 'drg_cabergoline', label: 'کابرگولین / بروموکریپتین (Cabergoline / Bromocriptine)', brands: 'Dostinex داستینکس', defaultDose: '0.5mg' },
       { id: 'drg_alendronate_calcium', label: 'آلندرونیت / کلسیم و ویتامین D / کلسیتریول (Alendronate / Rocaltrol)', brands: 'Fosamax فوزامکس, روکالترول', defaultDose: '70mg Weekly' },
       { id: 'drg_ocp_progesterone', label: 'قرص ضدبارداری (OCP / LD / HD)، دوفاستون، مدروکسیپروژسترون یا دانازول/دیفرلین', brands: 'Duphaston دوفاستون, Yasmin یاسمین, Yaz, Dienogest وروژست', defaultDose: 'Daily' }
@@ -721,14 +736,14 @@ export const MASTER_DRUG_CATEGORIES = [
     catId: 'dh_gastrointestinal',
     catTitle: '۴. داروهای گوارشی، کبدی و ضدتهوع',
     drugs: [
-      { id: 'drg_pantoprazole', label: 'پنتوپرازول (Pantoprazole)', brands: 'Nolpaza نولپازا, پنتوزول, Controloc', defaultDose: '20mg / 40mg' },
-      { id: 'drg_omeprazole', label: 'امپرازول (Omeprazole)', brands: 'Losec', defaultDose: '20mg' },
-      { id: 'drg_esomeprazole', label: 'اسامپرازول (Esomeprazole)', brands: 'Nexium نکسیوم, اسوپرکس', defaultDose: '20mg / 40mg' },
+      { id: 'drg_pantoprazole', aliases: 'پنتاپرازول پنتوپرازول نولپازا نلپازا پنتوزول معده pantoprazole nolpaza controloc', label: 'پنتوپرازول (Pantoprazole)', brands: 'Nolpaza نولپازا, پنتوزول, Controloc', defaultDose: '20mg / 40mg' },
+      { id: 'drg_omeprazole', aliases: 'امپرازول لوسک omeprazole losec', label: 'امپرازول (Omeprazole)', brands: 'Losec', defaultDose: '20mg' },
+      { id: 'drg_esomeprazole', aliases: 'اسومپرازول نکسیوم اسوپرکس esomeprazole nexium', label: 'اسامپرازول (Esomeprazole)', brands: 'Nexium نکسیوم, اسوپرکس', defaultDose: '20mg / 40mg' },
       { id: 'drg_lansoprazole_rabeprazole', label: 'لنسوپرازول / رابپرازول (Lansoprazole / Rabeprazole)', brands: 'Pariet پاریت', defaultDose: '20mg / 30mg' },
-      { id: 'drg_famotidine', label: 'فاموتیدین (Famotidine)', brands: 'Pepcid', defaultDose: '20mg / 40mg' },
+      { id: 'drg_famotidine', aliases: 'فاموتیدین پپسید famotidine pepcid', label: 'فاموتیدین (Famotidine)', brands: 'Pepcid', defaultDose: '20mg / 40mg' },
       { id: 'drg_sucralfate_antacid', label: 'سوکرالفیت / شربت آلومینیوم امجیاس (Sucralfate / Aluminum MgS)', brands: 'Al-Mg-S', defaultDose: '10ml / 1g' },
-      { id: 'drg_ondansetron', label: 'اندانسترون (Ondansetron)', brands: 'Zofran زوفران, دمیترون', defaultDose: '4mg / 8mg' },
-      { id: 'drg_metoclopramide', label: 'متوکلوپرامید (Metoclopramide)', brands: 'Plasil پلازیل', defaultDose: '10mg' },
+      { id: 'drg_ondansetron', aliases: 'اونداسترون انداسترون دمیترون زوفران ضد تهوع ondansetron zofran demitron', label: 'اندانسترون (Ondansetron)', brands: 'Zofran زوفران, دمیترون', defaultDose: '4mg / 8mg' },
+      { id: 'drg_metoclopramide', aliases: 'پلازیل متوکلوپرامید metoclopramide plasil', label: 'متوکلوپرامید (Metoclopramide)', brands: 'Plasil پلازیل', defaultDose: '10mg' },
       { id: 'drg_domperidone', label: 'دومپریدون (Domperidone)', brands: 'Motilium موتیلیوم', defaultDose: '10mg' },
       { id: 'drg_hyoscine_dicyclomine', label: 'هیوسین / دیسیکلومین / کلیدینیوم سی / مبورین (Hyoscine / Dicyclomine / Mebeverine)', brands: 'Buscopan بوسکوپان, Colofac کلپرمین', defaultDose: '10mg / 135mg' },
       { id: 'drg_dimethicone_bismuth', label: 'دایمتیکون / بیسموت سابسیترات (Dimethicone / Bismuth)', brands: 'Simethicone', defaultDose: '40mg' },
@@ -745,10 +760,10 @@ export const MASTER_DRUG_CATEGORIES = [
       { id: 'drg_acetaminophen', label: 'استامینوفن ساده / کدئین (Acetaminophen / Apotel)', brands: 'Tylenol, Apotel آپوتل', defaultDose: '500mg / 1000mg' },
       { id: 'drg_novafen_gelofen', label: 'نووافن / ژلوفن / ایبوپروفن (Novafen / Ibuprofen)', brands: 'Advil, Gelofen ژلوفن, نووافن', defaultDose: '400mg' },
       { id: 'drg_naproxen', label: 'ناپروکسن (Naproxen)', brands: 'Aleve', defaultDose: '250mg / 500mg' },
-      { id: 'drg_diclofenac', label: 'دیکلوفناک سدیم / پتاسیم (Diclofenac)', brands: 'Voltaren ولتارن, آلفن ایکس ال', defaultDose: '50mg / 100mg' },
-      { id: 'drg_celecoxib', label: 'سلکوکسیب (Celecoxib)', brands: 'Celebrex سلبرکس', defaultDose: '100mg / 200mg' },
+      { id: 'drg_diclofenac', aliases: 'دیکلوفناک ولتارن الفن ایکس ال شیاف diclofenac voltaren', label: 'دیکلوفناک سدیم / پتاسیم (Diclofenac)', brands: 'Voltaren ولتارن, آلفن ایکس ال', defaultDose: '50mg / 100mg' },
+      { id: 'drg_celecoxib', aliases: 'سلکوکسیب سلبرکس مسکن celecoxib celebrex nsaid', label: 'سلکوکسیب (Celecoxib)', brands: 'Celebrex سلبرکس', defaultDose: '100mg / 200mg' },
       { id: 'drg_meloxicam_piroxicam', label: 'ملوکسیکام / پیروکسیکام / مفنامیک اسید / ایندومتاسین (Meloxicam / Indomethacin)', brands: 'Mobic موبیک, Ponstan', defaultDose: '7.5mg / 15mg' },
-      { id: 'drg_ketorolac', label: 'کتورولاک (Ketorolac)', brands: 'Toradol', defaultDose: '30mg IV/IM' },
+      { id: 'drg_ketorolac', aliases: 'کترولاک کتورلاک کترلاک ketorolac toradol مسکن تزریقی آمپول', label: 'کتورولاک (Ketorolac)', brands: 'Toradol', defaultDose: '30mg IV/IM' },
       { id: 'drg_tramadol_methadone', label: 'ترامادول / متادون / مورفین / پتیدین (Tramadol / Methadone / Morphine)', brands: 'Ultram', defaultDose: '50mg / 100mg' },
       { id: 'drg_allopurinol_febuxostat', label: 'آلوپورینول / فبوکسوستات / کلشیسین (Allopurinol / Febuxostat / Colchicine)', brands: 'Zyloric, Adenuric', defaultDose: '100mg / 300mg' },
       { id: 'drg_methotrexate_azathioprine', label: 'متوترکسات / آزاتیوپرین / سیکلوسپورین / تاکرولیموس / مایکوفنولات (MTX / Azathioprine / CellCept)', brands: 'Imuran ایموران, CellCept سلسپت, Prograf, هیدروکسی کلروکین', defaultDose: 'Daily / Weekly', highAlert: true },
@@ -759,12 +774,12 @@ export const MASTER_DRUG_CATEGORIES = [
     catId: 'dh_respiratory_uro_neuro_psych_abx',
     catTitle: '۶. تنفسی، اورولوژی، اعصاب و روان، مکملها و آنتیبیوتیکها',
     drugs: [
-      { id: 'drg_salbutamol', label: 'اسپری سالبوتامول (Salbutamol / Albuterol Inhaler)', brands: 'Ventolin ونتولین', defaultDose: '2 Puffs PRN' },
+      { id: 'drg_salbutamol', aliases: 'سالبوتامول ونتولین اسپری ابی salbutamol ventolin', label: 'اسپری سالبوتامول (Salbutamol / Albuterol Inhaler)', brands: 'Ventolin ونتولین', defaultDose: '2 Puffs PRN' },
       { id: 'drg_atrovent_tiotropium', label: 'اسپری ایپراتروپیوم / تیوتروپیوم (Ipratropium / Tiotropium)', brands: 'Atrovent آتروونت, Spiriva اسپیریوا, کپسیهالر', defaultDose: '2 Puffs' },
       { id: 'drg_symbicort_seretide', label: 'اسپری بودزوناید+فورموترول / فلوتیکازون+سالمترول (Budesonide/Formoterol)', brands: 'Symbicort سیمبیکورت, Seretide سرتاید, Pulmicort', defaultDose: '1-2 Puffs BD' },
       { id: 'drg_montelukast_theophylline', label: 'مونتهلوکاست / تئوفیلین / استیلسیستئین (Montelukast / NAC)', brands: 'Singulair سینگولر, ACC', defaultDose: '10mg' },
       { id: 'drg_cetirizine_fexofenadine', label: 'ستیریزین / لووستیریزین / فکسوفنادین / لوراتادین / هیدروکسیزین', brands: 'Zyrtec زیرتک, Telfast تلفست', defaultDose: '10mg / 180mg' },
-      { id: 'drg_tamsulosin', label: 'تامسولوسین / ترازوسین / فیناستراید / سولیفناسین (Tamsulosin / Finasteride / Solifenacin)', brands: 'Omnic امنیک, Proscar, Vesicare وزیکر', defaultDose: '0.4mg' },
+      { id: 'drg_tamsulosin', aliases: 'تامسولوسین امنیک پروستات tamsulosin omnic', label: 'تامسولوسین / ترازوسین / فیناستراید / سولیفناسین (Tamsulosin / Finasteride / Solifenacin)', brands: 'Omnic امنیک, Proscar, Vesicare وزیکر', defaultDose: '0.4mg' },
       { id: 'drg_gabapentin_pregabalin', label: 'گاباپنتین / پرگابالین (Gabapentin / Pregabalin)', brands: 'Neurontin نورونتین, Lyrica لیریکا', defaultDose: '100mg / 300mg / 75mg' },
       { id: 'drg_levetiracetam_valproate', label: 'لوهتیراستام / والپروات سدیم / کاربامازپین / فنیتوئین / لاموتریژین', brands: 'Keppra کپرا, Depakine دپاکین, Tegretol', defaultDose: '500mg' },
       { id: 'drg_levodopa_piribedil', label: 'لوودوپا-کاربیدوپا / پرامیپکسول / دونپزیل / ممانتین', brands: 'Sinemet سینمت, Madopar مادوپار, Ebixa', defaultDose: '100/25mg' },
@@ -1284,6 +1299,381 @@ export const LAB_PANELS = [
       { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5 },
       { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0 },
       { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37 }
+    ]
+  }
+];
+
+// ==========================================================================
+// v0.8-Omnisearch: Hidden Extended PMH Database (80+ Conditions for Fuzzy Search)
+// ==========================================================================
+export const HIDDEN_EXTENDED_PMH_DATABASE = [
+  // کبد و گوارش
+  { id: 'pmh_cirrhosis', label: 'سیروز کبدی (Liver Cirrhosis)', category: 'کبد و گوارش (GI & Liver)', aliases: 'سیروز کبد نارسایی کبد استسقاء اسیت cirrhosis', hiddenInDefaultTree: true },
+  { id: 'pmh_nafld', label: 'کبد چرب غیرالکلی (NAFLD / MASLD)', category: 'کبد و گوارش (GI & Liver)', aliases: 'کبد چرب گرید ۱ ۲ ۳ استئاتوز کبدی fatty liver', hiddenInDefaultTree: true },
+  { id: 'pmh_hbv', label: 'هپاتیت B مزمن (Chronic Hepatitis B - HBV)', category: 'کبد و گوارش (GI & Liver)', aliases: 'هپاتیت بی hbsag hbv hepatitis', hiddenInDefaultTree: true },
+  { id: 'pmh_hcv', label: 'هپاتیت C مزمن (Chronic Hepatitis C - HCV)', category: 'کبد و گوارش (GI & Liver)', aliases: 'هپاتیت سی hcv hepatitis', hiddenInDefaultTree: true },
+  { id: 'pmh_autoimmune_hep', label: 'هپاتیت اتوایمیون (Autoimmune Hepatitis)', category: 'کبد و گوارش (GI & Liver)', aliases: 'هپاتیت خودایمنی aih autoimmune', hiddenInDefaultTree: true },
+  { id: 'pmh_psc', label: 'کلانژیت اسکلروزان اولیه (Primary Sclerosing Cholangitis - PSC)', category: 'کبد و گوارش (GI & Liver)', aliases: 'پی اس سی مجاری صفراوی psc cholangitis', hiddenInDefaultTree: true },
+  { id: 'pmh_wilson', label: 'بیماری ویلسون (Wilson Disease)', category: 'کبد و گوارش (GI & Liver)', aliases: 'مس ویلسون حلقه کایزر ویلسن wilson', hiddenInDefaultTree: true },
+  { id: 'pmh_hemochromatosis', label: 'هموکروماتوز (Hemochromatosis)', category: 'کبد و گوارش (GI & Liver)', aliases: 'رسوب اهن هموکروماتوزیس hemochromatosis', hiddenInDefaultTree: true },
+  { id: 'pmh_achalasia', label: 'آشالازی مری (Achalasia)', category: 'کبد و گوارش (GI & Liver)', aliases: 'اشالازی تنگی مری دیسفاژی بلع اسپاسم achalasia', hiddenInDefaultTree: true },
+  { id: 'pmh_barrett', label: 'مری بارت (Barrett Esophagus)', category: 'کبد و گوارش (GI & Liver)', aliases: 'بارت مری متاپلازی ریفلاکس اسید barrett', hiddenInDefaultTree: true },
+  { id: 'pmh_hiatal_hernia', label: 'فتق هیاتال (Hiatal Hernia)', category: 'کبد و گوارش (GI & Liver)', aliases: 'هرنی هیاتال فتق دیافراگم hiatal hernia', hiddenInDefaultTree: true },
+  { id: 'pmh_celiac', label: 'بیماری سلیاک (Celiac Disease)', category: 'کبد و گوارش (GI & Liver)', aliases: 'حساسیت گلوتن سلیاک celiac sprue', hiddenInDefaultTree: true },
+  { id: 'pmh_crohn', label: 'بیماری کرون (Crohn Disease)', category: 'کبد و گوارش (GI & Liver)', aliases: 'کرون ای بی دی التهاب روده crohn ibd', hiddenInDefaultTree: true },
+  { id: 'pmh_uc', label: 'کولیت اولسراتیو (Ulcerative Colitis - UC)', category: 'کبد و گوارش (GI & Liver)', aliases: 'کولیت اولسروز یو سی اسهال خونی ulcerative colitis', hiddenInDefaultTree: true },
+  { id: 'pmh_chronic_pancreatitis', label: 'سابقه پانکراتیت مزمن یا حاد (Chronic / Recurrent Pancreatitis)', category: 'کبد و گوارش (GI & Liver)', aliases: 'پانکراتیت التهاب لوزالمعده pancreatitis', hiddenInDefaultTree: true },
+  { id: 'pmh_diverticular_disease', label: 'دیورتیکولوز / دیورتیکولیت کولون (Diverticular Disease)', category: 'کبد و گوارش (GI & Liver)', aliases: 'دیورتیکول دیورتیکولیت شکم درد diverticulitis', hiddenInDefaultTree: true },
+  { id: 'pmh_ibs', label: 'سندرم روده تحریک‌پذیر (IBS)', category: 'کبد و گوارش (GI & Liver)', aliases: 'ای بی اس روده عصبی کولیت عصبی ibs', hiddenInDefaultTree: true },
+  { id: 'pmh_fap', label: 'پولیپوز آدنوماتوز فامیلیال (FAP)', category: 'کبد و گوارش (GI & Liver)', aliases: 'پولیپ روده فپ fap lynch polyposis', hiddenInDefaultTree: true },
+
+  // قلب و عروق
+  { id: 'pmh_prior_mi', label: 'سابقه سکته قلبی (Prior Myocardial Infarction - MI)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'سکته قلب ام ای انفارکتوس prior mi heart attack', hiddenInDefaultTree: true },
+  { id: 'pmh_afib', label: 'فیبریلاسیون دهلیزی یا فلاتر (Atrial Fibrillation / Flutter)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'ای اف فیبریلاسیون دهلیزی ضربان نامنظم afib flutter', hiddenInDefaultTree: true },
+  { id: 'pmh_svt', label: 'تاکیکاردی فوق بطنی (SVT / Paroxysmal Tachycardia)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'اس وی تی تپش قلب شدید حمله ای svt', hiddenInDefaultTree: true },
+  { id: 'pmh_valvular_ms_mr', label: 'تنگی یا نارسایی دریچه میترال (Mitral Stenosis / Regurgitation)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'دریچه میترال نارسایی روماتیسمی ms mr mitral', hiddenInDefaultTree: true },
+  { id: 'pmh_valvular_as_ar', label: 'تنگی یا نارسایی دریچه آئورت (Aortic Stenosis / Regurgitation)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'تنگی دریچه ائورت سوفل as ar aortic', hiddenInDefaultTree: true },
+  { id: 'pmh_cardiomyopathy', label: 'کاردیومیوپاتی اتساعی یا هیپرتروفیک (DCM / HCM)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'کاردیومیوپاتی نارسایی قلبی بزرگی قلب dcm hcm', hiddenInDefaultTree: true },
+  { id: 'pmh_pericarditis_endocarditis', label: 'سابقه پریکاردیت یا اندوکاردیت عفونی', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'التهاب پرده قلب عفونت دریچه pericarditis endocarditis', hiddenInDefaultTree: true },
+  { id: 'pmh_aaa', label: 'آنوریسم آئورت شکمی یا سینه‌ای (Aortic Aneurysm - AAA/TAA)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'انوریسم ائورت گشادی رگ اصلی aaa taa', hiddenInDefaultTree: true },
+  { id: 'pmh_varicose_veins', label: 'واریس شدید و نارسایی مزمن وریدی (CVI / Varicose Veins)', category: 'قلبی-عروقی (Cardiovascular)', aliases: 'واریس پا نارسایی ورید ساق varicose', hiddenInDefaultTree: true },
+
+  // غدد و متابولیک
+  { id: 'pmh_dm_type1', label: 'دیابت ملیتوس تیپ ۱ (Type 1 DM - وابسته به انسولین)', category: 'غدد و متابولیک (Endocrine)', aliases: 'قند جوانی دیابت یک type 1 dm iddm', hiddenInDefaultTree: true },
+  { id: 'pmh_dm_type2', label: 'دیابت ملیتوس تیپ ۲ (Type 2 DM - غیر وابسته به انسولین)', category: 'غدد و متابولیک (Endocrine)', aliases: 'دیابت دو قند خون بزرگسالی niddm dm2', hiddenInDefaultTree: true },
+  { id: 'pmh_thyroid_nodule', label: 'ندول یا گره تیروئید (Thyroid Nodule / MNG)', category: 'غدد و متابولیک (Endocrine)', aliases: 'گره تیروئید ندول گردن گواتر ندولار thyroid nodule', hiddenInDefaultTree: true },
+  { id: 'pmh_hyperparathyroidism', label: 'هیپرپاراتیروئیدیسم (Hyperparathyroidism)', category: 'غدد و متابولیک (Endocrine)', aliases: 'پاراتیروئید کلسیم بالا adenoma parathyroid', hiddenInDefaultTree: true },
+  { id: 'pmh_addison', label: 'نارسایی غده فوق کلیه / آدیسون (Adrenal Insufficiency / Addison)', category: 'غدد و متابولیک (Endocrine)', aliases: 'ادیسون کمبود کورتون ضعف ادرنال addison', hiddenInDefaultTree: true },
+  { id: 'pmh_cushing', label: 'سندرم یا بیماری کوشینگ (Cushing Syndrome / Disease)', category: 'غدد و متابولیک (Endocrine)', aliases: 'کوشینگ کورتون بالا صورت ماه گونه cushing', hiddenInDefaultTree: true },
+  { id: 'pmh_pheochromocytoma', label: 'فئوکروموسیتوم (Pheochromocytoma)', category: 'غدد و متابولیک (Endocrine)', aliases: 'فئو فئوکروموسیتوما تومور ادرنال تپش فشار حمله ای pheo', hiddenInDefaultTree: true },
+  { id: 'pmh_prolactinoma_pituitary', label: 'آدنوم هیپوفیز / پرولاکتینوما / آکرومگالی', category: 'غدد و متابولیک (Endocrine)', aliases: 'تومور هیپوفیز پرولاکتین pituitary prolactinoma', hiddenInDefaultTree: true },
+  { id: 'pmh_pcos', label: 'سندرم تخمدان پلی‌کیستیک (PCOS / تنبلی تخمدان)', category: 'غدد و متابولیک (Endocrine)', aliases: 'تنبلی تخمدان کیست تخمدان هیرسوتیسم pcos', hiddenInDefaultTree: true },
+  { id: 'pmh_gout', label: 'نقرس و اسید اوریک بالا (Gout / Hyperuricemia)', category: 'غدد و متابولیک (Endocrine)', aliases: 'نقرس درد شست پا اسیداوریک gout uric acid', hiddenInDefaultTree: true },
+
+  // کلیه و مجاری ادراری
+  { id: 'pmh_renal_transplant', label: 'سابقه پیوند کلیه (Renal Transplant Recipient)', category: 'کلیه و مجاری ادراری (Renal & Urologic)', aliases: 'پیوند کلیه کلیه پیوندی ایمونوساپرسیو renal transplant', hiddenInDefaultTree: true },
+  { id: 'pmh_adpkd', label: 'کلیه پلی‌کیستیک اتوزوم غالب (ADPKD)', category: 'کلیه و مجاری ادراری (Renal & Urologic)', aliases: 'کیست های کلیه ارثی پلی کیستیک adpkd', hiddenInDefaultTree: true },
+  { id: 'pmh_glomerulonephritis_nephrotic', label: 'سندرم نفروتیک یا گلومرولونفریت (Glomerulonephritis)', category: 'کلیه و مجاری ادراری (Renal & Urologic)', aliases: 'دفع پروتئین ادرار نفروتیک ورم nephrotic', hiddenInDefaultTree: true },
+  { id: 'pmh_urethral_stricture', label: 'تنگی مجرای ادرار (Urethral Stricture)', category: 'کلیه و مجاری ادراری (Renal & Urologic)', aliases: 'تنگی ادرار باریک شدن ادرار یورتروتومی stricture', hiddenInDefaultTree: true },
+
+  // ریه و تنفس
+  { id: 'pmh_bronchiectasis', label: 'برونشکتازی (Bronchiectasis)', category: 'ریوی و تنفسی (Respiratory)', aliases: 'خلط زیاد برونشکتازی عفونت مکرر ریه bronchiectasis', hiddenInDefaultTree: true },
+  { id: 'pmh_pulmonary_fibrosis', label: 'فیبروز ریوی / بیماری بینابینی ریه (IPF / ILD)', category: 'ریوی و تنفسی (Respiratory)', aliases: 'فیبروز ریه بافت اسکار ریه اکسیژن ild ipf', hiddenInDefaultTree: true },
+  { id: 'pmh_sarcoidosis', label: 'سارکوئیدوز (Sarcoidosis)', category: 'ریوی و تنفسی (Respiratory)', aliases: 'سارکوئیدوز گره لنفاوی هیلار sarcoidosis', hiddenInDefaultTree: true },
+  { id: 'pmh_pah', label: 'پرفشاری شریان ریوی (Pulmonary Arterial Hypertension - PAH)', category: 'ریوی و تنفسی (Respiratory)', aliases: 'فشار ریه بالا فشار پولمونر pah', hiddenInDefaultTree: true },
+  { id: 'pmh_pneumothorax_history', label: 'سابقه پنوموتوراکس خودبه‌خودی یا چست‌تیوب', category: 'ریوی و تنفسی (Respiratory)', aliases: 'هوای قفسه سینه کلاپس ریه چست تیوب pneumothorax', hiddenInDefaultTree: true },
+
+  // خون، انکولوژی و روماتولوژی
+  { id: 'pmh_sickle_cell', label: 'کم‌خونی داسی‌شکل (Sickle Cell Disease / Trait)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'سل داسی بحران داسی شکل sickle cell', hiddenInDefaultTree: true },
+  { id: 'pmh_leukemia_lymphoma', label: 'سابقه لنفوم یا لوسمی (Leukemia / Lymphoma / Myeloma)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'سرطان خون لنفوم هوچکین غیرهوچکین لوسمی leukemia lymphoma myeloma', hiddenInDefaultTree: true },
+  { id: 'pmh_thrombophilia_factor_v', label: 'ترومبوفیلی ارثی / فاکتور ۵ لیدن / آنتی‌فسفولیپید', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'لخته ارثی فاکتور ۵ لیدن کمبود پروتئین ترومبوفیلی thrombophilia apla', hiddenInDefaultTree: true },
+  { id: 'pmh_sle', label: 'لوپوس اریتماتوز سیستمیک (Systemic Lupus Erythematosus - SLE)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'لوپوس بثورات پروانه ای مفصل انا sle lupus', hiddenInDefaultTree: true },
+  { id: 'pmh_ra', label: 'آرتریت روماتوئید (Rheumatoid Arthritis - RA)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'روماتیسم مفصلی ورم مفاصل دست صبحگاهی ra', hiddenInDefaultTree: true },
+  { id: 'pmh_behcet', label: 'بیماری بهجت (Behcet Disease)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'بهجت افت دهان زخم تناسلی یووئیت behcet', hiddenInDefaultTree: true },
+  { id: 'pmh_scleroderma', label: 'اسکلرودرمی / اسکلروز سیستمیک (Systemic Sclerosis)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'سفتی پوست رینود اسکلرودرمی scleroderma', hiddenInDefaultTree: true },
+  { id: 'pmh_ankylosing_spondylitis', label: 'اسپوندیلیت آنکیلوزان (Ankylosing Spondylitis - AS)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'رماتیسم ستون فقرات کمردرد صبحگاهی as hla b27', hiddenInDefaultTree: true },
+  { id: 'pmh_fmf', label: 'تب مدیترانه‌ای فامیلی (Familial Mediterranean Fever - FMF)', category: 'خون و انکولوژی (Heme, Onc & Rheum)', aliases: 'اف ام اف تب مدیترانه ای درد شکم کولشیسین حملات fmf peritonitis', hiddenInDefaultTree: true },
+
+  // اعصاب و روان و عفونی
+  { id: 'pmh_ms', label: 'ام‌اس / مولتیپل اسکلروزیس (Multiple Sclerosis - MS)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'ام اس پلاک مغزی تاری دید ضعف ms', hiddenInDefaultTree: true },
+  { id: 'pmh_myasthenia_gravis', label: 'میاستنی گراویس (Myasthenia Gravis - MG)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'میاستنی افتادگی پلک ضعف عضلانی مستینون mg myasthenia', hiddenInDefaultTree: true },
+  { id: 'pmh_parkinson', label: 'بیماری پارکینسون (Parkinson Disease)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'لرزش دست کندی حرکت پارکینسون parkinson', hiddenInDefaultTree: true },
+  { id: 'pmh_dementia_alzheimer', label: 'آلزایمر / دمانس (Dementia / Alzheimer)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'فراموشی دمانس الزایمر شناخت alzheimer dementia', hiddenInDefaultTree: true },
+  { id: 'pmh_chronic_migraine', label: 'میگرن مزمن (Chronic Migraine)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'میگرن سردرد یکطرفه تهوع فوتوفوبیا migraine', hiddenInDefaultTree: true },
+  { id: 'pmh_peripheral_neuropathy', label: 'نوروپاتی محیطی (Peripheral Neuropathy)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'گزگز پا بیحسی پای دیابتی خواب رفتن neuropathy', hiddenInDefaultTree: true },
+  { id: 'pmh_bipolar_schizo', label: 'اختلال دوقطبی یا اسکیزوفرنی (Bipolar / Schizophrenia)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'دوقطبی شیدایی افسردگی سایکوز جنون bipolar schizophrenia', hiddenInDefaultTree: true },
+  { id: 'pmh_brucellosis_history', label: 'سابقه تب مالت (Prior Brucellosis)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'بروسلوز تب مالت لبنیات محلی brucellosis wright', hiddenInDefaultTree: true },
+  { id: 'pmh_hydatid_cyst_history', label: 'سابقه کیست هیداتید کبدی یا ریوی (Echinococcosis)', category: 'اعصاب و روان (Neurology & Psych)', aliases: 'کیست هیداتیک سگ اکینوکوکوس hydatid cyst', hiddenInDefaultTree: true }
+];
+
+// ==========================================================================
+// v0.8-Omnisearch: Family History Hereditary & Cancer Database (FH)
+// ==========================================================================
+export const FH_CANCER_HEREDITARY_DATABASE = [
+  { id: 'fh_colorectal_cancer', label: 'کانسر کولون و رکتوم (Colorectal Cancer - CRC)', category: 'سرطان و گوارش', aliases: 'سرطان روده بزرگ کلون رکتوم پولیپ crc' },
+  { id: 'fh_gastric_cancer', label: 'کانسر معده (Gastric Cancer)', category: 'سرطان و گوارش', aliases: 'سرطان معده تومور معده gastric ca' },
+  { id: 'fh_esophageal_cancer', label: 'کانسر مری (Esophageal Cancer)', category: 'سرطان و گوارش', aliases: 'سرطان مری دیسفاژی بلع esophageal' },
+  { id: 'fh_breast_cancer', label: 'کانسر پستان (Breast Cancer - BRCA)', category: 'سرطان و زنان', aliases: 'سرطان سینه پستان غده برکا brca breast' },
+  { id: 'fh_ovarian_uterine_cancer', label: 'کانسر تخمدان یا رحم (Ovarian / Uterine Cancer)', category: 'سرطان و زنان', aliases: 'سرطان تخمدان رحم اندومتر ovarian' },
+  { id: 'fh_thyroid_men_cancer', label: 'کانسر تیروئید و سندرم‌های MEN (Thyroid / MEN 2)', category: 'سرطان و غدد', aliases: 'سرطان تیروئید مدولاری من men thyroid mtc' },
+  { id: 'fh_pancreatic_cancer', label: 'کانسر پانکراس یا مجاری صفراوی (Pancreatic Cancer)', category: 'سرطان و گوارش', aliases: 'سرطان لوزالمعده پانکراس صفرا pancreatic' },
+  { id: 'fh_prostate_bladder_cancer', label: 'کانسر پروستات یا مثانه (Prostate / Bladder Ca)', category: 'سرطان و اورولوژی', aliases: 'سرطان پروستات مثانه هماچوری prostate bladder' },
+  { id: 'fh_lung_brain_cancer', label: 'کانسر ریه یا تومور مغزی (Lung / Brain Malignancy)', category: 'سرطان عمومی', aliases: 'سرطان ریه تومور مغز گلیوما lung brain' },
+  { id: 'fh_premature_cad_mi', label: 'بیماری زودرس عروق کرونر و سکته قلبی (Premature CAD / Early MI)', category: 'قلبی-عروقی', aliases: 'سکته قلبی زودرس پدر مادر جوان فنر قلب cad mi' },
+  { id: 'fh_sudden_cardiac_death', label: 'مرگ ناگهانی قلبی در جوانی (Sudden Cardiac Death - SCD)', category: 'قلبی-عروقی', aliases: 'ایست قلبی ناگهانی فوت ناگهانی لانگ کیوتی scd' },
+  { id: 'fh_hypertension', label: 'پرفشاری خون اساسی خانوادگی (Essential HTN)', category: 'قلبی-عروقی', aliases: 'فشار خون فامیلی ارثی htn' },
+  { id: 'fh_diabetes', label: 'دیابت ملیتوس تیپ ۱ یا ۲ (Familial Diabetes Mellitus)', category: 'غدد', aliases: 'قند ارثی دیابت خانوادگی dm' },
+  { id: 'fh_early_stroke', label: 'سکته مغزی در سنین پایین (Early Stroke / CVA)', category: 'اعصاب', aliases: 'سکته مغزی فلج زودرس cva stroke' },
+  { id: 'fh_ibd', label: 'بیماری التهابی روده در خانواده (Familial IBD - Crohn/UC)', category: 'گوارش', aliases: 'کرون کولیت روده فامیلی ibd' },
+  { id: 'fh_fap_lynch', label: 'پولیپوز ارثی یا سندرم لینچ (FAP / Lynch Syndrome)', category: 'سرطان ارثی', aliases: 'لینچ فپ پولیپوز فامیلیال lynch fap' },
+  { id: 'fh_thrombophilia_dvt_pte', label: 'ترومبوفیلی ارثی و لخته مکرر (Familial DVT / PTE)', category: 'خون', aliases: 'لخته خون خانوادگی امبولی ترومبوز dvt pte' },
+  { id: 'fh_gallstones_kidney_stones', label: 'سنگ کیسه صفرا یا سنگ کلیه مکرر در خانواده', category: 'گوارش و کلیه', aliases: 'سنگ صفرا سنگ کلیه فامیلی stones' },
+  { id: 'fh_fmf', label: 'تب مدیترانه‌ای فامیلی (Familial Mediterranean Fever - FMF)', category: 'ژنتیک و روماتولوژی', aliases: 'اف ام اف تب روماتیسم درد شکم دوره ای fmf' },
+  { id: 'fh_thalassemia_hemophilia', label: 'تالاسمی مینور/ماژور یا هموفیلی در خانواده', category: 'خون ارثی', aliases: 'تالاسمی هموفیلی فاویسم خونریزی ارثی thalassemia' }
+];
+
+// ==========================================================================
+// v0.8-Omnisearch: Extended Labs Database (Over 60 Supplementary Labs)
+// ==========================================================================
+export const EXTENDED_LAB_DATABASE = [
+  // هماتولوژی تکمیلی
+  { id: 'lab_rbc', label: 'RBC (Red Blood Cells)', category: 'هماتولوژی تکمیلی', unit: '×10^6/µL', normalRange: '4.5 - 5.9', aliases: 'گلبول قرمز اریتروسیت rbc' },
+  { id: 'lab_hct', label: 'Hct (Hematocrit)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '40 - 52', aliases: 'هماتوکریت غلظت خون hct' },
+  { id: 'lab_mcv', label: 'MCV (Mean Corpuscular Volume)', category: 'هماتولوژی تکمیلی', unit: 'fL', normalRange: '80 - 100', aliases: 'ام سی وی حجم متوسط گلبول قرمز mcv' },
+  { id: 'lab_mch', label: 'MCH', category: 'هماتولوژی تکمیلی', unit: 'pg', normalRange: '27 - 33', aliases: 'ام سی اچ mch' },
+  { id: 'lab_mchc', label: 'MCHC', category: 'هماتولوژی تکمیلی', unit: 'g/dL', normalRange: '32 - 36', aliases: 'ام سی اچ سی mchc' },
+  { id: 'lab_rdw', label: 'RDW (Red Cell Distribution Width)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '11.5 - 14.5', aliases: 'پراکندگی گلبول قرمز rdw' },
+  { id: 'lab_neutrophils_pct', label: 'Neutrophils (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '50 - 70', aliases: 'نوتروفیل درصد شیفت به چپ neut' },
+  { id: 'lab_lymphocytes_pct', label: 'Lymphocytes (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '20 - 40', aliases: 'لنفوسیت درصد lymph' },
+  { id: 'lab_eosinophils_pct', label: 'Eosinophils (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '1 - 4', aliases: 'ائوزینوفیل حساسیت انگل eos' },
+  { id: 'lab_retic', label: 'Reticulocyte Count (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '0.5 - 2.5', aliases: 'رتیک رتیکولوسیت مغز استخوان retic' },
+
+  // بیوشیمی و الکترولیت تکمیلی
+  { id: 'lab_calcium', label: 'Calcium (Ca - کلسیم سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '8.5 - 10.5', aliases: 'کلسیم سرم پاراتیروئید ca calcium' },
+  { id: 'lab_magnesium', label: 'Magnesium (Mg - منیزیم سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '1.7 - 2.4', aliases: 'منیزیم سرم mg magnesium' },
+  { id: 'lab_phosphorus', label: 'Phosphorus (P - فسفر سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '2.5 - 4.5', aliases: 'فسفر سرم p phosphorus' },
+  { id: 'lab_uric_acid', label: 'Uric Acid (اسید اوریک)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '3.5 - 7.2', aliases: 'اسید اوریک نقرس uric acid' },
+  { id: 'lab_albumin', label: 'Albumin (آلبومین سرم)', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '3.5 - 5.2', aliases: 'البومین سرم سوءتغذیه کبد albumin' },
+  { id: 'lab_total_protein', label: 'Total Protein (پروتئین توتال)', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '6.4 - 8.3', aliases: 'پروتئین کل total protein' },
+  { id: 'lab_ldh', label: 'LDH (Lactate Dehydrogenase)', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '140 - 280', aliases: 'ال دی اچ تخریب بافتی ایسکمی روده ldh' },
+  { id: 'lab_cpk', label: 'CPK / CK (Creatine Kinase)', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '30 - 200', aliases: 'سی پی کی کراتین کیناز رابدومیولیز عضلانی cpk ck' },
+  { id: 'lab_cholesterol', label: 'Total Cholesterol (کلسترول کل)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 200', aliases: 'کلسترول چربی cholesterol' },
+  { id: 'lab_triglycerides', label: 'Triglycerides (TG - تری‌گلیسرید)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 150', aliases: 'تری گلیسیرید تی جی tg پانکراتیت' },
+  { id: 'lab_hdl', label: 'HDL Cholesterol', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '> 40', aliases: 'چربی خوب hdl' },
+  { id: 'lab_ldl', label: 'LDL Cholesterol', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 100', aliases: 'چربی بد ldl' },
+  { id: 'lab_ammonia', label: 'Ammonia (آمونیاک سرم)', category: 'بیوشیمی و الکترولیت', unit: 'µmol/L', normalRange: '15 - 45', aliases: 'امونیاک کبد انسفالوپاتی سیروز ammonia' },
+
+  // قلبی، ترومبوز و سپسیس
+  { id: 'lab_troponin_i', label: 'Troponin I / hs-Troponin (تروپونین)', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.04', aliases: 'تروپونین ای سکته قلبی میوکاردیت troponin' },
+  { id: 'lab_ck_mb', label: 'CK-MB', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 5', aliases: 'سی کی ام بی انزیم قلبی ck mb' },
+  { id: 'lab_bnp', label: 'NT-proBNP / BNP', category: 'قلبی و ترومبوز', unit: 'pg/mL', normalRange: '< 125', aliases: 'بی ان پی نارسایی قلبی bnp ntp robnp' },
+  { id: 'lab_d_dimer', label: 'D-Dimer (دی‌دایمر)', category: 'قلبی و ترومبوز', unit: 'µg/mL FEU', normalRange: '< 0.5', aliases: 'دیدایمر دی دایمر لخته امبولی ریه dvt pte d dimer' },
+  { id: 'lab_procalcitonin', label: 'Procalcitonin (پروکلسیتونین - PCT)', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.1', aliases: 'پروکلسیتونین سپسیس عفونت شدید pct procalcitonin' },
+  { id: 'lab_lactate', label: 'Lactate (اسید لاکتیک / لاکتات)', category: 'قلبی و ترومبوز', unit: 'mmol/L', normalRange: '0.5 - 2.0', aliases: 'لاکتات اسیدوز لاکتیک پرفیوژن ایسکمی مزانتر lactate' },
+  { id: 'lab_fibrinogen', label: 'Fibrinogen (فیبرینوژن)', category: 'قلبی و ترومبوز', unit: 'mg/dL', normalRange: '200 - 400', aliases: 'فیبرینوژن انعقاد خون dic fibrinogen' },
+
+  // گازهای خونی شریانی و وریدی (VBG / ABG)
+  { id: 'lab_vbg_ph', label: 'pH (VBG / ABG)', category: 'گازهای خونی (VBG/ABG)', unit: '', normalRange: '7.35 - 7.45', aliases: 'پی اچ اسیدوز الکالوز گاز خون ph' },
+  { id: 'lab_vbg_pco2', label: 'PCO2 (فشار دی‌اکسید کربن)', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '35 - 45', aliases: 'پی سی او دو تهویه تنفسی pco2' },
+  { id: 'lab_vbg_po2', label: 'PO2 (فشار اکسیژن)', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '80 - 100', aliases: 'پی او دو اکسیژناسیون po2' },
+  { id: 'lab_vbg_hco3', label: 'HCO3 (بی‌کربنات)', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '22 - 26', aliases: 'بیکربنات باز قلیا اسیدوز متابولیک hco3' },
+  { id: 'lab_vbg_be', label: 'Base Excess (BE - باز اضافی)', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '-2 to +2', aliases: 'بیس اکسس بیس دفیسیت base excess be' },
+  { id: 'lab_vbg_o2sat', label: 'O2 Saturation (اشباع اکسیژن گاز خون)', category: 'گازهای خونی (VBG/ABG)', unit: '%', normalRange: '95 - 100', aliases: 'اشباع اکسیژن وریدی شریانی o2 sat' },
+
+  // غدد، آهن و ویتامین‌ها
+  { id: 'lab_tsh', label: 'TSH (تیروئید تروپین)', category: 'غدد و ویتامین‌ها', unit: 'µIU/mL', normalRange: '0.4 - 4.5', aliases: 'تی اس اچ تیروئید کم کاری پرکاری tsh' },
+  { id: 'lab_free_t4', label: 'Free T4 (تیروکسین آزاد)', category: 'غدد و ویتامین‌ها', unit: 'ng/dL', normalRange: '0.8 - 1.8', aliases: 'اف تی فور تی ۴ آزاد free t4' },
+  { id: 'lab_free_t3', label: 'Free T3 (تری‌یدوتیرونین آزاد)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '2.3 - 4.2', aliases: 'اف تی تری تی ۳ آزاد free t3' },
+  { id: 'lab_hba1c', label: 'HbA1c (هموگلوبین گلیکوزیله)', category: 'غدد و ویتامین‌ها', unit: '%', normalRange: '< 5.7', aliases: 'هموگلوبین ای وان سی قند سه ماهه hba1c a1c' },
+  { id: 'lab_bhcg', label: 'β-hCG (تست بارداری بتا تیتر)', category: 'غدد و ویتامین‌ها', unit: 'mIU/mL', normalRange: '< 5 (Negative)', aliases: 'بتا بارداری حاملگی خارج رحمی حامله bhcg beta hcg' },
+  { id: 'lab_ferritin', label: 'Ferritin (فریتین ذخیره آهن)', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 300', aliases: 'فریتین اهن فقر اهن ferritin' },
+  { id: 'lab_serum_iron', label: 'Serum Iron (آهن سرم)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '60 - 170', aliases: 'اهن سرم iron' },
+  { id: 'lab_tibc', label: 'TIBC (ظرفیت تام اتصال آهن)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '250 - 450', aliases: 'تی ای بی سی ظرفیت اهن tibc' },
+  { id: 'lab_vitamin_d3', label: '25-OH Vitamin D3', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 100', aliases: 'ویتامین دی ۳ پوکی استخوان vit d3' },
+  { id: 'lab_vitamin_b12', label: 'Vitamin B12 (کوبالامین)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '200 - 900', aliases: 'ویتامین ب ۱۲ ب۱۲ کم خونی b12' },
+  { id: 'lab_cortisol', label: 'Serum Cortisol (کورتیزول ساعت ۸ صبح)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '6 - 23', aliases: 'کورتیزول ادرنال کوشینگ ادیسون cortisol' },
+  { id: 'lab_pth', label: 'PTH (هورمون پاراتیروئید)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '15 - 65', aliases: 'پی تی اچ پاراتورمون کلسیم pth' },
+
+  // تومورمارکرها و پاتولوژی سرولوژی
+  { id: 'lab_cea', label: 'CEA (Carcinoembryonic Antigen)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 3.0 (< 5 in smokers)', aliases: 'سی ای ای مارکر کانسر روده بزرگ کولورکتال معده cea' },
+  { id: 'lab_ca19_9', label: 'CA 19-9 (مارکر پانکراس و صفرا)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 37', aliases: 'سی ای ۱۹ ۹ کانسر پانکراس لوزالمعده مجاری صفرا ca19 9' },
+  { id: 'lab_afp', label: 'AFP (Alpha-Fetoprotein - آلفافتوپروتئین)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 10', aliases: 'الفا فتوپروتئین سرطان کبد hcc بیضه afp' },
+  { id: 'lab_ca125', label: 'CA-125 (مارکر تخمدان و پریتونئوم)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 35', aliases: 'سی ای ۱۲۵ سرطان تخمدان ca 125' },
+  { id: 'lab_ca15_3', label: 'CA 15-3 (مارکر پستان)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 30', aliases: 'سی ای ۱۵ ۳ سرطان سینه پستان ca15 3' },
+  { id: 'lab_psa', label: 'PSA Total (آنتی‌ژن اختصاصی پروستات)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 4.0', aliases: 'پی اس ای پروستات psa total' },
+  { id: 'lab_calcitonin', label: 'Calcitonin (کلسی‌تونین)', category: 'تومورمارکرها', unit: 'pg/mL', normalRange: '< 10', aliases: 'کلسیتونین سرطان مدولاری تیروئید calcitonin mtc' },
+  { id: 'lab_thyroglobulin', label: 'Thyroglobulin (TG تیروگلوبولین)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '1.4 - 78', aliases: 'تیروگلوبولین مارکر تیروئید پاپیلاری thyroglobulin tg' },
+
+  // ویروسی و عفونی قبل عمل
+  { id: 'lab_hbs_ag', label: 'HBsAg (آنتی‌ژن سطحی هپاتیت B)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت بی اچ بی اس hbsag hbv' },
+  { id: 'lab_hcv_ab', label: 'HCV Ab (آنتی‌بادی هپاتیت C)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت سی hcv ab' },
+  { id: 'lab_hiv_ab', label: 'HIV 1/2 Ab & p24 Ag (ایدز)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'ایدز اچ ای وی hiv' },
+  { id: 'lab_wright', label: 'Wright & 2ME (تست رایت تب مالت)', category: 'ویروسی و عفونی', unit: 'Titer', normalRange: 'Negative / < 1:80', aliases: 'رایت رایت کومبس تب مالت بروسلوز wright 2me' },
+  { id: 'lab_blood_culture', label: 'Blood Culture (کشت خون دو بستر)', category: 'ویروسی و عفونی', unit: '', normalRange: 'No growth', aliases: 'کشت خون باکتری سپسیس بستر blood culture' },
+
+  // آنالیز و کشت ادرار (U/A & U/C)
+  { id: 'lab_ua_wbc', label: 'U/A WBC (گلبول سفید ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 4', aliases: 'دبلیو بی سی ادرار پیوری عفونت ادراری ua wbc' },
+  { id: 'lab_ua_rbc', label: 'U/A RBC (گلبول قرمز ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 3', aliases: 'ار بی سی ادرار هماچوری میکروسکوپی ua rbc' },
+  { id: 'lab_ua_bacteria_nitrite', label: 'U/A Bacteria & Nitrite', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative', aliases: 'باکتری ادرار نیتریت عفونت مثبت ua nitrite' },
+  { id: 'lab_urine_culture', label: 'Urine Culture (U/C - کشت ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: 'CFU/mL', normalRange: 'No growth / < 10,000', aliases: 'کشت ادرار انتی بیوگرام یو سی uc urine culture' }
+];
+
+// Combine all PMH items for schema search
+export const ALL_MASTER_PMH_ITEMS = [
+  ...MASTER_PMH_CATEGORIES.flatMap(cat => 
+    (cat.items || []).map(it => ({ ...it, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
+  ),
+  ...HIDDEN_EXTENDED_PMH_DATABASE
+];
+
+// ==========================================================================
+// v0.8-Omnisearch: Comprehensive 12-System Physical Examination Schema (PE)
+// ==========================================================================
+export const PE_COMPREHENSIVE_SYSTEMS = [
+  {
+    id: 'pe_sys_general',
+    title: '۱. ظاهر عمومی و هوشیاری (General Appearance & Vitals)',
+    isPrioritySurgical: true,
+    normalBaseline: 'هوشیار، با جهت‌یابی کامل (Oriented ×3)، بدون دیسترس حاد تنفسی یا درد بارز، پرفیوژن محیطی مناسب و هیدراتاسیون نرمال.',
+    items: [
+      { id: 'pe_gen_conscious', label: 'سطح هوشیاری و جهت‌یابی (Oriented ×3)', aliases: 'هوشیار زمان مکان شخص gcs' },
+      { id: 'pe_gen_distress', label: 'دیسترس حاد تنفسی یا درد (Acute Distress)', aliases: 'دیسترس تنگی نفس درد شدید بیقراری' },
+      { id: 'pe_gen_toxic', label: 'ظاهر توکسیک یا بدحال (Toxic / Ill-appearing)', aliases: 'توکسیک بدحال سپسیس شوک' },
+      { id: 'pe_gen_hydration', label: 'وضعیت هیدراتاسیون و تورگور پوستی (Hydration)', aliases: 'دهیدراتاسیون کم ابی خشکی مخاط' },
+      { id: 'pe_gen_position', label: 'پوزیشن بیمار (مثلاً پوزیشن طاق‌باز، بی‌حرکت، نشسته به جلو)', aliases: 'پوزیشن بیحرکتی پریتونیت لترال' }
+    ]
+  },
+  {
+    id: 'pe_sys_abdomen_inspection',
+    title: '۲-۱. مشاهده شکم (Abdominal Inspection)',
+    isPrioritySurgical: true,
+    normalBaseline: 'شکم متقارن، فاقد دیستانسیون بارز، بدون اسکار جراحی قبلی، بدون ایکموز یا اتساع وریدی، ناف در وضعیت طبیعی و بدون ضایعه جدار.',
+    items: [
+      { id: 'pe_ab_symmetry', label: 'تقارن شکم (Abdominal Symmetry)', aliases: 'تقارن شکم غیرمتقارن برجستگی یکطرفه' },
+      { id: 'pe_ab_distension', label: 'اتساع یا برجستگی شکم (Distension)', aliases: 'اتساع بزرگی شکم بادکردگی نفخ distension' },
+      { id: 'pe_ab_scars', label: 'اسکار جراحی قبلی (Surgical Scars - کوخر، مک‌برنی، میدلاین، لاپاراسکوپی...)', aliases: 'اسکار جای عمل برش جراحی کوخر میدلاین مک برنی' },
+      { id: 'pe_ab_stoma_drain', label: 'محل استومی یا درن جراحی (Stoma / Drain Site)', aliases: 'استومی کلستومی ایلئوستومی درن ترشح' },
+      { id: 'pe_ab_ecchymosis', label: 'اکیموز جدار شکم (Cullen / Grey Turner Signs)', aliases: 'کالن گری ترنر خونمردگی دور ناف پهلو پانکراتیت' }
+    ]
+  },
+  {
+    id: 'pe_sys_abdomen_auscultation',
+    title: '۲-۲. سمع شکم (Abdominal Auscultation)',
+    isPrioritySurgical: true,
+    normalBaseline: 'صداهای روده‌ای نرمال (Normoactive Bowel Sounds: ~5–30/min)، بدون صدای متالیک یا راش روده، فاقد بروئی عروقی آئورت یا رنال.',
+    items: [
+      { id: 'pe_ab_bs_normal', label: 'صداهای روده‌ای نرمال (Normoactive BS)', aliases: 'صداهای روده طبیعی نرمواکتیو' },
+      { id: 'pe_ab_bs_hyperactive', label: 'صداهای روده‌ای بیش‌فعال یا راش متالیک (Hyperactive / Metallic Tinkling)', aliases: 'صدای بلند روده متالیک انسداد بوربوریگموس' },
+      { id: 'pe_ab_bs_hypoactive_silent', label: 'صداهای روده‌ای کاهش‌یافته یا ساکت (Hypoactive / Silent Abdomen - ایلئوس/پریتونیت)', aliases: 'سکوت شکم ایلئوس فلج روده بدون صدا' },
+      { id: 'pe_ab_bruits', label: 'بروئی عروقی (Vascular Bruits - آئورت / شریان رنال)', aliases: 'برویی صدای عروقی تنگی شریان رنال انوریسم' }
+    ]
+  },
+  {
+    id: 'pe_sys_abdomen_percussion',
+    title: '۲-۳. دق شکم (Abdominal Percussion)',
+    isPrioritySurgical: true,
+    normalBaseline: 'تیمپانیسم عمومی نرمال در تمامی رباع‌ها، فاقد ماتیته جابه‌جاشونده (No Shifting Dullness)، تندرنس دق منفی و فاقد CVA Tenderness.',
+    items: [
+      { id: 'pe_ab_tympany', label: 'تیمپانیسم طبیعی شکم (Normal Tympany)', aliases: 'تیمپان دق طبل مانند نرمال' },
+      { id: 'pe_ab_shifting_dullness', label: 'ماتیته جابه‌جاشونده / آسیت (Shifting Dullness / Fluid Wave)', aliases: 'شیفتینگ دالنس اسیت مایع شکم موج اب' },
+      { id: 'pe_ab_hyperresonance', label: 'هایپررزونانس ناشی از گاز شدید (Hyperresonance)', aliases: 'رزونانس گاز شدید انسداد ولولوس' },
+      { id: 'pe_ab_percussion_tenderness', label: 'تندرنس حین دق (Percussion Tenderness - نشانه پریتونیت)', aliases: 'درد با دق پریتونیت تحریک صفاق' },
+      { id: 'pe_ab_cva_tenderness', label: 'تندرنس زاویه دنده‌ای-مهره‌ای (CVA Tenderness - پیلونفریت/سنگ کلیه)', aliases: 'سی وی ای تندرنس پهلو کلیه کوستوورتب رال' }
+    ]
+  },
+  {
+    id: 'pe_sys_abdomen_palpation',
+    title: '۲-۴. لمس شکم و مانورهای جراحی (Palpation & Surgical Signs)',
+    isPrioritySurgical: true,
+    normalBaseline: 'شکم نرم، فاقد تندرنس سطحی یا عمقی، ریباند منفی، بدون گاردینگ ارادی یا غیرارادی (No Guarding/Rigidity)، علائم مورفی و مک‌برنی منفی، بدون توده قابل لمس یا فتق جدار.',
+    items: [
+      { id: 'pe_ab_soft_nontender', label: 'شکم کاملاً نرم و بدون درد (Soft & Non-tender)', aliases: 'نرم بدون درد نرمال' },
+      { id: 'pe_ab_tenderness', label: 'تندرنس موضعی یا منتشر (Tenderness: RLQ, RUQ, LLQ, LUQ, Epigastric, Suprapubic)', aliases: 'تندرنس درد با لمس درد ربع تحتانی راست اپی گاستر' },
+      { id: 'pe_ab_rebound', label: 'ریباند تندرنس (Rebound Tenderness - بلومبرگ)', aliases: 'ریباند برداشتن ناگهانی دست پریتونیت بلومبرگ' },
+      { id: 'pe_ab_guarding_rigidity', label: 'گاردینگ عضلانی یا شکم تخته‌ای (Guarding / Involuntary Rigidity)', aliases: 'گاردینگ سفتی شکم تخته ای ریجیدیتی انقباض عضلانی' },
+      { id: 'pe_ab_murphy', label: 'علامت مورفی مثبت (Murphy’s Sign - کوله‌سیستیت حاد)', aliases: 'مورفی درد کیسه صفرا دم عمیق کوله سیستیت' },
+      { id: 'pe_ab_mcburney_rovsing', label: 'نقطه مک‌برنی و علامت روزینگ (McBurney / Rovsing Signs - آپاندیسیت)', aliases: 'مک برنی روزینگ درد با فشار چپ اپاندیسیت' },
+      { id: 'pe_ab_psoas_obturator', label: 'علائم پسواس و ابتوراتور (Psoas & Obturator Signs)', aliases: 'پسواس ابتوراتور کشش ران درد لگنی' },
+      { id: 'pe_ab_palpable_mass', label: 'توده یا پلاسترون قابل لمس (Palpable Mass / Plastron)', aliases: 'توده قابل لمس ابسه پلاسترون تومور' },
+      { id: 'pe_ab_organomegaly', label: 'هپاتومگالی یا اسپلنومگالی (Hepatomegaly / Splenomegaly)', aliases: 'بزرگی کبد بزرگی طحال لبه کبد ارگانومگالی' },
+      { id: 'pe_ab_hernia_orifices', label: 'فتق نافی، اینگوئینال یا فمورال (Hernia Orifices)', aliases: 'فتق ناف هرنی اینگوینال فمورال هرنی اینسیژنال' }
+    ]
+  },
+  {
+    id: 'pe_sys_heent',
+    title: '۴. سر، چشم، گوش، حلق و گردن و تیروئید (HEENT & Neck/Thyroid)',
+    normalBaseline: 'سر نرموسفال بدون تروما، ملتحمه فاقد رنگ‌پریدگی، اسکلرا آنیکتریک، مردمک‌ها متقارن و واکنش به نور طبیعی (PERRLA)، مخاط دهان مرطوب، بدون دیستنشن ورید ژوگولار (No JVD)، تراشه در خط وسط، تیروئید بدون بزرگی، ندول یا تندرنس، فاقد لنفادنوپاتی سرویکال یا سوپراکلاویکولار.',
+    items: [
+      { id: 'pe_heent_normocephalic', label: 'سر نرموسفال و بدون دفورمیتی یا هماتوم', aliases: 'نرموسفال سر بدون ضربه' },
+      { id: 'pe_heent_conjunctiva', label: 'ملتحمه صورتی / رنگ‌پریده (Pale Conjunctiva - کم‌خونی)', aliases: 'ملتحمه کم خونی رنگ پریده pale' },
+      { id: 'pe_heent_sclera', label: 'اسکلرا زرد / ایکتریک (Scleral Icterus - یرقان)', aliases: 'اسکلرا زردی چشم ایکتریک icterus' },
+      { id: 'pe_heent_pupils', label: 'مردمک‌ها متقارن و واکنشی به نور (PERRLA)', aliases: 'مردمک پاسخ به نور انیزوکوریا perrla' },
+      { id: 'pe_heent_mucosa', label: 'مخاط دهان و زبان مرطوب و بدون ضایعه', aliases: 'مخاط دهان زبان افت خشکی' },
+      { id: 'pe_heent_jvd', label: 'برجستگی ورید ژوگولار (JVD / Elevated JVP)', aliases: 'جی وی دی ورید ژوگولار پرفشاری ورید مرکزی' },
+      { id: 'pe_heent_trachea', label: 'تراشه در خط وسط (Midline Trachea)', aliases: 'تراشه انحراف نای پنوموتوراکس' },
+      { id: 'pe_heent_thyroid', label: 'معاینه تیروئید: بزرگی، ندول، قوام، حرکت با بلع', aliases: 'تیروئید گواتر ندول گردن لمس تیروئید بلع' },
+      { id: 'pe_heent_lymph', label: 'لنفادنوپاتی گردنی یا سوپراکلاویکولار (Cervical / Virchow LN)', aliases: 'غده لنفاوی گردن ویرشو سوپراکلاویکولار' }
+    ]
+  },
+  {
+    id: 'pe_sys_thorax_respiratory',
+    title: '۵. قفسه سینه و دستگاه تنفسی (Thorax & Respiratory)',
+    normalBaseline: 'قفسه سینه متقارن، حرکات تنفسی دوطرفه مناسب بدون رترکشن اینترکوستال، دق ریه‌ها در تمام فیلدها رزونانت، سمع ریه دوطرفه پاک با صداهای وزیکولار طبیعی، فاقد رال (Crackles)، ویزینگ یا استریدور.',
+    items: [
+      { id: 'pe_resp_expansion', label: 'تقارن و اتساع دیواره قفسه سینه (Chest Expansion)', aliases: 'تقارن قفسه سینه حرکات تنفسی' },
+      { id: 'pe_resp_fremitus', label: 'فرمتوس لمسی (Tactile Fremitus)', aliases: 'فرمتوس لمسی لرزش صوتی fremitus' },
+      { id: 'pe_resp_percussion', label: 'دق ریه: رزونانس طبیعی / ماتیته (افیوژن) / هایپررزونانس (پنوموتوراکس)', aliases: 'دق ریه مات ماتیته افیوژن هایپررزونانس' },
+      { id: 'pe_resp_vesicular', label: 'صداهای وزیکولار طبیعی دوطرفه (Clear Vesicular Sounds)', aliases: 'سمع ریه پاک وزیکولار طبیعی' },
+      { id: 'pe_resp_crackles', label: 'کراکل / رال در سمع قاعده ریه‌ها (Crackles / Rales - ادم/پنومونی)', aliases: 'رال کراکل صدای ترشح پنومونی ادم ریه' },
+      { id: 'pe_resp_wheezing', label: 'ویزینگ یا رونکای منتشر/موضعی (Wheezing / Rhonchi)', aliases: 'ویزینگ صدای سوت ریه اسم اسپاسم برونش' },
+      { id: 'pe_resp_stridor', label: 'استریدور راه هوایی فوقانی (Inspiratory Stridor)', aliases: 'استریدور انسداد حنجره خروسک' }
+    ]
+  },
+  {
+    id: 'pe_sys_cardiovascular',
+    title: '۶. قلب و عروق محیطی (Cardiovascular & Peripheral Vascular)',
+    normalBaseline: 'لمس PMI در فضای بین‌دنده‌ای پنجم خط میدکلاویکولار، صدای S1 و S2 نرمال و منظم، بدون سوفل قلبی سیستولیک یا دیاستولیک، فاقد گالوپ S3/S4، نبض‌های محیطی (رادیال، دورسالیس پدیس، تیبیالیس خلفی) دوطرفه پر و قرینه (2+)، پرشدگی مویرگی کمتر از ۲ ثانیه، بدون ادم گوده‌گذار و شواهد DVT منفی.',
+    items: [
+      { id: 'pe_cv_pmi', label: 'محل و شدت لمس ضربه نوک قلب (PMI)', aliases: 'پ ام ای ضربه اپکس نوک قلب pmi' },
+      { id: 'pe_cv_s1_s2', label: 'صداهای قلبی S1 و S2 طبیعی و ریتمیک', aliases: 'صدای اول و دوم قلب ریتم منظم' },
+      { id: 'pe_cv_gallop', label: 'صداهای اضافه گالوپ S3 یا S4 (Gallop Rhythm)', aliases: 'گالوپ اس سه اس چهار نارسایی قلب' },
+      { id: 'pe_cv_murmur', label: 'سوفل قلبی: سیستولیک/دیاستولیک، گرید و کانون سمع', aliases: 'سوفل صدای اضافی دریچه تنگی میترال ائورت' },
+      { id: 'pe_cv_pulses', label: 'نبض‌های محیطی قرینه و پر (Peripheral Pulses: Radial, Femoral, DP, PT 2+)', aliases: 'نبض پا نبض مچ دست دورسالیس پدیس تیبیال رادیال' },
+      { id: 'pe_cv_crt', label: 'پرشدگی مویرگی (Capillary Refill Time < 2 sec)', aliases: 'پرشدگی مویرگی crt ناخن پرفیوژن' },
+      { id: 'pe_cv_edema', label: 'ادم گوده‌گذار اندام تحتانی (Pitting Edema 1+ to 4+)', aliases: 'ورم پا ادم گوده گذار قوزک پا pitting' },
+      { id: 'pe_cv_dvt_signs', label: 'شواهد ترومبوز ورید عمقی (DVT Signs - تورم/گرمی/تندرنس ساق، علامت هومانز)', aliases: 'دی وی تی لخته پا تورم یکطرفه گرمی ساق هومانز' }
+    ]
+  },
+  {
+    id: 'pe_sys_breast_axillae',
+    title: '۷. پستان و آگزیلا (Breast & Axillae Exam)',
+    normalBaseline: 'پستان‌ها دوطرفه متقارن، فاقد فرورفتگی پوست یا نمای پوست‌پرتقالی (No Dimpling/Peau d’orange)، نیپل‌ها سالم بدون انحراف یا ترشح، لمس هر چهار ربع و دم اسپنس فاقد هرگونه توده، ندولاریته غالب یا تندرنس، لنفادنوپاتی آگزیلاری لمس نمی‌شود.',
+    items: [
+      { id: 'pe_br_symmetry', label: 'تقارن و کانتور دو پستان (Symmetry & Contour)', aliases: 'تقارن سینه ها برجستگی تغییر شکل' },
+      { id: 'pe_br_skin', label: 'تغییرات پوستی (Dimpling, Erythema, Peau d’orange)', aliases: 'پوست پرتقالی کشیدگی پوست قرمزی پستان' },
+      { id: 'pe_br_nipple', label: 'وضعیت نیپل و ترشح (Nipple Retraction / Discharge)', aliases: 'فرو رفتگی نیپل ترشح خونی سروزی نوک سینه' },
+      { id: 'pe_br_palpation', label: 'لمس ربع‌های پستان و دم اسپنس (توده، ساعت، ابعاد، قوام، تحرک)', aliases: 'توده پستان ساعت ابعاد قوام متحرک ثابت' },
+      { id: 'pe_br_axillary_ln', label: 'لنفادنوپاتی آگزیلاری (Axillary Lymphadenopathy)', aliases: 'غده لنفاوی زیربغل اگزیلا لمس غده' }
+    ]
+  },
+  {
+    id: 'pe_sys_anorectal_gu',
+    title: '۸. معاینه رکتال و ادراری-تناسلی (Anorectal / DRE & GU)',
+    normalBaseline: 'مشاهده پری‌آنال طبیعی بدون فیشر، شقاق، فیستول، هموروئید ترومبوزه یا آبسه، تون اسفنکتر مقعد طبیعی، لمس جدار کانال آنال و رکتوم فاقد توده یا خون، پروستات با ابعاد نرمال و فاقد ندول سفت، نمونه مدفوع روی دستکش با رنگ طبیعی، معاینه ژنیتالیا نرمال.',
+    items: [
+      { id: 'pe_re_inspection', label: 'مشاهده پری‌آنال: فیشر، فیستول، هموروئید خارجی، آبسه، سینوس پیلونیدال', aliases: 'مشاهده مقعد فیشر شقاق بواسیر هموروئید ابسه' },
+      { id: 'pe_re_tone', label: 'تون اسفنکتر مقعد (Sphincter Tone - نرمال / کاهش‌یافته)', aliases: 'تون اسفنکتر شلی بی اختیاری' },
+      { id: 'pe_re_walls', label: 'لمس دیواره‌های رکتوم: توده، پولیپ، فاصله از Anal Verge', aliases: 'توده رکتوم لمس رکتال توش رکتال dre' },
+      { id: 'pe_re_prostate', label: 'معاینه پروستات (Prostate: سایز، شیار میانی، قوام، ندول سفت)', aliases: 'پروستات بزرگی پروستات ندول سفت شیار میانی' },
+      { id: 'pe_re_stool_glove', label: 'نمونه مدفوع روی دستکش: طبیعی / ملنا / خون روشن / آمپول خالی', aliases: 'نمونه دستکش مدفوع ملنا خون روشن رکتوم خالی' },
+      { id: 'pe_gu_scrotum_testes', label: 'معاینه بیضه‌ها و اسکروتوم (تورشن، اپیدیدیمیت، هیدروسل، واریکوسل)', aliases: 'بیضه اسکروتوم تورشن پیچش هیدروسل واریکوسل' }
+    ]
+  },
+  {
+    id: 'pe_sys_neurological',
+    title: '۹. معاینه عصبی تخصصی (Comprehensive Neurological Exam)',
+    normalBaseline: 'هوشیاری کامل (GCS 15/15, Oriented ×3)، اعصاب کرانیال II تا XII سالم و قرینه (به‌ویژه عدم فلج فاسیال یا خشونت صدا)، قدرت عضلانی هر چهار اندام کامل (Motor Power 5/5)، حس لمس سطحی و درد دوطرفه قرینه، رفلکس‌های تاندونی عمقی نرمال (DTR 2+)، علامت بابنسکی منفی (پلانتار فلکسور دوطرفه)، بدون علائم تحریک مننژ (گردن نرم، بدون کرنیگ/برودزینسکی).',
+    items: [
+      { id: 'pe_neuro_gcs', label: 'سطح هوشیاری و امتیاز GCS (E4V5M6 = 15/15)', aliases: 'جی سی اس گلاسکو سطح هوشیاری gcs' },
+      { id: 'pe_neuro_cranial_nerves', label: 'اعصاب کرانیال (CN I–XII - عصب فاسیال VII، راجعه حنجره، منتال)', aliases: 'اعصاب کرانیال زوج های مغزی فاسیال راجعه عصب صورت' },
+      { id: 'pe_neuro_motor', label: 'قدرت عضلانی اندام‌های فوقانی و تحتانی (Motor Power 5/5)', aliases: 'قدرت عضلانی پارزی همی پلژی فلج نیرو اندام' },
+      { id: 'pe_neuro_sensory', label: 'حس لمس، درد و حس وضعیت (Sensory Exam)', aliases: 'حس لمس درد گزگز نوروپاتی حسی' },
+      { id: 'pe_neuro_dtr', label: 'رفلکس‌های تاندونی عمقی (DTR 2+ قرینه)', aliases: 'رفلکس تاندونی پاتلار اشیل بای سپس dtr' },
+      { id: 'pe_neuro_babinski', label: 'علامت بابنسکی / رفلکس پلانتار (Babinski Sign - اکستنسور / فلکسور)', aliases: 'بابنسکی پلانتار رفلکس انگشت شست' },
+      { id: 'pe_neuro_cerebellar', label: 'تست‌های مخچه‌ای و تعادل (Finger-to-Nose, Romberg, Gait)', aliases: 'تست تعادل رامبرگ انگشت به بینی راه رفتن آتاکسی' },
+      { id: 'pe_neuro_meningeal', label: 'علائم تحریک مننژ (سفتی گردن، نشانه کرنیگ، نشانه برودزینسکی)', aliases: 'سفتی گردن کرنیگ برودزینسکی مننژیت تحریک صفاق' }
+    ]
+  },
+  {
+    id: 'pe_sys_msk_spine',
+    title: '۱۰. معاینه عضلانی-اسکلتی و ستون فقرات (Musculoskeletal & Spine)',
+    normalBaseline: 'دامنه حرکتی مفاصل محیطی و ستون فقرات کامل و بدون درد (Full ROM)، فاقد تورم، افیوژن یا اریتم مفصلی، بدون دفورمیتی یا کوتاهی اندام، تندرنس خط وسط مهره‌ها منفی، تست SLR دوطرفه منفی.',
+    items: [
+      { id: 'pe_msk_rom', label: 'دامنه حرکتی کامل مفاصل بدون درد (Full ROM)', aliases: 'دامنه حرکتی مفصل زانو شانه ران rom' },
+      { id: 'pe_msk_swelling', label: 'تورم، افیوژن یا گرمی مفاصل (Joint Swelling / Effusion)', aliases: 'ورم مفصل اب اوردن زانو افیوژن ارتریت' },
+      { id: 'pe_msk_deformity', label: 'دفورمیتی، شکستگی مشکوک یا کوتاهی اندام (Deformity / Shortening)', aliases: 'دفورمیتی بدشکلی شکستگی استخوان کوتاهی پا' },
+      { id: 'pe_msk_spine_tenderness', label: 'تندرنس مهره‌ای یا پاراورتبرال (Spine Tenderness)', aliases: 'درد مهره ستون فقرات تندرنس کمری گردنی' },
+      { id: 'pe_msk_slr', label: 'تست بالا آوردن پای مستقیم (Straight Leg Raise - SLR Test)', aliases: 'اس ال ار سیاتیک دیسک کمر slr' }
     ]
   }
 ];
