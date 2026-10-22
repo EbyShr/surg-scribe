@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.5-Surg</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.6-Universal-Surg</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.5-Surg">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.6-Universal-Surg">
 
   <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Readex+Pro:wght@400;600;700&family=Rubik:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="css/clinical-ui.css">
+  <!-- Core Stylesheet with Cache-Busting -->
+  <link rel="stylesheet" href="css/clinical-ui.css?v=0.6.1">
 </head>
 <body class="dark-mode">
 
@@ -28,7 +28,7 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.5-Surg</span>
+        <span class="version-pill">v0.6-Surg</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
@@ -1040,15 +1040,17 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Main Application Script (ES Module) -->
-  <script type="module" src="js/app.js"></script>
+  <!-- Main Application Script (ES Module with cache-busting) -->
+  <script type="module" src="js/app.js?v=0.6.1"></script>
 
-  <!-- PWA Service Worker Registration -->
+  <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then((reg) => {
-          console.log('[PWA v0.5] Service Worker registered:', reg.scope);
+        navigator.serviceWorker.register('sw.js?v=0.6.1').then((reg) => {
+          console.log('[PWA v0.6] Service Worker registered:', reg.scope);
+          // Check for update immediately
+          reg.update();
         }).catch((err) => {
           console.warn('[PWA] Service Worker registration failed:', err);
         });

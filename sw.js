@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.5-cache-v5';
+const CACHE_NAME = 'surg-v0.6-universal-cache-v6';
 
 const STATIC_ASSETS = [
   './',
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   './js/schema.js',
   './js/telemetry.js',
   './js/generator.js',
+  './js/i18n.js',
   './js/cloud-sync.js',
   './js/google-sync.js',
   './js/app.js',
@@ -16,11 +17,12 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline surgical assets');
+      console.log('[SW v0.6] Pre-caching offline surgical assets');
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -30,7 +32,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW] Removing old cache version:', key);
+            console.log('[SW v0.6] Removing old cache version:', key);
             return caches.delete(key);
           }
         })
@@ -45,12 +47,28 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  // For HTML document navigation: Network First, falling back to cache
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
   // Cache-First strategy for local app assets
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
-          // Return cached, but optionally fetch in background to revalidate
+          // Revalidate in background
           fetch(event.request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));

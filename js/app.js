@@ -412,14 +412,52 @@ function loadSavedState() {
     const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Merge into clinicalState safely
-      clinicalState = Object.assign(createDefaultClinicalState(), parsed);
+      const defaults = createDefaultClinicalState();
+      clinicalState = {
+        ...defaults,
+        ...parsed,
+        demographics: { ...defaults.demographics, ...(parsed.demographics || {}) },
+        cc: { ...defaults.cc, ...(parsed.cc || {}) },
+        hpi: { ...defaults.hpi, ...(parsed.hpi || {}) },
+        obgyn: { ...defaults.obgyn, ...(parsed.obgyn || {}) },
+        pmh: { ...defaults.pmh, ...(parsed.pmh || {}) },
+        psh: { ...defaults.psh, ...(parsed.psh || {}) },
+        dh: { ...defaults.dh, ...(parsed.dh || {}) },
+        ah: { ...defaults.ah, ...(parsed.ah || {}) },
+        sh: { ...defaults.sh, ...(parsed.sh || {}) },
+        fh: { ...defaults.fh, ...(parsed.fh || {}) },
+        ros: { ...defaults.ros, ...(parsed.ros || {}) },
+        pe: { ...defaults.pe, ...(parsed.pe || {}) },
+        paraclinics: { ...defaults.paraclinics, ...(parsed.paraclinics || {}) },
+        reasoning: { ...defaults.reasoning, ...(parsed.reasoning || {}) }
+      };
+
+      if (!clinicalState.pe.vitals) {
+        clinicalState.pe.vitals = defaults.pe.vitals;
+      }
+      if (!clinicalState.pe.findings) {
+        clinicalState.pe.findings = {};
+      }
+      if (!clinicalState.pe.massExams) {
+        clinicalState.pe.massExams = clinicalState.pe.massExamList || [];
+      }
+      if (!clinicalState.pe.atlsExam) {
+        clinicalState.pe.atlsExam = defaults.pe.atlsExam;
+      }
+      if (!clinicalState.hpi.presentations || !Array.isArray(clinicalState.hpi.presentations) || clinicalState.hpi.presentations.length === 0) {
+        if (clinicalState.hpi.painList && Array.isArray(clinicalState.hpi.painList) && clinicalState.hpi.painList.length > 0) {
+          clinicalState.hpi.presentations = clinicalState.hpi.painList.map((p) => ({ ...p, archetype: 'pain_archetype' }));
+        } else {
+          clinicalState.hpi.presentations = [createDefaultPresentation('pain_archetype', 1)];
+        }
+      }
       if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList) || clinicalState.hpi.painList.length === 0) {
         clinicalState.hpi.painList = [createDefaultPainEpisode(1, 'کانون درد اول / شکایت محوری')];
       }
     }
   } catch (e) {
-    console.warn('Failed to load state from localStorage:', e);
+    console.warn('Failed to load state from localStorage, resetting to fresh case:', e);
+    clinicalState = createDefaultClinicalState();
   }
 }
 
@@ -3623,33 +3661,38 @@ function initMobileBottomSheet() {
    Master Dynamic UI Bootstrapper
    ========================================================================== */
 export function initApp() {
-  initAdmissionPathwayHandlers();
-  initDemographicsHandlers();
-  initAddPainEpisodeHandler();
-  initPshHandlers();
-  initObGynHandlers();
-  initAddCustomDrugHandler();
-  initAhShFhHandlers();
-  initRosMasterNegativeHandler();
-  initPeVitalsHandlers();
-  initPeMasterNegativeHandler();
-  initMassExamHandlers();
-  initAtlsExamHandlers();
-  initTagQuickSearch();
-  initReasoningHandlers();
-  initSystemGapLoggers();
-  initNavigationTabs();
-  initExportAndCopy();
-  initAppSettings();
-  initShiftManager();
-  initCloudSyncUI();
-  initThemeToggle();
-  initMobileBottomSheet();
+  try {
+    initAdmissionPathwayHandlers();
+    initDemographicsHandlers();
+    initAddPainEpisodeHandler();
+    initPshHandlers();
+    initObGynHandlers();
+    initAddCustomDrugHandler();
+    initAhShFhHandlers();
+    initRosMasterNegativeHandler();
+    initPeVitalsHandlers();
+    initPeMasterNegativeHandler();
+    initMassExamHandlers();
+    initAtlsExamHandlers();
+    initTagQuickSearch();
+    initReasoningHandlers();
+    initSystemGapLoggers();
+    initNavigationTabs();
+    initExportAndCopy();
+    initAppSettings();
+    initShiftManager();
+    initCloudSyncUI();
+    initThemeToggle();
+    initMobileBottomSheet();
 
-  loadSavedState();
-  syncDomFromState();
-  updateLivePreview();
-  updateShiftCasesCount();
+    loadSavedState();
+    syncDomFromState();
+    updateLivePreview();
+    updateShiftCasesCount();
+    console.log('[Surg-Scribe v0.6] Application initialized successfully.');
+  } catch (err) {
+    console.error('[Surg-Scribe] Error during initApp:', err);
+  }
 }
 
 if (typeof window !== 'undefined') {
@@ -3680,7 +3723,12 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  window.addEventListener('DOMContentLoaded', () => {
+  // Reliable bootstrapper: if document is already parsed, run immediately; otherwise wait for event
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', () => {
+      initApp();
+    });
+  } else {
     initApp();
-  });
+  }
 }
