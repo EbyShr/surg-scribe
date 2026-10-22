@@ -8,7 +8,10 @@ import {
   PE_MANDATORY_PILLARS,
   PE_UNLOCKABLE_MODULES,
   HPI_UNLOCKABLE_MODULES,
-  HPI_BASIC_SYMPTOMS
+  HPI_BASIC_SYMPTOMS,
+  PAIN_BODY_REGIONS,
+  MASS_EXAM_SCHEMA,
+  ATLS_EXAM_SCHEMA
 } from './schema.js';
 
 export function normalizePersianClinicalText(text) {
@@ -45,8 +48,206 @@ export function sanitizeRecordForExport(rawState) {
 function getRegionLabel(regionId) {
   const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
   const found = SURGICAL_SCHEMA.abdominalRegions.find((r) => r.id === regionId);
-  if (!found) return regionId;
-  return lang === 'en' ? (found.code || found.label) : found.label;
+  if (found) return lang === 'en' ? (found.code || found.label) : found.label;
+
+  for (const group of (PAIN_BODY_REGIONS || [])) {
+    const sub = group.subregions.find((s) => s.id === regionId);
+    if (sub) {
+      return lang === 'en' ? (sub.code || sub.label) : (sub.fa || sub.label);
+    }
+  }
+  return regionId;
+}
+
+/**
+ * Narrative Sentence Generator for each of the 5 Presentation Archetypes (Persian)
+ */
+export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
+  const prefix = totalCount > 1 ? (index === 0 ? 'در بررسی مشکل اصلی، ' : 'همچنین در خصوص شکایت دیگر، ') : '';
+
+  if (item.archetype === 'mass_lesion_archetype') {
+    const parts = [];
+    parts.push(`${prefix}بیمار از وجود توده/ضایعه‌ای در ناحیه **${item.location || 'موضع اشاره‌شده'}** شاکی است`);
+    if (item.discoveryTime) parts.push(`که از حدود ${item.discoveryTime} قبل متوجه آن شده است`);
+    if (item.growthPattern) parts.push(`و در این مدت سیر ${item.growthPattern} داشته است`);
+    let sentence = parts.join(' ') + '.';
+    if (item.painStatus) sentence += ` ضایعه مذکور ${item.painStatus} می‌باشد.`;
+    if (item.posFindings?.length) sentence += ` بیمار ذکر از ${item.posFindings.join('، ')} در موضع دارد.`;
+    if (item.negFindings?.length) sentence += ` شواهدی از ${item.negFindings.join('، ')} ذکر نمی‌شود.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'trauma_burn_archetype') {
+    let sentence = `${prefix}بیمار به دنبال **${item.mechanism || 'تروما'}**`;
+    if (item.timeSinceInjury) sentence += ` در حدود ${item.timeSinceInjury} قبل`;
+    if (item.injuredZones?.length) sentence += ` و آسیب به نواحی **${item.injuredZones.join(' و ')}**`;
+    if (item.transportMode) sentence += `، توسط ${item.transportMode}`;
+    sentence += ` به اورژانس منتقل شده است.`;
+    if (item.posFindings?.length) sentence += ` در شرح‌حال تروما، ${item.posFindings.join('، ')} گزارش می‌شود.`;
+    if (item.negFindings?.length) sentence += ` بیمار ${item.negFindings.join('، ')} را ذکر نمی‌کند.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'elective_asymptomatic_archetype') {
+    let sentence = `${prefix}بیمار در حال حاضر فاقد درد یا شکایت حاد بالینی بوده`;
+    if (item.discoveryMethod) sentence += ` و بیماری وی به دنبال ${item.discoveryMethod} شناسایی شده است.`;
+    else sentence += `.`;
+    if (item.workupSummary) sentence += ` در سیر بررسی‌های سرپایی، ${item.workupSummary}.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'functional_bleeding_archetype') {
+    let sentence = `${prefix}بیمار از **${item.symptomTitle || 'علائم فوق'}**`;
+    if (item.duration) sentence += ` از ${item.duration} قبل`;
+    if (item.onset) sentence += ` با شروع ${item.onset}`;
+    sentence += ` شاکی است`;
+    if (item.severityOrFrequency) sentence += ` (${item.severityOrFrequency})`;
+    sentence += '.';
+    if (item.aggravating?.length) sentence += ` این وضعیت با ${item.aggravating.join('، ')} تشدید شده`;
+    if (item.relieving?.length) sentence += ` و با ${item.relieving.join('، ')} بهبود نسبی می‌یابد.`;
+    return sentence;
+  }
+
+  // default fallback: pain_archetype
+  const siteName = item.site || (item.selectedRegions || []).map(getRegionLabel).join(' و ') || item.title || `کانون درد #${index + 1}`;
+  const painPrefix = totalCount > 1
+    ? (index === 0 ? `در بررسی کانون اول (${siteName})، درد بیمار ` : `همچنین در خصوص کانون بعدی (${siteName})، درد `)
+    : 'به گفته بیمار، درد ';
+  const segments = [];
+
+  if (item.duration) segments.push(`از ${normalizePersianClinicalText(item.duration)} قبل`);
+  if (item.onset) segments.push(`با ${item.onset}`);
+  segments.push('آغاز شده است');
+
+  let locSentence = '';
+  const regNames = (item.selectedRegions || []).map(getRegionLabel).join(' و ');
+  if (item.bodyRegionGroup && item.bodyRegionGroup !== 'abdomen_pelvis' && regNames) {
+    locSentence = `در ناحیه ${regNames} متمرکز بوده`;
+  } else if (item.spatialPattern === 'localized' && regNames) {
+    locSentence = `در ناحیه ${regNames} لوکالیزه بوده`;
+  } else if (item.spatialPattern === 'generalized_predominant' && regNames) {
+    locSentence = `در کل موضع با ارجحیت و حداکثر شدت در ناحیه ${regNames} احساس شده`;
+  } else if (item.spatialPattern === 'localized_to_generalized') {
+    const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
+    locSentence = `ابتدا در ناحیه ${initNames || 'نقطه اولیه'} شروع شده و سپس به سایر نواحی گسترش یافته`;
+  } else if (item.spatialPattern === 'migratory_shifting') {
+    const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
+    const curNames = (item.currentRegions || []).map(getRegionLabel).join(' و ');
+    locSentence = `الگوی مهاجر (Shifting) داشته و از ناحیه ${initNames || 'محل اولیه'} به ناحیه ${curNames || 'محل ثانویه'} تغییر مکان داده`;
+  } else if (item.site) {
+    locSentence = `در ناحیه ${normalizePersianClinicalText(item.site)} احساس شده`;
+  } else if (regNames) {
+    locSentence = `در ناحیه ${regNames} احساس شده`;
+  }
+
+  const qualParts = [];
+  if (locSentence) qualParts.push(locSentence);
+  if (item.character) qualParts.push(`ماهیت ${item.character}`);
+  if (item.course) qualParts.push(`سیر ${item.course}`);
+  if (item.timing) qualParts.push(`الگوی زمانی ${item.timing}`);
+
+  let painParagraph = `${painPrefix}${segments.join(' ')}`;
+  if (qualParts.length > 0) {
+    painParagraph += `؛ این درد ${qualParts.join('، ')} دارد`;
+  }
+  if (item.severity !== undefined && item.severity !== null && item.severity !== '') {
+    painParagraph += ` و شدت آن توسط بیمار ${item.severity} از ۱۰ توصیف می‌شود`;
+  }
+  painParagraph += '.';
+
+  const modSentences = [];
+  if (item.radiationList && item.radiationList.length > 0) {
+    const radStr = item.radiationList.map((r) => (r.detail ? `${r.label || r} (${normalizePersianClinicalText(r.detail)})` : (r.label || r))).join(' و ');
+    modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
+  } else if (item.radiation && Array.isArray(item.radiation) && item.radiation.length > 0) {
+    const radStr = item.radiation.map((r) => (typeof r === 'object' ? `${r.label || r.id} (${r.detail || ''})` : r)).join(' و ');
+    modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
+  } else if (typeof item.radiation === 'string' && item.radiation.trim()) {
+    modSentences.push(`درد مذکور به ${normalizePersianClinicalText(item.radiation)} انتشار دارد`);
+  } else if (item.noRadiation) {
+    modSentences.push(`درد به جایی انتشار ندارد`);
+  }
+
+  if (item.aggravating) {
+    const aggText = Array.isArray(item.aggravating) ? item.aggravating.join('، ') : String(item.aggravating).trim();
+    if (aggText) modSentences.push(`با ${aggText} تشدید می‌شود`);
+  }
+  if (item.relieving) {
+    const relText = Array.isArray(item.relieving) ? item.relieving.join('، ') : String(item.relieving).trim();
+    if (relText) modSentences.push(`با ${relText} بهبود نسبی می‌یابد`);
+  }
+  if (modSentences.length > 0) {
+    painParagraph += ' ' + modSentences.join(' و ') + '.';
+  }
+
+  return painParagraph;
+}
+
+/**
+ * Narrative Sentence Generator for each of the 5 Presentation Archetypes (English)
+ */
+export function renderArchetypeNarrativeEn(item, index = 0, totalCount = 1) {
+  const prefix = totalCount > 1 ? (index === 0 ? 'Regarding primary presentation: ' : 'Regarding concurrent presentation: ') : '';
+
+  if (item.archetype === 'mass_lesion_archetype') {
+    let sentence = `${prefix}The patient reports a palpable mass/lesion located at **${item.location || 'the specified anatomical region'}**`;
+    if (item.discoveryTime) sentence += `, first noted approximately ${item.discoveryTime} prior to evaluation`;
+    if (item.growthPattern) sentence += `, exhibiting a ${item.growthPattern} growth pattern`;
+    sentence += '.';
+    if (item.painStatus) sentence += ` The lesion is currently ${item.painStatus}.`;
+    if (item.posFindings?.length) sentence += ` Associated local signs: positive for ${item.posFindings.join(', ')}.`;
+    if (item.negFindings?.length) sentence += ` Negative for: ${item.negFindings.join(', ')}.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'trauma_burn_archetype') {
+    let sentence = `${prefix}The patient presented following **${item.mechanism || 'acute trauma'}**`;
+    if (item.timeSinceInjury) sentence += ` sustained approximately ${item.timeSinceInjury} prior to arrival`;
+    if (item.injuredZones?.length) sentence += ` with injuries involving **${item.injuredZones.join(', ')}**`;
+    if (item.transportMode) sentence += `, transported to the emergency department via ${item.transportMode}`;
+    sentence += '.';
+    if (item.posFindings?.length) sentence += ` Trauma review: positive for ${item.posFindings.join(', ')}.`;
+    if (item.negFindings?.length) sentence += ` Denies: ${item.negFindings.join(', ')}.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'elective_asymptomatic_archetype') {
+    let sentence = `${prefix}The patient is currently asymptomatic with no acute pain or surgical distress`;
+    if (item.discoveryMethod) sentence += `, identified through ${item.discoveryMethod}`;
+    sentence += '.';
+    if (item.workupSummary) sentence += ` Outpatient diagnostic trajectory: ${item.workupSummary}.`;
+    return sentence;
+  }
+
+  if (item.archetype === 'functional_bleeding_archetype') {
+    let sentence = `${prefix}The patient reports **${item.symptomTitle || 'functional symptoms'}**`;
+    if (item.duration) sentence += ` starting ${item.duration} ago`;
+    if (item.onset) sentence += ` (${item.onset})`;
+    if (item.severityOrFrequency) sentence += ` [${item.severityOrFrequency}]`;
+    sentence += '.';
+    if (item.aggravating?.length) sentence += ` Aggravated by ${item.aggravating.join(', ')}.`;
+    if (item.relieving?.length) sentence += ` Partially relieved by ${item.relieving.join(', ')}.`;
+    return sentence;
+  }
+
+  // pain_archetype
+  const siteStr = item.site || (item.selectedRegions || []).map(getRegionLabel).join(', ') || item.title || `Focus #${index + 1}`;
+  let pSentence = `${prefix}Pain focus #${index + 1} (${siteStr}): Onset ${item.duration || 'recently'} prior to admission`;
+  if (item.character) pSentence += `, characterized as ${item.character}`;
+  if (item.course) pSentence += `, clinical course is ${item.course}`;
+  if (item.timing) pSentence += `, timing pattern: ${item.timing}`;
+  if (item.severity !== undefined && item.severity !== null && item.severity !== '') pSentence += `, severity rated ${item.severity}/10 on NRS`;
+  pSentence += '.';
+  if (item.radiationList && item.radiationList.length > 0) {
+    pSentence += ` Radiation: ${item.radiationList.map(r => r.label || r).join(', ')}.`;
+  }
+  if (item.aggravating && item.aggravating.length > 0) {
+    pSentence += ` Aggravated by: ${item.aggravating.join(', ')}.`;
+  }
+  if (item.relieving && item.relieving.length > 0) {
+    pSentence += ` Relieved by: ${item.relieving.join(', ')}.`;
+  }
+  return pSentence;
 }
 
 /**
@@ -59,7 +260,14 @@ export function generateNarrativeCCAndHPI(state) {
   const demo = state.demographics || state.admission || {};
   const cc = state.cc || state.admission || {};
   const hpi = state.hpi || {};
-  const pains = hpi.painList && hpi.painList.length > 0 ? hpi.painList : [];
+
+  // Support 5 Archetypes via presentations array; fallback seamlessly to painList
+  const presentations = (hpi.presentations && hpi.presentations.length > 0)
+    ? hpi.presentations
+    : (hpi.painList && hpi.painList.length > 0
+        ? hpi.painList.map(p => ({ ...p, archetype: 'pain_archetype' }))
+        : []);
+
   const out = [];
 
   if (isEn) {
@@ -71,7 +279,7 @@ export function generateNarrativeCCAndHPI(state) {
       );
     }
 
-    const ccText = cc.ccPhrase || cc.patientQuote || 'Acute Abdominal Pain';
+    const ccText = cc.ccPhrase || cc.patientQuote || 'Acute Surgical Complaint';
     out.push(`### 1. Chief Complaint (CC)`);
     out.push(`- **"${ccText}"**`);
 
@@ -82,7 +290,7 @@ export function generateNarrativeCCAndHPI(state) {
     const agePhrase = demo.age ? `${demo.age}-year-old` : '';
     let introSentence = `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
     if (cc.pathway === 'clinic_referral') {
-      introSentence += ` Admitted from surgical clinic under Dr. ${cc.attendingPhysician || 'Attending Surgeon'} for ${cc.plannedProcedure || 'planned surgical evaluation'}.`;
+      introSentence += ` Admitted from surgical clinic under Dr. ${cc.attendingPhysician || cc.referringAttending || 'Attending Surgeon'} for ${cc.plannedProcedure || 'planned surgical evaluation'}.`;
     } else if (cc.pathway === 'postop_complication') {
       introSentence += ` Presenting with acute post-operative complaint/complication following recent surgical intervention.`;
     } else {
@@ -90,25 +298,9 @@ export function generateNarrativeCCAndHPI(state) {
     }
     narrativeSentences.push(introSentence);
 
-    if (pains.length > 0) {
-      pains.forEach((p, idx) => {
-        const siteStr = p.site || (p.selectedRegions || []).map(getRegionLabel).join(', ') || p.title || `Focus ${idx + 1}`;
-        let pSentence = `Pain focus #${idx + 1} (${siteStr}): Onset ${p.duration || 'recently'} prior to admission`;
-        if (p.character) pSentence += `, characterized as ${p.character}`;
-        if (p.course) pSentence += `, clinical course is ${p.course}`;
-        if (p.timing) pSentence += `, timing pattern: ${p.timing}`;
-        if (p.severity !== undefined && p.severity !== null && p.severity !== '') pSentence += `, severity rated ${p.severity}/10 on NRS`;
-        pSentence += '.';
-        if (p.radiationList && p.radiationList.length > 0) {
-          pSentence += ` Radiation: ${p.radiationList.map(r => r.label).join(', ')}.`;
-        }
-        if (p.aggravating && p.aggravating.length > 0) {
-          pSentence += ` Aggravated by: ${p.aggravating.join(', ')}.`;
-        }
-        if (p.relieving && p.relieving.length > 0) {
-          pSentence += ` Relieved by: ${p.relieving.join(', ')}.`;
-        }
-        narrativeSentences.push(pSentence);
+    if (presentations.length > 0) {
+      presentations.forEach((item, idx) => {
+        narrativeSentences.push(renderArchetypeNarrativeEn(item, idx, presentations.length));
       });
     }
 
@@ -144,11 +336,11 @@ export function generateNarrativeCCAndHPI(state) {
   }
 
   // 2. شکایت اصلی (CC): صرفاً عبارت کوتاه شکایت بیمار بدون هیچ توضیح اضافی
-  const ccText = normalizePersianClinicalText(cc.ccPhrase || cc.patientQuote || 'درد شکم');
+  const ccText = normalizePersianClinicalText(cc.ccPhrase || cc.patientQuote || 'شکایت حاد جراحی');
   out.push(`### ۱. شکایت اصلی (Chief Complaint - CC)`);
   out.push(`- **${ccText}**`);
 
-  // 3. شرح بیماری فعلی (HPI) به صورت کاملاً روایی و جمله‌بندی‌شده
+  // 3. شرح بیماری فعلی (HPI) به صورت کاملاً روایی و مبتنی بر کهن‌الگوها
   out.push(`\n### ۲. شرح بیماری فعلی (History of Present Illness - HPI)`);
   const narrativeSentences = [];
 
@@ -187,100 +379,12 @@ export function generateNarrativeCCAndHPI(state) {
     narrativeSentences.push(admSentence);
   }
 
-  // نمایش کانون‌های درد
-  if (pains.length > 0) {
-    if (pains.length === 1) {
-      const siteStr = pains[0].site || (pains[0].selectedRegions || []).map(getRegionLabel).join(' و ');
-      if (siteStr) {
-        narrativeSentences.push(`- **کانون درد گزارش‌شده:** ${siteStr}`);
-      }
-    } else {
-      narrativeSentences.push(`- **کانون‌های درد گزارش‌شده:**`);
-      pains.forEach((p, idx) => {
-        const siteStr = p.site || (p.selectedRegions || []).map(getRegionLabel).join(' و ') || p.title || `کانون ${idx + 1}`;
-        narrativeSentences.push(`  * **کانون ${idx + 1}: ${siteStr}**`);
-      });
-    }
+  // توصیف روایی کهن‌الگوهای مواجهه بالینی (5 Clinical Presentation Archetypes)
+  if (presentations.length > 0) {
+    presentations.forEach((item, idx) => {
+      narrativeSentences.push(renderArchetypeNarrative(item, idx, presentations.length));
+    });
   }
-
-  // توصیف روایی تک‌تک کانون‌های درد (Pain Episodes)
-  pains.forEach((p, idx) => {
-    const siteName = p.site || (p.selectedRegions || []).map(getRegionLabel).join(' و ') || p.title || `کانون ${idx + 1}`;
-    const prefix = pains.length > 1
-      ? (idx === 0 ? `در بررسی کانون اول (${siteName})، درد بیمار ` : `همچنین در خصوص کانون دوم (${siteName})، درد `)
-      : 'به گفته بیمار، درد ';
-    const segments = [];
-
-    if (p.duration) segments.push(`از ${normalizePersianClinicalText(p.duration)} قبل`);
-    if (p.onset) segments.push(`با ${p.onset}`);
-    segments.push('آغاز شده است');
-
-    let locSentence = '';
-    const regNames = (p.selectedRegions || []).map(getRegionLabel).join(' و ');
-    if (p.spatialPattern === 'localized' && regNames) {
-      locSentence = `در ناحیه ${regNames} لوکالیزه بوده`;
-    } else if (p.spatialPattern === 'generalized_predominant' && regNames) {
-      locSentence = `در کل شکم با ارجحیت و حداکثر شدت در ناحیه ${regNames} احساس شده`;
-    } else if (p.spatialPattern === 'localized_to_generalized') {
-      const initNames = (p.initialRegions || []).map(getRegionLabel).join(' و ');
-      locSentence = `ابتدا در ناحیه ${initNames || 'نقطه اولیه'} شروع شده و سپس به کل شکم گسترش یافته`;
-    } else if (p.spatialPattern === 'migratory_shifting') {
-      const initNames = (p.initialRegions || []).map(getRegionLabel).join(' و ');
-      const curNames = (p.currentRegions || []).map(getRegionLabel).join(' و ');
-      locSentence = `الگوی مهاجر (Shifting) داشته و از ناحیه ${initNames || 'محل اولیه'} به ناحیه ${curNames || 'محل ثانویه'} تغییر مکان داده`;
-    } else if (p.site) {
-      locSentence = `در ناحیه ${normalizePersianClinicalText(p.site)} احساس شده`;
-    } else if (regNames) {
-      locSentence = `در ناحیه ${regNames} احساس شده`;
-    }
-
-    const qualParts = [];
-    if (locSentence) qualParts.push(locSentence);
-    if (p.character) qualParts.push(`ماهیت ${p.character}`);
-    if (p.course) qualParts.push(`سیر ${p.course}`);
-    if (p.timing) qualParts.push(`الگوی زمانی ${p.timing}`);
-
-    let painParagraph = `${prefix}${segments.join(' ')}`;
-    if (qualParts.length > 0) {
-      painParagraph += `؛ این درد ${qualParts.join('، ')} دارد`;
-    }
-    if (p.severity !== undefined && p.severity !== null && p.severity !== '') {
-      painParagraph += ` و شدت آن توسط بیمار ${p.severity} از ۱۰ توصیف می‌شود`;
-    }
-    painParagraph += '.';
-
-    // انتشار، تشدید و تسکین به صورت جمله روایی
-    const modSentences = [];
-    if (p.radiationList && p.radiationList.length > 0) {
-      const radStr = p.radiationList.map((r) => (r.detail ? `${r.label || r} (${normalizePersianClinicalText(r.detail)})` : (r.label || r))).join(' و ');
-      modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
-    } else if (p.radiation && Array.isArray(p.radiation) && p.radiation.length > 0) {
-      const radStr = p.radiation.map((r) => (typeof r === 'object' ? `${r.label || r.id} (${r.detail || ''})` : r)).join(' و ');
-      modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
-    } else if (typeof p.radiation === 'string' && p.radiation.trim()) {
-      modSentences.push(`درد مذکور به ${normalizePersianClinicalText(p.radiation)} انتشار دارد`);
-    } else if (p.noRadiation) {
-      modSentences.push(`درد به جایی انتشار ندارد`);
-    }
-
-    if (p.aggravating) {
-      const aggText = Array.isArray(p.aggravating) ? p.aggravating.join('، ') : String(p.aggravating).trim();
-      if (aggText) {
-        modSentences.push(`با ${aggText} تشدید می‌شود`);
-      }
-    }
-    if (p.relieving) {
-      const relText = Array.isArray(p.relieving) ? p.relieving.join('، ') : String(p.relieving).trim();
-      if (relText) {
-        modSentences.push(`با ${relText} بهبود نسبی می‌یابد`);
-      }
-    }
-    if (modSentences.length > 0) {
-      painParagraph += ' ' + modSentences.join(' و ') + '.';
-    }
-
-    narrativeSentences.push(painParagraph);
-  });
 
   // توضیحات روایی آزاد بیمار و سیر اقدامات قبل از بستری
   if (hpi.narrativeNote) {
@@ -302,7 +406,7 @@ export function generateNarrativeCCAndHPI(state) {
   });
 
   if (posSymptoms.length > 0 || negSymptoms.length > 0) {
-    let symLine = `- **علائم گوارشی (GI Symptoms) و عمومی:** `;
+    let symLine = `- **علائم همراه و عمومی:** `;
     if (posSymptoms.length > 0 && negSymptoms.length > 0) {
       symLine += `بیمار از وجود ${posSymptoms.join('، ')} شاکی است؛ اما وجود ${negSymptoms.join('، ')} را در سیر بیماری اخیر نفی می‌کند.`;
     } else if (posSymptoms.length > 0) {
@@ -347,8 +451,6 @@ export function generateNarrativeCCAndHPI(state) {
           modText += `**منفی:** ${modNeg.join('، ')}`;
         }
         narrativeSentences.push(modText);
-      } else {
-        narrativeSentences.push(`- **${mod.title}:** بررسی شد؛ فاقد علامت غیرطبیعی.`);
       }
     }
   });
@@ -357,7 +459,7 @@ export function generateNarrativeCCAndHPI(state) {
     narrativeSentences.push(`(منبع اخذ شرح‌حال: ${demo.informant}، با قابلیت اعتماد مناسب).`);
   }
 
-  out.push(narrativeSentences.join('\n'));
+  out.push(narrativeSentences.join('\n\n'));
   return out.join('\n');
 }
 
@@ -488,6 +590,34 @@ export function generateClinicalNote(state) {
     lines.push(`- **Abdominal Examination (4 Pillars):**`);
     if (pePos.length > 0) lines.push(`  * **Pertinent Positive Findings:** ${pePos.join(', ')}`);
     if (peNeg.length > 0) lines.push(`  * **Normal / Negative Findings:** ${peNeg.join(', ')}`);
+
+    // Local Mass Exam Module
+    const massExamsEn = state.pe?.massExams || state.pe?.massExamList || [];
+    if (massExamsEn.length > 0) {
+      lines.push(`- **Local Mass & Lesion Examination:**`);
+      massExamsEn.forEach((m, idx) => {
+        lines.push(
+          `  * **Lesion #${idx + 1} (${m.location || 'Specified Site'}):** Dimensions: ${m.dimensions || 'Unspecified'} | Consistency: ${m.consistency || '—'} | Margins: ${m.margin || m.margins || '—'} | Mobility: ${m.mobility || '—'} | Skin & Tenderness: ${m.skinSign || m.tendernessSkin || 'Normal'} | Remarks: ${m.note || m.neuroLymph || 'Intact'}`
+        );
+      });
+    }
+
+    // ATLS Trauma Exam Module
+    const atlsEn = state.pe?.atlsExam || {};
+    if (atlsEn.active || atlsEn.enabled || Object.keys(atlsEn.primarySurvey || {}).length > 0 || (atlsEn.wounds && atlsEn.wounds.length > 0) || atlsEn.burn?.degree || atlsEn.burn?.tbsa) {
+      lines.push(`- **ATLS Trauma & Burn Survey:**`);
+      const ps = atlsEn.primarySurvey || {};
+      lines.push(`  * **Primary Survey (ABCDE):** Airway: ${ps.airway || 'Patent'} | Breathing: ${ps.breathing || 'Symmetric'} | Circulation: ${ps.circulation || 'Stable'} | Disability: ${ps.disability || 'PERRLA / GCS 15'} | Exposure: ${ps.exposure || 'Normal'}`);
+      if (atlsEn.wounds && atlsEn.wounds.length > 0) {
+        lines.push(`  * **Wound Registry:**`);
+        atlsEn.wounds.forEach((w, wIdx) => {
+          lines.push(`    - #${wIdx + 1}: ${w.type || 'Wound'} at ${w.location || 'Site'} (${w.dimensions || '—'}) | Bleeding: ${w.bleedingStatus || w.bleeding || '—'} | Distal NV: ${w.distalNv || w.distalNV || 'Intact'}`);
+        });
+      }
+      if (atlsEn.burn && (atlsEn.burn.degree || atlsEn.burn.tbsa)) {
+        lines.push(`  * **Burn Assessment:** Degree: ${atlsEn.burn.degree || '—'} | % TBSA: ${atlsEn.burn.tbsa || '—'}% (Involved: ${atlsEn.burn.regions || '—'}) | Inhalation Signs: ${atlsEn.burn.inhalationSigns?.join(', ') || 'None'}`);
+      }
+    }
 
     // 7. Paraclinics
     lines.push(`\n### 7. Diagnostic Studies & Paraclinics`);
@@ -825,6 +955,46 @@ export function generateClinicalNote(state) {
     }
   });
 
+  // ماژول معاینه موضعی توده و ضایعات (Local Mass & Lesion Exam)
+  const massExamsFa = state.pe?.massExams || state.pe?.massExamList || [];
+  if (massExamsFa.length > 0) {
+    lines.push(`- **معاینه موضعی توده و ضایعات (Local Mass & Lesion Exam):**`);
+    massExamsFa.forEach((m, idx) => {
+      lines.push(
+        `  * **توده/ضایعه #${idx + 1} (${m.location || 'موضع اشاره‌شده'}):** ابعاد: ${m.dimensions || 'نامشخص'} | قوام: ${m.consistency || 'نامشخص'} | حدود: ${m.margin || m.margins || 'نامشخص'} | تحرک: ${m.mobility || 'نامشخص'} | وضعیت پوست و تندرنس: ${m.skinSign || m.tendernessSkin || 'نرمال'} | توضیحات: ${m.note || m.neuroLymph || 'طبیعی'}`
+      );
+    });
+  }
+
+  // ماژول معاینه تروما و سوختگی (ATLS Trauma & Burn Exam)
+  const atlsFa = state.pe?.atlsExam || {};
+  if (atlsFa.active || atlsFa.enabled || Object.keys(atlsFa.primarySurvey || {}).length > 0 || (atlsFa.wounds && atlsFa.wounds.length > 0) || atlsFa.burn?.degree || atlsFa.burn?.tbsa) {
+    lines.push(`- **ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE):**`);
+    const ps = atlsFa.primarySurvey || {};
+    lines.push(`  * **ارزیابی اولیه (ABCDE):**`);
+    if (ps.airway) lines.push(`    - A (Airway & C-Spine): ${ps.airway}`);
+    if (ps.breathing) lines.push(`    - B (Breathing): ${ps.breathing}`);
+    if (ps.circulation) lines.push(`    - C (Circulation): ${ps.circulation}`);
+    if (ps.disability) lines.push(`    - D (Disability / GCS): ${ps.disability}`);
+    if (ps.exposure) lines.push(`    - E (Exposure): ${ps.exposure}`);
+
+    if (atlsFa.wounds && atlsFa.wounds.length > 0) {
+      lines.push(`  * **ثبت زخم‌ها و جراحات تروما (Wound & Injury Registry):**`);
+      atlsFa.wounds.forEach((w, wIdx) => {
+        lines.push(
+          `    - جراحت #${wIdx + 1}: ${w.type || 'زخم'} در ${w.location || 'موضع'} (ابعاد: ${w.dimensions || '—'}) | وضعیت خونریزی: ${w.bleedingStatus || w.bleeding || '—'} | وضعیت عصبی-عروقی دیستال: ${w.distalNv || w.distalNV || 'طبیعی'}`
+        );
+      });
+    }
+
+    if (atlsFa.burn && (atlsFa.burn.degree || atlsFa.burn.tbsa)) {
+      let burnLine = `  * **بررسی سوختگی:** درجه: ${atlsFa.burn.degree || 'نامشخص'} | وسعت: ${atlsFa.burn.tbsa ? atlsFa.burn.tbsa + '% TBSA' : 'نامشخص'}`;
+      if (atlsFa.burn.regions) burnLine += ` (نواحی درگیر: ${atlsFa.burn.regions})`;
+      if (atlsFa.burn.inhalationSigns?.length) burnLine += ` | شواهد آسیب استنشاقی: ${atlsFa.burn.inhalationSigns.join('، ')}`;
+      lines.push(burnLine);
+    }
+  }
+
   if (state.pe?.note) lines.push(`- **توضیحات تکمیلی معاینه:** ${normalizePersianClinicalText(state.pe.note)}`);
   if (state.pe?.systemGapNote) {
     lines.push(`- **یافته‌های خارج از لیست معاینه فیزیکی:** ${normalizePersianClinicalText(state.pe.systemGapNote)}`);
@@ -836,24 +1006,25 @@ export function generateClinicalNote(state) {
   const modalities = state.paraclinics?.imagingReports || [];
   if (modalities.length > 0) {
     modalities.forEach((rep) => {
-      const modalityName = rep.modality === 'US' || rep.modalityLabel?.includes('US') ? 'سونوگرافی (US)'
-        : rep.modality === 'CT' || rep.modalityLabel?.includes('CT') ? 'سی‌تی اسکن (CT)'
-        : rep.modality === 'MRI_MRCP' || rep.modalityLabel?.includes('MRI') ? 'MRI / MRCP'
-        : rep.modality === 'CXR_AXR' || rep.modalityLabel?.includes('CXR') ? 'گرافی قفسه سینه / شکم (CXR / AXR)'
+      const modalityName = rep.modality === 'efast' || rep.modalityId === 'efast' || rep.modalityLabel?.includes('eFAST') || rep.modalityTitle?.includes('eFAST') ? 'سونوگرافی اورژانس eFAST (تروما)'
+        : rep.modality === 'US' || rep.modalityId === 'us' || rep.modalityLabel?.includes('US') ? 'سونوگرافی (US)'
+        : rep.modality === 'CT' || rep.modalityId === 'ct' || rep.modalityLabel?.includes('CT') ? 'سی‌تی اسکن (CT)'
+        : rep.modality === 'MRI_MRCP' || rep.modalityId === 'mri_mrcp' || rep.modalityLabel?.includes('MRI') ? 'MRI / MRCP'
+        : rep.modality === 'CXR_AXR' || rep.modalityId === 'cxr_axr' || rep.modalityLabel?.includes('CXR') ? 'گرافی قفسه سینه / شکم (CXR / AXR)'
         : rep.modality === 'EGD' ? 'آندوسکوپی فوقانی (EGD)'
         : rep.modality === 'Colonoscopy' ? 'کولونوسکوپی (Colonoscopy)'
         : rep.modality === 'Laryngoscopy' ? 'لارنگوسکوپی (Laryngoscopy)'
         : rep.modality === 'Pathology_FNA' ? 'پاتولوژی و FNA'
-        : (rep.modalityLabel || rep.modality || 'تصویربرداری');
+        : (rep.modalityTitle || rep.modalityLabel || rep.modality || 'تصویربرداری');
 
-      const tagStrings = (rep.tags || []).map((t) => {
+      const tagStrings = (rep.findingChips || rep.tags || []).map((t) => {
         if (typeof t === 'object') {
           return t.detail ? `${t.label} (${normalizePersianClinicalText(t.detail)})` : t.label;
         }
         return t;
       });
       const tagStr = tagStrings.length ? `[${tagStrings.join('، ')}] ` : '';
-      const content = rep.findings || rep.summary || '';
+      const content = rep.impression || rep.findings || rep.summary || '';
       lines.push(
         `  * **${modalityName}${rep.targetOrgan ? ` (${rep.targetOrgan})` : ''}${rep.date ? ` [${rep.date}]` : ''}:** ${tagStr}${normalizePersianClinicalText(content)}`
       );
@@ -920,14 +1091,37 @@ export function synthesizeProblemRepresentation(state) {
   const ageStr = d.age ? `${d.age} ساله` : '[نامشخص]';
 
   let mainComplaint = cc.patientQuote || 'شکایت حاد جراحی';
+  let durationStr = hpi.duration || 'مدت اخیر';
 
-  const firstPain = pains[0];
-  if (firstPain && firstPain.selectedRegions && firstPain.selectedRegions.length > 0) {
-    const regLabels = firstPain.selectedRegions.map(getRegionLabel);
-    mainComplaint += ` در ناحیه ${regLabels.join(' و ')}`;
+  const presentations = (hpi.presentations && hpi.presentations.length > 0)
+    ? hpi.presentations
+    : (hpi.painList || []);
+
+  const firstPres = presentations[0];
+  if (firstPres) {
+    if (firstPres.archetype === 'mass_lesion_archetype') {
+      mainComplaint = `توده/ضایعه در ناحیه ${firstPres.location || 'موضع اشاره‌شده'}`;
+      if (firstPres.discoveryTime) durationStr = firstPres.discoveryTime;
+    } else if (firstPres.archetype === 'trauma_burn_archetype') {
+      mainComplaint = firstPres.mechanism || 'تروما و آسیب حاد';
+      if (firstPres.injuredZones && firstPres.injuredZones.length > 0) {
+        mainComplaint += ` در نواحی ${firstPres.injuredZones.join(' و ')}`;
+      }
+      if (firstPres.timeSinceInjury) durationStr = firstPres.timeSinceInjury;
+    } else if (firstPres.archetype === 'elective_asymptomatic_archetype') {
+      mainComplaint = `بستری الکتیو جراحی (${firstPres.discoveryMethod || 'بررسی‌های قبلی'})`;
+    } else if (firstPres.archetype === 'functional_bleeding_archetype') {
+      mainComplaint = firstPres.symptomTitle || 'شکایت عملکردی';
+      if (firstPres.duration) durationStr = firstPres.duration;
+    } else {
+      // pain_archetype or legacy pain episode
+      if (firstPres.selectedRegions && firstPres.selectedRegions.length > 0) {
+        const regLabels = firstPres.selectedRegions.map(getRegionLabel);
+        mainComplaint += ` در ناحیه ${regLabels.join(' و ')}`;
+      }
+      if (firstPres.duration) durationStr = firstPres.duration;
+    }
   }
-
-  const durationStr = (firstPain && firstPain.duration) || hpi.duration || 'مدت اخیر';
 
   // جمع‌آوری علائم مثبت و منفی
   const posSymptoms = [];

@@ -2896,3 +2896,354 @@ html[dir="ltr"] .subsystem-chevron svg {
 html[dir="ltr"] .subsystem-accordion.is-collapsed .subsystem-chevron svg {
   transform: rotate(-90deg);
 }
+
+/* ==========================================================================
+   v0.6-Universal-Surg: 5 Presentation Archetypes, ATLS Exam, Mass Exam & Search
+   ========================================================================== */
+
+/* Archetype Selector Bar */
+.archetype-selector-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.archetype-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.archetype-pill-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.archetype-pill-btn:active {
+  transform: scale(0.98);
+}
+
+.archetype-pill-btn .archetype-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-muted);
+}
+
+/* Archetype Presentation Card */
+.archetype-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.archetype-card[data-archetype="pain_archetype"] {
+  border-right: 4px solid #F97316;
+}
+html[dir="ltr"] .archetype-card[data-archetype="pain_archetype"] {
+  border-right: 1px solid var(--border-medium);
+  border-left: 4px solid #F97316;
+}
+
+.archetype-card[data-archetype="mass_lesion_archetype"] {
+  border-right: 4px solid #8B5CF6;
+}
+html[dir="ltr"] .archetype-card[data-archetype="mass_lesion_archetype"] {
+  border-right: 1px solid var(--border-medium);
+  border-left: 4px solid #8B5CF6;
+}
+
+.archetype-card[data-archetype="trauma_burn_archetype"] {
+  border-right: 4px solid #EF4444;
+}
+html[dir="ltr"] .archetype-card[data-archetype="trauma_burn_archetype"] {
+  border-right: 1px solid var(--border-medium);
+  border-left: 4px solid #EF4444;
+}
+
+.archetype-card[data-archetype="functional_bleeding_archetype"] {
+  border-right: 4px solid #0284C7;
+}
+html[dir="ltr"] .archetype-card[data-archetype="functional_bleeding_archetype"] {
+  border-right: 1px solid var(--border-medium);
+  border-left: 4px solid #0284C7;
+}
+
+.archetype-card[data-archetype="elective_asymptomatic_archetype"] {
+  border-right: 4px solid #10B981;
+}
+html[dir="ltr"] .archetype-card[data-archetype="elective_asymptomatic_archetype"] {
+  border-right: 1px solid var(--border-medium);
+  border-left: 4px solid #10B981;
+}
+
+.archetype-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--border-subtle);
+}
+
+.archetype-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.archetype-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+}
+
+/* Quick Search Box across categorical pillars */
+.tag-quick-search-box {
+  margin-bottom: 0.85rem;
+  position: relative;
+}
+
+.tag-quick-search-input {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 0.75rem;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+html[dir="ltr"] .tag-quick-search-input {
+  padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+}
+
+.tag-quick-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.tag-search-icon {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+html[dir="ltr"] .tag-search-icon {
+  right: auto;
+  left: 0.75rem;
+}
+
+/* One-click Normal Exam Baseline Button */
+.btn-set-section-normal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #065F46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-xs);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dark-mode .btn-set-section-normal {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34D399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.btn-set-section-normal:hover {
+  background: #10B981;
+  color: #FFFFFF;
+  border-color: #10B981;
+  transform: translateY(-1px);
+}
+
+.btn-set-section-normal:active {
+  transform: scale(0.96);
+}
+
+/* Local Mass & Lesion Exam Cards */
+.mass-exam-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  margin-bottom: 0.85rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.btn-add-mass-exam {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 2px dashed #8B5CF6;
+  background: rgba(139, 92, 246, 0.05);
+  color: #7C3AED;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-add-mass-exam:hover {
+  background: rgba(139, 92, 246, 0.12);
+  transform: translateY(-1px);
+}
+
+/* ATLS Trauma & Burn Exam Module */
+.atls-exam-card {
+  background: var(--bg-surface-elevated);
+  border: 2px solid #EF4444;
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
+}
+
+.atls-exam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed rgba(239, 68, 68, 0.3);
+}
+
+.atls-survey-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.atls-survey-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.atls-letter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #EF4444;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.atls-wounds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.atls-wounds-table th {
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  font-weight: 700;
+  padding: 0.5rem;
+  border: 1px solid var(--border-medium);
+  text-align: right;
+}
+
+html[dir="ltr"] .atls-wounds-table th {
+  text-align: left;
+}
+
+.atls-wounds-table td {
+  padding: 0.4rem;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+}
+
+.atls-wounds-table input,
+.atls-wounds-table select {
+  width: 100%;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.btn-open-atls {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 2px dashed #EF4444;
+  background: rgba(239, 68, 68, 0.06);
+  color: #DC2626;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-open-atls:hover {
+  background: rgba(239, 68, 68, 0.14);
+  transform: translateY(-1px);
+}

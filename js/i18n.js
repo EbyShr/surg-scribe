@@ -70,7 +70,15 @@ export const I18N_DICTIONARY = {
     cc_quote_label: 'شکایت اصلی بیمار (عین عبارت بیمار یا شکایت محوری به فارسی):',
     cc_quote_ph: 'مثلاً دل‌پیچه شدید دور ناف از دیشب که به پایین راست تیر می‌کشد...',
 
-    // Tab 2 HPI & Pain
+    // Tab 2 HPI & Presentations
+    archetypes_title: 'کهن‌الگوهای مواجهه بالینی (5 Clinical Presentation Archetypes)',
+    archetype_pain: 'درد / ناراحتی (Pain)',
+    archetype_mass: 'توده / کیست / ضایعه (Mass/Lesion)',
+    archetype_trauma: 'تروما / سوختگی (ATLS Trauma)',
+    archetype_functional: 'عملکردی / خونریزی (Functional/Bleed)',
+    archetype_elective: 'بستری الکتیو / بی‌علامت',
+    btn_add_presentation: '➕ افزودن کهن‌الگوی مواجهه بالینی دیگر',
+    quick_search_ph: '🔍 جستجوی سریع تگ‌ها (مثلاً: تهوع، دیابت، پلاویکس، مورفی، ارتوپنه...)',
     pain_episodes_title: 'کانون‌های درد و شکایات محوری (Pain Episodes & Trajectory)',
     btn_add_pain: '➕ افزودن کانون درد / شکایت همزمان دیگر',
     hpi_associated_title: 'علائم همراه HPI (معماری ماژولار Unlockable)',
@@ -115,11 +123,15 @@ export const I18N_DICTIONARY = {
     general_exam_title: 'وضعیت عمومی بیمار (General Appearance & Exam)',
     abdominal_pillars_title: 'ارکان چهارگانه معاینه شکم (4 Mandatory Abdominal Pillars)',
     rectal_exam_title: 'معاینه رکتوم و پرینه (DRE & Perineal Exam)',
+    btn_set_normal_exam: '✓ ثبت معاینه کاملاً طبیعی این بخش',
+    mass_exam_btn: '➕ افزودن کارت معاینه موضعی توده / ضایعه (سر، فک، گردن، پستان، تنه، اندام)',
+    atls_module_btn: '➕ باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)',
 
     // Tab 7 Paraclinics
     paraclinics_title: 'پاراکلینیک جامع و مطالعات تشخیصی',
     paraclinics_tip: 'تپ روی هر مدالیته تصویربرداری کارت مجزای آن را برای ثبت گزارش باز می‌کند.',
     imaging_launcher_title: 'مدالیته‌های تصویربرداری و گزارش‌ها:',
+    efast_modality_btn: '➕ سونوگرافی eFAST (تروما)',
 
     // Tab 8 DDx
     ddx_card_title: 'استدلال بالینی، تشخیص‌های افتراقی و پلن (DDx & Plan)',
@@ -224,7 +236,15 @@ export const I18N_DICTIONARY = {
     cc_quote_label: 'Chief Complaint (Patient’s Own Words):',
     cc_quote_ph: 'e.g. Severe periumbilical crampy pain since last night radiating to RLQ...',
 
-    // Tab 2 HPI & Pain
+    // Tab 2 HPI & Presentations
+    archetypes_title: 'Clinical Presentation Archetypes (5 Standard Models)',
+    archetype_pain: 'Pain / Discomfort (Pain)',
+    archetype_mass: 'Mass / Cyst / Lesion',
+    archetype_trauma: 'Trauma & Burns (ATLS)',
+    archetype_functional: 'Functional & Bleeding',
+    archetype_elective: 'Elective / Asymptomatic Referral',
+    btn_add_presentation: '➕ Add Clinical Presentation Archetype',
+    quick_search_ph: '🔍 Quick search tags (e.g. nausea, diabetes, plavix, murphy, orthopnea...)',
     pain_episodes_title: 'Pain Focus Episodes & Trajectory',
     btn_add_pain: '➕ Add Secondary Pain Focus / Concurrent Symptom',
     hpi_associated_title: 'Associated Symptoms (Unlockable Clinical Modules)',
@@ -269,11 +289,15 @@ export const I18N_DICTIONARY = {
     general_exam_title: 'General Appearance & Sensorium',
     abdominal_pillars_title: 'Four Mandatory Pillars of Abdominal Examination',
     rectal_exam_title: 'Digital Rectal Exam (DRE) & Perineum',
+    btn_set_normal_exam: '✓ Set Normal Baseline for this Section',
+    mass_exam_btn: '➕ Add Local Mass & Lesion Exam Card',
+    atls_module_btn: '➕ Open Trauma, Penetrating Injury & Burn Module (ATLS)',
 
     // Tab 7 Paraclinics
     paraclinics_title: 'Diagnostic Studies, Labs & Imaging',
     paraclinics_tip: 'Click any imaging modality button to launch a dedicated reporting card.',
     imaging_launcher_title: 'Imaging Modalities & Diagnostic Reports:',
+    efast_modality_btn: '➕ eFAST Ultrasound (Trauma)',
 
     // Tab 8 DDx
     ddx_card_title: 'Clinical Reasoning, Differential Diagnosis & Plan (DDx & Plan)',
@@ -321,10 +345,14 @@ export const I18N_DICTIONARY = {
 /**
  * Get active application language ('fa' | 'en')
  */
+let inMemoryLang = 'fa';
+
 export function getCurrentLanguage() {
-  const saved = localStorage.getItem(STORAGE_LANG_KEY);
-  if (saved === 'en' || saved === 'fa') return saved;
-  return 'fa';
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.getItem === 'function') {
+    const saved = localStorage.getItem(STORAGE_LANG_KEY);
+    if (saved === 'en' || saved === 'fa') return saved;
+  }
+  return inMemoryLang;
 }
 
 /**
@@ -369,27 +397,35 @@ export function getLocalizedItemLabel(item, lang = getCurrentLanguage()) {
  */
 export function setLanguage(lang) {
   if (lang !== 'en' && lang !== 'fa') lang = 'fa';
-  localStorage.setItem(STORAGE_LANG_KEY, lang);
+  inMemoryLang = lang;
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+    localStorage.setItem(STORAGE_LANG_KEY, lang);
+  }
 
-  const html = document.documentElement;
-  const isEn = lang === 'en';
+  if (typeof document !== 'undefined') {
+    const html = document.documentElement;
+    const isEn = lang === 'en';
 
-  html.setAttribute('lang', lang);
-  html.setAttribute('dir', isEn ? 'ltr' : 'rtl');
-  document.body.classList.toggle('lang-en', isEn);
-  document.body.classList.toggle('lang-fa', !isEn);
+    html.setAttribute('lang', lang);
+    html.setAttribute('dir', isEn ? 'ltr' : 'rtl');
+    document.body.classList.toggle('lang-en', isEn);
+    document.body.classList.toggle('lang-fa', !isEn);
 
-  // Update static DOM elements with data-i18n
-  applyI18nToDOM(lang);
+    // Update static DOM elements with data-i18n
+    applyI18nToDOM(lang);
+  }
 
   // Fire event for app.js to re-render dynamic sections
-  window.dispatchEvent(new CustomEvent('surg:language-changed', { detail: { lang } }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('surg:language-changed', { detail: { lang } }));
+  }
 }
 
 /**
  * Apply translations to DOM elements having data-i18n attributes
  */
 export function applyI18nToDOM(lang = getCurrentLanguage()) {
+  if (typeof document === 'undefined') return;
   const dict = I18N_DICTIONARY[lang] || I18N_DICTIONARY.fa;
 
   document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -429,39 +465,56 @@ export const AVAILABLE_FONTS = [
 ];
 
 export function getCurrentFont() {
-  const saved = localStorage.getItem(STORAGE_FONT_KEY);
-  if (AVAILABLE_FONTS.some((f) => f.id === saved)) return saved;
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.getItem === 'function') {
+    const saved = localStorage.getItem(STORAGE_FONT_KEY);
+    if (AVAILABLE_FONTS.some((f) => f.id === saved)) return saved;
+  }
   return 'vazirmatn';
 }
 
 export function setFont(fontId) {
   const found = AVAILABLE_FONTS.find((f) => f.id === fontId) || AVAILABLE_FONTS[0];
-  localStorage.setItem(STORAGE_FONT_KEY, found.id);
-  document.body.setAttribute('data-font', found.id);
-  document.documentElement.style.setProperty('--font-persian', found.family);
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+    localStorage.setItem(STORAGE_FONT_KEY, found.id);
+  }
+  if (typeof document !== 'undefined') {
+    document.body.setAttribute('data-font', found.id);
+    document.documentElement.style.setProperty('--font-persian', found.family);
+  }
 
-  window.dispatchEvent(new CustomEvent('surg:font-changed', { detail: { font: found.id } }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('surg:font-changed', { detail: { font: found.id } }));
+  }
 }
 
 /**
  * Theme Management (Light / Dark)
  */
 export function getCurrentTheme() {
-  const saved = localStorage.getItem(STORAGE_THEME_KEY);
-  return saved === 'light' ? 'light' : 'dark';
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.getItem === 'function') {
+    const saved = localStorage.getItem(STORAGE_THEME_KEY);
+    return saved === 'light' ? 'light' : 'dark';
+  }
+  return 'dark';
 }
 
 export function setTheme(theme) {
   const isDark = theme === 'dark';
-  localStorage.setItem(STORAGE_THEME_KEY, isDark ? 'dark' : 'light');
-  document.body.classList.toggle('dark-mode', isDark);
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+    localStorage.setItem(STORAGE_THEME_KEY, isDark ? 'dark' : 'light');
+  }
+  if (typeof document !== 'undefined') {
+    document.body.classList.toggle('dark-mode', isDark);
 
-  const sun = document.getElementById('themeIconSun');
-  const moon = document.getElementById('themeIconMoon');
-  if (sun && moon) {
-    sun.style.display = isDark ? 'block' : 'none';
-    moon.style.display = isDark ? 'none' : 'block';
+    const sun = document.getElementById('themeIconSun');
+    const moon = document.getElementById('themeIconMoon');
+    if (sun && moon) {
+      sun.style.display = isDark ? 'block' : 'none';
+      moon.style.display = isDark ? 'none' : 'block';
+    }
   }
 
-  window.dispatchEvent(new CustomEvent('surg:theme-changed', { detail: { theme: isDark ? 'dark' : 'light' } }));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('surg:theme-changed', { detail: { theme: isDark ? 'dark' : 'light' } }));
+  }
 }

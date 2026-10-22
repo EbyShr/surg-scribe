@@ -1,15 +1,302 @@
 /**
- * Clinical Schema & Medical Taxonomy - Surg-Scribe v0.5-Surg
+ * Clinical Schema & Medical Taxonomy - Surg-Scribe v0.6-Universal-Surg
  * Complete surgical ontology for General Surgery inpatient admissions.
  * Features:
- * - Multi-focal pain episodes with timing, aggravating & relieving factors
- * - Unlockable HPI symptom modules (default basic GI/constitutional)
+ * - 5 Clinical Presentation Archetypes (Pain, Mass/Lesion, Trauma/Burns, Functional/Bleeding, Elective)
+ * - Multi-region body pain selector (Abdomen, Chest, Head/Neck, Extremities/Spine)
+ * - Live Quick Search & Tag Filter across all categorical pillars
+ * - Local Mass & Lesion Examination Module
+ * - ATLS Primary & Secondary Survey Trauma & Burn Module
+ * - eFAST Ultrasound Modality in Paraclinics
+ * - One-click Normal PE Baseline Buttons
  * - 7 Tree Gatekeepers for PMH with core routine negatives
  * - Categorized Drug History (DH) with 3-box inline inputs (Dose, Sig, Note)
  * - Bilingual ROS with intelligent gender filtering (ROS_GROUPS_BILINGUAL)
  * - 4 Abdominal Exam Pillars + 5 Unlockable Specialized Exam Modules
  * - Compact Paraclinic Modality Launcher with multi-instance imaging & MRI/MRCP
  */
+
+export const CLINICAL_PRESENTATION_ARCHETYPES = [
+  {
+    id: 'pain_archetype',
+    labelFa: 'درد یا ناراحتی (شکم، قفسه سینه، سر و گردن، کمر و اندام)',
+    labelEn: 'Pain or Discomfort (Abdominal, Thoracic, HEENT, Extremities)',
+    icon: '⚡',
+    badge: 'OLDCARTS'
+  },
+  {
+    id: 'mass_lesion_archetype',
+    labelFa: 'توده، کیست، تورم یا ضایعه (پستان، پوست سر، فک، تیروئید، فتق)',
+    labelEn: 'Mass, Cyst, Swelling or Lesion (Breast, Scalp, Mandible, Thyroid, Hernia)',
+    icon: '🔘',
+    badge: 'Mass & Lesion'
+  },
+  {
+    id: 'trauma_burn_archetype',
+    labelFa: 'تروما، جراحت نافذ (چاقو/گلوله)، تصادف و سوختگی',
+    labelEn: 'Trauma, Penetrating Wound (Stab/GSW), MVA & Burns',
+    icon: '🚨',
+    badge: 'ATLS Trauma'
+  },
+  {
+    id: 'functional_bleeding_archetype',
+    labelFa: 'شکایات عملکردی، خونریزی گوارشی، زردی یا تنگی نفس',
+    labelEn: 'Functional, Dyspnea, GI Bleed, Painless Jaundice, Obstipation',
+    icon: '🩸',
+    badge: 'Functional & Bleeding'
+  },
+  {
+    id: 'elective_asymptomatic_archetype',
+    labelFa: 'بستری الکتیو بی‌علامت / جراحی برنامه‌ریزی‌شده',
+    labelEn: 'Elective / Asymptomatic Referral for Planned Surgery',
+    icon: '📋',
+    badge: 'Elective Admission'
+  }
+];
+
+export const PAIN_BODY_REGIONS = [
+  {
+    id: 'abdomen_pelvis',
+    labelFa: 'شکم و لگن (Abdomen & Pelvis)',
+    labelEn: 'Abdomen & Pelvis',
+    subregions: [
+      { id: 'ruq', label: 'RUQ (فوقانی راست)', code: 'RUQ', fa: 'فوقانی راست' },
+      { id: 'epigastric', label: 'اپی‌گاستر (Epigastric)', code: 'Epigastric', fa: 'اپی‌گاستر' },
+      { id: 'luq', label: 'LUQ (فوقانی چپ)', code: 'LUQ', fa: 'فوقانی چپ' },
+      { id: 'right_flank', label: 'پهلوی راست (Right Flank)', code: 'R-Flank', fa: 'پهلوی راست' },
+      { id: 'periumbilical', label: 'دور ناف (Periumbilical)', code: 'Umbilical', fa: 'دور ناف' },
+      { id: 'left_flank', label: 'پهلوی چپ (Left Flank)', code: 'L-Flank', fa: 'پهلوی چپ' },
+      { id: 'rlq', label: 'RLQ (تحتانی راست)', code: 'RLQ', fa: 'تحتانی راست' },
+      { id: 'suprapubic', label: 'سوپراپوبیک (Suprapubic)', code: 'Suprapubic', fa: 'سوپراپوبیک' },
+      { id: 'llq', label: 'LLQ (تحتانی چپ)', code: 'LLQ', fa: 'تحتانی چپ' }
+    ]
+  },
+  {
+    id: 'chest_precordial',
+    labelFa: 'قفسه سینه و قلبی-تنفسی (Chest / Precordial)',
+    labelEn: 'Chest & Precordial',
+    subregions: [
+      { id: 'retrosternal', label: 'رتروواسترنال (Retro-sternal)', code: 'Retro-sternal', fa: 'رتروواسترنال' },
+      { id: 'precordial_left', label: 'پریکوردیال / سمت چپ قفسه سینه', code: 'Precordial / Left Chest', fa: 'پریکوردیال و چپ قفسه سینه' },
+      { id: 'right_chest', label: 'سمت راست قفسه سینه', code: 'Right Chest', fa: 'سمت راست قفسه سینه' },
+      { id: 'pleuritic_chest_wall', label: 'پلورتیک / جدار قفسه سینه (Chest Wall)', code: 'Chest Wall', fa: 'جدار قفسه سینه' }
+    ]
+  },
+  {
+    id: 'head_maxillofacial_neck',
+    labelFa: 'سر، صورت و گردن (Head, Maxillofacial & Neck)',
+    labelEn: 'Head, Maxillofacial & Neck',
+    subregions: [
+      { id: 'frontal_temporal_occipital', label: 'فرونتال / تمپورال / اکسیپیتال (Scalp/Cranial)', code: 'Scalp/Cranial', fa: 'پوست سر و جمجمه' },
+      { id: 'jaw_mandible_maxilla', label: 'فک، مندیبل یا ماگزیلا (Jaw / Mandible / Maxilla)', code: 'Mandible/Maxilla', fa: 'فک و مندیبل' },
+      { id: 'anterior_lateral_neck', label: 'قدام یا طرفین گردن (Anterior / Lateral Neck)', code: 'Neck', fa: 'قدام یا طرفین گردن' }
+    ]
+  },
+  {
+    id: 'back_extremities_perineum',
+    labelFa: 'کمر، ستون فقرات، اندام‌ها یا پرینه (Back, Extremities & Perineum)',
+    labelEn: 'Back, Extremities & Perineum',
+    subregions: [
+      { id: 'upper_extremity', label: 'اندام فوقانی (Upper Extremity)', code: 'Upper Extremity', fa: 'اندام فوقانی' },
+      { id: 'lower_extremity', label: 'اندام تحتانی (Lower Extremity)', code: 'Lower Extremity', fa: 'اندام تحتانی' },
+      { id: 'thoracolumbar_back', label: 'کمر و ستون فقرات توراکولومبار (Back / Spine)', code: 'Spine / Back', fa: 'کمر و ستون فقرات' },
+      { id: 'perineum_gluteal', label: 'پرینه و ناحیه گلوتئال (Perineum / Gluteal)', code: 'Perineum', fa: 'پرینه و گلوتئال' }
+    ]
+  }
+];
+
+export const MASS_GROWTH_PATTERNS = [
+  'ثابت و بدون تغییر سایز (Stable)',
+  'رشد تدریجی و آهسته (Slowly Progressive)',
+  'رشد سریع اخیر (Rapid Enlargement)',
+  'نوسانی / تغییر سایز با زور زدن یا ایستادن (Fluctuant / Reducible)'
+];
+
+export const MASS_PAIN_STATUSES = [
+  'کاملاً بدون درد (Painless)',
+  'حساسیت خفیف در لمس یا فشار',
+  'دردناک شدن اخیر'
+];
+
+export const MASS_ASSOCIATED_SIGNS = [
+  { id: 'mass_erythema', label: 'قرمزی، گرمی یا التهاب پوست رویی (Erythema / Inflammation)' },
+  { id: 'mass_discharge', label: 'ترشح چرکی، سباسه یا خونی از ضایعه (Discharge)' },
+  { id: 'mass_ulceration', label: 'زخم شدن یا کشیدگی پوست (Ulceration / Skin Dimpling)' },
+  { id: 'mass_compressive', label: 'علائم فشاری موضعی (دیسفاژی، دیسپنه، خشونت صدا، تریسموس یا بی‌حسی)' },
+  { id: 'mass_recurrence', label: 'سابقه توده مشابه در سایر نقاط یا عود پس از جراحی قبلی' }
+];
+
+export const TRAUMA_MOI_OPTIONS = [
+  'ترومای نافذ - چاقو / جسم تیز (Stab Wound / Sharp Penetrating)',
+  'ترومای نافذ - گلوله / ساچمه (Gunshot / Shotgun Wound - GSW)',
+  'ترومای بلانت - تصادف خودرو/موتورسیکلت/عابر (MVA / MCA / Pedestrian)',
+  'ترومای بلانت - سقوط از ارتفاع (Fall from Height)',
+  'ترومای بلانت - نزاع و ضرب‌وشتم (Assault)',
+  'سوختگی حرارتی (شعله / مایعات داغ Scald / انفجار)',
+  'سوختگی شیمیایی (Chemical Burn)',
+  'سوختگی الکتریکی (Electrical Burn)'
+];
+
+export const TRAUMA_TRANSPORT_OPTIONS = [
+  'آمبولانس اورژانس (EMS 115)',
+  'خودروی شخصی / همراهان',
+  'ارجاع با بالگرد امداد (Air Ambulance)',
+  'مراجعه با پای خود (Walk-in)'
+];
+
+export const TRAUMA_INJURED_ZONES = [
+  'سر و صورت (Head & Face)',
+  'گردن (Zone I/II/III Neck)',
+  'قفسه سینه (Thorax)',
+  'شکم و پهلو (Abdomen & Flank)',
+  'لگن و پرینه (Pelvis & Perineum)',
+  'اندام فوقانی (Upper Extremity)',
+  'اندام تحتانی (Lower Extremity)',
+  'پشت و ستون مهره‌ها (Back & Spine)'
+];
+
+export const TRAUMA_CHECKLIST = [
+  { id: 'trauma_loc_amnesia', label: 'کاهش سطح هوشیاری در صحنه یا فراموشی حول حادثه (LOC / Post-traumatic Amnesia)' },
+  { id: 'trauma_active_bleeding', label: 'خونریزی فعال یا جهنده (Active / Pulsatile Bleeding) در صحنه' },
+  { id: 'trauma_acute_dyspnea_cp', label: 'تنگی نفس حاد یا درد قفسه سینه پس از تروما' },
+  { id: 'trauma_hematuria_gi_bleed', label: 'هماتوری یا خونریزی گوارشی پس از تروما' },
+  { id: 'trauma_neurovascular_deficit', label: 'اختلال حس یا حرکت در اندام آسیب‌دیده' },
+  { id: 'trauma_smoke_inhalation', label: 'در سوختگی: مواجهه در فضای بسته / استنشاق دود (Enclosed Space / Smoke Inhalation)' },
+  { id: 'trauma_tetanus_prior_mgmt', label: 'دریافت واکسن و ایمونوگلوبولین کزاز (Tetanus Prophylaxis) یا اقدامات اولیه در مرکز دیگر' }
+];
+
+export const FUNCTIONAL_SYMPTOM_OPTIONS = [
+  'تنگی نفس حاد یا پیشرونده (Dyspnea)',
+  'خونریزی گوارشی فوقانی (هماتمز / ملنا)',
+  'خونریزی گوارشی تحتانی (هماتوشزی / رکتوراژی)',
+  'زردی بدون درد (Painless Jaundice)',
+  'استفراغ مکرر و عدم تحمل خوراکی (Intractable Vomiting)',
+  'عدم دفع گاز و مدفوع / انسداد روده (Obstipation / Bowel Obstruction)',
+  'احتباس حاد ادراری (Acute Urinary Retention)'
+];
+
+export const FUNCTIONAL_ONSET_OPTIONS = [
+  'ناگهانی (Sudden)',
+  'تدریجی (Gradual)',
+  'حمله‌ای و عودکننده (Paroxysmal)'
+];
+
+export const ELECTIVE_DISCOVERY_OPTIONS = [
+  'چکاپ روتین و غربالگری سلامت (Routine Check-up / Screening)',
+  'تصویربرداری یا سونوگرافی تصادفی (Incidentaloma)',
+  'پیگیری پاتولوژی یا عمل جراحی قبلی (Follow-up / Surveillance)',
+  'نامه ارجاع از درمانگاه جراحی جهت عمل الکتیو (Elective Referral Letter)'
+];
+
+export const MASS_EXAM_SCHEMA = {
+  consistencies: [
+    'نرم و خمیری (Soft / Doughy)',
+    'کیستیک مواج (Fluctuant / Cystic)',
+    'لاستیکی (Rubbery)',
+    'سفت (Firm / Hard)',
+    'استخوانی (Bony / Calcified)'
+  ],
+  margins: [
+    'منظم و کاملاً مشخص (Well-defined / Circumscribed)',
+    'نامنظم و نفوذی (Ill-defined / Infiltrative)'
+  ],
+  mobilities: [
+    'کاملاً متحرک در هر دو جهت (Freely Mobile)',
+    'چسبیده به پوست رویی (Adherent to overlying skin / Punctum)',
+    'فیکس به بافت، فاشیا، عضله یا استخوان عمقی (Fixed to deep structures)'
+  ],
+  skinFindings: [
+    'پوست نرمال و بدون تندرنس (Non-tender / Normal skin)',
+    'تندر و گرم با اریتم پوست (Tender, Warm, Erythematous)',
+    'دارای منفذ مرکزی کیست اپیدرموئید (Central Punctum)',
+    'زخم یا کشیدگی پوست رویی (Ulceration / Skin Tethering)'
+  ]
+};
+
+export const ATLS_EXAM_SCHEMA = {
+  primarySurvey: {
+    airway: [
+      { id: 'airway_patent', label: 'راه هوایی باز، تمیز و برقرار (Patent Airway)' },
+      { id: 'airway_c_collar', label: 'کلار گردنی سفت بسته شده (C-Spine Collar Immobilized)' },
+      { id: 'airway_stridor_foreign', label: 'استریدور، صدای خشن یا جسم خارجی در راه هوایی' },
+      { id: 'airway_intubated', label: 'بیمار اینتوبه و تحت تهویه مکانیکی (ETT In Situ)' }
+    ],
+    breathing: [
+      { id: 'breathing_symmetric', label: 'تنفس خودبه‌خودی، دوطرفه قرینه و شفاف (Symmetric BS)' },
+      { id: 'breathing_dec_left', label: 'کاهش صداهای تنفسی در همیتوراکس چپ (Decreased BS Left)' },
+      { id: 'breathing_dec_right', label: 'کاهش صداهای تنفسی در همیتوراکس راست (Decreased BS Right)' },
+      { id: 'breathing_subq_emphysema', label: 'آمفیزم زیرجلدی در جدار قفسه سینه / گردن' },
+      { id: 'breathing_tracheal_dev', label: 'انحراف تراشه به سمت مقابل (Tracheal Deviation)' }
+    ],
+    circulation: [
+      { id: 'circ_stable', label: 'همودینامیک پایدار، CRT < 2s و نبض‌های محیطی پر' },
+      { id: 'circ_shock', label: 'علائم شوک و بی‌ثباتی همودینامیک (تاکی‌کاردی، افت فشار خون)' },
+      { id: 'circ_active_bleed', label: 'خونریزی فعال خارجی با فوران عروقی' },
+      { id: 'circ_pelvic_instability', label: 'بی‌ثباتی استخوانی در معاینه حلقه لگن (Pelvic Springing)' }
+    ],
+    disability: [
+      { id: 'dis_pyrrela', label: 'مردمک‌ها قرینه و راکتیو به نور (PERRLA)' },
+      { id: 'dis_anisocoria', label: 'مردمک‌های نامتقارن یا فیکس (Anisocoria / Blown Pupil)' },
+      { id: 'dis_focal_deficit', label: 'نقص فوکال عصبی یا پلژی اندام‌ها' }
+    ]
+  },
+  woundTypes: [
+    'ورودی چاقو / جسم تیز (Stab Wound)',
+    'ورودی گلوله (Bullet Entry Wound)',
+    'خروجی گلوله (Bullet Exit Wound)',
+    'لاسراسیون و بریدگی وسیع (Laceration)',
+    'دفورمیتی و شکستگی باز (Open Fracture / Deformity)',
+    'دفورمیتی و شکستگی بسته (Closed Deformity / Fracture)'
+  ],
+  bleedingStatuses: [
+    'خونریزی فعال و جهنده (Active / Pulsatile Bleeding)',
+    'کنترل‌شده با پانسمان فشاری (Controlled by Pressure)',
+    'هماتوم در حال گسترش (Expanding Hematoma)',
+    'بدون خونریزی فعال (No Active Bleeding / Clotted)'
+  ],
+  distalNeurovascularStatuses: [
+    'نبض دیستال لمس، حس و حرکت کاملاً سالم (Intact Distal Neurovascular)',
+    'نبض دیستال لمس نمی‌شود (Absent Distal Pulses)',
+    'اختلال حسی یا پارستزی در دیستال زخم (Sensory Deficit)',
+    'اختلال حرکتی دیستال اندام (Motor Deficit)'
+  ],
+  burnDegrees: [
+    'درجه ۱ (Erythema / سطحی)',
+    'درجه ۲ سطحی (Superficial Partial-thickness / تاول‌دار)',
+    'درجه ۲ عمقی (Deep Partial-thickness)',
+    'درجه ۳ تمام ضخامت (Full-thickness / چرمی و بدون درد)',
+    'درجه ۴ (درگیری استخوان و عضله عمقی)'
+  ],
+  burnInhalationSigns: [
+    { id: 'burn_inh_facial', label: 'سوختگی موهای بینی، صورت و ابرو (Facial / Nasal Singeing)' },
+    { id: 'burn_inh_soot', label: 'رسوب دوده در دهان، حلق یا خلط سیاه (Soot in Oropharynx)' },
+    { id: 'burn_inh_hoarseness', label: 'خشونت صدا یا استریدور حنجره (Hoarseness / Stridor)' },
+    { id: 'burn_inh_wheezing', label: 'ویزینگ و دیسترس تنفسی حاد (Wheezing / Respiratory Distress)' }
+  ]
+};
+
+export const PE_NORMAL_BASELINES = {
+  pe_general_heent_cp: {
+    pos: ['pe_conscious_oriented', 'pe_clear_lungs', 'pe_normal_heart_sounds'],
+    neg: ['pe_ill_toxic', 'pe_pale_conjunctiva', 'pe_icteric_sclera', 'pe_abnormal_lung_sounds', 'pe_heart_murmur_arrhythmia']
+  },
+  pe_abd_inspection: {
+    pos: ['pe_abd_flat_symmetrical'],
+    neg: ['pe_abd_distension', 'pe_abd_surgical_scar', 'pe_abd_ecchymosis', 'pe_abd_visible_bulge']
+  },
+  pe_abd_auscultation: {
+    pos: ['pe_normoactive_bs'],
+    neg: ['pe_hyperactive_metallic_bs', 'pe_hypoactive_absent_bs', 'pe_abdominal_bruit']
+  },
+  pe_abd_percussion: {
+    pos: ['pe_normal_tympanism'],
+    neg: ['pe_shifting_dullness', 'pe_hyperresonance', 'pe_cva_tenderness']
+  },
+  pe_abd_palpation: {
+    pos: ['pe_soft_nontender'],
+    neg: ['pe_tenderness', 'pe_rebound_tenderness', 'pe_guarding_rigidity', 'pe_murphy_sign', 'pe_mcburney_rovsing', 'pe_psoas_obturator', 'pe_palpable_mass', 'pe_hepatosplenomegaly']
+  }
+};
 
 export const PAIN_TIMING_OPTIONS = [
   { id: 'continuous', label: 'دائمی و پیوسته (Continuous)' },
@@ -568,6 +855,19 @@ export const SURGICAL_SCHEMA = {
   ],
 
   paraclinicModalities: [
+    {
+      id: 'efast',
+      label: 'سونوگرافی eFAST (تروما)',
+      fullName: 'سونوگرافی اورژانس eFAST (تروما و بررسی مایع آزاد/پنوموتوراکس)',
+      quickTags: [
+        { id: 'efast_negative_all', label: 'eFAST کاملاً منفی از نظر مایع آزاد شکمی، پریکارد و پنوموتوراکس', detailHint: '' },
+        { id: 'efast_ruq_morison', label: 'مایع آزاد مثبت در فضای موریسون (RUQ)', detailHint: 'میزان مایع (کم/متوسط/زیاد)...' },
+        { id: 'efast_luq_splenorenal', label: 'مایع آزاد مثبت در فضای اسپلنورنال (LUQ)', detailHint: 'میزان مایع...' },
+        { id: 'efast_pelvic_culdesac', label: 'مایع آزاد مثبت در لگن / کلدوساک (Suprapubic)', detailHint: 'میزان مایع...' },
+        { id: 'efast_pericardial_effusion', label: 'مایع در پریکارد (Pericardial Effusion / Tamponade)', detailHint: 'کلاپس دیاستولیک RV...' },
+        { id: 'efast_pneumo_hemothorax', label: 'شواهد پنوموتوراکس یا هموتوراکس در بررسی قفسه سینه', detailHint: 'سمت راست یا چپ، فقدان Lung sliding / خطوط بارکد (Stratosphere sign)...' }
+      ]
+    },
     {
       id: 'ultrasound',
       label: 'سونوگرافی (US)',

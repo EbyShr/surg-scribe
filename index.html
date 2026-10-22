@@ -259,23 +259,23 @@
       <!-- ================= TAB 2: شرح بیماری فعلی (HPI) ================= -->
       <section class="tab-pane" id="tab-hpi" data-section-id="hpi">
         
-        <!-- کانون‌های درد چندگانه (Multi-Focal Dynamic Pain Cards) -->
+        <!-- کهن‌الگوهای مواجهه بالینی (5 Clinical Presentation Archetypes) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
-              <span>کانون‌های درد و شکایات محوری (Pain Episodes & Trajectory)</span>
+              <span data-i18n="archetypes_title">کهن‌الگوهای مواجهه بالینی (5 Clinical Presentation Archetypes)</span>
             </div>
+            <span class="card-badge">انطباق هوشمند با شکایت</span>
           </div>
 
-          <!-- Dynamic container for pain episode cards -->
-          <div id="painEpisodesContainer"></div>
+          <!-- نوار انتخاب سریع ۵ کهن‌الگو -->
+          <div class="archetype-selector-bar" id="archetypeSelectorBar"></div>
 
-          <!-- Add new pain card button -->
-          <button type="button" class="btn-add-pain-card" id="btnAddPainEpisode">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>➕ افزودن کانون درد / شکایت همزمان دیگر</span>
-          </button>
+          <!-- Dynamic container for presentation cards (Archetype cards) -->
+          <div id="hpiPresentationsContainer"></div>
+          <!-- Fallback pain episodes container for legacy compatibility -->
+          <div id="painEpisodesContainer" style="display: none;"></div>
         </div>
 
         <!-- علائم همراه HPI: علائم پایه گوارشی و عمومی + ماژول‌های آنلاکشونده -->
@@ -286,6 +286,12 @@
               <span>علائم همراه HPI (معماری ماژولار Unlockable)</span>
             </div>
             <span class="card-badge">تپ: خنثی / + مثبت / − منفی</span>
+          </div>
+
+          <!-- نوار جستجوی زنده تگ‌های HPI -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-hpi" placeholder="🔍 جستجوی سریع تگ‌ها (مثلاً: تهوع، استفراغ، تب، ایکتر، دیسفاژی...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
           </div>
 
           <div class="form-group">
@@ -344,6 +350,12 @@
             <span id="pmhMasterNegIcon">−</span>
             <span>نفی تمام بیماری‌های زمینه‌ای روتین (DM, HTN, DLP, IHD)</span>
           </button>
+
+          <!-- نوار جستجوی زنده بیماری‌های داخلی PMH -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-pmh" placeholder="🔍 جستجوی سریع سوابق (مثلاً: دیابت، فشار خون، کبد، آسم، تیروئید...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
+          </div>
 
           <!-- 7 دروازه دسته‌بندی PMH -->
           <div class="pmh-categories-wrapper" id="pmhCategoriesContainer"></div>
@@ -468,6 +480,12 @@
               <span>سوابق دارویی دسته‌بندی‌شده (Drug History - DH) با دوز و نحوه مصرف</span>
             </div>
             <span class="card-badge">دوز + نحوه مصرف + آخرین دوز</span>
+          </div>
+
+          <!-- نوار جستجوی زنده داروها -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-dh" placeholder="🔍 جستجوی سریع داروها (مثلاً: پلاویکس، آسپرین، لوزارتان، انسولین، وارفارین...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
           </div>
 
           <!-- ۵ دسته‌بندی دارویی -->
@@ -608,6 +626,12 @@
             </div>
           </div>
 
+          <!-- نوار جستجوی زنده علائم سیستم‌ها -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-ros" placeholder="🔍 جستجوی سریع علائم سیستم‌ها (مثلاً: ارتوپنه، دیسپنه، هماتوکزی، سرگیجه...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
+          </div>
+
           <div id="rosGroupsAccordion"></div>
 
           <!-- Gap Logger for ROS -->
@@ -677,8 +701,35 @@
             </button>
           </div>
 
+          <!-- نوار جستجوی زنده معاینات -->
+          <div class="tag-quick-search-box">
+            <input type="search" class="tag-quick-search-input" data-search-target="#tab-pe" placeholder="🔍 جستجوی سریع معاینات (مثلاً: مورفی، مک‌برنی، گاردینگ، ریباند، سمع...)" data-i18n-ph="quick_search_ph">
+            <span class="tag-search-icon">🔍</span>
+          </div>
+
           <!-- ستون‌های ۵ گانه الزامی -->
           <div id="peMandatoryPillarsContainer"></div>
+
+          <!-- ماژول معاینه موضعی توده و ضایعات (Local Mass & Lesion Exam) -->
+          <div style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">
+            <label class="form-label" style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+              🔘 معاینه موضعی توده، کیست و ضایعات جراحی:
+            </label>
+            <div id="peMassExamContainer"></div>
+            <button type="button" class="btn-add-mass-exam" id="btnAddMassExam">
+              <span style="font-size: 1.1rem;">➕</span>
+              <span data-i18n="mass_exam_btn">افزودن کارت معاینه موضعی توده / ضایعه (سر، فک، گردن، پستان، تنه، اندام)</span>
+            </button>
+          </div>
+
+          <!-- ماژول معاینه تروما، جراحات نافذ و سوختگی (ATLS Trauma Exam) -->
+          <div style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">
+            <div id="peAtlsExamContainer"></div>
+            <button type="button" class="btn-open-atls" id="btnToggleAtlsExam">
+              <span style="font-size: 1.1rem;">🚨</span>
+              <span data-i18n="atls_module_btn">باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)</span>
+            </button>
+          </div>
 
           <!-- ۵ ماژول معاینه موضعی قابل آنلاک توسط اپراتور -->
           <div style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.75rem;">

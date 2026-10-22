@@ -11,7 +11,22 @@ import {
   HPI_BASIC_SYMPTOMS,
   HPI_UNLOCKABLE_MODULES,
   PE_MANDATORY_PILLARS,
-  PE_UNLOCKABLE_MODULES
+  PE_UNLOCKABLE_MODULES,
+  CLINICAL_PRESENTATION_ARCHETYPES,
+  PAIN_BODY_REGIONS,
+  MASS_GROWTH_PATTERNS,
+  MASS_PAIN_STATUSES,
+  MASS_ASSOCIATED_SIGNS,
+  TRAUMA_MOI_OPTIONS,
+  TRAUMA_TRANSPORT_OPTIONS,
+  TRAUMA_INJURED_ZONES,
+  TRAUMA_CHECKLIST,
+  FUNCTIONAL_SYMPTOM_OPTIONS,
+  FUNCTIONAL_ONSET_OPTIONS,
+  ELECTIVE_DISCOVERY_OPTIONS,
+  MASS_EXAM_SCHEMA,
+  ATLS_EXAM_SCHEMA,
+  PE_NORMAL_BASELINES
 } from './schema.js';
 import { ClinicalCaseAnalytics, ClinicalTelemetryEngine } from './telemetry.js';
 import {
@@ -74,7 +89,72 @@ export function createDefaultPainEpisode(id = 1, title = 'کانون درد او
   };
 }
 
+export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) {
+  if (archetype === 'mass_lesion_archetype') {
+    return {
+      id,
+      archetype: 'mass_lesion_archetype',
+      title: `توده / ضایعه #${id}`,
+      location: '',
+      discoveryTime: '',
+      growthPattern: 'ثابت و بدون تغییر سایز (Stable)',
+      painStatus: 'کاملاً بدون درد (Painless)',
+      findings: {}, // signId -> { state: 1|-1, detail: '' }
+      posFindings: [],
+      negFindings: []
+    };
+  }
+
+  if (archetype === 'trauma_burn_archetype') {
+    return {
+      id,
+      archetype: 'trauma_burn_archetype',
+      title: `تروما و آسیب #${id}`,
+      mechanism: 'ترومای بلانت - تصادف خودرو/موتورسیکلت/عابر (MVA / MCA / Pedestrian)',
+      timeSinceInjury: '',
+      transportMode: 'آمبولانس اورژانس (EMS 115)',
+      injuredZones: [],
+      checklist: {}, // itemId -> { state: 1|-1, detail: '' }
+      posFindings: [],
+      negFindings: []
+    };
+  }
+
+  if (archetype === 'functional_bleeding_archetype') {
+    return {
+      id,
+      archetype: 'functional_bleeding_archetype',
+      title: `شکایت عملکردی #${id}`,
+      symptomTitle: 'تنگی نفس حاد یا پیشرونده (Dyspnea)',
+      duration: '',
+      onset: 'تدریجی (Gradual)',
+      severityOrFrequency: '',
+      aggravating: [],
+      relieving: [],
+      visualTraits: ''
+    };
+  }
+
+  if (archetype === 'elective_asymptomatic_archetype') {
+    return {
+      id,
+      archetype: 'elective_asymptomatic_archetype',
+      title: `بستری الکتیو #${id}`,
+      discoveryMethod: 'چکاپ روتین و غربالگری سلامت (Routine Check-up / Screening)',
+      workupSummary: '',
+      currentStatus: 'کاملاً بدون علامت حاد بالینی'
+    };
+  }
+
+  // default: pain_archetype
+  const basePain = createDefaultPainEpisode(id, `کانون درد #${id}`);
+  basePain.archetype = 'pain_archetype';
+  basePain.bodyRegionGroup = 'abdomen_pelvis';
+  return basePain;
+}
+
 export function createDefaultClinicalState() {
+  const defaultPres = createDefaultPresentation('pain_archetype', 1);
   return {
     caseId: generateCaseId(),
     createdAt: new Date().toISOString(),
@@ -99,7 +179,8 @@ export function createDefaultClinicalState() {
     },
     hpi: {
       duration: '',
-      painList: [createDefaultPainEpisode(1, 'کانون درد اول / شکایت محوری')],
+      presentations: [defaultPres],
+      painList: [defaultPres], // maintained for seamless backward compatibility
       unlockedModules: [], // array of module IDs (e.g. 'mod_cholestasis')
       symptoms: {}, // chipId -> { state: 1|-1, detail: '' }
       preAdmissionWorkup: '',
@@ -168,6 +249,15 @@ export function createDefaultClinicalState() {
       },
       findings: {}, // itemId -> { state: 1|-1, detail: '' }
       unlockedModules: [], // array of module IDs (e.g. 'exam_dre')
+      massExams: [], // array of local mass/lesion exam objects
+      massExamList: [], // alias for backward compatibility
+      atlsExam: {
+        active: false,
+        enabled: false,
+        primarySurvey: { airway: '', breathing: '', circulation: '', disability: '', exposure: '' },
+        wounds: [],
+        burn: { degree: '', tbsa: '', regions: '', inhalationSigns: [] }
+      },
       note: '',
       systemGapNote: ''
     },
@@ -409,49 +499,129 @@ function initDemographicsHandlers() {
 }
 
 /* ==========================================================================
-   Tab 2: HPI & Multi-Focal Dynamic Pain Cards
+   Tab 2: HPI & 5 Clinical Presentation Archetypes Engine
    ========================================================================== */
-function renderPainEpisodes() {
-  const container = document.getElementById('painEpisodesContainer');
+function renderArchetypeSelectorBar() {
+  const bar = document.getElementById('archetypeSelectorBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  CLINICAL_PRESENTATION_ARCHETYPES.forEach((arch) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `archetype-pill-btn archetype-btn-${arch.id}`;
+    btn.innerHTML = `
+      <span class="arch-icon">${arch.icon}</span>
+      <div class="arch-info">
+        <span class="arch-title">${arch.labelFa}</span>
+        <span class="arch-badge">${arch.badge}</span>
+      </div>
+    `;
+    btn.addEventListener('click', () => {
+      if (!clinicalState.hpi.presentations) clinicalState.hpi.presentations = [];
+      const newId = clinicalState.hpi.presentations.length + 1;
+      const newPres = createDefaultPresentation(arch.id, newId);
+      clinicalState.hpi.presentations.push(newPres);
+
+      if (arch.id === 'trauma_burn_archetype') {
+        if (!clinicalState.pe.atlsExam) {
+          clinicalState.pe.atlsExam = { active: true, primarySurvey: {}, wounds: [], burn: { inhalationSigns: [] } };
+        } else {
+          clinicalState.pe.atlsExam.active = true;
+        }
+        renderAtlsExamModule();
+      }
+
+      renderHpiPresentations();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    bar.appendChild(btn);
+  });
+}
+
+function renderHpiPresentations() {
+  const container = document.getElementById('hpiPresentationsContainer');
   if (!container) return;
   container.innerHTML = '';
 
-  const pains = clinicalState.hpi.painList || [];
+  if (!clinicalState.hpi.presentations || clinicalState.hpi.presentations.length === 0) {
+    if (clinicalState.hpi.painList && clinicalState.hpi.painList.length > 0) {
+      clinicalState.hpi.presentations = clinicalState.hpi.painList.map((p) => {
+        const item = { ...p };
+        item.archetype = 'pain_archetype';
+        return item;
+      });
+    } else {
+      clinicalState.hpi.presentations = [createDefaultPresentation('pain_archetype', 1)];
+    }
+  }
 
-  pains.forEach((pain, index) => {
+  // Backward compatibility: keep painList in sync with pain archetypes
+  clinicalState.hpi.painList = clinicalState.hpi.presentations.filter(
+    (p) => (p.archetype || p.type) === 'pain_archetype'
+  );
+
+  clinicalState.hpi.presentations.forEach((pres, index) => {
+    const archType = pres.archetype || pres.type || 'pain_archetype';
     const card = document.createElement('div');
-    card.className = 'pain-episode-card';
-    card.dataset.id = String(pain.id);
+    card.className = `archetype-card card-archetype-${archType}`;
+    card.dataset.id = String(pres.id);
 
-    // Card Header
+    // Header
     const header = document.createElement('div');
-    header.className = 'pain-card-header';
+    header.className = 'archetype-card-header';
 
     const titleArea = document.createElement('div');
-    titleArea.className = 'pain-card-title';
-    titleArea.innerHTML = `<span>📍</span>`;
+    titleArea.className = 'archetype-card-title';
+
+    const iconMap = {
+      pain_archetype: '⚡',
+      mass_lesion_archetype: '🔘',
+      trauma_burn_archetype: '🚨',
+      functional_bleeding_archetype: '🩸',
+      elective_asymptomatic_archetype: '📋'
+    };
+    const badgeMap = {
+      pain_archetype: 'درد (Pain)',
+      mass_lesion_archetype: 'توده و ضایعه (Mass)',
+      trauma_burn_archetype: 'تروما و سوختگی (ATLS)',
+      functional_bleeding_archetype: 'عملکردی / خونریزی (Functional)',
+      elective_asymptomatic_archetype: 'الکتیو بی‌علامت (Elective)'
+    };
+
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'arch-icon';
+    iconSpan.textContent = iconMap[archType] || '📍';
+    titleArea.appendChild(iconSpan);
 
     const titleInput = document.createElement('input');
     titleInput.type = 'text';
-    titleInput.className = 'pain-title-input';
-    titleInput.value = pain.title || `کانون درد #${index + 1}`;
-    titleInput.placeholder = 'عنوان کانون درد...';
+    titleInput.className = 'archetype-title-input';
+    titleInput.value = pres.title || `مواجهه بالینی #${index + 1}`;
+    titleInput.placeholder = 'عنوان شکایت...';
     titleInput.addEventListener('input', (e) => {
-      pain.title = e.target.value;
+      pres.title = e.target.value;
       saveCurrentCase();
       updateLivePreview();
     });
     titleArea.appendChild(titleInput);
+
+    const badge = document.createElement('span');
+    badge.className = 'archetype-badge';
+    badge.textContent = badgeMap[archType] || archType;
+    titleArea.appendChild(badge);
+
     header.appendChild(titleArea);
 
-    if (pains.length > 1) {
+    if (clinicalState.hpi.presentations.length > 1) {
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
-      delBtn.className = 'btn-delete-pain-card';
-      delBtn.innerHTML = `<span>🗑️</span><span>حذف این کانون</span>`;
+      delBtn.className = 'btn-delete-archetype-card';
+      delBtn.innerHTML = `<span>🗑️</span><span>حذف این مواجهه</span>`;
       delBtn.addEventListener('click', () => {
-        clinicalState.hpi.painList.splice(index, 1);
-        renderPainEpisodes();
+        clinicalState.hpi.presentations.splice(index, 1);
+        renderHpiPresentations();
         saveCurrentCase();
         updateLivePreview();
       });
@@ -460,322 +630,868 @@ function renderPainEpisodes() {
 
     card.appendChild(header);
 
-    // OLDCARTS Form Grid: Duration, Onset, Course, Character
-    const grid1 = document.createElement('div');
-    grid1.className = 'form-grid-3';
-
-    // Duration
-    const durGroup = document.createElement('div');
-    durGroup.className = 'form-group';
-    durGroup.innerHTML = `<label class="form-label">مدت زمان شروع</label>`;
-    const durInput = document.createElement('input');
-    durInput.type = 'text';
-    durInput.className = 'input-text';
-    durInput.value = pain.duration || '';
-    durInput.placeholder = 'مثلاً ۱۲ ساعت یا ۳ روز';
-    durInput.addEventListener('input', (e) => {
-      pain.duration = e.target.value;
-      saveCurrentCase();
-      updateLivePreview();
-    });
-    durGroup.appendChild(durInput);
-    grid1.appendChild(durGroup);
-
-    // Onset
-    const onsetGroup = document.createElement('div');
-    onsetGroup.className = 'form-group';
-    onsetGroup.innerHTML = `<label class="form-label">نحوه شروع (Onset)</label>`;
-    const onsetSelect = document.createElement('select');
-    onsetSelect.className = 'input-select';
-    onsetSelect.innerHTML = `
-      <option value="">-- نحوه شروع --</option>
-      <option value="شروع ناگهانی (Sudden)">شروع ناگهانی (Sudden)</option>
-      <option value="شروع تدریجی (Gradual)">شروع تدریجی (Gradual)</option>
-      <option value="به دنبال تروما/وعده غذایی">به دنبال تروما/وعده غذایی</option>
-    `;
-    onsetSelect.value = pain.onset || '';
-    onsetSelect.addEventListener('change', (e) => {
-      pain.onset = e.target.value;
-      saveCurrentCase();
-      updateLivePreview();
-    });
-    onsetGroup.appendChild(onsetSelect);
-    grid1.appendChild(onsetGroup);
-
-    // Course
-    const courseGroup = document.createElement('div');
-    courseGroup.className = 'form-group';
-    courseGroup.innerHTML = `<label class="form-label">الگوی سیر (Course)</label>`;
-    const courseSelect = document.createElement('select');
-    courseSelect.className = 'input-select';
-    courseSelect.innerHTML = `
-      <option value="">-- الگوی سیر --</option>
-      <option value="پیشرونده و رو به تشدید (Progressive)">پیشرونده و رو به تشدید (Progressive)</option>
-      <option value="کولیکی و متناوب (Colicky)">کولیکی و متناوب (Colicky)</option>
-      <option value="ثابت و مداوم (Constant)">ثابت و مداوم (Constant)</option>
-    `;
-    courseSelect.value = pain.course || '';
-    courseSelect.addEventListener('change', (e) => {
-      pain.course = e.target.value;
-      saveCurrentCase();
-      updateLivePreview();
-    });
-    courseGroup.appendChild(courseSelect);
-    grid1.appendChild(courseGroup);
-
-    card.appendChild(grid1);
-
-    // Character & Severity
-    const grid2 = document.createElement('div');
-    grid2.className = 'form-grid-2';
-    grid2.style.marginTop = '0.5rem';
-
-    // Character
-    const charGroup = document.createElement('div');
-    charGroup.className = 'form-group';
-    charGroup.innerHTML = `<label class="form-label">ماهیت علامت (Character)</label>`;
-    const charSelect = document.createElement('select');
-    charSelect.className = 'input-select';
-    charSelect.innerHTML = `
-      <option value="">-- انتخاب ماهیت --</option>
-      <option value="تیز و خنجری (Sharp)">تیز و خنجری (Sharp)</option>
-      <option value="مبهم و فشاری (Dull/Crampy)">مبهم و فشاری (Dull/Crampy)</option>
-      <option value="سوزشی (Burning)">سوزشی (Burning)</option>
-      <option value="ضربان‌دار (Throbbing)">ضربان‌دار (Throbbing)</option>
-    `;
-    charSelect.value = pain.character || '';
-    charSelect.addEventListener('change', (e) => {
-      pain.character = e.target.value;
-      saveCurrentCase();
-      updateLivePreview();
-    });
-    charGroup.appendChild(charSelect);
-    grid2.appendChild(charGroup);
-
-    // Severity Slider (0-10)
-    const sevGroup = document.createElement('div');
-    sevGroup.className = 'form-group';
-    sevGroup.innerHTML = `
-      <div class="form-label">
-        <span>شدت درد (NRS 0-10)</span>
-        <span class="mono-num sev-val-label">${pain.severity || 5} / 10</span>
-      </div>
-    `;
-    const sliderWrap = document.createElement('div');
-    sliderWrap.className = 'severity-slider-container';
-    sliderWrap.innerHTML = `
-      <span class="mono-num">0</span>
-      <input type="range" class="severity-slider" min="0" max="10" value="${pain.severity || 5}">
-      <span class="mono-num">10</span>
-      <div class="severity-value-badge dir-ltr">${pain.severity || 5} / 10</div>
-    `;
-    const rangeInput = sliderWrap.querySelector('input[type="range"]');
-    const badgeEl = sliderWrap.querySelector('.severity-value-badge');
-    const labelEl = sevGroup.querySelector('.sev-val-label');
-    rangeInput.addEventListener('input', (e) => {
-      const val = e.target.value;
-      pain.severity = val;
-      badgeEl.textContent = `${val} / 10`;
-      labelEl.textContent = `${val} / 10`;
-      saveCurrentCase();
-      updateLivePreview();
-    });
-    sevGroup.appendChild(sliderWrap);
-    grid2.appendChild(sevGroup);
-
-    card.appendChild(grid2);
-
-    // Spatial Pattern Selector (4 clean patterns)
-    const spatGroup = document.createElement('div');
-    spatGroup.className = 'form-group';
-    spatGroup.style.marginTop = '0.6rem';
-    spatGroup.innerHTML = `<label class="form-label">الگوی فضایی-زمانی درد</label>`;
-    const spatGrid = document.createElement('div');
-    spatGrid.className = 'spatial-patterns-grid';
-
-    SURGICAL_SCHEMA.painSpatialPatterns.forEach((patt) => {
-      const pattBtn = document.createElement('button');
-      pattBtn.type = 'button';
-      pattBtn.className = `pattern-pill-btn ${pain.spatialPattern === patt.id ? 'active' : ''}`;
-      pattBtn.textContent = patt.label;
-      pattBtn.addEventListener('click', () => {
-        spatGrid.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
-        pattBtn.classList.add('active');
-        pain.spatialPattern = patt.id;
-        renderPainRegionsForEpisode(card, pain);
-        saveCurrentCase();
-        updateLivePreview();
-      });
-      spatGrid.appendChild(pattBtn);
-    });
-    spatGroup.appendChild(spatGrid);
-    card.appendChild(spatGroup);
-
-    // Abdominal Region Matrix Container
-    const regionContainer = document.createElement('div');
-    regionContainer.className = 'episode-region-container';
-    regionContainer.style.marginTop = '0.5rem';
-    card.appendChild(regionContainer);
-    renderPainRegionsForEpisode(card, pain);
-
-    // Timing (Pills)
-    const timingGroup = document.createElement('div');
-    timingGroup.className = 'form-group';
-    timingGroup.style.marginTop = '0.6rem';
-    timingGroup.innerHTML = `<label class="form-label">تایمینگ درد (Timing)</label>`;
-    const timingGrid = document.createElement('div');
-    timingGrid.className = 'tag-selector-grid';
-
-    PAIN_TIMING_OPTIONS.forEach((t) => {
-      const chip = document.createElement('span');
-      chip.className = `factor-chip ${pain.timing === t.label ? 'active' : ''}`;
-      chip.textContent = t.label;
-      chip.addEventListener('click', () => {
-        if (pain.timing === t.label) {
-          pain.timing = '';
-          chip.classList.remove('active');
-        } else {
-          pain.timing = t.label;
-          timingGrid.querySelectorAll('.factor-chip').forEach((c) => c.classList.remove('active'));
-          chip.classList.add('active');
-        }
-        saveCurrentCase();
-        updateLivePreview();
-      });
-      timingGrid.appendChild(chip);
-    });
-    timingGroup.appendChild(timingGrid);
-    card.appendChild(timingGroup);
-
-    // Radiation Sites with Inline Input
-    const radGroup = document.createElement('div');
-    radGroup.className = 'form-group';
-    radGroup.style.marginTop = '0.6rem';
-    radGroup.innerHTML = `<label class="form-label">محل انتشار درد (Radiation)</label>`;
-    const radList = document.createElement('div');
-    radList.className = 'radiation-capsules-list';
-
-    SURGICAL_SCHEMA.radiationSites.forEach((site) => {
-      const isNone = site.id === 'rad_none';
-      const existing = (pain.radiationList || []).find((r) => r.id === site.id);
-      const isSelected = isNone ? pain.noRadiation : !!existing;
-
-      const radItem = document.createElement('div');
-      radItem.className = `radiation-capsule-item ${isSelected ? 'active' : ''}`;
-
-      const radLabel = document.createElement('span');
-      radLabel.className = 'radiation-capsule-label';
-      radLabel.innerHTML = `<span>${isSelected ? '🔘' : '⚪'}</span> <span>${site.label}</span>`;
-
-      radItem.appendChild(radLabel);
-
-      let inlineInput = null;
-      if (!isNone) {
-        inlineInput = document.createElement('input');
-        inlineInput.type = 'text';
-        inlineInput.className = 'radiation-inline-input';
-        inlineInput.placeholder = site.detailHint || 'جزئیات (راست/چپ)...';
-        inlineInput.value = existing ? (existing.detail || '') : '';
-        inlineInput.style.display = isSelected ? 'inline-block' : 'none';
-
-        inlineInput.addEventListener('input', (e) => {
-          if (existing) {
-            existing.detail = e.target.value;
-            saveCurrentCase();
-            updateLivePreview();
-          }
-        });
-        radItem.appendChild(inlineInput);
-      }
-
-      radLabel.addEventListener('click', () => {
-        if (isNone) {
-          pain.noRadiation = !pain.noRadiation;
-          if (pain.noRadiation) {
-            pain.radiationList = [];
-          }
-        } else {
-          pain.noRadiation = false;
-          if (!pain.radiationList) pain.radiationList = [];
-          const idx = pain.radiationList.findIndex((r) => r.id === site.id);
-          if (idx >= 0) {
-            pain.radiationList.splice(idx, 1);
-          } else {
-            pain.radiationList.push({ id: site.id, label: site.label, detail: inlineInput ? inlineInput.value : '' });
-          }
-        }
-        renderPainEpisodes();
-        saveCurrentCase();
-        updateLivePreview();
-      });
-
-      radList.appendChild(radItem);
-    });
-    radGroup.appendChild(radList);
-    card.appendChild(radGroup);
-
-    // Aggravating Factors (Multi-select)
-    const aggGroup = document.createElement('div');
-    aggGroup.className = 'form-group';
-    aggGroup.style.marginTop = '0.6rem';
-    aggGroup.innerHTML = `<label class="form-label">عوامل تشدیدکننده (Aggravating Factors)</label>`;
-    const aggGrid = document.createElement('div');
-    aggGrid.className = 'tag-selector-grid';
-
-    PAIN_AGGRAVATING_FACTORS.forEach((factor) => {
-      if (!pain.aggravating) pain.aggravating = [];
-      const isAct = pain.aggravating.includes(factor);
-      const chip = document.createElement('span');
-      chip.className = `factor-chip ${isAct ? 'active' : ''}`;
-      chip.textContent = factor;
-      chip.addEventListener('click', () => {
-        if (pain.aggravating.includes(factor)) {
-          pain.aggravating = pain.aggravating.filter((f) => f !== factor);
-          chip.classList.remove('active');
-        } else {
-          pain.aggravating.push(factor);
-          chip.classList.add('active');
-        }
-        saveCurrentCase();
-        updateLivePreview();
-      });
-      aggGrid.appendChild(chip);
-    });
-    aggGroup.appendChild(aggGrid);
-    card.appendChild(aggGroup);
-
-    // Relieving Factors (Multi-select)
-    const relGroup = document.createElement('div');
-    relGroup.className = 'form-group';
-    relGroup.style.marginTop = '0.6rem';
-    relGroup.innerHTML = `<label class="form-label">عوامل تسکین‌دهنده (Relieving Factors)</label>`;
-    const relGrid = document.createElement('div');
-    relGrid.className = 'tag-selector-grid';
-
-    PAIN_RELIEVING_FACTORS.forEach((factor) => {
-      if (!pain.relieving) pain.relieving = [];
-      const isAct = pain.relieving.includes(factor);
-      const chip = document.createElement('span');
-      chip.className = `factor-chip ${isAct ? 'active' : ''}`;
-      chip.textContent = factor;
-      chip.addEventListener('click', () => {
-        if (pain.relieving.includes(factor)) {
-          pain.relieving = pain.relieving.filter((f) => f !== factor);
-          chip.classList.remove('active');
-        } else {
-          pain.relieving.push(factor);
-          chip.classList.add('active');
-        }
-        saveCurrentCase();
-        updateLivePreview();
-      });
-      relGrid.appendChild(chip);
-    });
-    relGroup.appendChild(relGrid);
-    card.appendChild(relGroup);
+    // Body based on archetype
+    if (archType === 'mass_lesion_archetype') {
+      renderMassLesionArchetypeBody(card, pres);
+    } else if (archType === 'trauma_burn_archetype') {
+      renderTraumaBurnArchetypeBody(card, pres);
+    } else if (archType === 'functional_bleeding_archetype') {
+      renderFunctionalBleedingArchetypeBody(card, pres);
+    } else if (archType === 'elective_asymptomatic_archetype') {
+      renderElectiveArchetypeBody(card, pres);
+    } else {
+      renderPainArchetypeBody(card, pres, index);
+    }
 
     container.appendChild(card);
   });
+}
+
+function renderMassLesionArchetypeBody(card, pres) {
+  const grid = document.createElement('div');
+  grid.className = 'form-grid-2';
+
+  // Location
+  const locGroup = document.createElement('div');
+  locGroup.className = 'form-group';
+  locGroup.innerHTML = `<label class="form-label">محل دقیق آناتومیک ضایعه/توده</label>`;
+  const locInput = document.createElement('input');
+  locInput.type = 'text';
+  locInput.className = 'input-text';
+  locInput.value = pres.location || '';
+  locInput.placeholder = 'مثلاً پوست سر اکسیپیتال، زاویه مندیبل راست، پستان چپ، اینگوئینال...';
+  locInput.addEventListener('input', (e) => {
+    pres.location = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  locGroup.appendChild(locInput);
+  grid.appendChild(locGroup);
+
+  // Discovery time
+  const timeGroup = document.createElement('div');
+  timeGroup.className = 'form-group';
+  timeGroup.innerHTML = `<label class="form-label">زمان اولین مشاهده / سابقه وجود</label>`;
+  const timeInput = document.createElement('input');
+  timeInput.type = 'text';
+  timeInput.className = 'input-text';
+  timeInput.value = pres.discoveryTime || '';
+  timeInput.placeholder = 'مثلاً ۶ ماه قبل یا ۲ سال قبل';
+  timeInput.addEventListener('input', (e) => {
+    pres.discoveryTime = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  timeGroup.appendChild(timeInput);
+  grid.appendChild(timeGroup);
+
+  // Growth pattern
+  const growthGroup = document.createElement('div');
+  growthGroup.className = 'form-group';
+  growthGroup.innerHTML = `<label class="form-label">الگوی تغییر سایز و رشد (Growth Pattern)</label>`;
+  const growthSelect = document.createElement('select');
+  growthSelect.className = 'input-select';
+  MASS_GROWTH_PATTERNS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.growthPattern === opt) opEl.selected = true;
+    growthSelect.appendChild(opEl);
+  });
+  growthSelect.addEventListener('change', (e) => {
+    pres.growthPattern = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  growthGroup.appendChild(growthSelect);
+  grid.appendChild(growthGroup);
+
+  // Pain status
+  const painGroup = document.createElement('div');
+  painGroup.className = 'form-group';
+  painGroup.innerHTML = `<label class="form-label">وضعیت درد و تندرنس توده</label>`;
+  const painSelect = document.createElement('select');
+  painSelect.className = 'input-select';
+  MASS_PAIN_STATUSES.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.painStatus === opt) opEl.selected = true;
+    painSelect.appendChild(opEl);
+  });
+  painSelect.addEventListener('change', (e) => {
+    pres.painStatus = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  painGroup.appendChild(painSelect);
+  grid.appendChild(painGroup);
+
+  card.appendChild(grid);
+
+  // 5 Local Signs
+  const signsSection = document.createElement('div');
+  signsSection.className = 'form-group';
+  signsSection.style.marginTop = '0.75rem';
+  signsSection.innerHTML = `<label class="form-label">۵ نشانه بالینی موضعی توده (تپ: خنثی / + مثبت / − منفی)</label>`;
+
+  const chipsGrid = document.createElement('div');
+  chipsGrid.className = 'chips-container';
+
+  if (!pres.findings) pres.findings = {};
+
+  MASS_ASSOCIATED_SIGNS.forEach((sign) => {
+    const currentData = pres.findings[sign.id];
+    const chipWrap = renderInlineDetailTriStateChip({
+      id: sign.id,
+      label: sign.label,
+      detailHint: 'جزئیات نشانه موضعی...',
+      currentItemData: currentData,
+      onStateChange: (newState, detailText) => {
+        if (newState === 0) {
+          delete pres.findings[sign.id];
+        } else {
+          pres.findings[sign.id] = { state: newState, detail: detailText, label: sign.label };
+        }
+        updateMassFindingsArrays(pres);
+        saveCurrentCase();
+        updateLivePreview();
+      },
+      onDetailChange: (detailText) => {
+        if (pres.findings[sign.id]) {
+          pres.findings[sign.id].detail = detailText;
+          updateMassFindingsArrays(pres);
+          saveCurrentCase();
+          updateLivePreview();
+        }
+      }
+    });
+    chipsGrid.appendChild(chipWrap);
+  });
+
+  signsSection.appendChild(chipsGrid);
+  card.appendChild(signsSection);
+}
+
+function updateMassFindingsArrays(pres) {
+  if (!pres.findings) {
+    pres.posFindings = [];
+    pres.negFindings = [];
+    return;
+  }
+  pres.posFindings = Object.values(pres.findings)
+    .filter((f) => f.state === 1)
+    .map((f) => (f.detail ? `${f.label} (${f.detail})` : f.label));
+  pres.negFindings = Object.values(pres.findings)
+    .filter((f) => f.state === -1)
+    .map((f) => f.label);
+}
+
+function renderTraumaBurnArchetypeBody(card, pres) {
+  const grid = document.createElement('div');
+  grid.className = 'form-grid-3';
+
+  // MOI
+  const moiGroup = document.createElement('div');
+  moiGroup.className = 'form-group';
+  moiGroup.innerHTML = `<label class="form-label">مکانیسم تروما / آسیب (MOI)</label>`;
+  const moiSelect = document.createElement('select');
+  moiSelect.className = 'input-select';
+  TRAUMA_MOI_OPTIONS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.mechanism === opt) opEl.selected = true;
+    moiSelect.appendChild(opEl);
+  });
+  moiSelect.addEventListener('change', (e) => {
+    pres.mechanism = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  moiGroup.appendChild(moiSelect);
+  grid.appendChild(moiGroup);
+
+  // Time since injury
+  const timeGroup = document.createElement('div');
+  timeGroup.className = 'form-group';
+  timeGroup.innerHTML = `<label class="form-label">زمان دقیق وقوع حادثه</label>`;
+  const timeInput = document.createElement('input');
+  timeInput.type = 'text';
+  timeInput.className = 'input-text';
+  timeInput.value = pres.timeSinceInjury || '';
+  timeInput.placeholder = 'مثلاً ۱ ساعت قبل، ساعت ۱۴ امروز';
+  timeInput.addEventListener('input', (e) => {
+    pres.timeSinceInjury = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  timeGroup.appendChild(timeInput);
+  grid.appendChild(timeGroup);
+
+  // Transport mode
+  const transGroup = document.createElement('div');
+  transGroup.className = 'form-group';
+  transGroup.innerHTML = `<label class="form-label">نحوه انتقال به بیمارستان</label>`;
+  const transSelect = document.createElement('select');
+  transSelect.className = 'input-select';
+  TRAUMA_TRANSPORT_OPTIONS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.transportMode === opt) opEl.selected = true;
+    transSelect.appendChild(opEl);
+  });
+  transSelect.addEventListener('change', (e) => {
+    pres.transportMode = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  transGroup.appendChild(transSelect);
+  grid.appendChild(transGroup);
+
+  card.appendChild(grid);
+
+  // Injured Zones (Multi-select Chips)
+  const zoneGroup = document.createElement('div');
+  zoneGroup.className = 'form-group';
+  zoneGroup.style.marginTop = '0.75rem';
+  zoneGroup.innerHTML = `<label class="form-label">نواحی آناتومیک دارای آسیب یا اصابت</label>`;
+  const zoneGrid = document.createElement('div');
+  zoneGrid.className = 'tag-selector-grid';
+
+  if (!pres.injuredZones) pres.injuredZones = [];
+
+  TRAUMA_INJURED_ZONES.forEach((zone) => {
+    const isAct = pres.injuredZones.includes(zone);
+    const chip = document.createElement('span');
+    chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+    chip.textContent = zone;
+    chip.addEventListener('click', () => {
+      if (pres.injuredZones.includes(zone)) {
+        pres.injuredZones = pres.injuredZones.filter((z) => z !== zone);
+        chip.classList.remove('active');
+      } else {
+        pres.injuredZones.push(zone);
+        chip.classList.add('active');
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    zoneGrid.appendChild(chip);
+  });
+  zoneGroup.appendChild(zoneGrid);
+  card.appendChild(zoneGroup);
+
+  // Trauma Checklist 7-item
+  const chkGroup = document.createElement('div');
+  chkGroup.className = 'form-group';
+  chkGroup.style.marginTop = '0.75rem';
+  chkGroup.innerHTML = `<label class="form-label">چک‌لیست فوری تروما و شرح‌حال حادثه (تپ: خنثی / + مثبت / − منفی)</label>`;
+  const chkGrid = document.createElement('div');
+  chkGrid.className = 'chips-container';
+
+  if (!pres.checklist) pres.checklist = {};
+
+  TRAUMA_CHECKLIST.forEach((item) => {
+    const currentData = pres.checklist[item.id];
+    const chipWrap = renderInlineDetailTriStateChip({
+      id: item.id,
+      label: item.label,
+      detailHint: 'جزئیات تروما...',
+      currentItemData: currentData,
+      onStateChange: (newState, detailText) => {
+        if (newState === 0) {
+          delete pres.checklist[item.id];
+        } else {
+          pres.checklist[item.id] = { state: newState, detail: detailText, label: item.label };
+        }
+        updateTraumaChecklistArrays(pres);
+        saveCurrentCase();
+        updateLivePreview();
+      },
+      onDetailChange: (detailText) => {
+        if (pres.checklist[item.id]) {
+          pres.checklist[item.id].detail = detailText;
+          updateTraumaChecklistArrays(pres);
+          saveCurrentCase();
+          updateLivePreview();
+        }
+      }
+    });
+    chkGrid.appendChild(chipWrap);
+  });
+  chkGroup.appendChild(chkGrid);
+  card.appendChild(chkGroup);
+}
+
+function updateTraumaChecklistArrays(pres) {
+  if (!pres.checklist) {
+    pres.posFindings = [];
+    pres.negFindings = [];
+    return;
+  }
+  pres.posFindings = Object.values(pres.checklist)
+    .filter((f) => f.state === 1)
+    .map((f) => (f.detail ? `${f.label} (${f.detail})` : f.label));
+  pres.negFindings = Object.values(pres.checklist)
+    .filter((f) => f.state === -1)
+    .map((f) => f.label);
+}
+
+function renderFunctionalBleedingArchetypeBody(card, pres) {
+  const grid = document.createElement('div');
+  grid.className = 'form-grid-3';
+
+  // Symptom Title
+  const symGroup = document.createElement('div');
+  symGroup.className = 'form-group';
+  symGroup.innerHTML = `<label class="form-label">شکایت عملکردی اصلی</label>`;
+  const symSelect = document.createElement('select');
+  symSelect.className = 'input-select';
+  FUNCTIONAL_SYMPTOM_OPTIONS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.symptomTitle === opt) opEl.selected = true;
+    symSelect.appendChild(opEl);
+  });
+  symSelect.addEventListener('change', (e) => {
+    pres.symptomTitle = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  symGroup.appendChild(symSelect);
+  grid.appendChild(symGroup);
+
+  // Duration
+  const durGroup = document.createElement('div');
+  durGroup.className = 'form-group';
+  durGroup.innerHTML = `<label class="form-label">مدت زمان شروع</label>`;
+  const durInput = document.createElement('input');
+  durInput.type = 'text';
+  durInput.className = 'input-text';
+  durInput.value = pres.duration || '';
+  durInput.placeholder = 'مثلاً ۳ روز یا ۱ هفته';
+  durInput.addEventListener('input', (e) => {
+    pres.duration = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  durGroup.appendChild(durInput);
+  grid.appendChild(durGroup);
+
+  // Onset
+  const onsetGroup = document.createElement('div');
+  onsetGroup.className = 'form-group';
+  onsetGroup.innerHTML = `<label class="form-label">نحوه شروع (Onset)</label>`;
+  const onsetSelect = document.createElement('select');
+  onsetSelect.className = 'input-select';
+  FUNCTIONAL_ONSET_OPTIONS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.onset === opt) opEl.selected = true;
+    onsetSelect.appendChild(opEl);
+  });
+  onsetSelect.addEventListener('change', (e) => {
+    pres.onset = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  onsetGroup.appendChild(onsetSelect);
+  grid.appendChild(onsetGroup);
+
+  card.appendChild(grid);
+
+  // Severity / Stage & Visual Traits
+  const grid2 = document.createElement('div');
+  grid2.className = 'form-grid-2';
+  grid2.style.marginTop = '0.5rem';
+
+  const sevGroup = document.createElement('div');
+  sevGroup.className = 'form-group';
+  sevGroup.innerHTML = `<label class="form-label">شدت / تکرار / درجه‌بندی (مثلاً NYHA یا تعداد دفعات)</label>`;
+  const sevInput = document.createElement('input');
+  sevInput.type = 'text';
+  sevInput.className = 'input-text';
+  sevInput.value = pres.severityOrFrequency || '';
+  sevInput.placeholder = 'مثلاً NYHA Class III یا ۳ نوبت مدفوع قیرگون در روز';
+  sevInput.addEventListener('input', (e) => {
+    pres.severityOrFrequency = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  sevGroup.appendChild(sevInput);
+  grid2.appendChild(sevGroup);
+
+  const visGroup = document.createElement('div');
+  visGroup.className = 'form-group';
+  visGroup.innerHTML = `<label class="form-label">مشخصات ظاهری / ترشحات / رنگ (Visual Traits)</label>`;
+  const visInput = document.createElement('input');
+  visInput.type = 'text';
+  visInput.className = 'input-text';
+  visInput.value = pres.visualTraits || '';
+  visInput.placeholder = 'مثلاً مدفوع قیرگون بدبو، ادرار پررنگ شبیه چای، استفراغ قهوه‌ای...';
+  visInput.addEventListener('input', (e) => {
+    pres.visualTraits = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  visGroup.appendChild(visInput);
+  grid2.appendChild(visGroup);
+
+  card.appendChild(grid2);
+
+  // Aggravating & Relieving
+  const grid3 = document.createElement('div');
+  grid3.className = 'form-grid-2';
+  grid3.style.marginTop = '0.5rem';
+
+  const aggGroup = document.createElement('div');
+  aggGroup.className = 'form-group';
+  aggGroup.innerHTML = `<label class="form-label">عوامل تشدیدکننده</label>`;
+  const aggInput = document.createElement('input');
+  aggInput.type = 'text';
+  aggInput.className = 'input-text';
+  aggInput.value = (pres.aggravating || []).join('، ');
+  aggInput.placeholder = 'مثلاً فعالیت، دراز کشیدن، غذا خوردن...';
+  aggInput.addEventListener('input', (e) => {
+    pres.aggravating = e.target.value
+      .split(/،|,/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  aggGroup.appendChild(aggInput);
+  grid3.appendChild(aggGroup);
+
+  const relGroup = document.createElement('div');
+  relGroup.className = 'form-group';
+  relGroup.innerHTML = `<label class="form-label">عوامل تسکین‌دهنده</label>`;
+  const relInput = document.createElement('input');
+  relInput.type = 'text';
+  relInput.className = 'input-text';
+  relInput.value = (pres.relieving || []).join('، ');
+  relInput.placeholder = 'مثلاً استراحت، پوزیشن نشسته، دارو...';
+  relInput.addEventListener('input', (e) => {
+    pres.relieving = e.target.value
+      .split(/،|,/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  relGroup.appendChild(relInput);
+  grid3.appendChild(relGroup);
+
+  card.appendChild(grid3);
+}
+
+function renderElectiveArchetypeBody(card, pres) {
+  const grid = document.createElement('div');
+  grid.className = 'form-grid-2';
+
+  const discGroup = document.createElement('div');
+  discGroup.className = 'form-group';
+  discGroup.innerHTML = `<label class="form-label">روش کشف و نحوه مراجعه</label>`;
+  const discSelect = document.createElement('select');
+  discSelect.className = 'input-select';
+  ELECTIVE_DISCOVERY_OPTIONS.forEach((opt) => {
+    const opEl = document.createElement('option');
+    opEl.value = opt;
+    opEl.textContent = opt;
+    if (pres.discoveryMethod === opt) opEl.selected = true;
+    discSelect.appendChild(opEl);
+  });
+  discSelect.addEventListener('change', (e) => {
+    pres.discoveryMethod = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  discGroup.appendChild(discSelect);
+  grid.appendChild(discGroup);
+
+  const statusGroup = document.createElement('div');
+  statusGroup.className = 'form-group';
+  statusGroup.innerHTML = `<label class="form-label">وضعیت علائم بالینی فعلی</label>`;
+  const statusInput = document.createElement('input');
+  statusInput.type = 'text';
+  statusInput.className = 'input-text';
+  statusInput.value = pres.currentStatus || 'کاملاً بدون علامت حاد بالینی';
+  statusInput.placeholder = 'مثلاً کاملاً بدون درد و علامت';
+  statusInput.addEventListener('input', (e) => {
+    pres.currentStatus = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  statusGroup.appendChild(statusInput);
+  grid.appendChild(statusGroup);
+
+  card.appendChild(grid);
+
+  const workupGroup = document.createElement('div');
+  workupGroup.className = 'form-group';
+  workupGroup.style.marginTop = '0.5rem';
+  workupGroup.innerHTML = `<label class="form-label">خلاصه بررسی‌های پاراکلینیک و تصویربرداری قبلی</label>`;
+  const workupInput = document.createElement('input');
+  workupInput.type = 'text';
+  workupInput.className = 'input-text';
+  workupInput.value = pres.workupSummary || '';
+  workupInput.placeholder = 'مثلاً سونوگرافی ۲ ماه قبل نشان‌دهنده پولیپ کیسه صفرا ۱۰ میلی‌متر...';
+  workupInput.addEventListener('input', (e) => {
+    pres.workupSummary = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  workupGroup.appendChild(workupInput);
+  card.appendChild(workupGroup);
+}
+
+function renderPainArchetypeBody(card, pain, index) {
+  // OLDCARTS Form Grid: Duration, Onset, Course
+  const grid1 = document.createElement('div');
+  grid1.className = 'form-grid-3';
+
+  // Duration
+  const durGroup = document.createElement('div');
+  durGroup.className = 'form-group';
+  durGroup.innerHTML = `<label class="form-label">مدت زمان شروع</label>`;
+  const durInput = document.createElement('input');
+  durInput.type = 'text';
+  durInput.className = 'input-text';
+  durInput.value = pain.duration || '';
+  durInput.placeholder = 'مثلاً ۱۲ ساعت یا ۳ روز';
+  durInput.addEventListener('input', (e) => {
+    pain.duration = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  durGroup.appendChild(durInput);
+  grid1.appendChild(durGroup);
+
+  // Onset
+  const onsetGroup = document.createElement('div');
+  onsetGroup.className = 'form-group';
+  onsetGroup.innerHTML = `<label class="form-label">نحوه شروع (Onset)</label>`;
+  const onsetSelect = document.createElement('select');
+  onsetSelect.className = 'input-select';
+  onsetSelect.innerHTML = `
+    <option value="">-- نحوه شروع --</option>
+    <option value="شروع ناگهانی (Sudden)">شروع ناگهانی (Sudden)</option>
+    <option value="شروع تدریجی (Gradual)">شروع تدریجی (Gradual)</option>
+    <option value="به دنبال تروما/وعده غذایی">به دنبال تروما/وعده غذایی</option>
+  `;
+  onsetSelect.value = pain.onset || '';
+  onsetSelect.addEventListener('change', (e) => {
+    pain.onset = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  onsetGroup.appendChild(onsetSelect);
+  grid1.appendChild(onsetGroup);
+
+  // Course
+  const courseGroup = document.createElement('div');
+  courseGroup.className = 'form-group';
+  courseGroup.innerHTML = `<label class="form-label">الگوی سیر (Course)</label>`;
+  const courseSelect = document.createElement('select');
+  courseSelect.className = 'input-select';
+  courseSelect.innerHTML = `
+    <option value="">-- الگوی سیر --</option>
+    <option value="پیشرونده و رو به تشدید (Progressive)">پیشرونده و رو به تشدید (Progressive)</option>
+    <option value="کولیکی و متناوب (Colicky)">کولیکی و متناوب (Colicky)</option>
+    <option value="ثابت و مداوم (Constant)">ثابت و مداوم (Constant)</option>
+  `;
+  courseSelect.value = pain.course || '';
+  courseSelect.addEventListener('change', (e) => {
+    pain.course = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  courseGroup.appendChild(courseSelect);
+  grid1.appendChild(courseGroup);
+
+  card.appendChild(grid1);
+
+  // Character & Severity
+  const grid2 = document.createElement('div');
+  grid2.className = 'form-grid-2';
+  grid2.style.marginTop = '0.5rem';
+
+  // Character
+  const charGroup = document.createElement('div');
+  charGroup.className = 'form-group';
+  charGroup.innerHTML = `<label class="form-label">ماهیت علامت (Character)</label>`;
+  const charSelect = document.createElement('select');
+  charSelect.className = 'input-select';
+  charSelect.innerHTML = `
+    <option value="">-- انتخاب ماهیت --</option>
+    <option value="تیز و خنجری (Sharp)">تیز و خنجری (Sharp)</option>
+    <option value="مبهم و فشاری (Dull/Crampy)">مبهم و فشاری (Dull/Crampy)</option>
+    <option value="سوزشی (Burning)">سوزشی (Burning)</option>
+    <option value="ضربان‌دار (Throbbing)">ضربان‌دار (Throbbing)</option>
+  `;
+  charSelect.value = pain.character || '';
+  charSelect.addEventListener('change', (e) => {
+    pain.character = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  charGroup.appendChild(charSelect);
+  grid2.appendChild(charGroup);
+
+  // Severity Slider (0-10)
+  const sevGroup = document.createElement('div');
+  sevGroup.className = 'form-group';
+  sevGroup.innerHTML = `
+    <div class="form-label">
+      <span>شدت درد (NRS 0-10)</span>
+      <span class="mono-num sev-val-label">${pain.severity || 5} / 10</span>
+    </div>
+  `;
+  const sliderWrap = document.createElement('div');
+  sliderWrap.className = 'severity-slider-container';
+  sliderWrap.innerHTML = `
+    <span class="mono-num">0</span>
+    <input type="range" class="severity-slider" min="0" max="10" value="${pain.severity || 5}">
+    <span class="mono-num">10</span>
+    <div class="severity-value-badge dir-ltr">${pain.severity || 5} / 10</div>
+  `;
+  const rangeInput = sliderWrap.querySelector('input[type="range"]');
+  const badgeEl = sliderWrap.querySelector('.severity-value-badge');
+  const labelEl = sevGroup.querySelector('.sev-val-label');
+  rangeInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    pain.severity = val;
+    badgeEl.textContent = `${val} / 10`;
+    labelEl.textContent = `${val} / 10`;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  sevGroup.appendChild(sliderWrap);
+  grid2.appendChild(sevGroup);
+
+  card.appendChild(grid2);
+
+  // Body Region Group Selector
+  const bodyRegionSelectGroup = document.createElement('div');
+  bodyRegionSelectGroup.className = 'form-group';
+  bodyRegionSelectGroup.style.marginTop = '0.6rem';
+  bodyRegionSelectGroup.innerHTML = `<label class="form-label">منطقه اصلی آناتومیک درد (Body Region)</label>`;
+
+  const groupPillsWrap = document.createElement('div');
+  groupPillsWrap.className = 'spatial-patterns-grid';
+
+  const curGroup = pain.bodyRegionGroup || 'abdomen_pelvis';
+  PAIN_BODY_REGIONS.forEach((reg) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `pattern-pill-btn ${curGroup === reg.id ? 'active' : ''}`;
+    btn.textContent = reg.labelFa;
+    btn.addEventListener('click', () => {
+      pain.bodyRegionGroup = reg.id;
+      groupPillsWrap.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderPainRegionsForEpisode(card, pain);
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    groupPillsWrap.appendChild(btn);
+  });
+  bodyRegionSelectGroup.appendChild(groupPillsWrap);
+  card.appendChild(bodyRegionSelectGroup);
+
+  // Spatial Pattern Selector (Only for Abdomen & Pelvis)
+  const spatGroup = document.createElement('div');
+  spatGroup.className = 'form-group spatial-pattern-box';
+  spatGroup.style.marginTop = '0.6rem';
+  spatGroup.style.display = curGroup === 'abdomen_pelvis' ? 'block' : 'none';
+  spatGroup.innerHTML = `<label class="form-label">الگوی فضایی-زمانی درد شکم</label>`;
+  const spatGrid = document.createElement('div');
+  spatGrid.className = 'spatial-patterns-grid';
+
+  SURGICAL_SCHEMA.painSpatialPatterns.forEach((patt) => {
+    const pattBtn = document.createElement('button');
+    pattBtn.type = 'button';
+    pattBtn.className = `pattern-pill-btn ${pain.spatialPattern === patt.id ? 'active' : ''}`;
+    pattBtn.textContent = patt.label;
+    pattBtn.addEventListener('click', () => {
+      spatGrid.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
+      pattBtn.classList.add('active');
+      pain.spatialPattern = patt.id;
+      renderPainRegionsForEpisode(card, pain);
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    spatGrid.appendChild(pattBtn);
+  });
+  spatGroup.appendChild(spatGrid);
+  card.appendChild(spatGroup);
+
+  // Region Matrix / Subregions Container
+  const regionContainer = document.createElement('div');
+  regionContainer.className = 'episode-region-container';
+  regionContainer.style.marginTop = '0.5rem';
+  card.appendChild(regionContainer);
+  renderPainRegionsForEpisode(card, pain);
+
+  // Timing (Pills)
+  const timingGroup = document.createElement('div');
+  timingGroup.className = 'form-group';
+  timingGroup.style.marginTop = '0.6rem';
+  timingGroup.innerHTML = `<label class="form-label">تایمینگ درد (Timing)</label>`;
+  const timingGrid = document.createElement('div');
+  timingGrid.className = 'tag-selector-grid';
+
+  PAIN_TIMING_OPTIONS.forEach((t) => {
+    const chip = document.createElement('span');
+    chip.className = `factor-chip ${pain.timing === t.label ? 'active' : ''}`;
+    chip.textContent = t.label;
+    chip.addEventListener('click', () => {
+      if (pain.timing === t.label) {
+        pain.timing = '';
+        chip.classList.remove('active');
+      } else {
+        pain.timing = t.label;
+        timingGrid.querySelectorAll('.factor-chip').forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    timingGrid.appendChild(chip);
+  });
+  timingGroup.appendChild(timingGrid);
+  card.appendChild(timingGroup);
+
+  // Radiation Sites with Inline Input
+  const radGroup = document.createElement('div');
+  radGroup.className = 'form-group';
+  radGroup.style.marginTop = '0.6rem';
+  radGroup.innerHTML = `<label class="form-label">محل انتشار درد (Radiation)</label>`;
+  const radList = document.createElement('div');
+  radList.className = 'radiation-capsules-list';
+
+  SURGICAL_SCHEMA.radiationSites.forEach((site) => {
+    const isNone = site.id === 'rad_none';
+    const existing = (pain.radiationList || []).find((r) => r.id === site.id);
+    const isSelected = isNone ? pain.noRadiation : !!existing;
+
+    const radItem = document.createElement('div');
+    radItem.className = `radiation-capsule-item ${isSelected ? 'active' : ''}`;
+
+    const radLabel = document.createElement('span');
+    radLabel.className = 'radiation-capsule-label';
+    radLabel.innerHTML = `<span>${isSelected ? '🔘' : '⚪'}</span> <span>${site.label}</span>`;
+
+    radItem.appendChild(radLabel);
+
+    let inlineInput = null;
+    if (!isNone) {
+      inlineInput = document.createElement('input');
+      inlineInput.type = 'text';
+      inlineInput.className = 'radiation-inline-input';
+      inlineInput.placeholder = site.detailHint || 'جزئیات (راست/چپ)...';
+      inlineInput.value = existing ? existing.detail || '' : '';
+      inlineInput.style.display = isSelected ? 'inline-block' : 'none';
+
+      inlineInput.addEventListener('input', (e) => {
+        if (existing) {
+          existing.detail = e.target.value;
+          saveCurrentCase();
+          updateLivePreview();
+        }
+      });
+      radItem.appendChild(inlineInput);
+    }
+
+    radLabel.addEventListener('click', () => {
+      if (isNone) {
+        pain.noRadiation = !pain.noRadiation;
+        if (pain.noRadiation) {
+          pain.radiationList = [];
+        }
+      } else {
+        pain.noRadiation = false;
+        if (!pain.radiationList) pain.radiationList = [];
+        const idx = pain.radiationList.findIndex((r) => r.id === site.id);
+        if (idx >= 0) {
+          pain.radiationList.splice(idx, 1);
+        } else {
+          pain.radiationList.push({ id: site.id, label: site.label, detail: inlineInput ? inlineInput.value : '' });
+        }
+      }
+      renderHpiPresentations();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    radList.appendChild(radItem);
+  });
+  radGroup.appendChild(radList);
+  card.appendChild(radGroup);
+
+  // Aggravating Factors (Multi-select)
+  const aggGroup = document.createElement('div');
+  aggGroup.className = 'form-group';
+  aggGroup.style.marginTop = '0.6rem';
+  aggGroup.innerHTML = `<label class="form-label">عوامل تشدیدکننده (Aggravating Factors)</label>`;
+  const aggGrid = document.createElement('div');
+  aggGrid.className = 'tag-selector-grid';
+
+  PAIN_AGGRAVATING_FACTORS.forEach((factor) => {
+    if (!pain.aggravating) pain.aggravating = [];
+    const isAct = pain.aggravating.includes(factor);
+    const chip = document.createElement('span');
+    chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+    chip.textContent = factor;
+    chip.addEventListener('click', () => {
+      if (pain.aggravating.includes(factor)) {
+        pain.aggravating = pain.aggravating.filter((f) => f !== factor);
+        chip.classList.remove('active');
+      } else {
+        pain.aggravating.push(factor);
+        chip.classList.add('active');
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    aggGrid.appendChild(chip);
+  });
+  aggGroup.appendChild(aggGrid);
+  card.appendChild(aggGroup);
+
+  // Relieving Factors (Multi-select)
+  const relGroup = document.createElement('div');
+  relGroup.className = 'form-group';
+  relGroup.style.marginTop = '0.6rem';
+  relGroup.innerHTML = `<label class="form-label">عوامل تسکین‌دهنده (Relieving Factors)</label>`;
+  const relGrid = document.createElement('div');
+  relGrid.className = 'tag-selector-grid';
+
+  PAIN_RELIEVING_FACTORS.forEach((factor) => {
+    if (!pain.relieving) pain.relieving = [];
+    const isAct = pain.relieving.includes(factor);
+    const chip = document.createElement('span');
+    chip.className = `factor-chip ${isAct ? 'active' : ''}`;
+    chip.textContent = factor;
+    chip.addEventListener('click', () => {
+      if (pain.relieving.includes(factor)) {
+        pain.relieving = pain.relieving.filter((f) => f !== factor);
+        chip.classList.remove('active');
+      } else {
+        pain.relieving.push(factor);
+        chip.classList.add('active');
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    relGrid.appendChild(chip);
+  });
+  relGroup.appendChild(relGrid);
+  card.appendChild(relGroup);
 }
 
 function renderPainRegionsForEpisode(cardElement, pain) {
@@ -783,10 +1499,55 @@ function renderPainRegionsForEpisode(cardElement, pain) {
   if (!container) return;
   container.innerHTML = '';
 
+  const group = pain.bodyRegionGroup || 'abdomen_pelvis';
+
+  // If non-abdominal, render that region's subregions
+  if (group !== 'abdomen_pelvis') {
+    const regDef = PAIN_BODY_REGIONS.find((g) => g.id === group);
+    if (!regDef) return;
+
+    const row = document.createElement('div');
+    row.className = 'form-group';
+    row.innerHTML = `<label class="form-label">نواحی درگیر درد (${regDef.labelFa})</label>`;
+    const subGrid = document.createElement('div');
+    subGrid.className = 'spatial-patterns-grid';
+
+    if (!pain.selectedRegions) pain.selectedRegions = [];
+
+    regDef.subregions.forEach((sub) => {
+      const isAct = pain.selectedRegions.includes(sub.id);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `pattern-pill-btn ${isAct ? 'active' : ''}`;
+      btn.textContent = sub.label;
+      btn.addEventListener('click', () => {
+        if (pain.selectedRegions.includes(sub.id)) {
+          pain.selectedRegions = pain.selectedRegions.filter((x) => x !== sub.id);
+          btn.classList.remove('active');
+        } else {
+          pain.selectedRegions.push(sub.id);
+          btn.classList.add('active');
+        }
+        pain.site = pain.selectedRegions
+          .map((sid) => {
+            const found = regDef.subregions.find((x) => x.id === sid);
+            return found ? found.fa || found.label : sid;
+          })
+          .join(' و ');
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      subGrid.appendChild(btn);
+    });
+    row.appendChild(subGrid);
+    container.appendChild(row);
+    return;
+  }
+
+  // Abdomen & Pelvis
   const pattern = pain.spatialPattern || 'localized';
 
   if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
-    // Two-step Trajectory Grid
     const row1 = document.createElement('div');
     row1.className = 'form-group';
     row1.innerHTML = `<label class="form-label">📍 ۱. محل(های) شروع اولیه درد</label>`;
@@ -813,10 +1574,11 @@ function renderPainRegionsForEpisode(cardElement, pain) {
     row2.appendChild(grid2);
     container.appendChild(row2);
   } else {
-    // Single Multi-select Grid
     const row = document.createElement('div');
     row.className = 'form-group';
-    row.innerHTML = `<label class="form-label">${pattern === 'generalized_predominant' ? 'نواحی دارای حداکثر شدت و ارجحیت درد' : 'نواحی آناتومیک درگیر درد'}</label>`;
+    row.innerHTML = `<label class="form-label">${
+      pattern === 'generalized_predominant' ? 'نواحی دارای حداکثر شدت و ارجحیت درد' : 'نواحی آناتومیک درگیر درد'
+    }</label>`;
     const grid = document.createElement('div');
     grid.className = 'abdominal-matrix-grid';
     renderRegionButtonsIntoGrid(grid, pain.selectedRegions || [], (newArr) => {
@@ -862,12 +1624,16 @@ function renderRegionButtonsIntoGrid(gridElement, selectedArray, onChange) {
   });
 }
 
+function renderPainEpisodes() {
+  renderHpiPresentations();
+}
+
 function initAddPainEpisodeHandler() {
   document.getElementById('btnAddPainEpisode')?.addEventListener('click', () => {
-    if (!clinicalState.hpi.painList) clinicalState.hpi.painList = [];
-    const newId = clinicalState.hpi.painList.length + 1;
-    clinicalState.hpi.painList.push(createDefaultPainEpisode(newId, `کانون درد #${newId}`));
-    renderPainEpisodes();
+    if (!clinicalState.hpi.presentations) clinicalState.hpi.presentations = [];
+    const newId = clinicalState.hpi.presentations.length + 1;
+    clinicalState.hpi.presentations.push(createDefaultPresentation('pain_archetype', newId));
+    renderHpiPresentations();
     saveCurrentCase();
     updateLivePreview();
   });
@@ -1629,6 +2395,33 @@ function renderRosGroups() {
     });
     headerLeft.appendChild(toggleBtn);
 
+    const normalBtn = document.createElement('button');
+    normalBtn.type = 'button';
+    normalBtn.className = 'btn-set-section-normal';
+    normalBtn.innerHTML = `<span>✓</span><span>معاینه کاملاً طبیعی</span>`;
+    normalBtn.title = 'ثبت معاینه کاملاً طبیعی این بخش بر اساس استانداردهای بالینی';
+    normalBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const baseline = PE_NORMAL_BASELINES[pillar.id];
+      if (baseline) {
+        pillar.items.forEach((item) => {
+          delete clinicalState.pe.findings[item.id];
+        });
+        (baseline.pos || []).forEach((posId) => {
+          const it = pillar.items.find((x) => x.id === posId);
+          clinicalState.pe.findings[posId] = { state: 1, detail: '', label: it ? it.label : posId };
+        });
+        (baseline.neg || []).forEach((negId) => {
+          const it = pillar.items.find((x) => x.id === negId);
+          clinicalState.pe.findings[negId] = { state: -1, detail: '', label: it ? it.label : negId };
+        });
+        renderPeMandatoryPillars();
+        saveCurrentCase();
+        updateLivePreview();
+      }
+    });
+    headerLeft.appendChild(normalBtn);
+
     const chevron = document.createElement('span');
     chevron.className = 'subsystem-chevron';
     chevron.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
@@ -2333,7 +3126,8 @@ function syncDomFromState() {
   if (document.getElementById('ccPlannedProcedure')) document.getElementById('ccPlannedProcedure').value = cc.plannedProcedure || '';
 
   // HPI
-  renderPainEpisodes();
+  renderArchetypeSelectorBar();
+  renderHpiPresentations();
   renderHpiBasicSymptoms();
   renderHpiUnlockableModules();
 
@@ -2387,6 +3181,8 @@ function syncDomFromState() {
   if (document.getElementById('peVitalsNpo')) document.getElementById('peVitalsNpo').value = v.npo || '';
 
   renderPeMandatoryPillars();
+  renderMassExamModule();
+  renderAtlsExamModule();
   renderPeUnlockableModules();
   if (document.getElementById('peNote')) document.getElementById('peNote').value = clinicalState.pe.note || '';
   if (document.getElementById('peSystemGapInput')) document.getElementById('peSystemGapInput').value = clinicalState.pe.systemGapNote || '';
@@ -2837,6 +3633,9 @@ export function initApp() {
   initRosMasterNegativeHandler();
   initPeVitalsHandlers();
   initPeMasterNegativeHandler();
+  initMassExamHandlers();
+  initAtlsExamHandlers();
+  initTagQuickSearch();
   initReasoningHandlers();
   initSystemGapLoggers();
   initNavigationTabs();
@@ -2856,12 +3655,16 @@ export function initApp() {
 if (typeof window !== 'undefined') {
   window.addEventListener('surg:language-changed', (e) => {
     const lang = e.detail?.lang || getCurrentLanguage();
+    renderArchetypeSelectorBar();
+    renderHpiPresentations();
     renderHpiBasicSymptoms();
     renderHpiUnlockableModules();
     renderPmhCategories();
     renderDhCategories();
     renderRosGroups();
     renderPeMandatoryPillars();
+    renderMassExamModule();
+    renderAtlsExamModule();
     renderParaclinicModalityCards();
     renderPainEpisodes();
     updateLivePreview();
