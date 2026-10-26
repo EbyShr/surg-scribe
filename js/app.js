@@ -2491,7 +2491,7 @@ export function addFhDisease(item) {
   if (!clinicalState.fh.diseases) clinicalState.fh.diseases = [];
   clinicalState.fh.negFamilyHistory = false;
   clinicalState.fh.masterNeg = false;
-  const btnNegFh = document.getElementById('btnNegFamilyHistory');
+  const btnNegFh = typeof document !== 'undefined' ? document.getElementById('btnNegFamilyHistory') : null;
   if (btnNegFh) btnNegFh.classList.remove('is-confirmed');
 
   const existing = clinicalState.fh.diseases.find((d) => d.id === item.id || d.name === (item.name || item.label));
@@ -2500,16 +2500,18 @@ export function addFhDisease(item) {
       id: item.id || ('fh_' + Date.now()),
       name: item.name || item.label,
       en: item.en || '',
-      relatives: ['پدر'],
-      status: 'living',
-      isAlive: true,
-      ageNote: ''
+      relatives: Array.isArray(item.relatives) ? [...item.relatives] : ['پدر'],
+      status: item.status || 'living',
+      isAlive: item.isAlive !== undefined ? item.isAlive : (item.status !== 'deceased'),
+      ageNote: item.ageNote || item.ageNotes || ''
     });
   }
-  renderFhActiveDiseases();
-  renderFhQuickPills();
-  saveCurrentCase();
-  updateLivePreview();
+  if (typeof document !== 'undefined') {
+    renderFhActiveDiseases();
+    renderFhQuickPills();
+    saveCurrentCase();
+    updateLivePreview();
+  }
 }
 
 export function renderFhActiveDiseases() {
@@ -2520,9 +2522,12 @@ export function renderFhActiveDiseases() {
   const list = clinicalState.fh.diseases || [];
   if (list.length === 0) {
     const empty = document.createElement('div');
-    empty.className = 'empty-state-card';
-    empty.style.cssText = 'padding: 0.8rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border-medium); border-radius: 8px; margin-bottom: 0.5rem;';
-    empty.textContent = 'هیچ سابقه بیماری خانوادگی یا بدخیمی ثبت نشده است. از ۶ دکمه آماده بالا یا کادر جستجو، بیماری را اضافه کنید.';
+    empty.className = 'fh-empty-state-card';
+    empty.innerHTML = `
+      <div class="fh-empty-icon">🧬</div>
+      <div class="fh-empty-title">هیچ سابقه بیماری خانوادگی ثبت نشده است</div>
+      <div class="fh-empty-desc">از ۶ دکمه آماده بالا یا کادر جستجو، بیماری را به پرونده اضافه کنید یا دکمه عدم سابقه خانوادگی را بزنید.</div>
+    `;
     container.appendChild(empty);
     return;
   }
@@ -2533,17 +2538,44 @@ export function renderFhActiveDiseases() {
     const card = document.createElement('div');
     card.className = 'fh-disease-card';
 
+    // 1. Header: Icon + Name + English Badge + Delete Button
     const header = document.createElement('div');
-    header.className = 'fh-disease-header';
+    header.className = 'fh-disease-card-header';
 
-    const title = document.createElement('div');
-    title.className = 'fh-disease-title';
-    title.innerHTML = `<span>🧬</span><strong>${dis.name}</strong>${dis.en ? ` <span style="font-size: 0.8rem; opacity: 0.8;">(${dis.en})</span>` : ''}`;
+    const titleArea = document.createElement('div');
+    titleArea.className = 'fh-disease-title-area';
+
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'fh-disease-icon-pill';
+    iconSpan.textContent = '🧬';
+    titleArea.appendChild(iconSpan);
+
+    const titleText = document.createElement('span');
+    titleText.className = 'fh-disease-name';
+    titleText.textContent = dis.name || dis.label || 'بیماری خانوادگی';
+    titleArea.appendChild(titleText);
+
+    if (dis.en) {
+      const enBadge = document.createElement('span');
+      enBadge.className = 'fh-disease-en-badge';
+      enBadge.textContent = dis.en;
+      titleArea.appendChild(enBadge);
+    }
+    header.appendChild(titleArea);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
-    delBtn.className = 'btn-delete-card';
-    delBtn.innerHTML = `<span>🗑️</span><span>حذف</span>`;
+    delBtn.className = 'btn-delete-fh-card';
+    delBtn.title = 'حذف این سابقه خانوادگی';
+    delBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+      <span>حذف</span>
+    `;
     delBtn.addEventListener('click', () => {
       clinicalState.fh.diseases.splice(idx, 1);
       renderFhActiveDiseases();
@@ -2551,67 +2583,70 @@ export function renderFhActiveDiseases() {
       saveCurrentCase();
       updateLivePreview();
     });
-
-    header.appendChild(title);
     header.appendChild(delBtn);
     card.appendChild(header);
 
-    // Relatives multi-choice chips
+    // 2. Relatives selection row
     const relsRow = document.createElement('div');
-    relsRow.className = 'fh-relatives-row';
+    relsRow.className = 'fh-relatives-chips-bar';
+
     const relLabel = document.createElement('span');
-    relLabel.style.cssText = 'font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-left: 0.5rem;';
-    relLabel.textContent = 'عضو خانواده:';
+    relLabel.className = 'fh-relatives-label';
+    relLabel.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> <span>عضو مبتلا در خانواده:</span>`;
     relsRow.appendChild(relLabel);
+
+    const chipsWrapper = document.createElement('div');
+    chipsWrapper.className = 'fh-chips-wrapper';
 
     relativeOptions.forEach((rel) => {
       const isSel = (dis.relatives || []).includes(rel);
       const chip = document.createElement('button');
       chip.type = 'button';
-      chip.className = `fh-relative-chip ${isSel ? 'is-selected' : ''}`;
+      chip.className = `fh-relative-chip ${isSel ? 'active' : ''}`;
       chip.textContent = rel;
       chip.addEventListener('click', () => {
         if (!dis.relatives) dis.relatives = [];
         const rIdx = dis.relatives.indexOf(rel);
         if (rIdx >= 0) dis.relatives.splice(rIdx, 1);
         else dis.relatives.push(rel);
-        chip.classList.toggle('is-selected', dis.relatives.includes(rel));
+        chip.classList.toggle('active', dis.relatives.includes(rel));
         saveCurrentCase();
         updateLivePreview();
       });
-      relsRow.appendChild(chip);
+      chipsWrapper.appendChild(chip);
     });
+    relsRow.appendChild(chipsWrapper);
     card.appendChild(relsRow);
 
-    // Vital status switch + age/notes input
+    // 3. Status and Age/Details row
     const bottomRow = document.createElement('div');
-    bottomRow.className = 'fh-status-age-row';
+    bottomRow.className = 'fh-status-and-age-row';
 
     const vitalToggle = document.createElement('div');
     vitalToggle.className = 'fh-vital-status-toggle';
 
     const btnAlive = document.createElement('button');
     btnAlive.type = 'button';
-    btnAlive.className = `btn-vital-status ${dis.status !== 'deceased' ? 'active' : ''}`;
-    btnAlive.textContent = 'در قید حیات';
+    btnAlive.className = `fh-vital-btn ${dis.status !== 'deceased' ? 'active-alive' : ''}`;
+    btnAlive.innerHTML = `<span>🟢</span> <span>در قید حیات</span>`;
     btnAlive.addEventListener('click', () => {
       dis.status = 'living';
       dis.isAlive = true;
-      btnAlive.classList.add('active');
-      btnDeceased.classList.remove('active');
+      btnAlive.className = 'fh-vital-btn active-alive';
+      btnDeceased.className = 'fh-vital-btn';
       saveCurrentCase();
       updateLivePreview();
     });
 
     const btnDeceased = document.createElement('button');
     btnDeceased.type = 'button';
-    btnDeceased.className = `btn-vital-status ${dis.status === 'deceased' ? 'active deceased' : ''}`;
-    btnDeceased.textContent = 'فوت‌شده در اثر این بیماری';
+    btnDeceased.className = `fh-vital-btn ${(dis.status === 'deceased' || dis.isAlive === false) ? 'active-deceased' : ''}`;
+    btnDeceased.innerHTML = `<span>⚫</span> <span>فوت‌شده در اثر این بیماری</span>`;
     btnDeceased.addEventListener('click', () => {
       dis.status = 'deceased';
       dis.isAlive = false;
-      btnDeceased.classList.add('active', 'deceased');
-      btnAlive.classList.remove('active');
+      btnDeceased.className = 'fh-vital-btn active-deceased';
+      btnAlive.className = 'fh-vital-btn';
       saveCurrentCase();
       updateLivePreview();
     });
@@ -2622,7 +2657,7 @@ export function renderFhActiveDiseases() {
 
     const ageInp = document.createElement('input');
     ageInp.type = 'text';
-    ageInp.className = 'input-text fh-age-note-input';
+    ageInp.className = 'fh-age-notes-input';
     ageInp.placeholder = 'سن تشخیص / سن فوت و توضیحات (مثلاً: تشخیص در ۵۲ سالگی یا فوت در ۴۸ سالگی)...';
     ageInp.value = dis.ageNote || dis.ageNotes || '';
     ageInp.addEventListener('input', (e) => {
@@ -2773,6 +2808,11 @@ function initAhShFhHandlers() {
     const isNeg = !(clinicalState.fh.negFamilyHistory || clinicalState.fh.masterNeg);
     clinicalState.fh.negFamilyHistory = isNeg;
     clinicalState.fh.masterNeg = isNeg;
+    if (isNeg) {
+      clinicalState.fh.diseases = [];
+      renderFhActiveDiseases();
+      renderFhQuickPills();
+    }
     syncFhNegButton();
     saveCurrentCase();
     updateLivePreview();

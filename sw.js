@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.8.2-omnisearch-cache-v82';
+const CACHE_NAME = 'surg-v0.8.3-omnisearch-cache-v83';
 
 const STATIC_ASSETS = [
   './',
