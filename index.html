@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Readex+Pro:wght@400;600;700&family=Rubik:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheet with Cache-Busting -->
-  <link rel="stylesheet" href="css/clinical-ui.css?v=0.9.1">
+  <link rel="stylesheet" href="css/clinical-ui.css?v=0.9.2">
 </head>
 <body class="dark-mode">
 
@@ -1784,13 +1784,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=0.9.1"></script>
+  <script type="module" src="js/app.js?v=0.9.2"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=0.9.1').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=0.9.2').then((reg) => {
           console.log('[PWA v0.8] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();

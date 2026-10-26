@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.9.1-soap-engine-cache-v91';
+const CACHE_NAME = 'surg-v0.9.2-soap-engine-cache-v92';
 
 const STATIC_ASSETS = [
   './',
