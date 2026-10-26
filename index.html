@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v0.8-Omnisearch</title>
+  <title>دستیار ثبت شرح‌حال جراحی | v0.9-SOAP-Engine</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.8-Omnisearch">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی بخش جراحی عمومی نسخه v0.9-SOAP-Engine">
 
   <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Noto+Sans+Arabic:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Readex+Pro:wght@400;600;700&family=Rubik:wght@400;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheet with Cache-Busting -->
-  <link rel="stylesheet" href="css/clinical-ui.css?v=0.8.3">
+  <link rel="stylesheet" href="css/clinical-ui.css?v=0.9.0">
 </head>
 <body class="dark-mode">
 
@@ -28,12 +28,25 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.8-Omnisearch</span>
+        <span class="version-pill">v0.9-SOAP-Engine</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         <span class="id-text" id="headerCaseId">SURG-20261019-001</span>
+      </div>
+
+      
+      <!-- App Mode Switcher (Admission H&P vs Daily Progress Note SOAP) -->
+      <div class="app-mode-switcher" id="appModeSwitcher" role="radiogroup" aria-label="انتخاب مود برنامه">
+        <button type="button" class="mode-switch-btn active" id="btnModeAdmission" data-mode="admission" title="ثبت و ویرایش شرح‌حال جامع بستری">
+          <span class="mode-icon">📋</span>
+          <span class="mode-text">شرح‌حال بستری (H&amp;P)</span>
+        </button>
+        <button type="button" class="mode-switch-btn" id="btnModeSoap" data-mode="soap" title="ثبت یادداشت سیر روزانه بر اساس SOAP">
+          <span class="mode-icon">📈</span>
+          <span class="mode-text">پراگرس روزانه (SOAP)</span>
+        </button>
       </div>
 
       <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید" data-i18n-title="btn_new_case">
@@ -495,7 +508,7 @@
       <!-- ================= TAB 4: دارو، حساسیت و عادات (DH/AH/SH/FH) ================= -->
       <section class="tab-pane" id="tab-dh" data-section-id="dh_ah_sh_fh">
         
-        <!-- سوابق دارویی فشرده با جستجوی هوشمند (v0.8-Omnisearch) -->
+        <!-- سوابق دارویی فشرده با جستجوی هوشمند (v0.9-SOAP-Engine) -->
         <div class="clinical-card">
           <div class="card-header">
             <div class="card-title">
@@ -944,6 +957,626 @@
 
       </section>
 
+    
+      <!-- ================= MODE 2: یادداشت سیر روزانه بیماری (SOAP Progress Note) ================= -->
+      <div id="soapModeContainer" class="soap-mode-container" style="display: none;">
+        
+        <!-- Context Bar: انتخاب بیمار متصل یا ثبت بیمار مستقل -->
+        <div class="clinical-card soap-context-bar">
+          <div class="soap-context-header">
+            <div class="soap-context-mode-toggle">
+              <label class="soap-radio-label">
+                <input type="radio" name="soapPatientMode" id="soapModeLinkedRadio" value="linked" checked>
+                <span class="radio-custom"></span>
+                <strong>🔗 اتصال به پرونده موجود در سیستم (Linked Patient)</strong>
+              </label>
+              <label class="soap-radio-label">
+                <input type="radio" name="soapPatientMode" id="soapModeStandaloneRadio" value="standalone">
+                <span class="radio-custom"></span>
+                <strong>⚡ بیمار بدون شرح‌حال قبلی در اپ (Standalone Quick SOAP)</strong>
+              </label>
+            </div>
+            
+            <div class="soap-linked-patient-wrapper" id="soapLinkedSelectWrapper">
+              <label for="soapLinkedPatientSelect" class="form-label-inline">پرونده فعال:</label>
+              <select id="soapLinkedPatientSelect" class="input-select">
+                <option value="">-- انتخاب از پرونده‌های شیفت --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Quick Context Fields Matrix -->
+          <div class="soap-context-fields-grid">
+            <div class="form-group mb-0">
+              <label class="form-label">نام و نام خانوادگی بیمار</label>
+              <input type="text" id="soapPtName" class="input-text" placeholder="نام بیمار (محلی)" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">سن</label>
+              <input type="number" id="soapPtAge" class="input-text" placeholder="سن" min="0" max="130" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">جنسیت</label>
+              <select id="soapPtGender" class="input-select">
+                <option value="male">مذکر (آقا)</option>
+                <option value="female">مؤنث (خانم)</option>
+              </select>
+            </div>
+            <div class="form-group mb-0 col-span-2">
+              <label class="form-label">تشخیص اصلی / علت بستری (Working Diagnosis)</label>
+              <input type="text" id="soapPtDiagnosis" class="input-text" placeholder="مثال: آپاندیسیت حاد پرفوره، ترومای نافذ شکم..." />
+            </div>
+            <div class="form-group mb-0 col-span-2">
+              <label class="form-label">عمل جراحی / پروسیجر انجام‌شده (Procedure)</label>
+              <input type="text" id="soapPtProcedure" class="input-text" placeholder="مثال: لاپاراتومی اکسپلوراتور و آپاندکتومی..." />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">روز بستری (HD #)</label>
+              <input type="number" id="soapPtHd" class="input-text" value="1" min="1" placeholder="روز بستری" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">روز پس از عمل/تروما</label>
+              <div class="input-compound">
+                <select id="soapPtPodType" class="input-select" style="max-width: 110px;">
+                  <option value="POD">POD #</option>
+                  <option value="PTD">PTD #</option>
+                  <option value="Pre-Op">Pre-Op</option>
+                </select>
+                <input type="number" id="soapPtPod" class="input-text" value="1" min="0" placeholder="روز" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= S — Subjective ================= -->
+        <div class="clinical-card soap-card" id="soapCardSubjective">
+          <div class="card-header-styled">
+            <div class="card-title-group">
+              <span class="card-num-badge">S</span>
+              <h3 class="card-title">S — Subjective (گزارش ۲۴ ساعت گذشته و علائم فعلی)</h3>
+            </div>
+            <span class="card-badge-info">تمرکز ۱۰۰٪ بر سیر شبانه‌روز اخیر</span>
+          </div>
+
+          <div class="soap-card-body">
+            <!-- 1. سیر و تغییر کلی نسبت به دیروز -->
+            <div class="form-group">
+              <label class="form-label">۱. وضعیت و سیر کلی بیمار نسبت به دیروز (Overall Clinical Trend):</label>
+              <div class="soap-chip-group" data-soap-target="subjective.overallTrend">
+                <button type="button" class="soap-chip active" data-val="بهبود کلی علائم نسبت به دیروز">✓ بهبود کلی علائم نسبت به دیروز (Improved)</button>
+                <button type="button" class="soap-chip" data-val="بدون تغییر بارز / وضعیت مشابه دیروز">بدون تغییر بارز / وضعیت مشابه دیروز (Stationary)</button>
+                <button type="button" class="soap-chip" data-val="بدتر شدن علائم یا شکایت جدید">⚠️ بدتر شدن علائم یا بروز شکایت جدید (Deteriorated)</button>
+              </div>
+            </div>
+
+            <!-- 2. پنج شاخص حیاتی پس از عمل جراحی -->
+            <div class="soap-indicators-grid">
+              
+              <!-- ۱. وضعیت درد -->
+              <div class="soap-indicator-box">
+                <label class="form-label">درد بیمار در ۲۴ ساعت گذشته (Pain Control):</label>
+                <div class="soap-chip-group compact" data-soap-target="subjective.painStatus">
+                  <button type="button" class="soap-chip active" data-val="درد خفیف و کنترل‌شده با مسکن در محل عمل">درد خفیف و کنترل‌شده با مسکن</button>
+                  <button type="button" class="soap-chip" data-val="درد متوسط تا شدید نیازمند دوز اضافی آنالژزیک">درد متوسط تا شدید (نیازمند مسکن بیشتر)</button>
+                  <button type="button" class="soap-chip" data-val="فاقد هرگونه درد و آرام (Pain-free)">فاقد هرگونه درد و آرام (Pain-free)</button>
+                </div>
+                <input type="text" id="soapPainDetail" class="input-text mt-1" placeholder="جزئیات درد، نمره VAS یا محل انتشار (اختیاری)..." />
+              </div>
+
+              <!-- ۲. تغذیه و تحمل خوراکی -->
+              <div class="soap-indicator-box">
+                <label class="form-label">وضعیت تغذیه و تحمل خوراکی (Diet Tolerance):</label>
+                <div class="soap-chip-group compact" data-soap-target="subjective.dietTolerance">
+                  <button type="button" class="soap-chip active" data-val="تحمل خوب مایعات صاف (Clear Liquids Tolerated)">تحمل مایعات صاف (Clear Liquids)</button>
+                  <button type="button" class="soap-chip" data-val="NPO کامل و بدون تحمل خوراکی">NPO کامل و بدون تحمل خوراکی</button>
+                  <button type="button" class="soap-chip" data-val="تحمل رژیم غذایی معمولی بدون تهوع (Regular Diet Tolerated)">تحمل رژیم معمولی (Regular Diet)</button>
+                  <button type="button" class="soap-chip" data-val="تغذیه از طریق لوله معده (NGT Feeding Tolerated)">تغذیه با سوند معده (NGT)</button>
+                </div>
+              </div>
+
+              <!-- ۳. عملکرد روده و دفع گاز/مدفوع -->
+              <div class="soap-indicator-box">
+                <label class="form-label">عملکرد روده و دفع (Bowel Function):</label>
+                <div class="soap-bipolar-row">
+                  <div class="soap-bipolar-group">
+                    <span class="bipolar-title">دفع گاز (Flatus):</span>
+                    <div class="soap-bipolar-pair">
+                      <button type="button" class="soap-bipolar-btn active-pos" id="soapFlatusPos" data-bipolar-target="subjective.flatus" data-val="1">+ دفع گاز داشته</button>
+                      <button type="button" class="soap-bipolar-btn" id="soapFlatusNeg" data-bipolar-target="subjective.flatus" data-val="-1">− عدم دفع گاز</button>
+                    </div>
+                  </div>
+                  <div class="soap-bipolar-group">
+                    <span class="bipolar-title">دفع مدفوع (Stool / BM):</span>
+                    <div class="soap-bipolar-pair">
+                      <button type="button" class="soap-bipolar-btn" id="soapBmPos" data-bipolar-target="subjective.bowelMovement" data-val="1">+ دفع مدفوع داشته</button>
+                      <button type="button" class="soap-bipolar-btn active-neg" id="soapBmNeg" data-bipolar-target="subjective.bowelMovement" data-val="-1">− عدم دفع مدفوع</button>
+                    </div>
+                  </div>
+                </div>
+                <input type="text" id="soapBowelDetail" class="input-text mt-1" placeholder="توضیحات دفع (قوام، اسهال، تعداد دفعات)..." />
+              </div>
+
+              <!-- ۵. تحرک و راه رفتن -->
+              <div class="soap-indicator-box">
+                <label class="form-label">تحرک و راه رفتن در بخش (Ambulation):</label>
+                <div class="soap-chip-group compact" data-soap-target="subjective.ambulation">
+                  <button type="button" class="soap-chip active" data-val="خارج شدن از تخت و راه رفتن در بخش (Out of Bed / Ambulating)">خارج شدن از تخت و راه رفتن در بخش (Ambulating)</button>
+                  <button type="button" class="soap-chip" data-val="نشستن لبه تخت (Dangling at bedside)">نشستن لبه تخت (Dangling)</button>
+                  <button type="button" class="soap-chip" data-val="استراحت مطلق در تخت (CBR / Bedridden)">استراحت مطلق در تخت (CBR)</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- ۴. علائم گوارشی، تنفسی و ادراری شبانه‌روز گذشته (تگ‌های دوقطبی) -->
+            <div class="form-group mt-2">
+              <label class="form-label">علائم شبانه‌روز گذشته (Overnight Symptoms Checklist):</label>
+              <div class="soap-symptoms-bipolar-grid">
+                
+                <!-- تهوع و استفراغ -->
+                <div class="soap-symptom-item" data-sym-key="nausea_vomiting" data-label="تهوع و استفراغ">
+                  <span class="sym-name">تهوع و استفراغ</span>
+                  <div class="soap-bipolar-pair">
+                    <button type="button" class="soap-bipolar-btn" data-sym-val="1">+ تهوع/استفراغ</button>
+                    <button type="button" class="soap-bipolar-btn active-neg" data-sym-val="-1">− بدون تهوع</button>
+                  </div>
+                </div>
+
+                <!-- تب و لرز شبانه -->
+                <div class="soap-symptom-item" data-sym-key="fever_chills" data-label="تب و لرز شبانه">
+                  <span class="sym-name">تب و لرز شبانه</span>
+                  <div class="soap-bipolar-pair">
+                    <button type="button" class="soap-bipolar-btn" data-sym-val="1">+ تب و لرز</button>
+                    <button type="button" class="soap-bipolar-btn active-neg" data-sym-val="-1">− فاقد تب و لرز</button>
+                  </div>
+                </div>
+
+                <!-- تنگی نفس یا درد قفسه سینه -->
+                <div class="soap-symptom-item" data-sym-key="dyspnea_cp" data-label="تنگی نفس یا درد قفسه سینه">
+                  <span class="sym-name">تنگی نفس / درد سینه</span>
+                  <div class="soap-bipolar-pair">
+                    <button type="button" class="soap-bipolar-btn" data-sym-val="1">+ تنگی نفس/درد</button>
+                    <button type="button" class="soap-bipolar-btn active-neg" data-sym-val="-1">− بدون تنگی نفس</button>
+                  </div>
+                </div>
+
+                <!-- وضعیت دفع ادرار -->
+                <div class="soap-symptom-item" data-sym-key="dysuria_voiding" data-label="دفع ادرار خودبه‌خودی و بدون سوزش">
+                  <span class="sym-name">دفع ادرار</span>
+                  <div class="soap-bipolar-pair">
+                    <button type="button" class="soap-bipolar-btn active-pos" data-sym-val="1">+ ادرار خودبه‌خودی</button>
+                    <button type="button" class="soap-bipolar-btn" data-sym-val="-1">− دیزوری / سوند فولی</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ۳. توضیحات رویدادهای شب گذشته -->
+            <div class="form-group mt-2">
+              <label class="form-label">توضیحات تکمیلی رویدادهای شب گذشته (Overnight Events):</label>
+              <textarea id="soapNarrativeNote" class="input-textarea" rows="2" placeholder="افت یا نوسان فشارخون، ترانسفوزیون خون، آرام‌بخش اضافه، یا رویدادهای قابل توجه دیگر..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= O — Objective ================= -->
+        <div class="clinical-card soap-card" id="soapCardObjective">
+          <div class="card-header-styled">
+            <div class="card-title-group">
+              <span class="card-num-badge">O</span>
+              <h3 class="card-title">O — Objective (علائم حیاتی، بیلان، درن‌ها، معاینه و آزمایشگاه امروز)</h3>
+            </div>
+            <span class="card-badge-info">یافته‌های عینی و ترند آزمایشگاه</span>
+          </div>
+
+          <div class="soap-card-body">
+            
+            <!-- ۱. علائم حیاتی و Tmax -->
+            <div class="form-group">
+              <label class="form-label">۱. علائم حیاتی امروز و حداکثر دمای ۲۴ ساعت گذشته (Vitals &amp; Tmax):</label>
+              <div class="soap-vitals-grid">
+                <div class="soap-vital-item">
+                  <label for="soapVitalBp">BP (mmHg)</label>
+                  <input type="text" id="soapVitalBp" class="input-text dir-ltr" placeholder="120/80" />
+                </div>
+                <div class="soap-vital-item">
+                  <label for="soapVitalPr">PR (/min)</label>
+                  <input type="number" id="soapVitalPr" class="input-text dir-ltr" placeholder="76" />
+                </div>
+                <div class="soap-vital-item">
+                  <label for="soapVitalRr">RR (/min)</label>
+                  <input type="number" id="soapVitalRr" class="input-text dir-ltr" placeholder="16" />
+                </div>
+                <div class="soap-vital-item">
+                  <label for="soapVitalTemp">Temp (°C)</label>
+                  <input type="text" id="soapVitalTemp" class="input-text dir-ltr" placeholder="36.8" />
+                </div>
+                <div class="soap-vital-item highlight-temp">
+                  <label for="soapVitalTmax">Tmax 24h (°C)</label>
+                  <input type="text" id="soapVitalTmax" class="input-text dir-ltr" placeholder="37.2" />
+                </div>
+                <div class="soap-vital-item">
+                  <label for="soapVitalSpo2">SpO2 (%)</label>
+                  <input type="number" id="soapVitalSpo2" class="input-text dir-ltr" placeholder="98" />
+                </div>
+                <div class="soap-vital-item col-span-2">
+                  <label for="soapVitalHemodynamics">وضعیت همودینامیک</label>
+                  <select id="soapVitalHemodynamics" class="input-select">
+                    <option value="همودینامیک پایدار (Stable)">همودینامیک پایدار (Stable)</option>
+                    <option value="ناپایدار / نیازمند وازوپرسور (Unstable)">ناپایدار / نیازمند وازوپرسور (Unstable)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ۲. بیلان مایعات و جدول پویای لوله‌ها و درن‌ها -->
+            <div class="form-group mt-2">
+              <label class="form-label">۲. بیلان مایعات و لوله‌ها در ۲۴ ساعت گذشته (I/O &amp; Tubes):</label>
+              <div class="soap-io-grid">
+                <div class="soap-io-item">
+                  <label for="soapIntake24h">جذب ۲۴ ساعته (Intake cc)</label>
+                  <input type="number" id="soapIntake24h" class="input-text dir-ltr" placeholder="مثلاً: 2500" />
+                </div>
+                <div class="soap-io-item">
+                  <label for="soapUrineOutput24h">برون‌ده ادراری (Urine Output cc)</label>
+                  <input type="number" id="soapUrineOutput24h" class="input-text dir-ltr" placeholder="مثلاً: 1800" />
+                </div>
+                <div class="soap-io-item">
+                  <label for="soapNgtOutput24h">برون‌ده NGT (حجم و ماهیت)</label>
+                  <input type="text" id="soapNgtOutput24h" class="input-text" placeholder="مثلاً: 150cc صفراوی / بدون ترشح" />
+                </div>
+              </div>
+
+              <!-- Drains Tracker -->
+              <div class="soap-drains-section mt-2">
+                <div class="soap-drains-header">
+                  <span class="drains-title">ردیاب درن‌های جراحی و چست‌تیوب (Surgical Drains &amp; Chest Tubes):</span>
+                  <button type="button" class="btn btn-secondary btn-sm" id="soapBtnAddDrain">
+                    <span>➕ افزودن درن جراحی / چست‌تیوب</span>
+                  </button>
+                </div>
+                <div class="soap-drains-list" id="soapDrainsList">
+                  <!-- Drains injected dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- ۳. معاینه فیزیکی متمرکز روزانه -->
+            <div class="form-group mt-2">
+              <div class="soap-exam-header">
+                <label class="form-label mb-0">۳. معاینه فیزیکی متمرکز امروز (Focused Daily Exam):</label>
+                <button type="button" class="btn btn-outline-success btn-sm" id="soapBtnPresetNormalExam">
+                  <span>✓ تنظیم خودکار معاینه عمومی، قلب، ریه و شکم پایدار و نرمال</span>
+                </button>
+              </div>
+
+              <div class="soap-exam-fields-grid mt-1">
+                <div class="form-group mb-1">
+                  <label class="form-label-xs">عمومی، هوشیاری و قلب/ریه:</label>
+                  <input type="text" id="soapExamGeneralCardio" class="input-text" value="بیمار هوشیار (GCS=15)، سمع ریه‌ها دوطرفه شفاف، سمع قلب نرمال بدون سوفل." />
+                </div>
+                <div class="form-group mb-1">
+                  <label class="form-label-xs">معاینه شکم امروز:</label>
+                  <input type="text" id="soapExamAbdomen" class="input-text" value="شکم نرم و بدون دیستانسیون، تندرنس خفیف محدود به برش جراحی، صداهای روده‌ای نرمال برقرار (BS+)." />
+                </div>
+                <div class="form-group mb-1">
+                  <label class="form-label-xs">معاینه زخم جراحی و پانسمان (Wound &amp; Dressing):</label>
+                  <div class="soap-wound-presets mb-1">
+                    <button type="button" class="soap-mini-preset active" data-target="#soapExamWound" data-text="پانسمان تمیز و خشک (CDI)، بدون ترشح یا اریتم جدار.">CDI (تمیز و خشک)</button>
+                    <button type="button" class="soap-mini-preset" data-target="#soapExamWound" data-text="زخم جراحی تمیز، لبه‌ها به هم چسبیده، بدون اریتم یا ترشح.">زخم تمیز بدون اریتم</button>
+                    <button type="button" class="soap-mini-preset" data-target="#soapExamWound" data-text="ترشح سروزی خفیف از لبه پانسمان بدون اریتم قابل توجه.">ترشح سروزی خفیف</button>
+                    <button type="button" class="soap-mini-preset text-danger" data-target="#soapExamWound" data-text="اریتم و تورم در حاشیه زخم با ترشح چرکی مشکوک به SSI.">اریتم / ترشح چرکی</button>
+                    <button type="button" class="soap-mini-preset text-danger" data-target="#soapExamWound" data-text="باز شدن خط بخیه جراحی (Dehiscence) با نمایان شدن لایه‌های زیرین.">دیسنس زخم</button>
+                  </div>
+                  <input type="text" id="soapExamWound" class="input-text" value="پانسمان تمیز و خشک (CDI)، بدون ترشح یا اریتم جدار." />
+                </div>
+                <div class="form-group mb-1">
+                  <label class="form-label-xs">معاینه اندام‌ها و غربالگری روزانه DVT:</label>
+                  <input type="text" id="soapExamExtremities" class="input-text" value="اندام‌ها گرم، نبض‌ها قرینه، بدون ادم یا تندرنس ساق (DVT منفی)." />
+                </div>
+                <div class="form-group mb-0">
+                  <label class="form-label-xs">سایر یافته‌های معاینه موضعی (اختیاری):</label>
+                  <input type="text" id="soapExamNote" class="input-text" placeholder="مثلاً: معاینه محل کاتتر ورید مرکزی تمیز، بدون فلبیت..." />
+                </div>
+              </div>
+            </div>
+
+            <!-- ۴. آزمایش‌ها و پاراکلینیک جدید امروز با مقایسه خودکار -->
+            <div class="form-group mt-2">
+              <label class="form-label">۴. آزمایش‌ها و پاراکلینیک جدید امروز با ترند خودکار (Today's Labs &amp; Auto-Trends):</label>
+              <div class="soap-labs-grid">
+                
+                <div class="soap-lab-card" data-lab="wbc">
+                  <div class="lab-title-row">
+                    <span class="lab-name">WBC</span>
+                    <span class="soap-lab-trend" id="soapTrend_wbc"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="wbc" placeholder="مثلاً: 9.2" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="hb">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Hb</span>
+                    <span class="soap-lab-trend" id="soapTrend_hb"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="hb" placeholder="مثلاً: 12.8" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="plt">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Plt</span>
+                    <span class="soap-lab-trend" id="soapTrend_plt"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="plt" placeholder="مثلاً: 220" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="cr">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Cr</span>
+                    <span class="soap-lab-trend" id="soapTrend_cr"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="cr" placeholder="مثلاً: 0.9" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="na">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Na</span>
+                    <span class="soap-lab-trend" id="soapTrend_na"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="na" placeholder="مثلاً: 139" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="k">
+                  <div class="lab-title-row">
+                    <span class="lab-name">K</span>
+                    <span class="soap-lab-trend" id="soapTrend_k"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="k" placeholder="مثلاً: 4.1" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="bs">
+                  <div class="lab-title-row">
+                    <span class="lab-name">BS</span>
+                    <span class="soap-lab-trend" id="soapTrend_bs"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bs" placeholder="مثلاً: 110" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="ast">
+                  <div class="lab-title-row">
+                    <span class="lab-name">AST</span>
+                    <span class="soap-lab-trend" id="soapTrend_ast"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="ast" placeholder="مثلاً: 24" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="alt">
+                  <div class="lab-title-row">
+                    <span class="lab-name">ALT</span>
+                    <span class="soap-lab-trend" id="soapTrend_alt"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="alt" placeholder="مثلاً: 28" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="alp">
+                  <div class="lab-title-row">
+                    <span class="lab-name">ALP</span>
+                    <span class="soap-lab-trend" id="soapTrend_alp"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="alp" placeholder="مثلاً: 160" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="bili_t">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Bili T</span>
+                    <span class="soap-lab-trend" id="soapTrend_bili_t"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bili_t" placeholder="مثلاً: 0.8" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="bili_d">
+                  <div class="lab-title-row">
+                    <span class="lab-name">Bili D</span>
+                    <span class="soap-lab-trend" id="soapTrend_bili_d"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bili_d" placeholder="مثلاً: 0.2" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="crp">
+                  <div class="lab-title-row">
+                    <span class="lab-name">CRP</span>
+                    <span class="soap-lab-trend" id="soapTrend_crp"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="crp" placeholder="مثلاً: 14" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="esr">
+                  <div class="lab-title-row">
+                    <span class="lab-name">ESR</span>
+                    <span class="soap-lab-trend" id="soapTrend_esr"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="esr" placeholder="مثلاً: 18" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="pt">
+                  <div class="lab-title-row">
+                    <span class="lab-name">PT</span>
+                    <span class="soap-lab-trend" id="soapTrend_pt"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="pt" placeholder="مثلاً: 13.0" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="inr">
+                  <div class="lab-title-row">
+                    <span class="lab-name">INR</span>
+                    <span class="soap-lab-trend" id="soapTrend_inr"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="inr" placeholder="مثلاً: 1.05" />
+                </div>
+
+              </div>
+
+              <div class="form-group mt-2 mb-0">
+                <label class="form-label-xs">یافته تصویربرداری، کشت، پاتولوژی یا مشاوره جدید امروز:</label>
+                <input type="text" id="soapNewParaclinicNote" class="input-text" placeholder="مثال: سونوگرافی کنترل فاقد مایع آزاد است، کشت ادرار منفی، مشاوره قلب تایید ادامه داروها..." />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= A — Assessment ================= -->
+        <div class="clinical-card soap-card" id="soapCardAssessment">
+          <div class="card-header-styled">
+            <div class="card-title-group">
+              <span class="card-num-badge">A</span>
+              <h3 class="card-title">A — Assessment (ارزیابی بالینی یک‌خطی و وضعیت بهبودی)</h3>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="soapBtnAutoAssessment">
+              <span>⚡ تولید خودکار Assessment استاندارد</span>
+            </button>
+          </div>
+
+          <div class="soap-card-body">
+            
+            <!-- وضعیت کلی سیر بیمار امروز -->
+            <div class="form-group">
+              <label class="form-label">وضعیت کلی سیر بیمار امروز (Clinical Trajectory):</label>
+              <div class="soap-chip-group" data-soap-target="assessment.clinicalStatus">
+                <button type="button" class="soap-chip active" data-val="سیر بهبودی مناسب و پایدار (Improving / Uneventful Recovery)">✓ سیر بهبودی مناسب و پایدار (Improving / Uneventful)</button>
+                <button type="button" class="soap-chip" data-val="وضعیت پایدار، نیازمند ادامه پایش و تکمیل ورکاپ (Stable / Ongoing Workup)">وضعیت پایدار، نیازمند ادامه پایش و ورکاپ (Stable)</button>
+                <button type="button" class="soap-chip text-danger" data-val="بروز عارضه یا ناپایداری نیازمند مداخله (Complicated / Guarded)">⚠️ بروز عارضه یا ناپایداری نیازمند مداخله (Complicated)</button>
+              </div>
+            </div>
+
+            <!-- خلاصه متنی ارزیابی -->
+            <div class="form-group mb-0">
+              <label class="form-label">جمله علمی خلاصه وضعیت امروز (One-Sentence Clinical Synthesis):</label>
+              <textarea id="soapAssessmentSummary" class="input-textarea" rows="3" placeholder="جمله علمی استاندارد ارزیابی روزانه (با زدن دکمه بالا خودکار ساخته می‌شود)..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= P — Plan ================= -->
+        <div class="clinical-card soap-card" id="soapCardPlan">
+          <div class="card-header-styled">
+            <div class="card-title-group">
+              <span class="card-num-badge">P</span>
+              <h3 class="card-title">P — Plan (پلن اجرایی ساختاریافته در ۷ محور جراحی)</h3>
+            </div>
+            <span class="card-badge-info">چک‌لیست ایمنی جراحی و دستورات روزانه</span>
+          </div>
+
+          <div class="soap-card-body">
+            
+            <!-- ۷ محور استاندارد پلن جراحی -->
+            <div class="soap-plan-sections-grid">
+              
+              <!-- ۱. رژیم غذایی و مایع‌درمانی -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۱. رژیم غذایی و مایع‌درمانی (Diet &amp; IV Fluids)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه NPO و سرم‌تراپی نگهدارنده">+ ادامه NPO و سرم نگهدارنده</button>
+                  <button type="button" class="soap-plan-pill" data-plan="شروع رژیم مایعات صاف (Clear Liquid Diet)">+ شروع رژیم مایعات صاف (Clear Liquids)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="پیشرفت رژیم به نرم / معمولی (Advance Diet as Tolerated)">+ پیشرفت رژیم به معمولی (Advance Diet)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="کاهش یا قطع سرم (D/C IV Fluids / Heparin Lock)">+ قطع سرم (D/C IV Fluids)</button>
+                </div>
+              </div>
+
+              <!-- ۲. مدیریت لوله‌ها، درن‌ها و زخم -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۲. لوله‌ها، درن‌ها و مراقبت زخم (Tubes, Drains &amp; Wound)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="تعویض پانسمان روزانه و شستشوی زخم">+ تعویض پانسمان روزانه و شستشو</button>
+                  <button type="button" class="soap-plan-pill" data-plan="خارج کردن سوند فولی (D/C Foley Catheter)">+ خارج کردن سوند فولی (D/C Foley)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="خارج کردن لوله معده (D/C NGT)">+ خارج کردن لوله معده (D/C NGT)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="خارج کردن درن جراحی (D/C Drain)">+ خارج کردن درن جراحی (D/C Drain)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه پایش دقیق بیلان I/O و دبی درن">+ ادامه پایش دقیق بیلان I/O و دبی درن</button>
+                </div>
+              </div>
+
+              <!-- ۳. داروها، آنتی‌بیوتیک و تسکین درد -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۳. داروها، آنتی‌بیوتیک و تسکین درد (Meds &amp; Antibiotics)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه آنتی‌بیوتیک‌تراپی فعلی">+ ادامه آنتی‌بیوتیک‌تراپی</button>
+                  <button type="button" class="soap-plan-pill" data-plan="قطع آنتی‌بیوتیک پروفیلاکسی پس از عمل">+ قطع آنتی‌بیوتیک پروفیلاکسی</button>
+                  <button type="button" class="soap-plan-pill" data-plan="کنترل درد با مسکن (Apotel / NSAID / Opioid PRN)">+ کنترل درد با مسکن (Apotel/NSAID PRN)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="ازسرگیری داروهای زمینه‌ای قلبی/فشارخون/دیابت بیمار">+ ازسرگیری داروهای زمینه‌ای بیمار</button>
+                </div>
+                <div class="soap-plan-inline-input mt-1">
+                  <input type="text" id="soapAbxDetailInput" class="input-text" placeholder="نام آنتی‌بیوتیک و روز چندم مصرف (مثلاً سفتری‌اکسون + مترونیدازول - Day #3)..." />
+                </div>
+              </div>
+
+              <!-- ۴. پروفیلاکسی ترومبوآمبولی و زخم استرس -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۴. پیشگیری DVT و محافظت معده (FAST HUGS Prophylaxis)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه پروفیلاکسی ترومبوآمبولی (هپارین/انوکساپارین/جوراب واریس)">+ ادامه پروفیلاکسی DVT (هپارین/انوکسا)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه پروفیلاکسی زخم استرس (پنتوپرازول)">+ ادامه پنتوپرازول (پروفیلاکسی گوارشی)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="تشویق به راه رفتن زودهنگام در بخش (Early Ambulation) و فیزیوتراپی تنفسی">+ راه رفتن زودهنگام و اسپیرومتری تشویقی</button>
+                </div>
+              </div>
+
+              <!-- ۵. پیگیری پاراکلینیک و مشاوره‌ها -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۵. پیگیری پاراکلینیک و مشاوره‌ها (Labs &amp; Consults)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="چک مجدد CBC و الکترولیت‌ها فردا صبح">+ چک مجدد CBC و الکترولیت‌ها فردا صبح</button>
+                  <button type="button" class="soap-plan-pill" data-plan="پیگیری جواب پاتولوژی، کشت و تصویربرداری">+ پیگیری جواب پاتولوژی و کشت</button>
+                  <button type="button" class="soap-plan-pill" data-plan="انجام مشاوره تخصصی">+ انجام مشاوره تخصصی</button>
+                </div>
+              </div>
+
+              <!-- ۶. پلن جراحی یا ترخیص -->
+              <div class="soap-plan-category">
+                <h4 class="plan-cat-title">۶. تصمیم‌گیری نهایی یا ترخیص (Disposition &amp; Discharge)</h4>
+                <div class="soap-plan-pills">
+                  <button type="button" class="soap-plan-pill" data-plan="ادامه بستری و مراقبت در بخش جراحی">+ ادامه بستری و پایش در بخش</button>
+                  <button type="button" class="soap-plan-pill" data-plan="آماده‌سازی جهت انتقال به اتاق عمل (Pre-Op Prep)">+ آماده‌سازی جهت اتاق عمل (Pre-Op Prep)</button>
+                  <button type="button" class="soap-plan-pill" data-plan="قابل ترخیص در صورت تداوم پایداری با آموزش علائم هشدار و نسخه سرپایی">+ قابل ترخیص در صورت پایداری با آموزش و نسخه</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- سایر دستورات و توضیحات تکمیلی پلن -->
+            <div class="form-group mt-2 mb-0">
+              <label class="form-label">دستورات تکمیلی، دوز داروها و یادداشت آزاد پلن امروز:</label>
+              <textarea id="soapCustomPlanText" class="input-textarea" rows="3" placeholder="دستورات دقیق دارویی، زمان‌بندی ترخیص، یا نکات اختصاصی پرونده..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SOAP Bottom Action Toolbar -->
+        <div class="soap-action-toolbar">
+          <button type="button" class="btn btn-primary" id="soapBtnSaveCase">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <span>💾 ذخیره در پرونده بیمار / شیفت</span>
+          </button>
+          
+          <button type="button" class="btn btn-secondary" id="soapBtnCopy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>📋 کپی متن SOAP</span>
+          </button>
+
+          <button type="button" class="btn btn-cloud-sync" id="soapBtnCloudSync">
+            <span>📊</span>
+            <span>ثبت SOAP در Google Sheets</span>
+          </button>
+
+          <button type="button" class="btn btn-danger btn-sm" id="soapBtnReset">
+            <span>🔄 پاکسازی فرم SOAP</span>
+          </button>
+        </div>
+
+      </div>
+
     </main>
 
     <!-- Left Column: 40% Width Sticky Note Preview (Desktop/Tablet) -->
@@ -997,7 +1630,7 @@
     <div class="preview-top-toolbar">
       <div class="modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
-        <span>پیش‌نمایش زنده شرح‌حال v0.8-Omnisearch</span>
+        <span>پیش‌نمایش زنده شرح‌حال v0.9-SOAP-Engine</span>
       </div>
       <div class="preview-actions">
         <button class="btn btn-secondary btn-sm" id="btnCopyNoteMobile">کپی متن</button>
@@ -1151,13 +1784,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=0.8.3"></script>
+  <script type="module" src="js/app.js?v=0.9.0"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=0.8.3').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=0.9.0').then((reg) => {
           console.log('[PWA v0.8] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();

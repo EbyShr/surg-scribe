@@ -4523,3 +4523,645 @@ html[dir="ltr"] .fh-vital-btn:first-child {
   padding: 0.85rem;
   border-top: 1px solid var(--border-subtle, #e2e8f0);
 }
+
+
+/* ==========================================================================
+   v0.9-SOAP-Engine: Daily Progress Note Styles
+   ========================================================================== */
+
+/* Top App Mode Switcher */
+.app-mode-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid var(--border-medium, #334155);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.mode-switch-btn:hover {
+  color: var(--text-primary, #f8fafc);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-switch-btn.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.45);
+}
+
+.mode-switch-btn#btnModeSoap.active {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  border-color: rgba(45, 212, 191, 0.4);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.45);
+}
+
+.mode-switch-btn .mode-icon {
+  font-size: 0.95rem;
+}
+
+/* SOAP Main Container */
+.soap-mode-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* Context Bar */
+.soap-context-bar {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid var(--border-medium, #334155);
+  border-radius: var(--radius-md, 8px);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.soap-context-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.soap-context-mode-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.soap-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-secondary, #cbd5e1);
+  user-select: none;
+}
+
+.soap-radio-label input[type="radio"] {
+  accent-color: #0d9488;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.soap-linked-patient-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 280px;
+}
+
+.soap-context-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.soap-context-fields-grid .col-span-2 {
+  grid-column: span 2;
+}
+
+/* S-O-A-P Cards */
+.soap-card {
+  background: var(--bg-surface, #1e293b);
+  border: 1px solid var(--border-medium, #334155);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.soap-card .card-header-styled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid var(--border-subtle, #334155);
+}
+
+.card-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: var(--radius-xs, 4px);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.3);
+}
+
+#soapCardSubjective .card-num-badge { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
+#soapCardObjective .card-num-badge { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); }
+#soapCardAssessment .card-num-badge { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
+#soapCardPlan .card-num-badge { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+
+.card-badge-info {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted, #94a3b8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.soap-card-body {
+  padding: 1.15rem 1.25rem;
+}
+
+/* Chip Groups */
+.soap-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.soap-chip-group.compact {
+  gap: 0.35rem;
+}
+
+.soap-chip {
+  padding: 0.4rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #cbd5e1);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-medium, #334155);
+  border-radius: var(--radius-xs, 4px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.soap-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #0d9488;
+  color: var(--text-primary, #ffffff);
+}
+
+.soap-chip.active {
+  background: #0d9488;
+  color: #ffffff;
+  border-color: #14b8a6;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.4);
+}
+
+.soap-chip.text-danger.active {
+  background: #ef4444;
+  border-color: #f87171;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+/* 5 Indicators Grid */
+.soap-indicators-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.soap-indicator-box {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Bipolar Row and Pairs */
+.soap-bipolar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.soap-bipolar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.bipolar-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+}
+
+.soap-bipolar-pair {
+  display: inline-flex;
+  border-radius: var(--radius-xs, 4px);
+  overflow: hidden;
+  border: 1px solid var(--border-medium, #334155);
+}
+
+.soap-bipolar-btn {
+  flex: 1;
+  padding: 0.35rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text-muted, #94a3b8);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.soap-bipolar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #ffffff);
+}
+
+.soap-bipolar-btn.active-pos {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.soap-bipolar-btn.active-neg {
+  background: #475569;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+/* Overnight Symptoms Grid */
+.soap-symptoms-bipolar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.soap-symptom-item {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xs, 4px);
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.soap-symptom-item .sym-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+/* Vitals & Tmax Grid */
+.soap-vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.65rem;
+}
+
+.soap-vital-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.soap-vital-item label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+}
+
+.soap-vital-item.highlight-temp input {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+/* Fluid Balance Grid */
+.soap-io-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+.soap-io-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.soap-io-item label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* Drains Tracker Section */
+.soap-drains-section {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px dashed var(--border-medium, #334155);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.85rem;
+}
+
+.soap-drains-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.drains-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.soap-drains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.drain-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: var(--radius-xs, 4px);
+  padding: 0.5rem 0.65rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.btn-remove-drain {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-xs, 4px);
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-remove-drain:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Exam Section */
+.soap-exam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.soap-wound-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.soap-mini-preset {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-xs, 4px);
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-medium, #334155);
+  color: var(--text-secondary, #cbd5e1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.soap-mini-preset:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #ffffff);
+}
+
+.soap-mini-preset.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+/* Today's Labs Matrix */
+.soap-labs-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.55rem;
+}
+
+.soap-lab-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: var(--radius-xs, 4px);
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lab-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.soap-lab-card .lab-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.soap-lab-trend {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 2px;
+  padding: 1px 4px;
+  display: none;
+}
+
+.soap-lab-trend.trend-visible {
+  display: inline-block;
+}
+
+.soap-lab-trend.up {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.soap-lab-trend.down {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.soap-lab-input {
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Plan 7 Axes */
+.soap-plan-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.soap-plan-category {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan-cat-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+.soap-plan-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.soap-plan-pill {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-medium, #334155);
+  color: var(--text-secondary, #cbd5e1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.soap-plan-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #8b5cf6;
+  color: #ffffff;
+}
+
+.soap-plan-pill.active {
+  background: #8b5cf6;
+  border-color: #a78bfa;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+}
+
+/* Bottom Action Toolbar */
+.soap-action-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--border-medium, #334155);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Responsive Overrides */
+@media (max-width: 1024px) {
+  .soap-context-fields-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .soap-indicators-grid {
+    grid-template-columns: 1fr;
+  }
+  .soap-symptoms-bipolar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .soap-vitals-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .soap-labs-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .soap-plan-sections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-mode-switcher .mode-text {
+    display: none;
+  }
+  .mode-switch-btn {
+    padding: 0.35rem 0.55rem;
+  }
+  .soap-context-fields-grid {
+    grid-template-columns: 1fr;
+  }
+  .soap-context-fields-grid .col-span-2 {
+    grid-column: span 1;
+  }
+  .soap-symptoms-bipolar-grid {
+    grid-template-columns: 1fr;
+  }
+  .soap-vitals-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .soap-io-grid {
+    grid-template-columns: 1fr;
+  }
+  .drain-item-row {
+    grid-template-columns: 1fr;
+  }
+  .soap-labs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

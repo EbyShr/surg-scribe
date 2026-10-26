@@ -33,7 +33,7 @@ export function normalizePersianClinicalText(text) {
  */
 export function sanitizeRecordForExport(rawState) {
   const cloned = JSON.parse(JSON.stringify(rawState || {}));
-  ['demographics', 'admission'].forEach((sec) => {
+  ['demographics', 'admission', 'context'].forEach((sec) => {
     if (cloned[sec]) {
       delete cloned[sec].fullName;
       delete cloned[sec].fatherName;
@@ -1418,4 +1418,153 @@ export function synthesizeProblemRepresentation(state) {
   }
 
   return parts.join(' ');
+}
+
+
+/**
+ * Generates Daily Progress Note according to SOAP standard
+ * v0.9-SOAP-Engine
+ */
+export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
+  const out = [];
+  const ctx = soapState.context || {};
+  const s = soapState.subjective || {};
+  const o = soapState.objective || {};
+  const a = soapState.assessment || {};
+  const p = soapState.plan || {};
+
+  // استخراج اطلاعات پایه از پرونده متصل یا هدر مستقل
+  const demo = linkedCaseState?.demographics || ctx;
+  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : 'بیمار';
+  const ageStr = demo.age ? `${demo.age} ساله` : '';
+  const diagStr = normalizePersianClinicalText(ctx.workingDiagnosis || linkedCaseState?.cc?.establishedDiagnosis || linkedCaseState?.cc?.patientQuote || 'بستری در بخش جراحی');
+  const procStr = normalizePersianClinicalText(ctx.procedureDone || '');
+  const hdStr = ctx.hdNumber ? `HD #${ctx.hdNumber}` : '';
+  const podStr = ctx.podNumber ? `${ctx.podType || 'POD'} #${ctx.podNumber}` : '';
+  const timelineBadge = [hdStr, podStr].filter(Boolean).join(' | ');
+
+  // 1. Header (فقط در نمایش محلی نام بیمار چاپ شود)
+  if (demo.fullName) {
+    out.push(`> **بیمار:** ${demo.fullName} (${ageStr}) | **تاریخ و ساعت ثبت پراگرس:** ${soapState.dateStr || new Date().toLocaleDateString('fa-IR')}`);
+  }
+  out.push(`### یادداشت سیر روزانه بیماری (Daily Progress Note — SOAP)`);
+  out.push(
+    `**مشخصات سیر:** بیمار ${genderWord} ${ageStr} | **تشخیص:** ${diagStr}${procStr ? ` | **عمل/پروسیجر:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
+  );
+
+  // 2. S — Subjective
+  out.push(`#### S — Subjective (گزارش ۲۴ ساعت گذشته و علائم فعلی)`);
+  const sParts = [];
+  if (s.overallTrend) sParts.push(`در ۲۴ ساعت گذشته، بیمار از نظر بالینی **${s.overallTrend}** داشته است`);
+  if (s.painStatus) sParts.push(`وضعیت درد: ${normalizePersianClinicalText(s.painStatus)}${s.painDetail ? ` (${normalizePersianClinicalText(s.painDetail)})` : ''}`);
+  if (s.dietTolerance) sParts.push(`وضعیت تغذیه: ${s.dietTolerance}`);
+
+  const bowelParts = [];
+  if (s.flatus === 1) bowelParts.push('دفع گاز برقرار است (+)');
+  else if (s.flatus === -1) bowelParts.push('دفع گاز نداشته است (−)');
+  if (s.bowelMovement === 1) bowelParts.push(`دفع مدفوع داشته است (+)${s.bowelDetail ? ` [${normalizePersianClinicalText(s.bowelDetail)}]` : ''}`);
+  else if (s.bowelMovement === -1) bowelParts.push('دفع مدفوع نداشته است (−)');
+  if (bowelParts.length > 0) sParts.push(`عملکرد روده: ${bowelParts.join('، ')}`);
+
+  if (s.ambulation) sParts.push(`وضعیت حرکتی: ${s.ambulation}`);
+
+  const posOvernight = [];
+  const negOvernight = [];
+  Object.entries(s.overnightSymptoms || {}).forEach(([k, val]) => {
+    const st = typeof val === 'object' ? val.state : val;
+    const lbl = val.label || k;
+    const det = val.detail ? ` (${normalizePersianClinicalText(val.detail)})` : '';
+    if (st === 1) posOvernight.push(`${lbl}${det}`);
+    if (st === -1) negOvernight.push(lbl);
+  });
+  if (posOvernight.length > 0) sParts.push(`شکایات مثبت شبانه‌روز اخیر: ${posOvernight.join('، ')}`);
+  if (negOvernight.length > 0) sParts.push(`عدم وجود ${negOvernight.join('، ')}`);
+  if (s.narrativeNote) sParts.push(normalizePersianClinicalText(s.narrativeNote));
+
+  out.push(`- ${sParts.join(' | ') || 'بیمار در ۲۴ ساعت گذشته شکایت حاد جدیدی نداشته است.'}.\n`);
+
+  // 3. O — Objective
+  out.push(`#### O — Objective (یافته‌های عینی، بیلان، درن‌ها، معاینه و آزمایشگاه امروز)`);
+  const v = o.vitals || {};
+  const vitalTokens = [];
+  if (v.bp) vitalTokens.push(`BP: ${v.bp} mmHg`);
+  if (v.pr) vitalTokens.push(`PR: ${v.pr} /min`);
+  if (v.rr) vitalTokens.push(`RR: ${v.rr} /min`);
+  if (v.temp) vitalTokens.push(`T: ${v.temp} °C`);
+  if (v.tmax) vitalTokens.push(`Tmax (24h): ${v.tmax} °C`);
+  if (v.spo2) vitalTokens.push(`SpO2: ${v.spo2}%`);
+  out.push(`- **علائم حیاتی (Vitals):** ${vitalTokens.join(' | ') || 'ثبت نشده'} ${v.hemodynamics ? `(${v.hemodynamics})` : ''}`);
+
+  // I/O & Drains
+  const ioTokens = [];
+  if (o.intake24h) ioTokens.push(`جذب ۲۴ ساعته (Intake): ${o.intake24h} cc`);
+  if (o.urineOutput24h) ioTokens.push(`برون‌ده ادراری (Urine Output): ${o.urineOutput24h} cc`);
+  if (o.ngtOutput24h) ioTokens.push(`برون‌ده NGT: ${o.ngtOutput24h}`);
+  if (ioTokens.length > 0) {
+    out.push(`- **بیلان مایعات و لوله‌ها (I/O & Tubes):** ${ioTokens.join(' | ')}`);
+  }
+
+  if (o.drains && o.drains.length > 0) {
+    const drainStrings = o.drains.map(
+      (d, idx) => `درن #${idx + 1} (${d.typeAndSite || 'جراحی'}): حجم ۲۴ ساعته **${d.volumeCc || '—'} cc** با ماهیت **${d.character || 'سروزی'}**`
+    );
+    out.push(`- **وضعیت درن‌ها (Surgical Drains):** ${drainStrings.join(' ؛ ')}`);
+  }
+
+  // Focused Physical Exam
+  const examParts = [];
+  if (o.generalAndCardioPulm) examParts.push(normalizePersianClinicalText(o.generalAndCardioPulm));
+  if (o.abdomenExam) examParts.push(`شکم: ${normalizePersianClinicalText(o.abdomenExam)}`);
+  if (o.woundAndDressing) examParts.push(`زخم و پانسمان: ${normalizePersianClinicalText(o.woundAndDressing)}`);
+  if (o.extremitiesDvt) examParts.push(`اندام‌ها: ${normalizePersianClinicalText(o.extremitiesDvt)}`);
+  if (o.examNote) examParts.push(normalizePersianClinicalText(o.examNote));
+  if (examParts.length > 0) {
+    out.push(`- **معاینه فیزیکی متمرکز امروز (Focused PE):** ${examParts.join(' | ')}.`);
+  }
+
+  // Labs with Trend comparison
+  const prevLabs = linkedCaseState?.paraclinics?.labs || o.previousBaselineLabs || {};
+  const todayLabStrings = [];
+  Object.entries(o.labs || {}).forEach(([labId, val]) => {
+    if (val !== undefined && val !== '') {
+      const prevVal = prevLabs[labId];
+      let trendStr = '';
+      if (prevVal !== undefined && prevVal !== '' && String(prevVal) !== String(val)) {
+        const nNow = parseFloat(val);
+        const nPrev = parseFloat(prevVal);
+        const arrow = !isNaN(nNow) && !isNaN(nPrev) ? (nNow > nPrev ? '↑' : '↓') : '';
+        trendStr = ` (قبلی: ${prevVal}${arrow})`;
+      }
+      todayLabStrings.push(`${labId.toUpperCase()}: **${val}**${trendStr}`);
+    }
+  });
+  if (todayLabStrings.length > 0) {
+    out.push(`- **آزمایش‌های جدید امروز (Today's Labs & Trends):** ${todayLabStrings.join(' | ')}`);
+  }
+  if (o.newParaclinicNote) {
+    out.push(`- **تصویربرداری / کشت / مشاوره جدید امروز:** ${normalizePersianClinicalText(o.newParaclinicNote)}`);
+  }
+
+  // 4. A — Assessment
+  out.push(`\n#### A — Assessment (ارزیابی بالینی امروز)`);
+  const autoAssessment = a.summaryText
+    ? normalizePersianClinicalText(a.summaryText)
+    : `بیمار ${genderWord} ${ageStr} با تشخیص ${diagStr}${procStr ? `، پس از ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}؛ در حال حاضر وضعیت عمومی و همودینامیک ${v.hemodynamics || 'پایدار'} داشته و در سیر ${a.clinicalStatus || 'بهبودی و پیگیری'} قرار دارد.`;
+  out.push(`- ${autoAssessment}\n`);
+
+  // 5. P — Plan
+  out.push(`#### P — Plan (پلن درمانی و اقدامات امروز)`);
+  const planItems = [...(p.selectedTags || [])];
+  if (p.customPlanText) {
+    p.customPlanText.split('\n').filter(Boolean).forEach((line) => planItems.push(normalizePersianClinicalText(line)));
+  }
+  if (planItems.length > 0) {
+    planItems.forEach((item, i) => {
+      out.push(`${i + 1}. ${item}`);
+    });
+  } else {
+    out.push(`1. ادامه اقدامات درمانی و پایش علائم حیاتی و بیلان مایعات.`);
+  }
+
+  return out.join('\n');
 }

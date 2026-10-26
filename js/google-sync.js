@@ -328,26 +328,37 @@ export class GoogleSheetsSyncEngine {
    */
   prepareCasePayload(clinicalState, explicitCaseId = null, generatedNote = '', metadataSnapshot = null) {
     const sanitizedState = sanitizeRecordForExport(clinicalState);
-    const demo = sanitizedState.demographics || sanitizedState.admission || {};
+    const isSoap = sanitizedState.recordType === 'SOAP_PROGRESS';
+    const demo = isSoap
+      ? (sanitizedState.context || {})
+      : (sanitizedState.demographics || sanitizedState.admission || {});
     const cc = sanitizedState.cc || sanitizedState.admission || {};
 
-    const caseId = explicitCaseId || sanitizedState.caseId || `SURG-${Date.now()}`;
-    const pathway = cc.pathway || sanitizedState.admissionPathway || 'emergency_symptom';
-    const chiefComplaint = cc.ccPhrase || cc.patientQuote || cc.selectedCategoryLabel || sanitizedState.chiefComplaint || 'شکایت جراحی';
+    const caseId = explicitCaseId || sanitizedState.caseId || (isSoap ? `SOAP-${Date.now()}` : `SURG-${Date.now()}`);
+    const pathway = isSoap
+      ? (sanitizedState.context?.procedureDone ? `پس از عمل (${sanitizedState.context.procedureDone})` : 'پراگرس نوت بخش')
+      : (cc.pathway || sanitizedState.admissionPathway || 'emergency_symptom');
+    const chiefComplaint = isSoap
+      ? (sanitizedState.context?.workingDiagnosis || 'پراگرس روزانه جراحی (SOAP)')
+      : (cc.ccPhrase || cc.patientQuote || cc.selectedCategoryLabel || sanitizedState.chiefComplaint || 'شکایت جراحی');
     const collector = this.config.collectorName || 'پزشک ثبت‌کننده';
     const nowIso = new Date().toISOString();
-    const vitals = sanitizedState.pe?.vitals || {};
+    const vitals = isSoap ? (sanitizedState.objective?.vitals || {}) : (sanitizedState.pe?.vitals || {});
     const vitalsStr = `BP: ${vitals.bp || '—'} | PR: ${vitals.pr || '—'} | RR: ${vitals.rr || '—'} | Temp: ${vitals.temp || '—'} | SpO2: ${vitals.spo2 || '—'}`;
-    const detailedFindings = extractDetailedFindings(sanitizedState);
+    const detailedFindings = isSoap
+      ? { positiveCount: 0, negativeCount: 0, positiveFindingsList: '', negativeFindingsList: '', summaryText: '' }
+      : extractDetailedFindings(sanitizedState);
 
     const firstPain = sanitizedState.hpi?.painList?.[0] || {};
     const painSite = firstPain.site || (firstPain.selectedRegions || []).join('، ') || '';
-    const painRegionPattern = `${painSite || '—'} (${firstPain.spatialPattern || 'لوکالیزه'})`;
-    const painSeverityDuration = `شدت: ${firstPain.severity !== undefined ? firstPain.severity : '—'}/10 | مدت: ${firstPain.duration || sanitizedState.hpi?.duration || '—'}`;
+    const painRegionPattern = isSoap ? (sanitizedState.subjective?.painStatus || '—') : `${painSite || '—'} (${firstPain.spatialPattern || 'لوکالیزه'})`;
+    const painSeverityDuration = isSoap ? (sanitizedState.subjective?.painDetail || '—') : `شدت: ${firstPain.severity !== undefined ? firstPain.severity : '—'}/10 | مدت: ${firstPain.duration || sanitizedState.hpi?.duration || '—'}`;
 
     return {
       action: 'record_case',
-      schemaVersion: 'v0.5-Surg',
+      schemaVersion: 'v0.9-Surg',
+      recordType: isSoap ? 'SOAP_PROGRESS' : 'ADMISSION_HP',
+      record_type: isSoap ? 'SOAP_PROGRESS' : 'ADMISSION_HP',
 
       // Primary Identifiers
       caseId: caseId,

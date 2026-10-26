@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v0.8.3-omnisearch-cache-v83';
+const CACHE_NAME = 'surg-v0.9.0-soap-engine-cache-v90';
 
 const STATIC_ASSETS = [
   './',
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v0.6] Pre-caching offline surgical assets');
+      console.log('[SW v0.9-SOAP] Pre-caching offline surgical assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -33,7 +33,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW v0.6] Removing old cache version:', key);
+            console.log('[SW v0.9-SOAP] Removing old cache version:', key);
             return caches.delete(key);
           }
         })
