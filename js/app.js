@@ -305,6 +305,111 @@ export function createDefaultClinicalState() {
 export let clinicalState = createDefaultClinicalState();
 
 /* ==========================================================================
+   v0.9-SOAP-Engine: Global State & Helper Singletons
+   ========================================================================== */
+export let currentAppMode = 'admission'; // 'admission' | 'soap'
+
+export function createDefaultSoapState() {
+  return {
+    recordType: 'SOAP_PROGRESS',
+    mode: 'linked', // 'linked' | 'standalone'
+    linkedCaseId: null,
+    dateStr: new Date().toLocaleDateString('fa-IR'),
+    context: {
+      fullName: '',
+      age: '',
+      gender: 'male',
+      workingDiagnosis: '',
+      procedureDone: '',
+      hdNumber: '1',
+      podType: 'POD',
+      podNumber: '1'
+    },
+    subjective: {
+      overallTrend: 'بهبود کلی علائم نسبت به دیروز',
+      painStatus: 'درد خفیف و کنترل‌شده با مسکن در محل عمل',
+      painDetail: '',
+      dietTolerance: 'تحمل خوب مایعات صاف (Clear Liquids Tolerated)',
+      flatus: 1, // 1: +, -1: -
+      bowelMovement: -1, // 1: +, -1: -
+      bowelDetail: '',
+      ambulation: 'خارج شدن از تخت و راه رفتن در بخش (Out of Bed / Ambulating)',
+      overnightSymptoms: {
+        nausea_vomiting: { state: -1, label: 'تهوع و استفراغ' },
+        fever_chills: { state: -1, label: 'تب و لرز شبانه' },
+        dyspnea_cp: { state: -1, label: 'تنگی نفس یا درد قفسه سینه' },
+        dysuria_voiding: { state: 1, label: 'دفع ادرار خودبه‌خودی و بدون سوزش' }
+      },
+      narrativeNote: ''
+    },
+    objective: {
+      vitals: {
+        bp: '',
+        pr: '',
+        rr: '',
+        temp: '',
+        tmax: '',
+        spo2: '',
+        hemodynamics: 'همودینامیک پایدار (Stable)'
+      },
+      intake24h: '',
+      urineOutput24h: '',
+      ngtOutput24h: '',
+      drains: [],
+      generalAndCardioPulm: 'بیمار هوشیار (GCS=15)، سمع ریه‌ها دوطرفه شفاف، سمع قلب نرمال بدون سوفل.',
+      abdomenExam: 'شکم نرم و بدون دیستانسیون، تندرنس خفیف محدود به برش جراحی، صداهای روده‌ای نرمال برقرار (BS+).',
+      woundAndDressing: 'پانسمان تمیز و خشک (CDI)، بدون ترشح یا اریتم جدار.',
+      extremitiesDvt: 'اندام‌ها گرم، نبض‌ها قرینه، بدون ادم یا تندرنس ساق (DVT منفی).',
+      examNote: '',
+      labs: {},
+      previousBaselineLabs: {},
+      newParaclinicNote: ''
+    },
+    assessment: {
+      summaryText: '',
+      clinicalStatus: 'سیر بهبودی مناسب و پایدار (Improving / Uneventful Recovery)'
+    },
+    plan: {
+      selectedTags: [],
+      customPlanText: ''
+    }
+  };
+}
+
+export let soapState = createDefaultSoapState();
+
+export function getLinkedOrCurrentCase() {
+  if (soapState.mode === 'linked' && soapState.linkedCaseId) {
+    if (soapState.linkedCaseId === clinicalState.caseId) {
+      return clinicalState;
+    }
+    try {
+      const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+      const found = list.find(c => c.caseId === soapState.linkedCaseId);
+      if (found) return found;
+    } catch (e) {}
+  }
+  return clinicalState;
+}
+
+export function getAllAvailableCases() {
+  const cases = [];
+  if (clinicalState && clinicalState.caseId) {
+    cases.push(clinicalState);
+  }
+  try {
+    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    list.forEach(c => {
+      if (!cases.some(existing => existing.caseId === c.caseId)) {
+        cases.push(c);
+      }
+    });
+  } catch (e) {}
+  return cases;
+}
+
+
+/* ==========================================================================
    UI Helpers & Notification Toasts
    ========================================================================== */
 function showToast(message, type = 'info') {
@@ -5771,187 +5876,10 @@ function initMobileBottomSheet() {
 /* ==========================================================================
    Master Dynamic UI Bootstrapper
    ========================================================================== */
-export function initApp() {
-  try {
-    initAdmissionPathwayHandlers();
-    initDemographicsHandlers();
-    initAddPainEpisodeHandler();
-    initPshHandlers();
-    initObGynHandlers();
-    initAddCustomDrugHandler();
-    initAhShFhHandlers();
-    initRosMasterNegativeHandler();
-    initPeVitalsHandlers();
-    initPeMasterNegativeHandler();
-    initMassExamHandlers();
-    initAtlsExamHandlers();
-    initSchemaOmnisearch();
-    initReasoningHandlers();
-    initSystemGapLoggers();
-    initNavigationTabs();
-    initExportAndCopy();
-    initAppSettings();
-    initShiftManager();
-    initCloudSyncUI();
-    initThemeToggle();
-    initMobileBottomSheet();
-    initAppModeSwitcher();
-    initSoapEngine();
-
-    loadSavedState();
-    syncDomFromState();
-    updateLivePreview();
-    updateShiftCasesCount();
-    console.log('[Surg-Scribe v0.6] Application initialized successfully.');
-  } catch (err) {
-    console.error('[Surg-Scribe] Error during initApp:', err ? (err.message + '\n' + err.stack) : 'unknown error');
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('surg:language-changed', (e) => {
-    const lang = e.detail?.lang || getCurrentLanguage();
-    renderArchetypeSelectorBar();
-    renderHpiPresentations();
-    renderHpiBasicSymptoms();
-    renderHpiUnlockableModules();
-    renderPmhCategories();
-    renderDhCategories();
-    renderRosGroups();
-    renderPeMandatoryPillars();
-    renderMassExamModule();
-    renderAtlsExamModule();
-    renderParaclinicModalityCards();
-    renderPainEpisodes();
-    updateLivePreview();
-    applyI18nToDOM(lang);
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-backdrop.open').forEach(m => {
-        m.classList.remove('open');
-        m.style.display = 'none';
-      });
-    }
-  });
-
-  // Reliable bootstrapper: if document is already parsed, run immediately; otherwise wait for event
-  if (document.readyState === 'loading') {
-    window.addEventListener('DOMContentLoaded', () => {
-      initApp();
-    });
-  } else {
-    initApp();
-  }
-}
-
 
 /* ==========================================================================
-   v0.9-SOAP-Engine Implementation
-   Dedicated Daily Progress Note (SOAP) Standard for Surgical & Inpatient Care
+   v0.9-SOAP-Engine: UI Handlers, Trend Tracking & Synthesis
    ========================================================================== */
-
-let currentAppMode = 'admission'; // 'admission' | 'soap'
-
-export function createDefaultSoapState() {
-  return {
-    recordType: 'SOAP_PROGRESS',
-    mode: 'linked', // 'linked' | 'standalone'
-    linkedCaseId: null,
-    dateStr: new Date().toLocaleDateString('fa-IR'),
-    context: {
-      fullName: '',
-      age: '',
-      gender: 'male',
-      workingDiagnosis: '',
-      procedureDone: '',
-      hdNumber: '1',
-      podType: 'POD',
-      podNumber: '1'
-    },
-    subjective: {
-      overallTrend: 'بهبود کلی علائم نسبت به دیروز',
-      painStatus: 'درد خفیف و کنترل‌شده با مسکن در محل عمل',
-      painDetail: '',
-      dietTolerance: 'تحمل خوب مایعات صاف (Clear Liquids Tolerated)',
-      flatus: 1, // 1: +, -1: -
-      bowelMovement: -1, // 1: +, -1: -
-      bowelDetail: '',
-      ambulation: 'خارج شدن از تخت و راه رفتن در بخش (Out of Bed / Ambulating)',
-      overnightSymptoms: {
-        nausea_vomiting: { state: -1, label: 'تهوع و استفراغ' },
-        fever_chills: { state: -1, label: 'تب و لرز شبانه' },
-        dyspnea_cp: { state: -1, label: 'تنگی نفس یا درد قفسه سینه' },
-        dysuria_voiding: { state: 1, label: 'دفع ادرار خودبه‌خودی و بدون سوزش' }
-      },
-      narrativeNote: ''
-    },
-    objective: {
-      vitals: {
-        bp: '',
-        pr: '',
-        rr: '',
-        temp: '',
-        tmax: '',
-        spo2: '',
-        hemodynamics: 'همودینامیک پایدار (Stable)'
-      },
-      intake24h: '',
-      urineOutput24h: '',
-      ngtOutput24h: '',
-      drains: [],
-      generalAndCardioPulm: 'بیمار هوشیار (GCS=15)، سمع ریه‌ها دوطرفه شفاف، سمع قلب نرمال بدون سوفل.',
-      abdomenExam: 'شکم نرم و بدون دیستانسیون، تندرنس خفیف محدود به برش جراحی، صداهای روده‌ای نرمال برقرار (BS+).',
-      woundAndDressing: 'پانسمان تمیز و خشک (CDI)، بدون ترشح یا اریتم جدار.',
-      extremitiesDvt: 'اندام‌ها گرم، نبض‌ها قرینه، بدون ادم یا تندرنس ساق (DVT منفی).',
-      examNote: '',
-      labs: {},
-      previousBaselineLabs: {},
-      newParaclinicNote: ''
-    },
-    assessment: {
-      summaryText: '',
-      clinicalStatus: 'سیر بهبودی مناسب و پایدار (Improving / Uneventful Recovery)'
-    },
-    plan: {
-      selectedTags: [],
-      customPlanText: ''
-    }
-  };
-}
-
-let soapState = createDefaultSoapState();
-
-function getLinkedOrCurrentCase() {
-  if (soapState.mode === 'linked' && soapState.linkedCaseId) {
-    if (soapState.linkedCaseId === clinicalState.caseId) {
-      return clinicalState;
-    }
-    try {
-      const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-      const found = list.find(c => c.caseId === soapState.linkedCaseId);
-      if (found) return found;
-    } catch (e) {}
-  }
-  return clinicalState;
-}
-
-function getAllAvailableCases() {
-  const cases = [];
-  if (clinicalState && clinicalState.caseId) {
-    cases.push(clinicalState);
-  }
-  try {
-    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-    list.forEach(c => {
-      if (!cases.some(existing => existing.caseId === c.caseId)) {
-        cases.push(c);
-      }
-    });
-  } catch (e) {}
-  return cases;
-}
 
 function initAppModeSwitcher() {
   const btnAdmission = document.getElementById('btnModeAdmission');
@@ -5973,7 +5901,10 @@ function switchAppMode(mode) {
     btnSoap?.classList.add('active');
     btnAdmission?.classList.remove('active');
     if (tabsNav) tabsNav.style.display = 'none';
-    tabPanes.forEach(pane => pane.style.display = 'none');
+    tabPanes.forEach(pane => {
+      pane.style.display = 'none';
+      pane.classList.remove('active');
+    });
     if (soapContainer) soapContainer.style.display = 'flex';
     populateSoapPatientDropdown();
     syncSoapInputsFromState();
@@ -5984,7 +5915,8 @@ function switchAppMode(mode) {
     const activeTab = document.querySelector('.segmented-tabs-bar .tab-btn.active');
     const activeTabId = activeTab ? activeTab.getAttribute('data-tab') : 'tab-cc';
     tabPanes.forEach(pane => {
-      pane.style.display = pane.id === activeTabId ? 'block' : 'none';
+      pane.style.display = '';
+      pane.classList.toggle('active', pane.id === activeTabId);
     });
     if (soapContainer) soapContainer.style.display = 'none';
   }
@@ -6565,7 +6497,6 @@ function initSoapEngine() {
 
   document.getElementById('soapAbxDetailInput')?.addEventListener('input', (e) => {
     const val = e.target.value.trim();
-    // remove previous abx tags if needed or append
     if (val) {
       const tagText = `آنتی‌بیوتیک: ${val}`;
       const existingIdx = soapState.plan.selectedTags.findIndex(t => t.startsWith('آنتی‌بیوتیک:'));
@@ -6673,7 +6604,6 @@ function saveSoapProgressNote() {
         clinicalState.progressNotes = clinicalState.progressNotes || [];
         clinicalState.progressNotes.unshift(progressRecord);
         localStorage.setItem(STORAGE_CURRENT_CASE_KEY, JSON.stringify(clinicalState));
-        // Also save to shift vault if not yet there
         list.unshift(JSON.parse(JSON.stringify(clinicalState)));
       } else if (targetCase) {
         targetCase.progressNotes = targetCase.progressNotes || [];
@@ -6682,7 +6612,6 @@ function saveSoapProgressNote() {
       localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
       showToast('یادداشت SOAP با موفقیت به تاریخچه پرونده بیمار متصل و ذخیره شد.', 'success');
     } else {
-      // Standalone Patient: create a standalone case record in shift cases
       const newCaseId = `SURG-SOAP-${Date.now().toString(36).toUpperCase()}`;
       const standaloneCase = {
         caseId: newCaseId,
@@ -6717,3 +6646,80 @@ function saveSoapProgressNote() {
     showToast('خطا در ذخیره یادداشت SOAP در حافظه محلی.', 'warning');
   }
 }
+
+export function initApp() {
+  try {
+    initAdmissionPathwayHandlers();
+    initDemographicsHandlers();
+    initAddPainEpisodeHandler();
+    initPshHandlers();
+    initObGynHandlers();
+    initAddCustomDrugHandler();
+    initAhShFhHandlers();
+    initRosMasterNegativeHandler();
+    initPeVitalsHandlers();
+    initPeMasterNegativeHandler();
+    initMassExamHandlers();
+    initAtlsExamHandlers();
+    initSchemaOmnisearch();
+    initReasoningHandlers();
+    initSystemGapLoggers();
+    initNavigationTabs();
+    initExportAndCopy();
+    initAppSettings();
+    initShiftManager();
+    initCloudSyncUI();
+    initThemeToggle();
+    initMobileBottomSheet();
+    initAppModeSwitcher();
+    initSoapEngine();
+
+    loadSavedState();
+    syncDomFromState();
+    updateLivePreview();
+    updateShiftCasesCount();
+    console.log('[Surg-Scribe v0.6] Application initialized successfully.');
+  } catch (err) {
+    console.error('[Surg-Scribe] Error during initApp:', err ? (err.message + '\n' + err.stack) : 'unknown error');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('surg:language-changed', (e) => {
+    const lang = e.detail?.lang || getCurrentLanguage();
+    renderArchetypeSelectorBar();
+    renderHpiPresentations();
+    renderHpiBasicSymptoms();
+    renderHpiUnlockableModules();
+    renderPmhCategories();
+    renderDhCategories();
+    renderRosGroups();
+    renderPeMandatoryPillars();
+    renderMassExamModule();
+    renderAtlsExamModule();
+    renderParaclinicModalityCards();
+    renderPainEpisodes();
+    updateLivePreview();
+    applyI18nToDOM(lang);
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.open').forEach(m => {
+        m.classList.remove('open');
+        m.style.display = 'none';
+      });
+    }
+  });
+
+  // Reliable bootstrapper: if document is already parsed, run immediately; otherwise wait for event
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', () => {
+      initApp();
+    });
+  } else {
+    initApp();
+  }
+}
+
+
