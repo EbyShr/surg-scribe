@@ -90,6 +90,13 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
   }
 
   if (item.archetype === 'elective_asymptomatic_archetype') {
+    if (item.isProcedureOnly) {
+      let sentence = `${prefix}بیمار به صورت الکتیو و صرفاً جهت **${normalizePersianClinicalText(item.procedureName || 'اقدام درمانی/پروسیجر جراحی')}** بستری شده و در حال حاضر فاقد هرگونه درد حاد شکمی، تهوع/استفراغ یا شکایت حاد جراحی است.`;
+      if (item.insertionReasonAndTime) sentence += ` (سابقه و علت تعبیه/اقدام قبلی: ${normalizePersianClinicalText(item.insertionReasonAndTime)}).`;
+      if (item.lastChemoOrInterventionDate) sentence += ` آخرین نوبت شیمی‌درمانی/مداخله: ${normalizePersianClinicalText(item.lastChemoOrInterventionDate)}.`;
+      if (item.siteExamStatus) sentence += ` در معاینه موضعی: ${normalizePersianClinicalText(item.siteExamStatus)}.`;
+      return sentence;
+    }
     let sentence = `${prefix}بیمار در حال حاضر فاقد درد یا شکایت حاد بالینی بوده`;
     if (item.discoveryMethod) sentence += ` و بیماری وی به دنبال ${item.discoveryMethod} شناسایی شده است.`;
     else sentence += `.`;
@@ -131,6 +138,10 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
   } else if (item.spatialPattern === 'localized_to_generalized') {
     const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
     locSentence = `ابتدا در ناحیه ${initNames || 'نقطه اولیه'} شروع شده و سپس به سایر نواحی گسترش یافته`;
+  } else if (item.spatialPattern === 'generalized_to_localized') {
+    const curNames = (item.currentRegions || []).map(getRegionLabel).join(' و ');
+    const delayPhrase = item.localizationDelay ? ` (${normalizePersianClinicalText(item.localizationDelay)})` : '';
+    locSentence = `در ابتدا به صورت منتشر و ژنرالیزه در کل شکم شروع شده و سپس${delayPhrase} در ناحیه ${curNames || 'موضع خاص'} لوکالیزه و متمرکز گردیده`;
   } else if (item.spatialPattern === 'migratory_shifting') {
     const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
     const curNames = (item.currentRegions || []).map(getRegionLabel).join(' و ');
@@ -213,6 +224,13 @@ export function renderArchetypeNarrativeEn(item, index = 0, totalCount = 1) {
   }
 
   if (item.archetype === 'elective_asymptomatic_archetype') {
+    if (item.isProcedureOnly) {
+      let sentence = `${prefix}The patient is admitted electively solely for planned **${item.procedureName || 'surgical procedure/intervention'}** and is currently free of acute distress, abdominal pain, or acute surgical symptoms.`;
+      if (item.insertionReasonAndTime) sentence += ` History/indication for previous device: ${item.insertionReasonAndTime}.`;
+      if (item.lastChemoOrInterventionDate) sentence += ` Last chemotherapy/intervention date: ${item.lastChemoOrInterventionDate}.`;
+      if (item.siteExamStatus) sentence += ` Local site examination: ${item.siteExamStatus}.`;
+      return sentence;
+    }
     let sentence = `${prefix}The patient is currently asymptomatic with no acute pain or surgical distress`;
     if (item.discoveryMethod) sentence += `, identified through ${item.discoveryMethod}`;
     sentence += '.';
@@ -281,15 +299,22 @@ export function generateNarrativeCCAndHPI(state) {
     }
 
     const ccText = cc.ccPhrase || cc.patientQuote || 'Acute Surgical Complaint';
-    out.push(`### 1. Chief Complaint (CC)`);
-    out.push(`- **"${ccText}"**`);
+    if (state.admission?.unresponsiveTrauma) {
+      out.push(`### 1. Reason for Presentation & EMS Handover`);
+      out.push(`- **Emergent transport via EMS / acute presentation following severe trauma/unresponsiveness (Patient unable to provide direct history at presentation due to acute critical condition/altered mental status/intubation).**`);
+    } else {
+      out.push(`### 1. Chief Complaint (CC)`);
+      out.push(`- **"${ccText}"**`);
+    }
 
     out.push(`\n### 2. History of Present Illness (HPI)`);
     const narrativeSentences = [];
 
     const genderNoun = demo.gender === 'female' ? 'female' : demo.gender === 'male' ? 'male' : 'patient';
     const agePhrase = demo.age ? `${demo.age}-year-old` : '';
-    let introSentence = `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
+    let introSentence = state.admission?.unresponsiveTrauma
+      ? `The patient is a ${agePhrase} ${genderNoun} transported emergently by EMS following severe trauma/acute critical condition with altered mental status.`
+      : `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
     if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
       const att = cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || 'Attending Surgeon';
       const diag = cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis;
@@ -345,10 +370,16 @@ export function generateNarrativeCCAndHPI(state) {
     );
   }
 
-  // 2. شکایت اصلی (CC): صرفاً عبارت کوتاه شکایت بیمار بدون هیچ توضیح اضافی
+  // 2. شکایت اصلی (CC) یا نحوه انتقال و علت ارجاع در ترومای بدحال
   const ccText = normalizePersianClinicalText(cc.ccPhrase || cc.patientQuote || 'شکایت حاد جراحی');
-  out.push(`### ۱. شکایت اصلی (Chief Complaint - CC)`);
-  out.push(`- **${ccText}**`);
+  if (state.admission?.unresponsiveTrauma) {
+    const moiText = state.admission?.traumaMoi || state.hpi?.presentations?.find(p => p.archetype === 'trauma_burn_archetype')?.mechanism || 'تروما و کاهش سطح هوشیاری';
+    out.push(`### ۱. علت مراجعه و نحوه انتقال به اورژانس (Reason for Presentation & EMS Handover)`);
+    out.push(`- **انتقال توسط اورژانس ۱۱۵ / مراجعه حاد به دنبال ${normalizePersianClinicalText(moiText)} (بیمار در بدو ورود به علت وضعیت بالینی قادر به بیان شکایت مستقیم نمی‌باشد).**`);
+  } else {
+    out.push(`### ۱. شکایت اصلی (Chief Complaint - CC)`);
+    out.push(`- **${ccText}**`);
+  }
 
   // 3. شرح بیماری فعلی (HPI) به صورت کاملاً روایی و مبتنی بر کهن‌الگوها
   out.push(`\n### ۲. شرح بیماری فعلی (History of Present Illness - HPI)`);
@@ -383,6 +414,10 @@ export function generateNarrativeCCAndHPI(state) {
     narrativeSentences.push(
       `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به دنبال عمل جراحی اخیر، با شکایت «${ccText}» به این مرکز مراجعه کرده‌اند.`
     );
+  } else if (state.admission?.unresponsiveTrauma) {
+    const moiText = state.admission?.traumaMoi || state.hpi?.presentations?.find(p => p.archetype === 'trauma_burn_archetype')?.mechanism || 'تروما و کاهش سطح هوشیاری';
+    let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به دنبال ${normalizePersianClinicalText(moiText)} توسط تیم فوریت‌های پزشکی ۱۱۵ (EMS) در شرایط حاد و فاقد هوشیاری کافی جهت اخذ شرح‌حال مستقیم به اورژانس جراحی منتقل گردیده‌اند.`;
+    narrativeSentences.push(admSentence);
   } else {
     // emergency_acute
     let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت اصلی «${ccText}» به صورت حاد به اورژانس / بخش جراحی مراجعه و پذیرش نموده‌اند.`;
@@ -606,7 +641,10 @@ export function generateClinicalNote(state) {
 
     // 5. ROS
     lines.push(`\n### 5. Review of Systems (ROS)`);
-    const rosItems = state.ros?.items || {};
+    if (state.ros?.unobtainable) {
+      lines.push(`- **Review of Systems Unobtainable:** Standard 11-point ROS could not be obtained due to altered level of consciousness, intubation, and acute critical trauma status. Clinical evaluation relies on objective findings, primary/secondary survey, and ATLS protocol.`);
+    } else {
+      const rosItems = state.ros?.items || {};
     const rosPos = [];
     const rosNeg = [];
     Object.entries(rosItems).forEach(([rId, val]) => {
@@ -618,7 +656,8 @@ export function generateClinicalNote(state) {
     });
     if (rosPos.length > 0) lines.push(`- **Positive System Review:** ${rosPos.join(', ')}`);
     if (rosNeg.length > 0) lines.push(`- **Negative System Review:** Denies ${rosNeg.join(', ')}`);
-    if (rosPos.length === 0 && rosNeg.length === 0) lines.push(`- **System Review:** 11-point review of systems otherwise negative except as noted in HPI.`);
+      if (rosPos.length === 0 && rosNeg.length === 0) lines.push(`- **System Review:** 11-point review of systems otherwise negative except as noted in HPI.`);
+    }
 
     // 6. PE
     lines.push(`\n### 6. Physical Examination (PE)`);
@@ -975,7 +1014,11 @@ export function generateClinicalNote(state) {
 
   // ۵. بررسی سیستم‌ها (ROS) - دوزبانه و تفکیک‌شده بر اساس زیرسیستم با فیلتر جنسیت
   lines.push(`\n### ۵. بررسی سیستم‌ها (Review of Systems - ROS)`);
-  const showAllGenders = state.ros?.showAllGenders || false;
+  if (state.ros?.unobtainable) {
+    const reasonText = state.ros?.unobtainableReason || 'به علت شرایط حاد بالینی، کاهش سطح هوشیاری و اینتوباسیون بیمار، اخذ مرور سیستم‌های معمول امکان‌پذیر نبوده و ارزیابی بر پایه شواهد عینی، معاینه فیزیکی و پروتکل ترومای ATLS متمرکز می‌باشد.';
+    lines.push(`- **عدم امکان اخذ ROS:** ${reasonText}`);
+  } else {
+    const showAllGenders = state.ros?.showAllGenders || false;
   const patientGender = demo.gender || 'male';
 
   ROS_GROUPS_BILINGUAL.forEach((group) => {
@@ -1020,8 +1063,9 @@ export function generateClinicalNote(state) {
     }
   });
 
-  if (state.ros?.systemGapNote) {
-    lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
+    if (state.ros?.systemGapNote) {
+      lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
+    }
   }
 
   // ۶. معاینه فیزیکی (PE) با تفکیک ۴ رکن معاینه شکم و ماژول‌های Unlockable

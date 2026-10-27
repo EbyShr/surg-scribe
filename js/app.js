@@ -1,4 +1,7 @@
 import {
+  storageVault
+} from './storage-vault.js';
+import {
   smartClinicalSearch
 } from './fuzzy-search.js';
 import {
@@ -92,6 +95,7 @@ export function createDefaultPainEpisode(id = 1, title = 'کانون درد او
     selectedRegions: ['rlq'],
     initialRegions: [],
     currentRegions: [],
+    localizationDelay: '',
     character: 'تیز و خنجری (Sharp)',
     course: 'پیشرونده و رو به تشدید (Progressive)',
     severity: 6,
@@ -155,6 +159,11 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
       id,
       archetype: 'elective_asymptomatic_archetype',
       title: `بستری الکتیو #${id}`,
+      isProcedureOnly: false,
+      procedureName: '',
+      insertionReasonAndTime: '',
+      lastChemoOrInterventionDate: '',
+      siteExamStatus: '',
       discoveryMethod: 'چکاپ روتین و غربالگری سلامت (Routine Check-up / Screening)',
       workupSummary: '',
       currentStatus: 'کاملاً بدون علامت حاد بالینی'
@@ -184,6 +193,18 @@ export function createDefaultClinicalState() {
       city: '',
       occupation: '',
       informant: 'خود بیمار'
+    },
+    admission: {
+      pathway: 'emergency_acute',
+      unresponsiveTrauma: false,
+      traumaMoi: '',
+      isProcedureOnly: false,
+      clinicAttending: '',
+      clinicDiagnosis: '',
+      clinicPlannedProcedure: '',
+      originWard: '',
+      originPrimaryReason: '',
+      transferReason: ''
     },
     cc: {
       pathway: 'emergency_acute', // 'emergency_acute' | 'elective_clinic' | 'inpatient_transfer'
@@ -262,7 +283,9 @@ export function createDefaultClinicalState() {
     ros: {
       items: {}, // itemId -> { state: 1|-1, detail: '' }
       showAllGenders: false,
-      systemGapNote: ''
+      systemGapNote: '',
+      unobtainable: false,
+      unobtainableReason: ''
     },
     pe: {
       vitals: {
@@ -534,35 +557,57 @@ function renderInlineDetailTriStateChip(options) {
 function saveCurrentCase() {
   try {
     clinicalState.updatedAt = new Date().toISOString();
+    // 1. LocalStorage fallback
     localStorage.setItem(STORAGE_CURRENT_CASE_KEY, JSON.stringify(clinicalState));
+    // 2. Immortal Vault (IndexedDB + Active Draft)
+    if (typeof storageVault !== 'undefined') {
+      storageVault.saveActiveDraft(clinicalState, activeSectionId);
+    }
   } catch (e) {
     console.warn('Failed to save state to localStorage:', e);
   }
 }
 
-function loadSavedState() {
+async function loadSavedState() {
   try {
-    const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
+    let loadedState = null;
+    let savedTab = null;
+
+    if (typeof storageVault !== 'undefined') {
+      const restored = await storageVault.loadActiveDraft(createDefaultClinicalState);
+      if (restored && restored.state) {
+        loadedState = restored.state;
+        savedTab = restored.activeTab;
+      }
+    }
+
+    if (!loadedState) {
+      const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
+      if (saved) {
+        loadedState = JSON.parse(saved);
+      }
+    }
+
+    if (loadedState) {
       const defaults = createDefaultClinicalState();
       clinicalState = {
         ...defaults,
-        ...parsed,
-        demographics: { ...defaults.demographics, ...(parsed.demographics || {}) },
-        cc: { ...defaults.cc, ...(parsed.cc || {}) },
-        hpi: { ...defaults.hpi, ...(parsed.hpi || {}) },
-        obgyn: { ...defaults.obgyn, ...(parsed.obgyn || {}) },
-        pmh: { ...defaults.pmh, ...(parsed.pmh || {}) },
-        psh: { ...defaults.psh, ...(parsed.psh || {}) },
-        dh: { ...defaults.dh, ...(parsed.dh || {}) },
-        ah: { ...defaults.ah, ...(parsed.ah || {}) },
-        sh: { ...defaults.sh, ...(parsed.sh || {}) },
-        fh: { ...defaults.fh, ...(parsed.fh || {}) },
-        ros: { ...defaults.ros, ...(parsed.ros || {}) },
-        pe: { ...defaults.pe, ...(parsed.pe || {}) },
-        paraclinics: { ...defaults.paraclinics, ...(parsed.paraclinics || {}) },
-        reasoning: { ...defaults.reasoning, ...(parsed.reasoning || {}) }
+        ...loadedState,
+        admission: { ...defaults.admission, ...(loadedState.admission || {}) },
+        demographics: { ...defaults.demographics, ...(loadedState.demographics || {}) },
+        cc: { ...defaults.cc, ...(loadedState.cc || {}) },
+        hpi: { ...defaults.hpi, ...(loadedState.hpi || {}) },
+        obgyn: { ...defaults.obgyn, ...(loadedState.obgyn || {}) },
+        pmh: { ...defaults.pmh, ...(loadedState.pmh || {}) },
+        psh: { ...defaults.psh, ...(loadedState.psh || {}) },
+        dh: { ...defaults.dh, ...(loadedState.dh || {}) },
+        ah: { ...defaults.ah, ...(loadedState.ah || {}) },
+        sh: { ...defaults.sh, ...(loadedState.sh || {}) },
+        fh: { ...defaults.fh, ...(loadedState.fh || {}) },
+        ros: { ...defaults.ros, ...(loadedState.ros || {}) },
+        pe: { ...defaults.pe, ...(loadedState.pe || {}) },
+        paraclinics: { ...defaults.paraclinics, ...(loadedState.paraclinics || {}) },
+        reasoning: { ...defaults.reasoning, ...(loadedState.reasoning || {}) }
       };
 
       if (!clinicalState.pe.vitals) {
@@ -583,10 +628,13 @@ function loadSavedState() {
       if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList)) {
         clinicalState.hpi.painList = [];
       }
+
+      if (savedTab && document.querySelector(`.tab-btn[data-tab="${savedTab}"]`)) {
+        document.querySelector(`.tab-btn[data-tab="${savedTab}"]`).click();
+      }
     }
   } catch (e) {
-    console.warn('Failed to load state from localStorage, resetting to fresh case:', e);
-    clinicalState = createDefaultClinicalState();
+    console.warn('Failed to load saved state:', e);
   }
 }
 
@@ -640,6 +688,105 @@ function initAdmissionPathwayHandlers() {
   chipPostop?.addEventListener('click', (e) => {
     e.preventDefault();
     setPathway('postop_complication');
+  });
+
+  // Wire Trauma Unresponsive Banner Toggle
+  const btnTraumaToggle = document.getElementById('btnTraumaUnresponsiveToggle');
+  btnTraumaToggle?.addEventListener('click', () => {
+    if (!clinicalState.admission) clinicalState.admission = {};
+    const newState = !clinicalState.admission.unresponsiveTrauma;
+    clinicalState.admission.unresponsiveTrauma = newState;
+
+    if (newState) {
+      clinicalState.demographics.informant = 'اورژانس ۱۱۵ (EMS)';
+      if (document.getElementById('demoInformant')) document.getElementById('demoInformant').value = 'اورژانس ۱۱۵ (EMS)';
+
+      if (!clinicalState.hpi.presentations) clinicalState.hpi.presentations = [];
+      const hasTrauma = clinicalState.hpi.presentations.some(p => p.archetype === 'trauma_burn_archetype');
+      if (!hasTrauma) {
+        const traumaPres = createDefaultPresentation('trauma_burn_archetype', clinicalState.hpi.presentations.length + 1);
+        traumaPres.title = 'ترومای حاد (انتقال با اورژانس ۱۱۵)';
+        clinicalState.hpi.presentations.unshift(traumaPres);
+        renderHpiPresentations();
+      }
+
+      if (!clinicalState.ros) clinicalState.ros = {};
+      clinicalState.ros.unobtainable = true;
+      clinicalState.ros.unobtainableReason = 'به علت شرایط حاد بالینی، کاهش سطح هوشیاری و اینتوباسیون بیمار، اخذ مرور سیستم‌های معمول امکان‌پذیر نبوده و ارزیابی بر پایه شواهد عینی، معاینه فیزیکی و پروتکل ترومای ATLS متمرکز می‌باشد.';
+
+      showToast('حالت ترومای حاد / ۱۱۵ فعال شد (MIST فعال و ROS سلب مسئولیت شد).', 'warning');
+    } else {
+      clinicalState.demographics.informant = 'خود بیمار';
+      if (document.getElementById('demoInformant')) document.getElementById('demoInformant').value = 'خود بیمار';
+      if (clinicalState.ros) clinicalState.ros.unobtainable = false;
+      showToast('حالت ترومای بدحال غیرفعال شد.', 'info');
+    }
+
+    syncDomFromState();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  // Wire Elective Procedure Mode Switcher & Quick Chips
+  const btnElecSymptom = document.getElementById('btnElectiveSymptomatic');
+  const btnElecProc = document.getElementById('btnElectiveProcedureOnly');
+  const wrapProc = document.getElementById('wrapperElectiveProcedures');
+
+  btnElecSymptom?.addEventListener('click', () => {
+    if (!clinicalState.admission) clinicalState.admission = {};
+    clinicalState.admission.isProcedureOnly = false;
+    btnElecSymptom.classList.add('active');
+    btnElecProc?.classList.remove('active');
+    if (wrapProc) wrapProc.style.display = 'none';
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  btnElecProc?.addEventListener('click', () => {
+    if (!clinicalState.admission) clinicalState.admission = {};
+    clinicalState.admission.isProcedureOnly = true;
+    btnElecProc.classList.add('active');
+    btnElecSymptom?.classList.remove('active');
+    if (wrapProc) wrapProc.style.display = 'block';
+    saveCurrentCase();
+    updateLivePreview();
+  });
+
+  document.querySelectorAll('.btn-quick-procedure').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const procName = btn.dataset.proc || btn.textContent.trim();
+      const ccPhrase = btn.dataset.cc || procName;
+
+      if (!clinicalState.admission) clinicalState.admission = {};
+      clinicalState.admission.isProcedureOnly = true;
+      clinicalState.admission.clinicPlannedProcedure = procName;
+      clinicalState.cc.plannedProcedure = procName;
+      clinicalState.cc.ccPhrase = ccPhrase;
+      clinicalState.cc.patientQuote = ccPhrase;
+      if (document.getElementById('ccPlannedProcedure')) document.getElementById('ccPlannedProcedure').value = procName;
+      if (document.getElementById('ccPatientQuote')) document.getElementById('ccPatientQuote').value = ccPhrase;
+
+      if (!clinicalState.hpi.presentations) clinicalState.hpi.presentations = [];
+      let procPres = clinicalState.hpi.presentations.find(p => p.archetype === 'elective_asymptomatic_archetype');
+      if (!procPres) {
+        procPres = createDefaultPresentation('elective_asymptomatic_archetype', clinicalState.hpi.presentations.length + 1);
+        clinicalState.hpi.presentations.push(procPres);
+      }
+      procPres.isProcedureOnly = true;
+      procPres.procedureName = procName;
+      procPres.title = `اقدام الکتیو: ${procName}`;
+      if (procName.includes('پورت')) {
+        procPres.siteExamStatus = 'موضع پورت فاقد تورم، تندرنس، ترشح یا علائم عفونت';
+      } else if (procName.includes('استومی')) {
+        procPres.siteExamStatus = 'استومی دارای کارکرد مناسب، موضع بدون اریتم یا فتق پارااستومال';
+      }
+
+      renderHpiPresentations();
+      saveCurrentCase();
+      syncDomFromState();
+      updateLivePreview();
+      showToast(`اقدام الکتیو «${procName}» تنظیم گردید.`, 'success');
+    });
   });
 
   // Initial sync
@@ -1393,6 +1540,68 @@ function renderFunctionalBleedingArchetypeBody(card, pres) {
 }
 
 function renderElectiveArchetypeBody(card, pres) {
+  if (pres.isProcedureOnly) {
+    const procCard = document.createElement('div');
+    procCard.className = 'procedure-archetype-card';
+
+    procCard.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; padding-bottom:0.5rem; border-bottom:1px solid var(--border-medium);">
+        <span style="font-weight:700; color:var(--primary); font-size:0.88rem;">⚡ اقدام الکتیو برنامه‌ریزی‌شده (فاقد شکایت حاد)</span>
+        <button type="button" class="btn btn-secondary btn-sm btn-switch-to-asymptomatic" style="font-size:0.75rem;">تغییر به مود بررسی علامت/توده</button>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">عنوان اقدام یا پروسیجر جراحی</label>
+          <input type="text" class="input-text proc-name-input" value="${pres.procedureName || ''}" placeholder="مثلاً خروج پورت شیمی‌درمانی">
+        </div>
+        <div class="form-group">
+          <label class="form-label">علت و زمان اقدام یا تعبیه قبلی</label>
+          <input type="text" class="input-text proc-reason-input" value="${pres.insertionReasonAndTime || ''}" placeholder="مثلاً تعبیه پورت ۱ سال قبل جهت شیمی‌درمانی آدجوانت">
+        </div>
+      </div>
+      <div class="form-grid-2" style="margin-top:0.5rem;">
+        <div class="form-group">
+          <label class="form-label">تاریخ آخرین نوبت مداخله / شیمی‌درمانی</label>
+          <input type="text" class="input-text proc-chemo-input" value="${pres.lastChemoOrInterventionDate || ''}" placeholder="مثلاً اتمام دوره‌ها ۶ ماه قبل">
+        </div>
+        <div class="form-group">
+          <label class="form-label">وضعیت موضعی محل پروسیجر در معاینه</label>
+          <input type="text" class="input-text proc-exam-input" value="${pres.siteExamStatus || ''}" placeholder="مثلاً موضع فاقد اریتم، ترشح یا سلولیت">
+        </div>
+      </div>
+    `;
+
+    procCard.querySelector('.proc-name-input').addEventListener('input', (e) => {
+      pres.procedureName = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    procCard.querySelector('.proc-reason-input').addEventListener('input', (e) => {
+      pres.insertionReasonAndTime = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    procCard.querySelector('.proc-chemo-input').addEventListener('input', (e) => {
+      pres.lastChemoOrInterventionDate = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    procCard.querySelector('.proc-exam-input').addEventListener('input', (e) => {
+      pres.siteExamStatus = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    procCard.querySelector('.btn-switch-to-asymptomatic').addEventListener('click', () => {
+      pres.isProcedureOnly = false;
+      renderHpiPresentations();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+
+    card.appendChild(procCard);
+    return;
+  }
+
   const grid = document.createElement('div');
   grid.className = 'form-grid-2';
 
@@ -1850,7 +2059,49 @@ function renderPainRegionsForEpisode(cardElement, pain) {
   // Abdomen & Pelvis
   const pattern = pain.spatialPattern || 'localized';
 
-  if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
+  if (pattern === 'generalized_to_localized') {
+    const delayRow = document.createElement('div');
+    delayRow.className = 'form-group';
+    delayRow.innerHTML = `
+      <label class="form-label">⏱️ فاصله زمانی تا لوکالیزه شدن درد در موضع خاص</label>
+      <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+        <input type="text" class="input-text" style="flex:1; min-width:200px;" value="${pain.localizationDelay || ''}" placeholder="مثلاً: پس از حدود ۶ ساعت / از صبح امروز" id="delayInput_${pain.id}">
+        <div class="quick-chips" style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary btn-sm delay-chip" data-val="پس از حدود ۴ تا ۶ ساعت">پس از ۴ تا ۶ ساعت</button>
+          <button type="button" class="btn btn-secondary btn-sm delay-chip" data-val="پس از ۸ تا ۱۲ ساعت">پس از ۸ تا ۱۲ ساعت</button>
+          <button type="button" class="btn btn-secondary btn-sm delay-chip" data-val="از صبح امروز">از صبح امروز</button>
+        </div>
+      </div>
+    `;
+    const input = delayRow.querySelector(`#delayInput_${pain.id}`);
+    input?.addEventListener('input', (e) => {
+      pain.localizationDelay = e.target.value;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    delayRow.querySelectorAll('.delay-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pain.localizationDelay = btn.dataset.val;
+        if (input) input.value = btn.dataset.val;
+        saveCurrentCase();
+        updateLivePreview();
+      });
+    });
+    container.appendChild(delayRow);
+
+    const row2 = document.createElement('div');
+    row2.className = 'form-group';
+    row2.innerHTML = `<label class="form-label">🎯 ناحیه(های) لوکالیزه‌شده فعلی (Current Localized Region)</label>`;
+    const grid2 = document.createElement('div');
+    grid2.className = 'abdominal-matrix-grid';
+    renderRegionButtonsIntoGrid(grid2, pain.currentRegions || [], (newArr) => {
+      pain.currentRegions = newArr;
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    row2.appendChild(grid2);
+    container.appendChild(row2);
+  } else if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
     const row1 = document.createElement('div');
     row1.className = 'form-group';
     row1.innerHTML = `<label class="form-label">📍 ۱. محل(های) شروع اولیه درد</label>`;
@@ -3160,6 +3411,20 @@ function renderRosGroups() {
 }
 
 function initRosMasterNegativeHandler() {
+  const toggleRosUnobtainable = () => {
+    if (!clinicalState.ros) clinicalState.ros = {};
+    clinicalState.ros.unobtainable = !clinicalState.ros.unobtainable;
+    if (clinicalState.ros.unobtainable && !clinicalState.ros.unobtainableReason) {
+      clinicalState.ros.unobtainableReason = 'به علت شرایط حاد بالینی، کاهش سطح هوشیاری و اینتوباسیون بیمار، اخذ مرور سیستم‌های معمول امکان‌پذیر نبوده و ارزیابی بر پایه شواهد عینی، معاینه فیزیکی و پروتکل ترومای ATLS متمرکز می‌باشد.';
+    }
+    syncDomFromState();
+    saveCurrentCase();
+    updateLivePreview();
+  };
+
+  document.getElementById('btnRosUnobtainableToggle')?.addEventListener('click', toggleRosUnobtainable);
+  document.getElementById('btnRosUnobtainableManual')?.addEventListener('click', toggleRosUnobtainable);
+
   const masterBtn = document.getElementById('btnRosMasterNegative');
   if (!masterBtn) return;
 
@@ -5327,6 +5592,48 @@ function syncDomFromState() {
     obgynCard.style.display = d.gender === 'male' ? 'none' : 'block';
   }
 
+  // Trauma Unresponsive Banner Sync
+  const isTraumaUnresponsive = !!clinicalState.admission?.unresponsiveTrauma;
+  const btnTraumaToggle = document.getElementById('btnTraumaUnresponsiveToggle');
+  const bannerTrauma = document.getElementById('bannerTraumaUnresponsive');
+  if (btnTraumaToggle) {
+    btnTraumaToggle.classList.toggle('active', isTraumaUnresponsive);
+    btnTraumaToggle.setAttribute('aria-pressed', isTraumaUnresponsive ? 'true' : 'false');
+    const icon = btnTraumaToggle.querySelector('.btn-check-icon');
+    if (icon) icon.textContent = isTraumaUnresponsive ? '🟢' : '⚪';
+    const txt = btnTraumaToggle.querySelector('span:last-child');
+    if (txt) txt.textContent = isTraumaUnresponsive ? 'حالت ترومای بدحال فعال است (کلیک جهت لغو)' : 'فعال‌سازی حالت ترومای بدحال / ۱۱۵';
+  }
+  if (bannerTrauma) {
+    bannerTrauma.classList.toggle('active', isTraumaUnresponsive);
+  }
+
+  // Elective Procedure-Only Sync
+  const isProcOnly = !!clinicalState.admission?.isProcedureOnly;
+  const btnElecSymptom = document.getElementById('btnElectiveSymptomatic');
+  const btnElecProc = document.getElementById('btnElectiveProcedureOnly');
+  const wrapProc = document.getElementById('wrapperElectiveProcedures');
+  if (btnElecSymptom && btnElecProc) {
+    btnElecSymptom.classList.toggle('active', !isProcOnly);
+    btnElecProc.classList.toggle('active', isProcOnly);
+  }
+  if (wrapProc) {
+    wrapProc.style.display = isProcOnly ? 'block' : 'none';
+  }
+
+  // ROS Unobtainable Banner Sync
+  const isRosUnobtainable = !!clinicalState.ros?.unobtainable;
+  const bannerRos = document.getElementById('bannerRosUnobtainable');
+  const btnRosManual = document.getElementById('btnRosUnobtainableManual');
+  if (bannerRos) bannerRos.style.display = isRosUnobtainable ? 'flex' : 'none';
+  if (btnRosManual) {
+    btnRosManual.classList.toggle('btn-danger', isRosUnobtainable);
+    btnRosManual.classList.toggle('btn-secondary', !isRosUnobtainable);
+  }
+
+  // Header Case Switcher Sync
+  populateHeaderCaseSwitcher();
+
   // CC (3 Pure Pathways in v0.8)
   const cc = clinicalState.cc;
   if (cc.pathway === 'inpatient_transfer') {
@@ -5498,10 +5805,98 @@ function saveCaseToShiftVault(stateToSave) {
     const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
     list.unshift(JSON.parse(JSON.stringify(stateToSave)));
     localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 50)));
+    if (typeof storageVault !== 'undefined') {
+      storageVault.upsertCaseToArchive(stateToSave);
+    }
     updateShiftCasesCount();
+    populateHeaderCaseSwitcher();
   } catch (e) {
     console.warn('Failed to save to shift vault:', e);
   }
+}
+
+async function populateHeaderCaseSwitcher() {
+  const select = document.getElementById('headerCaseSwitcher');
+  if (!select) return;
+
+  try {
+    const cases = typeof storageVault !== 'undefined'
+      ? await storageVault.getAllPermanentCases()
+      : JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+
+    select.innerHTML = '';
+
+    const currentOpt = document.createElement('option');
+    currentOpt.value = clinicalState.caseId;
+    const curName = clinicalState.demographics?.fullName || 'بیمار بدون نام';
+    currentOpt.textContent = `📌 پرونده فعال: ${curName} (${clinicalState.caseId})`;
+    currentOpt.selected = true;
+    select.appendChild(currentOpt);
+
+    cases.forEach(c => {
+      if (c.caseId === clinicalState.caseId) return;
+      const opt = document.createElement('option');
+      opt.value = c.caseId;
+      const patName = c.demographics?.fullName || 'بیمار بدون نام';
+      const timeStr = c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '';
+      opt.textContent = `📁 ${patName} (${c.caseId}) - ${timeStr}`;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.warn('Failed to populate header case switcher:', e);
+  }
+}
+
+function initHeaderCaseSwitcher() {
+  const select = document.getElementById('headerCaseSwitcher');
+  if (!select) return;
+
+  select.addEventListener('change', async (e) => {
+    const selectedId = e.target.value;
+    if (!selectedId || selectedId === clinicalState.caseId) return;
+
+    if (confirm('آیا مایل به جابجایی به این پرونده ذخیره‌شده هستید؟ پرونده فعلی در حافظه دائمی حفظ می‌شود.')) {
+      saveCaseToShiftVault(clinicalState);
+      let targetCase = null;
+      if (typeof storageVault !== 'undefined') {
+        targetCase = await storageVault.getPermanentCaseById(selectedId);
+      }
+      if (!targetCase) {
+        const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+        targetCase = list.find(c => c.caseId === selectedId);
+      }
+
+      if (targetCase) {
+        const defaults = createDefaultClinicalState();
+        clinicalState = {
+          ...defaults,
+          ...targetCase,
+          admission: { ...defaults.admission, ...(targetCase.admission || {}) },
+          demographics: { ...defaults.demographics, ...(targetCase.demographics || {}) },
+          cc: { ...defaults.cc, ...(targetCase.cc || {}) },
+          hpi: { ...defaults.hpi, ...(targetCase.hpi || {}) },
+          obgyn: { ...defaults.obgyn, ...(targetCase.obgyn || {}) },
+          pmh: { ...defaults.pmh, ...(targetCase.pmh || {}) },
+          psh: { ...defaults.psh, ...(targetCase.psh || {}) },
+          dh: { ...defaults.dh, ...(targetCase.dh || {}) },
+          ah: { ...defaults.ah, ...(targetCase.ah || {}) },
+          sh: { ...defaults.sh, ...(targetCase.sh || {}) },
+          fh: { ...defaults.fh, ...(targetCase.fh || {}) },
+          ros: { ...defaults.ros, ...(targetCase.ros || {}) },
+          pe: { ...defaults.pe, ...(targetCase.pe || {}) },
+          paraclinics: { ...defaults.paraclinics, ...(targetCase.paraclinics || {}) },
+          reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) }
+        };
+        saveCurrentCase();
+        syncDomFromState();
+        updateLivePreview();
+        populateHeaderCaseSwitcher();
+        showToast('پرونده با موفقیت فراخوانی شد.', 'success');
+      }
+    } else {
+      select.value = clinicalState.caseId;
+    }
+  });
 }
 
 function updateShiftCasesCount() {
@@ -6647,7 +7042,7 @@ function saveSoapProgressNote() {
   }
 }
 
-export function initApp() {
+export async function initApp() {
   try {
     initAdmissionPathwayHandlers();
     initDemographicsHandlers();
@@ -6668,17 +7063,18 @@ export function initApp() {
     initExportAndCopy();
     initAppSettings();
     initShiftManager();
+    initHeaderCaseSwitcher();
     initCloudSyncUI();
     initThemeToggle();
     initMobileBottomSheet();
     initAppModeSwitcher();
     initSoapEngine();
 
-    loadSavedState();
+    await loadSavedState();
     syncDomFromState();
     updateLivePreview();
     updateShiftCasesCount();
-    console.log('[Surg-Scribe v0.6] Application initialized successfully.');
+    console.log('[Surg-Scribe v1.0-Immortal-Core] Application initialized successfully.');
   } catch (err) {
     console.error('[Surg-Scribe] Error during initApp:', err ? (err.message + '\n' + err.stack) : 'unknown error');
   }

@@ -28,12 +28,20 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v0.9-SOAP-Engine</span>
+        <span class="version-pill">v1.0-Immortal-Core</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         <span class="id-text" id="headerCaseId">SURG-20261019-001</span>
+      </div>
+
+      <!-- Immortal Vault Case Switcher -->
+      <div class="header-case-switcher-wrap" title="جابجایی سریع میان پرونده‌های ذخیره‌شده روی این دستگاه">
+        <span class="switcher-icon">📂</span>
+        <select id="headerCaseSwitcher" class="header-case-select" aria-label="پرونده‌های ذخیره‌شده">
+          <option value="">پرونده جاری (فعال)</option>
+        </select>
       </div>
 
       
@@ -139,6 +147,21 @@
       <!-- ================= TAB 1: پذیرش و CC ================= -->
       <section class="tab-pane active" id="tab-cc" data-section-id="cc_admission">
         
+        <!-- حالت ترومای بدحال / کاهش سطح هوشیاری / انتقال با ۱۱۵ (Trauma Unresponsive Banner) -->
+        <div class="trauma-unresponsive-banner" id="bannerTraumaUnresponsive">
+          <div class="trauma-banner-info">
+            <span class="trauma-alert-icon">🚨</span>
+            <div>
+              <div class="trauma-alert-title">بیمار ترومای حاد، کاهش سطح هوشیاری یا اینتوبه (فاقد CC مستقیم)</div>
+              <div class="trauma-alert-sub">انتقال توسط اورژانس ۱۱۵؛ بدون امکان اخذ شکایت مستقیم از بیمار. فعال‌سازی خودکار الگوی تروما (MIST) و درج سلب مسئولیت استاندارد در ROS.</div>
+            </div>
+          </div>
+          <button type="button" class="btn-trauma-unresponsive" id="btnTraumaUnresponsiveToggle" aria-pressed="false">
+            <span class="btn-check-icon">⚪</span>
+            <span>فعال‌سازی حالت ترومای بدحال / ۱۱۵</span>
+          </button>
+        </div>
+
         <!-- مشخصات هویتی و بیمارستانی (PII) -->
         <div class="clinical-card">
           <div class="card-header">
@@ -232,6 +255,31 @@
             <div class="card-title" style="margin-bottom: 0.65rem; font-size: 0.88rem; color: var(--primary); font-weight: 700;">
               <span class="icon-holder"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
               <span>اطلاعات بستری الکتیو و ارجاع از درمانگاه:</span>
+            </div>
+
+            <!-- سوئیچ الکتیو علامت‌دار در برابر صرفاً جهت پروسیجر -->
+            <div class="elective-mode-selector">
+              <label class="form-label">نوع مراجعه الکتیو به درمانگاه:</label>
+              <div class="segmented-control-pills">
+                <button type="button" class="elective-seg-pill active" id="btnElectiveSymptomatic">
+                  <span>🩺 مراجعه به علت علامت، توده یا بیماری بالینی</span>
+                </button>
+                <button type="button" class="elective-seg-pill" id="btnElectiveProcedureOnly">
+                  <span>⚡ صرفاً جهت اقدام / پروسیجر برنامه‌ریزی‌شده قبلی</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- چیپ‌های اقدام سریع پروسیجرهای متداول -->
+            <div class="quick-procedures-container" id="wrapperElectiveProcedures" style="display:none;">
+              <span class="quick-proc-label">⚡ اقدامات متداول (انتخاب با ۱ کلیک):</span>
+              <div class="quick-procedures-chips">
+                <button type="button" class="btn-quick-procedure" data-proc="خروج پورت شیمی‌درمانی (Port Removal)" data-cc="خروج پورت شیمی‌درمانی به صورت الکتیو">خروج پورت شیمی‌درمانی</button>
+                <button type="button" class="btn-quick-procedure" data-proc="تعبیه پورت شیمی‌درمانی / پرمکت (Port/Permcath Insertion)" data-cc="تعبیه پورت شیمی‌درمانی / پرمکت">تعبیه پورت / پرمکت</button>
+                <button type="button" class="btn-quick-procedure" data-proc="بستن استومی / بازگرداندن پیوستگی روده (Ostomy Takedown/Closure)" data-cc="بستن استومی (Ostomy Closure)">بستن استومی</button>
+                <button type="button" class="btn-quick-procedure" data-proc="خروج درن / استنت دابل‌جی / تی‌تیوب (Drain/Stent/T-Tube Removal)" data-cc="خروج درن / استنت">خروج درن / استنت</button>
+                <button type="button" class="btn-quick-procedure" data-proc="جراحی قطعی پس از اتمام نئوادجوانت (Post-Neoadjuvant Surgery)" data-cc="جراحی الکتیو پس از پایان نئوادجوانت">جراحی پس از نئوادجوانت</button>
+              </div>
             </div>
             <div class="form-grid-3">
               <div class="form-group">
@@ -707,7 +755,10 @@
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
               <span>بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد</span>
             </div>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRosUnobtainableManual" title="ثبت عدم امکان اخذ ROS به علت شرایط حاد بالینی">
+                <span>⚠️ بیمار بدحال (فاقد ROS)</span>
+              </button>
               <button type="button" class="gender-filter-toggle" id="btnToggleRosGenderFilter" title="نمایش تمام آیتم‌ها بدون فیلتر جنسیت">
                 <span id="rosGenderFilterIcon">🔒</span>
                 <span id="rosGenderFilterText">فیلتر جنسیت فعال</span>
@@ -717,6 +768,20 @@
                 <span id="rosMasterText">منفی کردن تمام گزینه‌های باقی‌مانده</span>
               </button>
             </div>
+          </div>
+
+          <!-- سلب مسئولیت عدم امکان اخذ ROS به علت وضعیت حاد تروما / اینتوباسیون -->
+          <div class="ros-unobtainable-banner" id="bannerRosUnobtainable" style="display:none;">
+            <div class="ros-unobtainable-content">
+              <span class="ros-alert-icon">⚠️</span>
+              <div>
+                <strong class="ros-alert-title">عدم امکان اخذ ROS (بیمار اینتوبه / کاهش سطح هوشیاری / ترومای حاد)</strong>
+                <p class="ros-alert-desc">مرور سیستم‌های معمول ثبت نخواهد شد و متن استاندارد سلب مسئولیت به گزارش نهایی افزوده می‌شود.</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnRosUnobtainableToggle">
+              <span>لغو حالت سلب مسئولیت</span>
+            </button>
           </div>
 
           <!-- نوار جستجوی زنده علائم سیستم‌ها -->
@@ -1784,7 +1849,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=0.9.2"></script>
+  <script type="module" src="js/app.js?v=1.0.0"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>

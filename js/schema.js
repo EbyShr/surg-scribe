@@ -1060,7 +1060,8 @@ export const SURGICAL_SCHEMA = {
     { id: 'localized', label: 'لوکالیزه (تک‌ناحیه‌ای یا چندناحیه‌ای)' },
     { id: 'generalized_predominant', label: 'ژنرالیزه با ارجحیت در ناحیه خاص' },
     { id: 'localized_to_generalized', label: 'شروع لوکالیزه و سپس ژنرالیزه شدن' },
-    { id: 'migratory_shifting', label: 'تغییر محل / مهاجرت درد (Shifting Pain)' }
+    { id: 'migratory_shifting', label: 'تغییر محل / مهاجرت درد (Shifting Pain)' },
+    { id: 'generalized_to_localized', label: 'شروع منتشر/ژنرالیزه در شکم و سپس لوکالیزه شدن در ناحیه خاص (الگوی کلاسیک آپاندیسیت و...)' }
   ],
 
   abdominalRegions: [

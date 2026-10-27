@@ -5385,3 +5385,205 @@ body.dark-mode .soap-action-toolbar {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ==========================================================================
+   v1.0-Immortal-Core Enhancements
+   ========================================================================== */
+
+/* 1. Header Case Switcher Dropdown */
+.header-case-switcher-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-surface-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.2rem 0.5rem;
+}
+.header-case-switcher-wrap .switcher-icon {
+  font-size: 0.95rem;
+}
+.header-case-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  max-width: 220px;
+}
+.header-case-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* 2. Trauma Unresponsive / EMS Handover Banner */
+.trauma-unresponsive-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.08));
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  margin-bottom: 1.25rem;
+  transition: all 0.25s ease;
+}
+.trauma-unresponsive-banner.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(245, 158, 11, 0.16));
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+.trauma-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.trauma-alert-icon {
+  font-size: 1.5rem;
+}
+.trauma-alert-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #dc2626;
+}
+[data-theme="dark"] .trauma-alert-title {
+  color: #f87171;
+}
+.trauma-alert-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+.btn-trauma-unresponsive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--bg-surface);
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  color: #dc2626;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+[data-theme="dark"] .btn-trauma-unresponsive {
+  color: #f87171;
+}
+.btn-trauma-unresponsive.active {
+  background: #ef4444;
+  color: #ffffff !important;
+  border-color: #dc2626;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+
+/* 3. Elective Procedure-Only Mode Selector & Quick Chips */
+.elective-mode-selector {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.segmented-control-pills {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-surface-secondary);
+  padding: 0.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-medium);
+}
+.elective-seg-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+.elective-seg-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+.quick-procedures-container {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px dashed rgba(59, 130, 246, 0.3);
+}
+.quick-proc-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.4rem;
+}
+.quick-procedures-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.btn-quick-procedure {
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+.btn-quick-procedure:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+/* 4. Unobtainable ROS Banner */
+.ros-unobtainable-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.08));
+  border: 1.5px solid #f59e0b;
+  margin-bottom: 1rem;
+}
+.ros-unobtainable-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ros-alert-icon {
+  font-size: 1.5rem;
+}
+.ros-alert-title {
+  color: #d97706;
+  font-size: 0.9rem;
+}
+[data-theme="dark"] .ros-alert-title {
+  color: #fbbf24;
+}
+.ros-alert-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.15rem 0 0 0;
+}

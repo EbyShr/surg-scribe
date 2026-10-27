@@ -1,9 +1,10 @@
-const CACHE_NAME = 'surg-v0.9.2-soap-engine-cache-v92';
+const CACHE_NAME = 'surg-v1.0.0-immortal-core-cache-v100';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/clinical-ui.css',
+  './js/storage-vault.js',
   './js/fuzzy-search.js',
   './js/schema.js',
   './js/telemetry.js',
