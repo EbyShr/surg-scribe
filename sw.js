@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v1.1.0-atls-multisoap-cache-v110';
+const CACHE_NAME = 'surg-v1.2.0-bilingual-cleanui-cache-v120';
 
 const STATIC_ASSETS = [
   './',

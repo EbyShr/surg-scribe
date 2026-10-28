@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>دستیار ثبت شرح‌حال جراحی | v1.1-ATLS-MultiSOAP</title>
+  <title>دستیار جامع شرح‌حال و پیگیری جراحی | v1.2-Bilingual-CleanUI</title>
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0284C7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، ترومای اورژانس ATLS و پراگرس نوت چندروزه SOAP جراحی نسخه v1.1-ATLS-MultiSOAP">
+  <meta name="description" content="سامانه آفلاین ثبت شرح‌حال، ترومای اورژانس ATLS و پراگرس نوت چندروزه SOAP جراحی نسخه v1.2-Bilingual-CleanUI">
 
   <!-- High Performance Typography Fonts: Vazirmatn, Noto Sans Arabic, Readex Pro, Rubik, Cairo, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,79 +28,59 @@
       <div class="brand-badge">
         <div class="logo-icon">S</div>
         <span>SurgHistory</span>
-        <span class="version-pill">v1.1-ATLS-MultiSOAP</span>
+        <span class="version-pill" data-i18n="version_pill">v1.2-CleanUI</span>
       </div>
 
       <div class="case-id-badge" title="شناسه یکتا پرونده شیفت">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         <span class="id-text" id="headerCaseId">SURG-20261019-001</span>
       </div>
-
-      <!-- Immortal Vault Case Switcher -->
-      <div class="header-case-switcher-wrap" title="جابجایی سریع میان پرونده‌های ذخیره‌شده روی این دستگاه">
-        <span class="switcher-icon">📂</span>
-        <select id="headerCaseSwitcher" class="header-case-select" aria-label="پرونده‌های ذخیره‌شده">
-          <option value="">پرونده جاری (فعال)</option>
-        </select>
-      </div>
-
       
       <!-- App Mode Switcher (3-Mode Architecture: Admission H&P | Emergency ATLS | Multi-Day SOAP Tracker) -->
       <div class="app-mode-switcher" id="appModeSwitcher" role="radiogroup" aria-label="انتخاب مود برنامه">
         <button type="button" class="mode-switch-btn active" id="btnModeAdmission" data-mode="admission" title="اخذ شرح‌حال کامل بستری در بخش">
           <span class="mode-icon">📋</span>
-          <span class="mode-text">۱. شرح‌حال جامع بخش (Admission H&amp;P)</span>
+          <span class="mode-text" data-i18n="mode_admission">📋 H&P</span>
         </button>
         <button type="button" class="mode-switch-btn mode-switch-atls" id="btnModeAtls" data-mode="atls" title="ثبت نوت ترومای اورژانس بر اساس ترتیب زمانی ATLS">
           <span class="mode-icon">🚑</span>
-          <span class="mode-text">۲. ترومای اورژانس (Emergency ATLS Note)</span>
+          <span class="mode-text" data-i18n="mode_atls">🚑 ATLS</span>
         </button>
         <button type="button" class="mode-switch-btn" id="btnModeSoap" data-mode="soap" title="ثبت و مشاهده تاریخچه روزبه‌روز پراگرس نوت‌های بیمار">
           <span class="mode-icon">📈</span>
-          <span class="mode-text">۳. سیر روزانه و پراگرس (SOAP Tracker)</span>
+          <span class="mode-text" data-i18n="mode_soap">📈 SOAP</span>
         </button>
       </div>
 
+      <!-- Active Patient Badge (Click to open Shift Manager) -->
+      <button type="button" class="header-active-patient-badge" id="headerActivePatientBadge" title="بیمار فعال — کلیک جهت جابجایی یا مدیریت پرونده‌ها">
+        <span class="badge-icon">🛏️</span>
+        <span class="badge-text" id="headerActivePatientText">پرونده فعال</span>
+      </button>
+    </div>
+
+    <div class="header-left">
+      <!-- New Case Button -->
       <button class="btn btn-secondary btn-sm" id="btnNewCase" title="ثبت پرونده جدید" data-i18n-title="btn_new_case">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         <span data-i18n="btn_new_case">پرونده جدید</span>
       </button>
 
-      <!-- Google Sheets Sync & Collector ID Group -->
-      <div class="header-cloud-group">
-        <div class="collector-id-wrapper" title="نام یا کد شناسایی ثبت‌کننده پرونده">
-          <label for="collectorIdInput" data-i18n="collector_label">ثبت‌کننده:</label>
-          <input type="text" id="collectorIdInput" class="collector-id-input" placeholder="نام شما (ID)" data-i18n-ph="collector_ph" />
-        </div>
-
-        <button class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets (حذف خودکار اطلاعات هویتی حساس)" data-i18n-title="btn_cloud_sync_title">
-          <span>📊</span>
-          <span data-i18n="btn_cloud_sync">ثبت در Google Sheets</span>
-        </button>
-
-        <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین">
-          <span data-i18n="offline_queue">📦 صف آفلاین:</span>
-          <span id="offlineQueueCount" class="mono-num">0</span>
-        </div>
-
-        <button class="btn btn-icon-only" id="btnAppSettings" title="تنظیمات سامانه (زبان، فونت، تم و کلاد)" data-i18n-title="btn_settings_title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="header-left">
       <!-- Shift Cases Button -->
-      <button class="btn btn-secondary" id="btnOpenShiftManager" title="مدیریت پرونده‌های شیفت و دانلود تجمیعی" data-i18n-title="btn_shift_title">
+      <button class="btn btn-secondary btn-sm" id="btnOpenShiftManager" title="مدیریت پرونده‌های شیفت و دانلود تجمیعی" data-i18n-title="btn_shift_title">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
         <span><span data-i18n="shift_label">شیفت:</span> <strong id="shiftCasesCount" class="mono-num">1</strong></span>
       </button>
 
-      <!-- Theme Switcher -->
-      <button class="btn btn-icon-only" id="btnToggleTheme" title="تغییر تم تاریک / روشن" data-i18n-title="btn_theme_title">
-        <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        <svg id="themeIconMoon" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      <!-- Settings Button -->
+      <button class="btn btn-icon-only" id="btnAppSettings" title="تنظیمات سامانه (زبان، فونت، تم و کلاد)" data-i18n-title="btn_settings_title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </button>
+
+      <!-- Backward compatibility hidden placeholders -->
+      <select id="headerCaseSwitcher" style="display:none;" aria-hidden="true"></select>
+      <input type="hidden" id="collectorIdInput" value="" />
+      <button id="btnToggleTheme" style="display:none;" aria-hidden="true"></button>
     </div>
   </header>
 
@@ -210,7 +190,21 @@
             </div>
             <div class="form-group">
               <label class="form-label">منبع شرح‌حال (Informant)</label>
-              <input type="text" class="input-text" id="demoInformant" value="خود بیمار" placeholder="مثلاً خود بیمار، همراه">
+              <input type="text" id="demoInformant" class="input-text" value="خود بیمار" placeholder="مثلاً خود بیمار، همراه">
+            </div>
+          </div>
+
+          <div class="form-grid-3" style="margin-top: 0.5rem;">
+            <div class="form-group">
+              <label class="form-label" data-i18n="demo_ward_label">بخش بستری</label>
+              <input type="text" class="input-text" id="demoWard" placeholder="مثلاً جراحی ۲ / Ward 2" data-i18n-ph="demo_ward_ph">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="demo_bed_label">شماره تخت</label>
+              <input type="text" class="input-text dir-ltr" id="demoBed" placeholder="مثلاً 12 / Bed 12" data-i18n-ph="demo_bed_ph">
+            </div>
+            <div class="form-group">
+              <!-- Empty spacer -->
             </div>
           </div>
         </div>
@@ -1405,7 +1399,10 @@
           <div class="soap-day-tracker-header">
             <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
               <button type="button" class="btn btn-primary btn-sm" id="btnNewSoapDay" title="افزودن پراگرس نوت روز جدید با افزایش خودکار HD# و POD# و انتقال آزمایش‌های دیروز به پایه">
-                <span>➕ ایجاد پراگرس نوت جدید (امروز)</span>
+                <span data-i18n="soap_btn_add_day">➕ ایجاد پراگرس نوت جدید (امروز)</span>
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" id="soapBtnDeleteCurrentDay" title="حذف نوت پراگرس روز جاری" style="background:#dc2626; color:#fff; border:none;">
+                <span data-i18n="soap_btn_del_day">🗑️ حذف این روز</span>
               </button>
               <button type="button" class="btn btn-secondary btn-sm" id="btnBackToPatientHp" title="بازگشت فوری به شرح‌حال اولیه بستری این بیمار">
                 <span>📋 مشاهده شرح‌حال اولیه این بیمار</span>
@@ -1458,6 +1455,14 @@
                 <option value="male">مذکر (آقا)</option>
                 <option value="female">مؤنث (خانم)</option>
               </select>
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label" data-i18n="demo_ward_label">بخش بستری</label>
+              <input type="text" id="soapPtWard" class="input-text" placeholder="بخش" data-i18n-ph="demo_ward_ph" />
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label" data-i18n="demo_bed_label">شماره تخت</label>
+              <input type="text" id="soapPtBed" class="input-text dir-ltr" placeholder="تخت" data-i18n-ph="demo_bed_ph" />
             </div>
             <div class="form-group mb-0 col-span-2">
               <label class="form-label">تشخیص اصلی / علت بستری (Working Diagnosis)</label>
@@ -2283,6 +2288,16 @@
             <label class="form-label" data-i18n="settings_url_label">آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)</label>
             <input type="url" class="input-text dir-ltr" id="settingEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec">
           </div>
+          <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <button type="button" class="btn-cloud-sync" id="btnCloudSync" title="ارسال پرونده فعلی به Google Sheets (حذف خودکار اطلاعات هویتی حساس)" data-i18n-title="btn_cloud_sync_title">
+              <span>📊</span>
+              <span data-i18n="btn_cloud_sync">ثبت پرونده در Google Sheets</span>
+            </button>
+            <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;" title="پرونده‌های در صف آفلاین">
+              <span data-i18n="offline_queue">📦 صف آفلاین:</span>
+              <span id="offlineQueueCount" class="mono-num">0</span>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -2297,14 +2312,14 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=1.1.0"></script>
+  <script type="module" src="js/app.js?v=1.2.0"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=1.1.0').then((reg) => {
-          console.log('[PWA v1.1] Service Worker registered:', reg.scope);
+        navigator.serviceWorker.register('sw.js?v=1.2.0').then((reg) => {
+          console.log('[PWA v1.2] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();
         }).catch((err) => {

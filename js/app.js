@@ -250,7 +250,9 @@ export function createDefaultClinicalState() {
       marital: 'متأهل',
       city: '',
       occupation: '',
-      informant: 'خود بیمار'
+      informant: 'خود بیمار',
+      ward: '',
+      bed: ''
     },
     admission: {
       pathway: 'emergency_acute',
@@ -912,7 +914,9 @@ function initDemographicsHandlers() {
     demoMarital: 'marital',
     demoCity: 'city',
     demoOccupation: 'occupation',
-    demoInformant: 'informant'
+    demoInformant: 'informant',
+    demoWard: 'ward',
+    demoBed: 'bed'
   };
 
   Object.entries(map).forEach(([elId, prop]) => {
@@ -928,10 +932,46 @@ function initDemographicsHandlers() {
         }
         renderRosGroups();
       }
+      if (prop === 'fullName' || prop === 'ward' || prop === 'bed') {
+        updateHeaderActivePatientBadge();
+      }
       saveCurrentCase();
       updateLivePreview();
     });
   });
+
+  document.getElementById('headerActivePatientBadge')?.addEventListener('click', () => {
+    document.getElementById('btnOpenShiftManager')?.click();
+  });
+}
+
+export function updateHeaderActivePatientBadge() {
+  const badgeTextEl = document.getElementById('headerActivePatientText');
+  if (!badgeTextEl) return;
+  const lang = getCurrentLanguage();
+  const isEn = lang === 'en';
+  const d = clinicalState.demographics || {};
+  const bed = d.bed ? String(d.bed).trim() : '';
+  const name = d.fullName ? String(d.fullName).trim() : '';
+  const ward = d.ward ? String(d.ward).trim() : '';
+
+  let text = '';
+  if (bed && name) {
+    text = isEn ? `Bed ${bed} - ${name}` : `تخت ${bed} - ${name}`;
+  } else if (bed) {
+    text = isEn ? `Bed ${bed}` : `تخت ${bed}`;
+  } else if (name) {
+    text = name;
+  } else if (ward) {
+    text = isEn ? `Ward ${ward}` : `بخش ${ward}`;
+  } else {
+    text = isEn ? 'Active Case' : 'پرونده فعال';
+  }
+
+  if (text.length > 14) {
+    text = text.substring(0, 13) + '…';
+  }
+  badgeTextEl.textContent = text;
 }
 
 /* ==========================================================================
@@ -5803,6 +5843,7 @@ function updateLivePreview() {
   if (currentAppMode === 'soap') {
     const linkedCase = getLinkedOrCurrentCase();
     noteMarkdown = generateSOAPProgressNote(soapState, linkedCase);
+    saveSoapProgressNote(true);
   } else if (currentAppMode === 'atls') {
     if (!clinicalState.atls) clinicalState.atls = createDefaultAtlsState();
     noteMarkdown = generateATLSNote(clinicalState.atls, clinicalState);
@@ -5879,6 +5920,9 @@ function syncDomFromState() {
   if (document.getElementById('demoCity')) document.getElementById('demoCity').value = d.city || '';
   if (document.getElementById('demoOccupation')) document.getElementById('demoOccupation').value = d.occupation || '';
   if (document.getElementById('demoInformant')) document.getElementById('demoInformant').value = d.informant || 'خود بیمار';
+  if (document.getElementById('demoWard')) document.getElementById('demoWard').value = d.ward || '';
+  if (document.getElementById('demoBed')) document.getElementById('demoBed').value = d.bed || '';
+  updateHeaderActivePatientBadge();
 
   const obgynCard = document.getElementById('cardObGynHistory');
   if (obgynCard) {
@@ -6315,8 +6359,26 @@ function initShiftManager() {
       </div>
       <div class="shift-vault-actions">
         <span style="font-size:0.75rem; color:var(--primary); font-weight:700;">${isEn ? 'Editing' : 'در حال ثبت'}</span>
+        <button type="button" class="btn btn-secondary btn-sm btn-delete-active-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete Case' : 'حذف قطعی پرونده'}">✕</button>
       </div>
     `;
+
+    activeItem.querySelector('.btn-delete-active-case')?.addEventListener('click', async () => {
+      const confirmDel = isEn
+        ? `Permanently delete active case ${clinicalState.caseId}? This action cannot be undone.`
+        : `آیا از حذف دائمی و قطعی پرونده جاری (${clinicalState.caseId}) اطمینان دارید؟ این عمل غیرقابل بازگشت است.`;
+      if (confirm(confirmDel)) {
+        const nextState = await storageVault.permanentlyDeleteCase(clinicalState.caseId, createDefaultClinicalState);
+        clinicalState = nextState || createDefaultClinicalState();
+        saveCurrentCase();
+        syncDomFromState();
+        updateLivePreview();
+        updateShiftCasesCount();
+        renderShiftCasesList();
+        showToast(isEn ? 'Active case permanently deleted.' : 'پرونده جاری به طور قطعی حذف شد.', 'info');
+      }
+    });
+
     listContainer.appendChild(activeItem);
 
     if (list.length === 0) {
@@ -6341,7 +6403,7 @@ function initShiftManager() {
         </div>
         <div class="shift-vault-actions">
           <button type="button" class="btn btn-secondary btn-sm btn-load-case">${isEn ? 'Load' : 'بارگذاری'}</button>
-          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Delete' : 'حذف پرونده'}">✕</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete' : 'حذف قطعی پرونده'}">✕</button>
         </div>
       `;
 
@@ -6360,14 +6422,17 @@ function initShiftManager() {
         }
       });
 
-      item.querySelector('.btn-delete-case').addEventListener('click', () => {
-        const confirmDel = isEn ? `Delete case ${c.caseId} from shift vault?` : `حذف پرونده ${c.caseId} از حافظه شیفت؟`;
+      item.querySelector('.btn-delete-case').addEventListener('click', async () => {
+        const confirmDel = isEn
+          ? `Permanently delete case ${c.caseId}? This action cannot be undone.`
+          : `آیا از حذف دائمی و قطعی پرونده ${c.caseId} از تمام حافظه‌ها اطمینان دارید؟ این عمل غیرقابل بازگشت است.`;
         if (confirm(confirmDel)) {
+          await storageVault.permanentlyDeleteCase(c.caseId, createDefaultClinicalState);
           list.splice(idx, 1);
           localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
           updateShiftCasesCount();
           renderShiftCasesList();
-          showToast(isEn ? `Case ${c.caseId} removed.` : `پرونده ${c.caseId} حذف شد.`, 'info');
+          showToast(isEn ? `Case ${c.caseId} permanently deleted.` : `پرونده ${c.caseId} به طور قطعی حذف گردید.`, 'info');
         }
       });
 
@@ -6641,7 +6706,18 @@ export function switchAppMode(mode) {
     if (soapContainer) soapContainer.style.display = 'flex';
     if (btnGoToSoap) btnGoToSoap.style.display = 'none';
     populateSoapPatientDropdown();
-    if (soapState.linkedCaseId) {
+
+    const targetCase = getActiveTargetCaseForSoap() || clinicalState;
+    const historyList = Array.isArray(targetCase.soapHistory) && targetCase.soapHistory.length > 0
+      ? targetCase.soapHistory
+      : (Array.isArray(targetCase.progressNotes) ? targetCase.progressNotes : []);
+
+    if (historyList.length === 0) {
+      initFreshDayOneSoapNote();
+      saveSoapProgressNote(true);
+      syncSoapInputsFromState();
+      renderSoapDayTracker();
+    } else if (soapState.linkedCaseId) {
       handleSoapPatientSelect(soapState.linkedCaseId);
     } else {
       syncSoapInputsFromState();
@@ -7040,14 +7116,20 @@ export function renderSoapDayTracker() {
     ? targetCase.soapHistory
     : (Array.isArray(targetCase?.progressNotes) ? targetCase.progressNotes : []);
 
-  // Also update the badge on the preview column button
+  // Update counter badges
+  const countBadge = document.getElementById('soapHistoryCountBadge');
+  if (countBadge) {
+    const count = historyList.length || 1;
+    countBadge.textContent = getCurrentLanguage() === 'en' ? `Documented Days: ${count}` : `تعداد نوت‌های ثبت‌شده: ${count}`;
+  }
+
   const badge = document.getElementById('patientSoapNotesCountBadge');
   if (badge) badge.textContent = String(historyList.length);
 
   if (historyList.length === 0) {
     const currentChip = document.createElement('span');
     currentChip.className = 'soap-history-tab active';
-    currentChip.textContent = `📄 نوت فعال امروز (${soapState.dateStr || new Date().toLocaleDateString('fa-IR')} - HD#${soapState.context.hdNumber || 1})`;
+    currentChip.textContent = `📄 ${getCurrentLanguage() === 'en' ? 'Active Day Note' : 'نوت فعال امروز'} (${soapState.dateStr || new Date().toLocaleDateString()} - HD#${soapState.context.hdNumber || 1})`;
     container.appendChild(currentChip);
     return;
   }
@@ -7059,6 +7141,10 @@ export function renderSoapDayTracker() {
     const pod = entry.podNumber || entry.soapState?.context?.podNumber || '';
     const podType = entry.soapState?.context?.podType || 'POD';
     const dStr = entry.dateStr || entry.soapState?.dateStr || '';
+
+    const tabWrap = document.createElement('div');
+    tabWrap.className = 'soap-tab-pill-wrap';
+    tabWrap.style.cssText = 'display:inline-flex; align-items:center; gap:2px; margin-inline-end:6px;';
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -7073,8 +7159,101 @@ export function renderSoapDayTracker() {
         updateLivePreview();
       }
     });
-    container.appendChild(btn);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'soap-tab-del-btn';
+    delBtn.style.cssText = 'background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px;';
+    delBtn.title = getCurrentLanguage() === 'en' ? 'Delete this daily note' : 'حذف این نوت روزانه';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteSoapDay(entryId);
+    });
+
+    tabWrap.appendChild(btn);
+    tabWrap.appendChild(delBtn);
+    container.appendChild(tabWrap);
   });
+}
+
+export function initFreshDayOneSoapNote() {
+  const targetCase = getActiveTargetCaseForSoap() || clinicalState;
+  const demo = targetCase.demographics || targetCase.admission || targetCase.context || {};
+  const cc = targetCase.cc || {};
+
+  soapState = createDefaultSoapState();
+  soapState.dayId = `soap_day_${Date.now()}`;
+  soapState.linkedCaseId = targetCase.caseId;
+  soapState.mode = 'linked';
+  soapState.dateStr = getCurrentLanguage() === 'en' ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR');
+  soapState.context = {
+    fullName: demo.fullName || '',
+    age: demo.age || '',
+    gender: demo.gender || 'male',
+    ward: demo.ward || '',
+    bed: demo.bed || '',
+    workingDiagnosis: cc.establishedDiagnosis || cc.patientQuote || cc.preliminaryDiagnosis || '',
+    procedureDone: cc.plannedProcedure || '',
+    hdNumber: '1',
+    podNumber: '1',
+    podType: 'POD'
+  };
+  soapState.objective.previousBaselineLabs = { ...(targetCase.paraclinics?.labs || {}) };
+}
+
+export function deleteSoapDay(dayId) {
+  const lang = getCurrentLanguage();
+  const isEn = lang === 'en';
+  const confirmMsg = isEn
+    ? 'Are you sure you want to delete this daily SOAP note? This action cannot be undone.'
+    : 'آیا از حذف یادداشت پیگیری این روز اطمینان دارید؟ این عمل غیرقابل بازگشت است.';
+  if (!confirm(confirmMsg)) return;
+
+  const targetCase = getActiveTargetCaseForSoap();
+  if (targetCase) {
+    if (Array.isArray(targetCase.soapHistory)) {
+      targetCase.soapHistory = targetCase.soapHistory.filter((item) => (item.dayId || item.id) !== dayId);
+    }
+    if (Array.isArray(targetCase.progressNotes)) {
+      targetCase.progressNotes = targetCase.progressNotes.filter((item) => (item.dayId || item.id) !== dayId);
+    }
+  }
+
+  if (Array.isArray(clinicalState.soapHistory)) {
+    clinicalState.soapHistory = clinicalState.soapHistory.filter((item) => (item.dayId || item.id) !== dayId);
+  }
+  if (Array.isArray(clinicalState.progressNotes)) {
+    clinicalState.progressNotes = clinicalState.progressNotes.filter((item) => (item.dayId || item.id) !== dayId);
+  }
+
+  const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+  const cInList = list.find((c) => c.caseId === (targetCase?.caseId || clinicalState.caseId));
+  if (cInList) {
+    if (Array.isArray(cInList.soapHistory)) {
+      cInList.soapHistory = cInList.soapHistory.filter((item) => (item.dayId || item.id) !== dayId);
+    }
+    if (Array.isArray(cInList.progressNotes)) {
+      cInList.progressNotes = cInList.progressNotes.filter((item) => (item.dayId || item.id) !== dayId);
+    }
+    localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
+  }
+
+  saveCurrentCase();
+
+  const remaining = targetCase?.soapHistory || clinicalState.soapHistory || [];
+  if (remaining.length > 0 && remaining[0].soapState) {
+    soapState = JSON.parse(JSON.stringify(remaining[0].soapState));
+    soapState.dayId = remaining[0].dayId || remaining[0].id || soapState.dayId;
+  } else {
+    initFreshDayOneSoapNote();
+    saveSoapProgressNote(true);
+  }
+
+  syncSoapInputsFromState();
+  renderSoapDayTracker();
+  updateLivePreview();
+  showToast(isEn ? 'Daily SOAP note deleted.' : 'یادداشت این روز با موفقیت حذف شد.', 'info');
 }
 
 function populateSoapPatientDropdown() {
@@ -7130,6 +7309,8 @@ function handleSoapPatientSelect(caseId) {
     soapState.context.fullName = demo.fullName || '';
     soapState.context.age = demo.age || '';
     soapState.context.gender = demo.gender || 'male';
+    soapState.context.ward = demo.ward || '';
+    soapState.context.bed = demo.bed || '';
     soapState.context.workingDiagnosis = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || selected.context?.workingDiagnosis || '';
     soapState.context.procedureDone = cc.plannedProcedure || cc.procedureDone || selected.context?.procedureDone || '';
 
@@ -7227,6 +7408,10 @@ function syncSoapInputsFromState() {
   if (ptAge) ptAge.value = ctx.age || '';
   const ptGender = document.getElementById('soapPtGender');
   if (ptGender) ptGender.value = ctx.gender || 'male';
+  const ptWard = document.getElementById('soapPtWard');
+  if (ptWard) ptWard.value = ctx.ward || '';
+  const ptBed = document.getElementById('soapPtBed');
+  if (ptBed) ptBed.value = ctx.bed || '';
   const ptDiag = document.getElementById('soapPtDiagnosis');
   if (ptDiag) ptDiag.value = ctx.workingDiagnosis || '';
   const ptProc = document.getElementById('soapPtProcedure');
@@ -7523,7 +7708,7 @@ function initSoapEngine() {
     soapState.dayId = `soap_day_${Date.now()}`;
     soapState.linkedCaseId = prevLinkedId;
     soapState.mode = prevMode;
-    soapState.dateStr = new Date().toLocaleDateString('fa-IR');
+    soapState.dateStr = getCurrentLanguage() === 'en' ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR');
     soapState.context = {
       ...prevContext,
       hdNumber: nextHd,
@@ -7532,10 +7717,24 @@ function initSoapEngine() {
     soapState.objective.previousBaselineLabs = yesterdayLabs;
     soapState.objective.drains = prevDrains;
 
+    saveSoapProgressNote(true);
     syncSoapInputsFromState();
     renderSoapDayTracker();
     updateLivePreview();
-    showToast(`پراگرس نوت روز جدید (HD #${nextHd} / ${prevContext.podType || 'POD'} #${nextPod}) ایجاد شد و آزمایش‌های قبلی به عنوان پایه مقایسه ثبت گردید.`, 'success');
+    const isEn = getCurrentLanguage() === 'en';
+    showToast(
+      isEn
+        ? `New Day note created (HD #${nextHd} / ${prevContext.podType || 'POD'} #${nextPod}). Previous labs transferred to baseline.`
+        : `پراگرس نوت روز جدید (HD #${nextHd} / ${prevContext.podType || 'POD'} #${nextPod}) ایجاد شد و آزمایش‌های قبلی به عنوان پایه مقایسه ثبت گردید.`,
+      'success'
+    );
+  });
+
+  // 0.1 Delete Current Day Progress Note
+  document.getElementById('soapBtnDeleteCurrentDay')?.addEventListener('click', () => {
+    if (soapState.dayId) {
+      deleteSoapDay(soapState.dayId);
+    }
   });
 
   // 1. Patient Mode Switcher (Linked vs Standalone)
@@ -7579,6 +7778,8 @@ function initSoapEngine() {
   };
   bindContextInput('soapPtName', 'fullName');
   bindContextInput('soapPtAge', 'age');
+  bindContextInput('soapPtWard', 'ward');
+  bindContextInput('soapPtBed', 'bed');
   bindContextInput('soapPtDiagnosis', 'workingDiagnosis');
   bindContextInput('soapPtProcedure', 'procedureDone');
   bindContextInput('soapPtHd', 'hdNumber');
@@ -8138,6 +8339,8 @@ if (typeof window !== 'undefined') {
     renderAtlsExamModule();
     renderParaclinicModalityCards();
     renderPainEpisodes();
+    renderSoapDayTracker();
+    updateHeaderActivePatientBadge();
     updateLivePreview();
     applyI18nToDOM(lang);
   });

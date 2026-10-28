@@ -8,6 +8,7 @@
 const PERMANENT_CASES_KEY = 'SURG_SCRIBE_PERMANENT_CASES_VAULT';
 const PERMANENT_ACTIVE_DRAFT_KEY = 'SURG_SCRIBE_ACTIVE_DRAFT_STATE';
 const PERMANENT_ACTIVE_TAB_KEY = 'SURG_SCRIBE_ACTIVE_UI_TAB';
+const PERMANENT_DELETED_IDS_KEY = 'SURG_SCRIBE_DELETED_CASE_IDS';
 const IDB_NAME = 'ClinicalScribeImmortalDB';
 const IDB_STORE = 'vault_store';
 
@@ -64,18 +65,23 @@ export class ImmortalStorageVault {
 
   /**
    * اسکن خودکار تمام کلیدهای نسخه‌های قبلی (v0.1 تا v0.9) در localStorage
-   * و ادغام بدونِ حذفیات آنها در گاوصندوق دائمی
+   * و ادغام بدونِ حذفیات آنها در گاوصندوق دائمی با رعایت لیست سیاه حذف‌شده‌ها (Tombstone)
    */
   _migrateLegacyKeys() {
     if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return;
     try {
+      const deletedIds = JSON.parse(localStorage.getItem(PERMANENT_DELETED_IDS_KEY) || '[]');
+      const deletedSet = new Set(Array.isArray(deletedIds) ? deletedIds : []);
+
       const existingCasesMap = new Map();
       const rawCurrent = localStorage.getItem(PERMANENT_CASES_KEY);
       if (rawCurrent) {
         const parsed = JSON.parse(rawCurrent);
         if (Array.isArray(parsed)) {
           parsed.forEach((c) => {
-            if (c && c.caseId) existingCasesMap.set(c.caseId, c);
+            if (c && c.caseId && !deletedSet.has(c.caseId)) {
+              existingCasesMap.set(c.caseId, c);
+            }
           });
         }
       }
@@ -84,18 +90,30 @@ export class ImmortalStorageVault {
       for (let i = 0; i < len; i++) {
         if (typeof localStorage.key !== 'function') break;
         const k = localStorage.key(i);
-        if (!k || k === PERMANENT_CASES_KEY || k === PERMANENT_ACTIVE_DRAFT_KEY || k === PERMANENT_ACTIVE_TAB_KEY) continue;
+        if (!k || k === PERMANENT_CASES_KEY || k === PERMANENT_ACTIVE_DRAFT_KEY || k === PERMANENT_ACTIVE_TAB_KEY || k === PERMANENT_DELETED_IDS_KEY) continue;
         if (k.toLowerCase().includes('surg') || k.toLowerCase().includes('case') || k.toLowerCase().includes('clinical')) {
           try {
-            const val = JSON.parse(localStorage.getItem(k));
+            const rawVal = localStorage.getItem(k);
+            const val = JSON.parse(rawVal);
             if (Array.isArray(val)) {
+              let modified = false;
               val.forEach((item) => {
-                if (item && item.caseId && !existingCasesMap.has(item.caseId)) {
-                  existingCasesMap.set(item.caseId, item);
+                if (item && item.caseId) {
+                  if (deletedSet.has(item.caseId)) {
+                    modified = true;
+                  } else if (!existingCasesMap.has(item.caseId)) {
+                    existingCasesMap.set(item.caseId, item);
+                  }
                 }
               });
+              if (modified) {
+                const cleaned = val.filter((item) => !item || !item.caseId || !deletedSet.has(item.caseId));
+                localStorage.setItem(k, JSON.stringify(cleaned));
+              }
             } else if (val && val.caseId && val.demographics) {
-              if (!existingCasesMap.has(val.caseId)) {
+              if (deletedSet.has(val.caseId)) {
+                localStorage.removeItem(k);
+              } else if (!existingCasesMap.has(val.caseId)) {
                 existingCasesMap.set(val.caseId, val);
               }
             }
@@ -106,7 +124,7 @@ export class ImmortalStorageVault {
       }
 
       const mergedArray = Array.from(existingCasesMap.values());
-      if (mergedArray.length > 0 && typeof localStorage.setItem === 'function') {
+      if (typeof localStorage.setItem === 'function') {
         localStorage.setItem(PERMANENT_CASES_KEY, JSON.stringify(mergedArray));
         this._idbSet(PERMANENT_CASES_KEY, mergedArray);
       }
@@ -155,6 +173,17 @@ export class ImmortalStorageVault {
     if (!savedDraft || !savedDraft.caseId) {
       const savedTab = typeof localStorage !== 'undefined' ? (localStorage.getItem(PERMANENT_ACTIVE_TAB_KEY) || 'tab-cc') : 'tab-cc';
       return { state: defaultState, activeTab: savedTab, restored: false };
+    }
+
+    // بررسی Tombstone: اگر این پرونده در لیست سیاه حذف‌شده‌ها بود، بارگذاری نشود
+    if (typeof localStorage !== 'undefined') {
+      const deletedIds = JSON.parse(localStorage.getItem(PERMANENT_DELETED_IDS_KEY) || '[]');
+      if (Array.isArray(deletedIds) && deletedIds.includes(savedDraft.caseId)) {
+        localStorage.removeItem(PERMANENT_ACTIVE_DRAFT_KEY);
+        await this._idbSet(PERMANENT_ACTIVE_DRAFT_KEY, null);
+        const savedTab = localStorage.getItem(PERMANENT_ACTIVE_TAB_KEY) || 'tab-cc';
+        return { state: defaultState, activeTab: savedTab, restored: false };
+      }
     }
 
     // ادغام ایمن (Deep Merge): حفظ ۱۰۰٪ دیتای قبلی کاربر + افزودن کلیدهای جدیدی که در آپدیت‌های بعدی سایت اضافه شده‌اند
@@ -227,11 +256,57 @@ export class ImmortalStorageVault {
 
   deleteCaseFromArchive(caseId) {
     if (!caseId) return;
-    const allCases = this.getAllArchivedCasesSync().filter((c) => c.caseId !== caseId);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(PERMANENT_CASES_KEY, JSON.stringify(allCases));
+    return this.permanentlyDeleteCase(caseId);
+  }
+
+  /**
+   * حذف قطعی و برگشت‌ناپذیر پرونده از تمام حافظه‌ها (LocalStorage, IndexedDB, ActiveDraft & Tombstone)
+   */
+  async permanentlyDeleteCase(caseId, createEmptyStateFn) {
+    if (!caseId) return null;
+
+    // 1. ثبت در لیست سیاه حذف‌شده‌ها (Tombstone) تا هرگز از کلیدهای قدیمی ریکاوری نشود
+    const deletedIds = JSON.parse(localStorage.getItem(PERMANENT_DELETED_IDS_KEY) || '[]');
+    if (!deletedIds.includes(caseId)) {
+      deletedIds.push(caseId);
+      localStorage.setItem(PERMANENT_DELETED_IDS_KEY, JSON.stringify(deletedIds));
     }
-    this._idbSet(PERMANENT_CASES_KEY, allCases);
+
+    // 2. حذف از آرایه اصلی پرونده‌ها در localStorage و IndexedDB
+    const allCases = this.getAllArchivedCasesSync().filter((c) => c && c.caseId !== caseId);
+    localStorage.setItem(PERMANENT_CASES_KEY, JSON.stringify(allCases));
+    await this._idbSet(PERMANENT_CASES_KEY, allCases);
+
+    // 3. پاکسازی از تمام کلیدهای فرعی احتمالی در localStorage
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k || k === PERMANENT_CASES_KEY || k === PERMANENT_DELETED_IDS_KEY) continue;
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw && raw.includes(caseId)) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            localStorage.setItem(k, JSON.stringify(parsed.filter((x) => x?.caseId !== caseId)));
+          } else if (parsed?.caseId === caseId) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. اگر پرونده‌ای که پاک شد، همان پرونده فعال روی صفحه بود، به پرونده بعدی سوییچ کن یا فرم سفید باز کن
+    const activeDraftRaw = localStorage.getItem(PERMANENT_ACTIVE_DRAFT_KEY);
+    if (activeDraftRaw && activeDraftRaw.includes(caseId)) {
+      if (allCases.length > 0) {
+        this.saveActiveDraft(allCases[0], 'tab-cc');
+        return allCases[0];
+      } else {
+        const freshState = typeof createEmptyStateFn === 'function' ? createEmptyStateFn() : {};
+        this.saveActiveDraft(freshState, 'tab-cc');
+        return freshState;
+      }
+    }
+    return null;
   }
 }
 

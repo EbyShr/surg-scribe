@@ -16,6 +16,197 @@
  * - Compact Paraclinic Modality Launcher with multi-instance imaging & MRI/MRCP
  */
 
+let currentSchemaLang = 'fa';
+
+export function getCurrentLang() {
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.getItem === 'function') {
+    const saved = localStorage.getItem('surg_app_lang_v05');
+    if (saved === 'en' || saved === 'fa') return saved;
+  }
+  return currentSchemaLang;
+}
+
+export function setCurrentLang(lang) {
+  currentSchemaLang = lang === 'en' ? 'en' : 'fa';
+  if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+    localStorage.setItem('surg_app_lang_v05', currentSchemaLang);
+  }
+}
+
+export const DIRECT_FA_TO_EN_MAP = {
+  // Common symptoms & constitutional
+  'عرق سرد': 'Cold Sweats',
+  'عرق سرد و ضعف': 'Cold Sweats & Weakness',
+  'تهوع': 'Nausea',
+  'استفراغ': 'Vomiting',
+  'بی‌اشتهایی': 'Anorexia',
+  'تب': 'Fever',
+  'لرز': 'Chills',
+  'کاهش وزن': 'Weight Loss',
+  'ضعف و بی‌حالی': 'Fatigue / Malaise',
+  'زردی': 'Jaundice',
+  'خارش': 'Pruritus',
+  'یبوست': 'Constipation',
+  'اسهال': 'Diarrhea',
+  'هماتوشزی': 'Hematochezia',
+  'ملنا': 'Melena',
+  'هماتمز': 'Hematemesis',
+  'سوزش ادرار': 'Dysuria',
+  'تکرر ادرار': 'Frequency',
+  'هماچوری': 'Hematuria',
+  'تنگی نفس': 'Dyspnea',
+  'سرفه': 'Cough',
+  'درد قفسه سینه': 'Chest Pain',
+  'تپش قلب': 'Palpitations',
+  'سرگیجه': 'Dizziness',
+  'سنکوپ': 'Syncope',
+  'سردرد': 'Headache',
+  'ورم اندام‌ها': 'Peripheral Edema',
+  'عدم دفع گاز و مدفوع': 'Obstipation (No flatus or stool)',
+  'اتساع شکم': 'Abdominal Distension',
+  'درد حاد شکم': 'Acute Abdominal Pain',
+  'درد دور ناف': 'Periumbilical Pain',
+  'درد اپی‌گاستر': 'Epigastric Pain',
+  'درد هیپوکندریوم راست (RUQ)': 'RUQ Pain',
+  'درد هیپوکندریوم چپ (LUQ)': 'LUQ Pain',
+  'درد فوسای ایلیاک راست (RLQ)': 'RLQ Pain',
+  'درد فوسای ایلیاک چپ (LLQ)': 'LLQ Pain',
+  'درد سوپراپوبیک': 'Suprapubic Pain',
+  'درد فلنک راست': 'Right Flank Pain',
+  'درد فلنک چپ': 'Left Flank Pain',
+
+  // Archetypes & modules
+  'درد یا ناراحتی': 'Pain or Discomfort',
+  'توده، کیست، تورم یا ضایعه': 'Mass, Cyst, Swelling or Lesion',
+  'ترومای حاد و سوختگی': 'Acute Trauma & Burns (ATLS)',
+  'اختلالات عملکردی و خونریزی': 'Functional & Bleeding Disorders',
+  'بستری الکتیو یا بدون علامت': 'Elective Admission / Asymptomatic Referral',
+  'ترومای حاد ATLS': 'Acute Trauma (ATLS)',
+  'کانون درد شکم': 'Abdominal Pain Focus',
+  'کانون درد قفسه سینه': 'Thoracic Pain Focus',
+  'کانون درد سر و گردن': 'HEENT Pain Focus',
+  'کانون درد کمر و اندام': 'Spine & Extremity Pain Focus',
+
+  // Exam findings
+  'شکم نرم و بدون تندرنس': 'Abdomen soft and non-tender',
+  'تندرنس شکمی': 'Abdominal tenderness',
+  'ریباند تندرنس': 'Rebound tenderness',
+  'گاردینگ / ریجیدیتی': 'Guarding / Muscular Rigidity',
+  'دیستانسیون شکم': 'Abdominal distension',
+  'اسکار جراحی قبلی': 'Prior surgical scar',
+  'اکیموز جدار شکم': 'Abdominal wall ecchymosis',
+  'توده قابل لمس': 'Palpable mass',
+  'صداهای روده نرمواکتیو': 'Normoactive bowel sounds',
+  'صداهای روده هایپواکتیو / غایب': 'Hypoactive / absent bowel sounds',
+  'صداهای روده هایپراکتیو فلزی': 'Hyperactive metallic bowel sounds',
+  'بروی عروقی': 'Vascular bruit',
+  'تیمپانیسم نرمال': 'Normal tympany',
+  'شیفتینگ دالنس': 'Shifting dullness',
+  'تندرنس CVA': 'CVA tenderness',
+  'علامت مورفی مثبت': 'Positive Murphy sign',
+  'علامت مک‌برنی مثبت': 'Positive McBurney sign',
+  'علامت روزینگ مثبت': 'Positive Rovsing sign',
+  'علامت پسواس مثبت': 'Positive Psoas sign',
+  'علامت ابتراتور مثبت': 'Positive Obturator sign',
+  'هوشیار و آگاه به زمان و مکان': 'Alert and oriented x3',
+  'ایل و بدحال': 'Ill and toxic appearing',
+  'ملتحمه رنگ‌پریده': 'Pale conjunctiva',
+  'اسکلرا ایکتریک': 'Icteric sclera',
+  'سمع ریه‌ها پاک و دوطرفه': 'Bilateral breath sounds clear',
+  'صداهای ریوی غیرطبیعی': 'Abnormal breath sounds',
+  'صداهای قلبی S1/S2 نرمال بدون سوفل': 'Normal S1/S2 heart sounds, no murmur',
+  'سوفل قلبی یا آریتمی': 'Heart murmur or arrhythmia',
+  'نبض‌های محیطی پر و قرینه': 'Peripheral pulses full and symmetric',
+  'پرشدگی مجدد مویرگی زیر ۲ ثانیه': 'Capillary refill time < 2s',
+
+  // Surgeries
+  'آپاندکتومی': 'Appendectomy',
+  'کله‌سیستکتومی': 'Cholecystectomy',
+  'هرنیورافی اینگوینال': 'Inguinal Herniorrhaphy',
+  'هرنیورافی نافی': 'Umbilical Herniorrhaphy',
+  'لاپاراتومی اکسپلوراتوری': 'Exploratory Laparotomy',
+  'بای‌پس معده': 'Gastric Bypass',
+  'اسلیو گاسترکتومی': 'Sleeve Gastrectomy',
+  'ماستکتومی': 'Mastectomy',
+  'تیروییدکتومی': 'Thyroidectomy',
+  'نفروکتومی': 'Nephrectomy',
+  'سزارین': 'Cesarean Section',
+  'هیسترکتومی': 'Hysterectomy',
+  'هموروئیدکتومی': 'Hemorrhoidectomy',
+  'فیشرکتومی': 'Fissurectomy',
+  'کرانیوتومی': 'Craniotomy',
+  'توراکوتومی': 'Thoracotomy',
+  'پیوند کلیه': 'Renal Transplant',
+  'تعویض مفصل': 'Joint Arthroplasty',
+
+  // Statuses
+  'مثبت': 'Positive',
+  'منفی': 'Negative',
+  'طبیعی': 'Normal',
+  'غیرطبیعی': 'Abnormal',
+  'نامشخص': 'Unknown',
+  'بخش بستری': 'Ward',
+  'شماره تخت': 'Bed #'
+};
+
+export function tLabel(rawLabel, explicitEn = '') {
+  const lang = getCurrentLang();
+  if (lang !== 'en') {
+    if (typeof rawLabel === 'object' && rawLabel !== null) {
+      return rawLabel.fa || rawLabel.labelFa || rawLabel.label || rawLabel.id || '';
+    }
+    return rawLabel || '';
+  }
+
+  // English requested
+  if (explicitEn && typeof explicitEn === 'string' && explicitEn.trim()) {
+    return explicitEn.trim();
+  }
+  if (!rawLabel) return '';
+
+  if (typeof rawLabel === 'object' && rawLabel !== null) {
+    if (rawLabel.en) return rawLabel.en.trim();
+    if (rawLabel.labelEn) return rawLabel.labelEn.trim();
+    if (rawLabel.code) return rawLabel.code.trim();
+    rawLabel = rawLabel.label || rawLabel.id || '';
+  }
+
+  const str = String(rawLabel).trim();
+  if (DIRECT_FA_TO_EN_MAP[str]) {
+    return DIRECT_FA_TO_EN_MAP[str];
+  }
+
+  // If already predominantly English (no Persian letters \u0600-\u06FF), return as is!
+  if (!/[\u0600-\u06FF]/.test(str)) {
+    return str;
+  }
+
+  // Check if parentheses contain Latin/English text: e.g. "تب (Fever)" -> "Fever"
+  const parenMatch = str.match(/\(([^)]*[A-Za-z][^)]*)\)/);
+  if (parenMatch && parenMatch[1]) {
+    const candidate = parenMatch[1].trim();
+    return candidate;
+  }
+
+  // Check if slash contains English: e.g. "بخش / Ward" -> "Ward"
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    for (const part of parts) {
+      if (/[A-Za-z]/.test(part)) {
+        return part.trim();
+      }
+    }
+  }
+
+  // Check stripped of any Persian parentheses
+  const stripped = str.replace(/\([^)]+\)/g, '').trim();
+  if (DIRECT_FA_TO_EN_MAP[stripped]) {
+    return DIRECT_FA_TO_EN_MAP[stripped];
+  }
+
+  return str;
+}
+
 export const CLINICAL_PRESENTATION_ARCHETYPES = [
   {
     id: 'pain_archetype',

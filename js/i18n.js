@@ -1,8 +1,17 @@
 /**
- * i18n & Localization Engine - Surg-Scribe v0.5-Surg
+ * i18n & Localization Engine - Surg-Scribe v1.2-Bilingual-CleanUI
  * Complete bilingual support: Persian (RTL) & Medical English (LTR)
  * Manages Language, Directionality, Themes, and 5 Typography Styles.
  */
+
+import {
+  tLabel,
+  DIRECT_FA_TO_EN_MAP,
+  getCurrentLang,
+  setCurrentLang
+} from './schema.js';
+
+export { tLabel, DIRECT_FA_TO_EN_MAP, getCurrentLang, setCurrentLang };
 
 export const STORAGE_LANG_KEY = 'surg_app_lang_v05';
 export const STORAGE_FONT_KEY = 'surg_app_font_v05';
@@ -10,9 +19,9 @@ export const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 export const I18N_DICTIONARY = {
   fa: {
-    app_title: 'دستیار ثبت شرح‌حال جراحی | v0.5-Surg',
+    app_title: 'دستیار جامع شرح‌حال و پیگیری جراحی | v1.2-Bilingual-CleanUI',
     brand_title: 'SurgHistory',
-    version_pill: 'v0.5-Surg',
+    version_pill: 'v1.2-CleanUI',
     case_id_tooltip: 'شناسه یکتا پرونده شیفت',
     btn_new_case: 'پرونده جدید',
     collector_label: 'ثبت‌کننده:',
@@ -24,6 +33,11 @@ export const I18N_DICTIONARY = {
     btn_shift_title: 'مدیریت پرونده‌های شیفت و دانلود تجمیعی',
     shift_label: 'شیفت:',
     btn_theme_title: 'تغییر تم تاریک / روشن',
+
+    // Modes
+    mode_admission: '📋 پذیرش (H&P)',
+    mode_atls: '🚑 تروما (ATLS)',
+    mode_soap: '📈 ویزیت (SOAP)',
 
     // Tabs
     tab_cc: '۱. پذیرش و CC',
@@ -46,6 +60,10 @@ export const I18N_DICTIONARY = {
     birthdate_label: 'تاریخ تولد',
     age_label: 'سن (سال)',
     age_ph: 'مثلاً ۴۵',
+    demo_ward_label: 'بخش بستری',
+    demo_ward_ph: 'مثلاً جراحی ۲',
+    demo_bed_label: 'شماره تخت',
+    demo_bed_ph: 'مثلاً ۱۲',
     gender_label: 'جنسیت',
     gender_female: 'خانم (Female)',
     gender_male: 'آقا (Male)',
@@ -69,6 +87,12 @@ export const I18N_DICTIONARY = {
     cc_box_title: 'شکایت اصلی (Chief Complaint - CC)',
     cc_quote_label: 'شکایت اصلی بیمار (عین عبارت بیمار یا شکایت محوری به فارسی):',
     cc_quote_ph: 'مثلاً دل‌پیچه شدید دور ناف از دیشب که به پایین راست تیر می‌کشد...',
+
+    // SOAP
+    soap_btn_add_day: '➕ روز جدید',
+    soap_btn_del_day: '🗑️ حذف این روز',
+    soap_confirm_delete_day: 'آیا از حذف یادداشت پیگیری این روز اطمینان دارید؟ این عمل قابل بازگشت نیست.',
+    shift_confirm_delete_case: 'آیا از حذف دائمی و قطعی این پرونده از حافظه اطمینان دارید؟ این عمل غیرقابل بازگشت است.',
 
     // Tab 2 HPI & Presentations
     archetypes_title: 'کهن‌الگوهای مواجهه بالینی (5 Clinical Presentation Archetypes)',
@@ -176,9 +200,9 @@ export const I18N_DICTIONARY = {
   },
 
   en: {
-    app_title: 'Surgical Admission & History Assistant | v0.5-Surg',
+    app_title: 'Surgical Admission & Progress Note Assistant | v1.2-Bilingual-CleanUI',
     brand_title: 'SurgHistory',
-    version_pill: 'v0.5-Surg',
+    version_pill: 'v1.2-CleanUI',
     case_id_tooltip: 'Unique Shift Case ID',
     btn_new_case: 'New Patient',
     collector_label: 'Collector:',
@@ -190,6 +214,11 @@ export const I18N_DICTIONARY = {
     btn_shift_title: 'Shift Vault & Batch Dataset Manager',
     shift_label: 'Shift:',
     btn_theme_title: 'Toggle Dark / Light Mode',
+
+    // Modes
+    mode_admission: '📋 H&P',
+    mode_atls: '🚑 ATLS',
+    mode_soap: '📈 SOAP',
 
     // Tabs
     tab_cc: '1. Admission & CC',
@@ -212,6 +241,10 @@ export const I18N_DICTIONARY = {
     birthdate_label: 'Date of Birth',
     age_label: 'Age (Years)',
     age_ph: 'e.g. 45',
+    demo_ward_label: 'Hospital Ward',
+    demo_ward_ph: 'e.g. Surgery Ward 2',
+    demo_bed_label: 'Bed #',
+    demo_bed_ph: 'e.g. Bed 12',
     gender_label: 'Biological Sex',
     gender_female: 'Female',
     gender_male: 'Male',
@@ -336,6 +369,12 @@ export const I18N_DICTIONARY = {
     btn_cancel: 'Cancel',
     btn_save_settings: 'Save Settings',
 
+    // SOAP
+    soap_btn_add_day: '➕ Add Day',
+    soap_btn_del_day: '🗑️ Delete Day',
+    soap_confirm_delete_day: 'Are you sure you want to permanently delete this daily SOAP note? This cannot be undone.',
+    shift_confirm_delete_case: 'Are you sure you want to permanently delete this case? This action cannot be undone.',
+
     // Common Buttons
     btn_toggle_negatives: '− Mark Rest as Negative',
     btn_toggle_reset: '↺ Reset Negatives'
@@ -368,28 +407,7 @@ export function t(key, fallback = '') {
  */
 export function getLocalizedItemLabel(item, lang = getCurrentLanguage()) {
   if (!item) return '';
-  if (typeof item === 'string') {
-    if (lang === 'en') {
-      const match = item.match(/\(([^)]+)\)/);
-      return match ? match[1].trim() : item;
-    }
-    return item;
-  }
-
-  if (lang === 'en') {
-    if (item.en) return item.en;
-    if (item.code && item.label) {
-      const match = item.label.match(/\(([^)]+)\)/);
-      return match ? match[1].trim() : `${item.code} (${item.label})`;
-    }
-    const match = item.label ? item.label.match(/\(([^)]+)\)/) : null;
-    if (match && match[1]) {
-      return match[1].trim();
-    }
-    return item.label || item.id || '';
-  }
-
-  return item.fa || item.label || item.id || '';
+  return tLabel(item, lang === 'en' ? (item.en || item.labelEn || '') : (item.fa || item.labelFa || ''));
 }
 
 /**
@@ -398,6 +416,7 @@ export function getLocalizedItemLabel(item, lang = getCurrentLanguage()) {
 export function setLanguage(lang) {
   if (lang !== 'en' && lang !== 'fa') lang = 'fa';
   inMemoryLang = lang;
+  setCurrentLang(lang);
   if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
     localStorage.setItem(STORAGE_LANG_KEY, lang);
   }
