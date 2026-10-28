@@ -560,9 +560,20 @@ export function generateClinicalNote(state) {
       lines.push(`- **Past Medical History (PMH):** Denies significant chronic medical illnesses.`);
     }
 
-    if (state.psh?.surgeries && state.psh.surgeries.length > 0) {
-      const surgStr = state.psh.surgeries.map(s => `${s.procedure || 'Surgery'} (${s.yearHospital || ''})`).join(', ');
-      lines.push(`- **Past Surgical History (PSH):** ${surgStr}`);
+    const pshPartsEn = [];
+    if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
+      const surgStr = state.psh.surgeries.map(s => {
+        const name = s.label || s.procedure || 'Surgery';
+        const det = s.note || s.yearHospital || '';
+        return det ? `${name} (${det})` : name;
+      }).join(', ');
+      pshPartsEn.push(surgStr);
+    }
+    if (state.psh?.note && state.psh.note.trim()) {
+      pshPartsEn.push(state.psh.note.trim());
+    }
+    if (pshPartsEn.length > 0) {
+      lines.push(`- **Past Surgical History (PSH):** ${pshPartsEn.join(' | ')}`);
     } else {
       lines.push(`- **Past Surgical History (PSH):** Denies prior abdominal or major surgical procedures.`);
     }
@@ -629,10 +640,21 @@ export function generateClinicalNote(state) {
       lines.push(`- **Family History (FH):** Negative for familial malignancies or premature CAD in first-degree relatives.`);
     } else if (fhState.diseases && Array.isArray(fhState.diseases) && fhState.diseases.length > 0) {
       const fhListEn = fhState.diseases.map(d => {
-        const rels = (d.relatives && d.relatives.length > 0) ? `in ${d.relatives.join(' & ')}` : 'in family';
+        const dName = d.en || d.name || d.label || 'Condition';
+        if (d.relatives && Array.isArray(d.relatives) && d.relatives.length > 0) {
+          const relParts = d.relatives.map(r => {
+            if (typeof r === 'object' && r !== null) {
+              const vStr = r.vitalStatus === 'deceased' ? 'deceased' : 'living';
+              const noteStr = r.ageOrNote ? ` — ${r.ageOrNote}` : '';
+              return `${r.relation || 'relative'} (${vStr}${noteStr})`;
+            }
+            return String(r);
+          });
+          return `${dName} in ${relParts.join(' & ')}`;
+        }
         const vit = (d.status === 'deceased' || d.isAlive === false) ? 'deceased' : 'living';
         const age = (d.ageNotes || d.ageNote) ? `, ${d.ageNotes || d.ageNote}` : '';
-        return `${d.en || d.name || d.label} ${rels} (${vit}${age})`;
+        return `${dName} in family (${vit}${age})`;
       });
       lines.push(`- **Family History (FH):** Positive for ${fhListEn.join('; ')}.`);
     } else {
@@ -810,18 +832,27 @@ export function generateClinicalNote(state) {
     lines.push(`- **سایر بیماری‌های زمینه‌ای خارج از لیست:** ${normalizePersianClinicalText(pmhState.systemGapNote)}`);
   }
 
-  // PSH (ساده‌شده)
-  let pshNote = '';
+  // PSH (با پشتیبانی از تگ‌های جراحی و اکتومی‌ها + یادداشت آزاد)
+  const pshParts = [];
   if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
-    pshNote = state.psh.surgeries.map(s => `${s.procedure || ''} (${s.yearHospital || ''})`).join('، ');
-    if (state.psh.historyOfAnesthesia) {
-      pshNote += ` | بیهوشی: ${state.psh.historyOfAnesthesia}`;
+    const surgItems = state.psh.surgeries.map((s) => {
+      const name = s.label || s.procedure || '';
+      const det = normalizePersianClinicalText(s.note || s.yearHospital || '');
+      return det ? `${name} (${det})` : name;
+    }).filter(Boolean);
+    if (surgItems.length > 0) {
+      pshParts.push(surgItems.join('، '));
     }
-  } else if (state.psh?.note) {
-    pshNote = normalizePersianClinicalText(state.psh.note);
-  } else {
-    pshNote = 'سابقه عمل جراحی قبلی و عوارض بیهوشی را ذکر نمی‌کند.';
   }
+  if (state.psh?.note && state.psh.note.trim()) {
+    pshParts.push(normalizePersianClinicalText(state.psh.note));
+  }
+  if (state.psh?.historyOfAnesthesia) {
+    pshParts.push(`بیهوشی: ${state.psh.historyOfAnesthesia}`);
+  }
+  const pshNote = pshParts.length > 0
+    ? pshParts.join(' | ')
+    : 'سابقه عمل جراحی قبلی و عوارض بیهوشی را ذکر نمی‌کند.';
   lines.push(`- **سوابق جراحی قبلی (PSH):** ${pshNote}`);
   if (state.psh?.systemGapNote) {
     lines.push(`- **سایر سوابق جراحی خارج از لیست:** ${normalizePersianClinicalText(state.psh.systemGapNote)}`);
@@ -975,26 +1006,39 @@ export function generateClinicalNote(state) {
     lines.push(`- **سایر عادات و سوابق اجتماعی خارج از لیست:** ${normalizePersianClinicalText(state.sh.systemGapNote)}`);
   }
 
-  // FH (سوابق خانوادگی ساختاریافته)
+  // FH (سوابق خانوادگی ساختاریافته به تفکیک هر عضو خانواده)
   const fhState = state.fh || {};
   if (fhState.negFamilyHistory || fhState.masterNeg) {
     lines.push(`- **سوابق خانوادگی (FH):** سابقه بیماری خاص، سکته قلبی زودرس یا بدخیمی در بستگان درجه یک بیمار نفی می‌شود (Negative for familial malignancies or premature CAD).`);
   } else if (fhState.diseases && Array.isArray(fhState.diseases) && fhState.diseases.length > 0) {
     const fhList = fhState.diseases.map((d) => {
-      const rels = (d.relatives && d.relatives.length > 0) ? `در ${d.relatives.join(' و ')}` : 'در بستگان';
-      const vit = (d.status === 'deceased' || d.isAlive === false) ? 'فوت‌شده در اثر این بیماری' : 'در قید حیات';
-      const rawAge = normalizePersianClinicalText(d.ageNotes || d.ageNote || '');
-      let vitDesc = vit;
-      if (rawAge) {
-        if (rawAge.includes('فوت') || rawAge.includes('حیات')) {
-          vitDesc = rawAge;
-        } else {
-          vitDesc = `${vit}، ${rawAge}`;
+      const dTitle = d.diseaseLabel || d.name || d.label || 'بیماری';
+      if (d.relatives && Array.isArray(d.relatives) && d.relatives.length > 0) {
+        const hasObjectRels = d.relatives.some((r) => typeof r === 'object' && r !== null);
+        if (hasObjectRels) {
+          const relDescriptions = d.relatives.map((r) => {
+            if (typeof r === 'object' && r !== null) {
+              const relName = r.relation || 'بستگان';
+              const vStr = r.vitalStatus === 'deceased' ? 'فوت‌شده' : 'در قید حیات';
+              const rawNote = normalizePersianClinicalText(r.ageOrNote || '');
+              return rawNote ? `${relName} (${vStr} — ${rawNote})` : `${relName} (${vStr})`;
+            }
+            return String(r);
+          });
+          return `سابقه ${dTitle} در ${relDescriptions.join(' و ')}`;
         }
+        const rels = `در ${d.relatives.join(' و ')}`;
+        const vit = (d.status === 'deceased' || d.isAlive === false) ? 'فوت‌شده در اثر این بیماری' : 'در قید حیات';
+        const rawAge = normalizePersianClinicalText(d.ageNotes || d.ageNote || '');
+        const vitDesc = rawAge ? (rawAge.includes('فوت') || rawAge.includes('حیات') ? rawAge : `${vit}، ${rawAge}`) : vit;
+        return `سابقه ${dTitle} ${rels} (${vitDesc})`;
       }
-      return `سابقه ${d.name || d.label || 'بیماری'} ${rels} (${vitDesc})`;
+      const vit = (d.status === 'deceased' || d.isAlive === false) ? 'فوت‌شده' : 'در قید حیات';
+      const rawAge = normalizePersianClinicalText(d.ageNotes || d.ageNote || '');
+      const vitDesc = rawAge ? `${vit} — ${rawAge}` : vit;
+      return `سابقه ${dTitle} در بستگان (${vitDesc})`;
     });
-    lines.push(`- **سوابق خانوادگی (FH):** ${fhList.join(' و ')}.`);
+    lines.push(`- **سوابق خانوادگی (FH):** ${fhList.join(' ؛ ')}.`);
   } else {
     const fhItems = (state.fh?.selected || []).map((item) => {
       if (typeof item === 'object') {
@@ -1512,15 +1556,36 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
 
   if (s.ambulation) sParts.push(`وضعیت حرکتی: ${s.ambulation}`);
 
+  const OVERNIGHT_SYMPTOM_LABELS = {
+    nausea_vomiting: 'تهوع و استفراغ',
+    fever_chills: 'تب و لرز',
+    cold_sweats: 'عرق سرد (Cold Sweats)',
+    dyspnea_cp: 'تنگی نفس / درد قفسه سینه',
+    dysuria_voiding: 'سوزش یا احتباس ادراری'
+  };
+
   const posOvernight = [];
   const negOvernight = [];
-  Object.entries(s.overnightSymptoms || {}).forEach(([k, val]) => {
+  const symMap = s.symptoms || s.overnightSymptoms || {};
+  const symDetails = s.symptomDetails || {};
+  Object.entries(symMap).forEach(([k, val]) => {
     const st = typeof val === 'object' ? val.state : val;
-    const lbl = val.label || k;
-    const det = val.detail ? ` (${normalizePersianClinicalText(val.detail)})` : '';
-    if (st === 1) posOvernight.push(`${lbl}${det}`);
-    if (st === -1) negOvernight.push(lbl);
+    const lbl = (typeof val === 'object' && val.label) ? val.label : (OVERNIGHT_SYMPTOM_LABELS[k] || k);
+    const rawDet = (typeof val === 'object' && val.detail) ? val.detail : (symDetails[k] || '');
+    const det = rawDet ? ` (${normalizePersianClinicalText(rawDet)})` : '';
+    if (st === 1 || st === '+1') posOvernight.push(`${lbl}${det}`);
+    if (st === -1 || st === '-1') negOvernight.push(lbl);
   });
+
+  if (Array.isArray(s.customSymptoms)) {
+    s.customSymptoms.forEach((cs) => {
+      const lbl = cs.label || cs.id;
+      const det = cs.detail ? ` (${normalizePersianClinicalText(cs.detail)})` : '';
+      if (cs.status === 1 || cs.status === '+1') posOvernight.push(`${lbl}${det}`);
+      else if (cs.status === -1 || cs.status === '-1') negOvernight.push(lbl);
+    });
+  }
+
   if (posOvernight.length > 0) sParts.push(`شکایات مثبت شبانه‌روز اخیر: ${posOvernight.join('، ')}`);
   if (negOvernight.length > 0) sParts.push(`عدم وجود ${negOvernight.join('، ')}`);
   if (s.narrativeNote) sParts.push(normalizePersianClinicalText(s.narrativeNote));
@@ -1540,10 +1605,12 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   out.push(`- **علائم حیاتی (Vitals):** ${vitalTokens.join(' | ') || 'ثبت نشده'} ${v.hemodynamics ? `(${v.hemodynamics})` : ''}`);
 
   // I/O & Drains
+  const ioObj = o.io || o;
   const ioTokens = [];
-  if (o.intake24h) ioTokens.push(`جذب ۲۴ ساعته (Intake): ${o.intake24h} cc`);
-  if (o.urineOutput24h) ioTokens.push(`برون‌ده ادراری (Urine Output): ${o.urineOutput24h} cc`);
-  if (o.ngtOutput24h) ioTokens.push(`برون‌ده NGT: ${o.ngtOutput24h}`);
+  if (ioObj.intake24h || o.intake24h) ioTokens.push(`جذب ۲۴ ساعته (Intake): ${ioObj.intake24h || o.intake24h} cc`);
+  if (ioObj.urineStatus) ioTokens.push(`وضعیت ادراری: ${ioObj.urineStatus}`);
+  if (ioObj.urineOutput24h || o.urineOutput24h) ioTokens.push(`برون‌ده ادراری (Urine Output): ${ioObj.urineOutput24h || o.urineOutput24h} cc`);
+  if (ioObj.ngtOutput24h || o.ngtOutput24h) ioTokens.push(`برون‌ده NGT: ${ioObj.ngtOutput24h || o.ngtOutput24h}`);
   if (ioTokens.length > 0) {
     out.push(`- **بیلان مایعات و لوله‌ها (I/O & Tubes):** ${ioTokens.join(' | ')}`);
   }
@@ -1608,6 +1675,139 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
     });
   } else {
     out.push(`1. ادامه اقدامات درمانی و پایش علائم حیاتی و بیلان مایعات.`);
+  }
+
+  return out.join('\n');
+}
+
+/**
+ * Generates Dedicated Emergency ATLS Trauma Resuscitation Note
+ * v1.1-ATLS-MultiSOAP
+ */
+export function generateATLSNote(atlsState = {}, clinicalState = null) {
+  const out = [];
+  const mist = atlsState.mist || {};
+  const pri = atlsState.primary || {};
+  const vit = pri.vitals || {};
+  const ample = atlsState.ample || {};
+  const sec = atlsState.secondary || {};
+  const demo = clinicalState?.demographics || {};
+
+  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : 'بیمار';
+  const ageStr = demo.age ? `${demo.age} ساله` : '';
+
+  if (demo.fullName) {
+    out.push(`> **مصدوم / بیمار:** ${demo.fullName} (${ageStr}) | **پرونده:** ${demo.recordNumber || 'اورژانس تروما'}`);
+  }
+
+  out.push(`### 🚑 پرونده احیا و ترومای حاد اورژانس (Emergency ATLS Trauma Note)`);
+  out.push(
+    `**مشخصات مصدوم:** ${genderWord} ${ageStr} | **نحوه ورود:** ${mist.arrivalMode || 'اورژانس ۱۱۵ (EMS)'} | **زمان وقوع حادثه:** ${normalizePersianClinicalText(mist.incidentTime || 'نامشخص')}\n`
+  );
+
+  // 1. MIST & EMS Handover
+  out.push(`#### ۱. مکانیسم تروما و تحویل پیش‌بیمارستانی (MIST & EMS Handover)`);
+  const mechs = Array.isArray(mist.mechanisms) && mist.mechanisms.length > 0
+    ? mist.mechanisms.join(' ، ')
+    : 'ترومای حاد (مکانیسم در حال بررسی)';
+  out.push(`- **مکانیسم آسیب (M — Mechanism of Injury):** ${mechs}`);
+  if (mist.mechanismDetail) {
+    out.push(`- **شرح دقیق صحنه حادثه و آسیب‌های مشکوک (I/S):** ${normalizePersianClinicalText(mist.mechanismDetail)}`);
+  }
+  const preHosp = Array.isArray(mist.prehospitalCare) && mist.prehospitalCare.length > 0
+    ? mist.prehospitalCare.join(' ، ')
+    : 'بدون اقدام تهاجمی پیش‌بیمارستانی';
+  out.push(`- **اقدامات پیش‌بیمارستانی (T — Treatment Given):** ${preHosp}\n`);
+
+  // 2. Primary Survey (ABCDE)
+  out.push(`#### ۲. ارزیابی اولیه و احیا (Primary Survey — ABCDE & Resuscitation Vitals)`);
+  const gcsTotal = vit.gcsTotal || ((Number(vit.gcsE) || 4) + (Number(vit.gcsV) || 5) + (Number(vit.gcsM) || 6));
+  const gcsBreakdown = `GCS: **${gcsTotal}/15** (E${vit.gcsE || 4} V${vit.gcsV || 5} M${vit.gcsM || 6})`;
+  const vTokens = [
+    vit.bp ? `BP: **${vit.bp}** mmHg` : '',
+    vit.pr ? `PR: **${vit.pr}** /min` : '',
+    vit.rr ? `RR: **${vit.rr}** /min` : '',
+    vit.spo2 ? `SpO2: **${vit.spo2}%**` : '',
+    vit.temp ? `T: **${vit.temp}** °C` : '',
+    gcsBreakdown
+  ].filter(Boolean);
+  out.push(`- **علائم حیاتی بدو ورود به تریاژ/احیا (Admission Vitals):** ${vTokens.join(' | ')}`);
+  out.push(`- **A — Airway & C-Spine Protection:** ${pri.airway || 'راه هوایی باز و ایمن (Patent & Intact)'}`);
+  out.push(`- **B — Breathing & Ventilation:** ${pri.breathing || 'سمع دوطرفه ریه شفاف و متقارن (Bilateral Clear Breath Sounds)'}`);
+  out.push(`- **C — Circulation & Hemorrhage Control:** ${pri.circulation || 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر (Class I)'}`);
+  out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | مردمک‌ها: ${pri.disabilityPupils || 'مردمک‌ها قرینه و واکنش‌دار به نور (PERRLA 3mm)'}`);
+  out.push(`- **E — Exposure & Environmental Control:** ${pri.exposure || 'لباس‌ها خارج شد، بررسی کامل سطح بدن و پیشگیری از هیپوترمی انجام شد'}\n`);
+
+  // 3. AMPLE History
+  out.push(`#### ۳. شرح‌حال سریع اورژانسی (AMPLE History)`);
+  out.push(`- **A (Allergies):** ${normalizePersianClinicalText(ample.allergies || 'NKDA (عدم سابقه حساسیت دارویی)')}`);
+  out.push(`- **M (Medications):** ${normalizePersianClinicalText(ample.medications || 'عدم مصرف داروی خاص / ضدانعقاد')}`);
+  out.push(`- **P (Past Illnesses / Pregnancy):** ${normalizePersianClinicalText(ample.pastHistory || 'بدون سابقه بیماری زمینه‌ای یا جراحی شناخته‌شده')}`);
+  out.push(`- **L (Last Meal / NPO Status):** ${normalizePersianClinicalText(ample.lastMeal || 'نامشخص')}`);
+  out.push(`- **E (Events / Environment / Tetanus):** ${normalizePersianClinicalText(ample.eventsTetanus || 'نیازمند بررسی واکسیناسیون کزاز')}\n`);
+
+  // 4. Secondary Survey, Injury Map, Burns, eFAST & Plan
+  out.push(`#### ۴. ارزیابی ثانویه، نقشه آسیب‌ها، سوختگی و پاراکلینیک تروما (Secondary Survey & eFAST)`);
+
+  // Dynamic Injury Map
+  if (Array.isArray(sec.injuries) && sec.injuries.length > 0) {
+    out.push(`- **نقشه ضایعات، پارگی‌ها و آسیب‌های موضعی (Trauma Injury Map):**`);
+    sec.injuries.forEach((inj, idx) => {
+      const parts = [
+        inj.type ? `نوع ضایعه: **${inj.type}**` : '',
+        inj.site ? `محل آناتومیک: **${normalizePersianClinicalText(inj.site)}**` : '',
+        inj.dimensions ? `ابعاد/عمق: ${normalizePersianClinicalText(inj.dimensions)}` : '',
+        inj.bleeding ? `خونریزی: ${inj.bleeding}` : '',
+        inj.neurovascular ? `وضعیت نوروواسکولار دیستال: **${normalizePersianClinicalText(inj.neurovascular)}**` : ''
+      ].filter(Boolean);
+      out.push(`  ${idx + 1}. ${parts.join(' | ')}`);
+    });
+  } else {
+    out.push(`- **نقشه ضایعات ظاهری:** ضایعه نافذ یا لاسراسیون باز فعالی ثبت نشده است.`);
+  }
+
+  // Burn Module
+  if (sec.burnActive) {
+    const bDeg = sec.burnDegree || 'درجه ۲';
+    const bTbsa = sec.burnTbsa ? `${sec.burnTbsa}% TBSA` : 'درصد تعیین نشده';
+    const bInh = normalizePersianClinicalText(sec.burnInhalation || 'بدون شواهد سوختگی استنشاقی');
+    out.push(`- **🔥 ارزیابی تخصصی سوختگی (Burn Assessment):** سوختگی **${bDeg}** به وسعت **${bTbsa}** | وضعیت راه هوایی و استنشاقی: ${bInh}`);
+  }
+
+  // Head-to-Toe Exam
+  const h2t = [
+    sec.headFace ? `**سر و فک و صورت:** ${normalizePersianClinicalText(sec.headFace)}` : '',
+    sec.neck ? `**گردن:** ${normalizePersianClinicalText(sec.neck)}` : '',
+    sec.chest ? `**قفسه سینه:** ${normalizePersianClinicalText(sec.chest)}` : '',
+    sec.abdomenPelvis ? `**شکم و لگن:** ${normalizePersianClinicalText(sec.abdomenPelvis)}` : '',
+    sec.perineumDre ? `**پرینه و DRE:** ${normalizePersianClinicalText(sec.perineumDre)}` : '',
+    sec.extremitiesNeuro ? `**اندام‌ها و نوروواسکولار:** ${normalizePersianClinicalText(sec.extremitiesNeuro)}` : ''
+  ].filter(Boolean);
+  if (h2t.length > 0) {
+    out.push(`- **معاینه سرتاپایی (Head-to-Toe Secondary Survey):**\n  * ${h2t.join('\n  * ')}`);
+  }
+
+  // eFAST & Trauma Imaging & Stat Labs
+  out.push(`- **سونوگرافی بر بالین (eFAST):** **${sec.efastStatus || 'انجام نشده'}**${sec.efastDetail ? ` (${normalizePersianClinicalText(sec.efastDetail)})` : ''}`);
+  if (sec.imagingNote) {
+    out.push(`- **گرافی‌های پرتابل و سی‌تی‌اسکن تروما (Trauma Imaging):** ${normalizePersianClinicalText(sec.imagingNote)}`);
+  }
+  if (sec.statLabsNote) {
+    out.push(`- **آزمایش‌های اورژانسی (Stat Trauma Labs):** ${normalizePersianClinicalText(sec.statLabsNote)}`);
+  }
+
+  // Emergency Actions & Disposition Plan
+  out.push(`\n#### ۵. اقدامات احیا، پروفیلاکسی و تعیین تکلیف اورژانس (ATLS Resuscitation & Disposition Plan)`);
+  const planActions = [...(Array.isArray(sec.actionsAndPlan) ? sec.actionsAndPlan : [])];
+  if (sec.planCustomNote) {
+    sec.planCustomNote.split('\n').filter(Boolean).forEach((line) => planActions.push(normalizePersianClinicalText(line)));
+  }
+  if (planActions.length > 0) {
+    planActions.forEach((act, idx) => {
+      out.push(`${idx + 1}. ${act}`);
+    });
+  } else {
+    out.push(`1. پایش مداوم علائم حیاتی، تکرار معاینه شکم و سطح هوشیاری (Serial Exam) و پیگیری تصویربرداری‌های تروما.`);
   }
 
   return out.join('\n');

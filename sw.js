@@ -1,4 +1,4 @@
-const CACHE_NAME = 'surg-v1.0.0-immortal-core-cache-v100';
+const CACHE_NAME = 'surg-v1.1.0-atls-multisoap-cache-v110';
 
 const STATIC_ASSETS = [
   './',
@@ -22,7 +22,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v0.9-SOAP] Pre-caching offline surgical assets');
+      console.log('[SW v1.1-ATLS-MultiSOAP] Pre-caching offline surgical assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -34,7 +34,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW v0.9-SOAP] Removing old cache version:', key);
+            console.log('[SW v1.1-ATLS-MultiSOAP] Removing old cache version:', key);
             return caches.delete(key);
           }
         })
@@ -44,12 +44,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // For HTML document navigation: Network First, falling back to cache
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
       fetch(event.request)
@@ -65,7 +63,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First strategy for local app assets to prevent stale code caching
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(event.request)
@@ -81,7 +78,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate for external fonts (Google Fonts)
   if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
@@ -98,7 +94,4 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-
-  // Default fetch
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });
