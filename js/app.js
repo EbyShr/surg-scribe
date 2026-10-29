@@ -5838,12 +5838,13 @@ function initNavigationTabs() {
   });
 }
 
-function updateLivePreview() {
+export function updateLivePreview() {
   let noteMarkdown = '';
   if (currentAppMode === 'soap') {
     const linkedCase = getLinkedOrCurrentCase();
     noteMarkdown = generateSOAPProgressNote(soapState, linkedCase);
-    saveSoapProgressNote(true);
+    syncActiveSoapDayToHistory();
+    scheduleDebouncedSoapAutoSave();
   } else if (currentAppMode === 'atls') {
     if (!clinicalState.atls) clinicalState.atls = createDefaultAtlsState();
     noteMarkdown = generateATLSNote(clinicalState.atls, clinicalState);
@@ -6705,21 +6706,32 @@ export function switchAppMode(mode) {
     if (atlsContainer) atlsContainer.style.display = 'none';
     if (soapContainer) soapContainer.style.display = 'flex';
     if (btnGoToSoap) btnGoToSoap.style.display = 'none';
+
+    if (!soapState.linkedCaseId && clinicalState?.caseId) {
+      soapState.linkedCaseId = clinicalState.caseId;
+      soapState.mode = 'linked';
+    }
+
     populateSoapPatientDropdown();
 
     const targetCase = getActiveTargetCaseForSoap() || clinicalState;
-    const historyList = Array.isArray(targetCase.soapHistory) && targetCase.soapHistory.length > 0
+    const historyList = Array.isArray(targetCase?.soapHistory) && targetCase.soapHistory.length > 0
       ? targetCase.soapHistory
-      : (Array.isArray(targetCase.progressNotes) ? targetCase.progressNotes : []);
+      : (Array.isArray(targetCase?.progressNotes) ? targetCase.progressNotes : []);
 
     if (historyList.length === 0) {
       initFreshDayOneSoapNote();
       saveSoapProgressNote(true);
       syncSoapInputsFromState();
       renderSoapDayTracker();
-    } else if (soapState.linkedCaseId) {
-      handleSoapPatientSelect(soapState.linkedCaseId);
     } else {
+      const activeDay = historyList.find((h) => (h.dayId || h.id) === soapState.dayId) || historyList[0];
+      if (activeDay && activeDay.soapState) {
+        soapState = JSON.parse(JSON.stringify(activeDay.soapState));
+        soapState.linkedCaseId = targetCase.caseId;
+        soapState.mode = 'linked';
+        soapState.dayId = activeDay.dayId || activeDay.id || soapState.dayId;
+      }
       syncSoapInputsFromState();
       renderSoapDayTracker();
     }
@@ -7261,13 +7273,14 @@ function populateSoapPatientDropdown() {
   if (!select) return;
 
   const cases = getAllAvailableCases();
-  select.innerHTML = '<option value="">-- انتخاب از پرونده‌های شیفت --</option>';
+  const lang = getCurrentLanguage();
+  select.innerHTML = `<option value="">${lang === 'en' ? '-- Select from Shift Cases --' : '-- انتخاب از پرونده‌های شیفت --'}</option>`;
 
   cases.forEach((c) => {
     const demo = c.demographics || c.admission || c.context || {};
     const cc = c.cc || {};
-    const name = demo.fullName ? `${demo.fullName} (${demo.age || '—'} ساله)` : (c.caseId || 'پرونده بدون شناسه');
-    const diag = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || (c.recordType === 'SOAP_PROGRESS' ? (c.context?.workingDiagnosis || 'پراگرس روزانه') : 'جراحی');
+    const name = demo.fullName ? `${demo.fullName} (${demo.age || '—'} ${lang === 'en' ? 'yo' : 'ساله'})` : (c.caseId || (lang === 'en' ? 'Unnamed Patient' : 'پرونده بدون شناسه'));
+    const diag = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || (c.recordType === 'SOAP_PROGRESS' ? (c.context?.workingDiagnosis || (lang === 'en' ? 'Progress Note' : 'پراگرس روزانه')) : (lang === 'en' ? 'Admission' : 'جراحی'));
 
     const opt = document.createElement('option');
     opt.value = c.caseId;
@@ -7277,9 +7290,6 @@ function populateSoapPatientDropdown() {
 
   if (soapState.linkedCaseId && cases.some((c) => c.caseId === soapState.linkedCaseId)) {
     select.value = soapState.linkedCaseId;
-  } else if (cases.length > 0 && !select.value) {
-    select.value = cases[0].caseId;
-    handleSoapPatientSelect(cases[0].caseId);
   }
 }
 
@@ -7303,23 +7313,9 @@ function handleSoapPatientSelect(caseId) {
     soapState.mode = 'linked';
     soapState.dayId = historyList[0].dayId || historyList[0].id || soapState.dayId;
   } else {
-    const demo = selected.demographics || selected.admission || selected.context || {};
-    const cc = selected.cc || {};
-
-    soapState.context.fullName = demo.fullName || '';
-    soapState.context.age = demo.age || '';
-    soapState.context.gender = demo.gender || 'male';
-    soapState.context.ward = demo.ward || '';
-    soapState.context.bed = demo.bed || '';
-    soapState.context.workingDiagnosis = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || selected.context?.workingDiagnosis || '';
-    soapState.context.procedureDone = cc.plannedProcedure || cc.procedureDone || selected.context?.procedureDone || '';
-
-    const caseDate = new Date(selected.createdAt || selected.timestamp || Date.now());
-    const diffDays = Math.max(1, Math.floor((Date.now() - caseDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    soapState.context.hdNumber = String(diffDays);
-
-    const prevLabs = selected.paraclinics?.labs || selected.objective?.labs || {};
-    soapState.objective.previousBaselineLabs = { ...prevLabs };
+    initFreshDayOneSoapNote();
+    soapState.linkedCaseId = caseId;
+    soapState.mode = 'linked';
   }
 
   syncSoapInputsFromState();
@@ -8190,35 +8186,100 @@ function initSoapEngine() {
   });
 }
 
-function saveSoapProgressNote(silent = false) {
-  const linkedCase = getLinkedOrCurrentCase();
-  const noteMarkdown = generateSOAPProgressNote(soapState, linkedCase);
-  const nowIso = new Date().toISOString();
-  const curDayId = soapState.dayId || `soap_day_${Date.now()}`;
-  soapState.dayId = curDayId;
+let isSavingSoap = false;
+let soapAutoSaveTimer = null;
 
-  const progressRecord = {
-    id: curDayId,
-    dayId: curDayId,
-    createdAt: nowIso,
-    dateStr: soapState.dateStr || new Date().toLocaleDateString('fa-IR'),
-    hdNumber: soapState.context.hdNumber || '1',
-    podNumber: soapState.context.podNumber || '1',
-    noteMarkdown: noteMarkdown,
-    soapState: JSON.parse(JSON.stringify(soapState))
-  };
+export function scheduleDebouncedSoapAutoSave() {
+  if (soapAutoSaveTimer) {
+    clearTimeout(soapAutoSaveTimer);
+  }
+  soapAutoSaveTimer = setTimeout(() => {
+    saveSoapProgressNote(true);
+  }, 400);
+}
 
-  const upsertIntoHistoryArray = (arr) => {
-    const existingIdx = arr.findIndex((item) => (item.dayId || item.id) === curDayId);
-    if (existingIdx >= 0) {
-      arr[existingIdx] = progressRecord;
-    } else {
-      arr.unshift(progressRecord);
+export function syncActiveSoapDayToHistory() {
+  const curDayId = soapState.dayId;
+  if (!curDayId) return;
+  const targetCase = getActiveTargetCaseForSoap() || clinicalState;
+  const noteMarkdown = generateSOAPProgressNote(soapState, targetCase);
+
+  const updateArr = (arr) => {
+    if (!Array.isArray(arr)) return;
+    const idx = arr.findIndex((item) => (item.dayId || item.id) === curDayId);
+    if (idx >= 0) {
+      arr[idx].soapState = JSON.parse(JSON.stringify(soapState));
+      arr[idx].noteMarkdown = noteMarkdown;
+      arr[idx].hdNumber = soapState.context?.hdNumber || '1';
+      arr[idx].podNumber = soapState.context?.podNumber || '1';
+      arr[idx].dateStr = soapState.dateStr || arr[idx].dateStr;
     }
   };
 
+  if (targetCase) {
+    updateArr(targetCase.soapHistory);
+    updateArr(targetCase.progressNotes);
+  }
+  if (clinicalState && clinicalState !== targetCase) {
+    updateArr(clinicalState.soapHistory);
+    updateArr(clinicalState.progressNotes);
+  }
+}
+
+export function saveSoapProgressNote(silent = false) {
+  if (isSavingSoap) return;
+  isSavingSoap = true;
+
   try {
-    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    const linkedCase = getLinkedOrCurrentCase();
+    const noteMarkdown = generateSOAPProgressNote(soapState, linkedCase);
+    const nowIso = new Date().toISOString();
+    const curDayId = soapState.dayId || `soap_day_${Date.now()}`;
+    soapState.dayId = curDayId;
+
+    const progressRecord = {
+      id: curDayId,
+      dayId: curDayId,
+      createdAt: nowIso,
+      dateStr: soapState.dateStr || (getCurrentLanguage() === 'en' ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR')),
+      hdNumber: soapState.context?.hdNumber || '1',
+      podNumber: soapState.context?.podNumber || '1',
+      noteMarkdown: noteMarkdown,
+      soapState: JSON.parse(JSON.stringify(soapState))
+    };
+
+    const upsertIntoHistoryArray = (arr) => {
+      const existingIdx = arr.findIndex((item) => (item.dayId || item.id) === curDayId);
+      if (existingIdx >= 0) {
+        arr[existingIdx] = progressRecord;
+      } else {
+        arr.unshift(progressRecord);
+      }
+      // Deduplicate history array by dayId/id to heal any bloat
+      const seenDays = new Set();
+      const deduped = [];
+      arr.forEach((h) => {
+        const key = h.dayId || h.id;
+        if (key && !seenDays.has(key)) {
+          seenDays.add(key);
+          deduped.push(h);
+        }
+      });
+      arr.length = 0;
+      deduped.forEach((h) => arr.push(h));
+    };
+
+    const rawList = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    const list = [];
+    const seenCases = new Set();
+    if (Array.isArray(rawList)) {
+      rawList.forEach((c) => {
+        if (c && c.caseId && !seenCases.has(c.caseId)) {
+          seenCases.add(c.caseId);
+          list.push(c);
+        }
+      });
+    }
 
     if (soapState.mode === 'linked' && soapState.linkedCaseId) {
       const targetCase = list.find((c) => c.caseId === soapState.linkedCaseId);
@@ -8237,9 +8298,9 @@ function saveSoapProgressNote(silent = false) {
       } else if (clinicalState.caseId === soapState.linkedCaseId) {
         list.unshift(JSON.parse(JSON.stringify(clinicalState)));
       }
-      localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
+      localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 50)));
       if (!silent) {
-        showToast('یادداشت SOAP با موفقیت در تایم‌لاین چندروزه پرونده بیمار ذخیره شد.', 'success');
+        showToast(getCurrentLanguage() === 'en' ? 'SOAP note saved to patient timeline.' : 'یادداشت SOAP با موفقیت در تایم‌لاین چندروزه پرونده بیمار ذخیره شد.', 'success');
       }
     } else {
       const newCaseId = `SURG-SOAP-${Date.now().toString(36).toUpperCase()}`;
@@ -8249,39 +8310,42 @@ function saveSoapProgressNote(silent = false) {
         timestamp: nowIso,
         recordType: 'SOAP_PROGRESS',
         demographics: {
-          fullName: soapState.context.fullName,
-          age: soapState.context.age,
-          gender: soapState.context.gender
+          fullName: soapState.context?.fullName,
+          age: soapState.context?.age,
+          gender: soapState.context?.gender,
+          ward: soapState.context?.ward,
+          bed: soapState.context?.bed
         },
         cc: {
-          establishedDiagnosis: soapState.context.workingDiagnosis,
-          procedureDone: soapState.context.procedureDone
+          establishedDiagnosis: soapState.context?.workingDiagnosis,
+          procedureDone: soapState.context?.procedureDone
         },
         paraclinics: {
-          labs: { ...soapState.objective.labs }
+          labs: { ...(soapState.objective?.labs || {}) }
         },
         context: { ...soapState.context },
         soapHistory: [progressRecord],
         progressNotes: [progressRecord]
       };
       list.unshift(standaloneCase);
-      localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
+      localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 50)));
       soapState.linkedCaseId = newCaseId;
       soapState.mode = 'linked';
       if (!silent) {
-        showToast('پرونده و یادداشت SOAP بیمار جدید با موفقیت در سیستم ذخیره شد.', 'success');
+        showToast(getCurrentLanguage() === 'en' ? 'New standalone patient SOAP note saved.' : 'پرونده و یادداشت SOAP بیمار جدید با موفقیت در سیستم ذخیره شد.', 'success');
       }
+      populateSoapPatientDropdown();
     }
 
     updateShiftCasesCount();
-    populateSoapPatientDropdown();
     renderSoapDayTracker();
-    updateLivePreview();
   } catch (err) {
     console.error('Failed to save SOAP note:', err);
     if (!silent) {
-      showToast('خطا در ذخیره یادداشت SOAP در حافظه محلی.', 'warning');
+      showToast(getCurrentLanguage() === 'en' ? 'Error saving SOAP note.' : 'خطا در ذخیره یادداشت SOAP در حافظه محلی.', 'warning');
     }
+  } finally {
+    isSavingSoap = false;
   }
 }
 
