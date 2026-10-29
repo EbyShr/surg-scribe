@@ -296,7 +296,7 @@ export function generateNarrativeCCAndHPI(state) {
   if (isEn) {
     if (demo.fullName || demo.fatherName || demo.birthDate || demo.age || demo.ward || demo.bed) {
       const agePart = demo.age ? `${demo.age} y/o` : (demo.birthDate || '—');
-      const genderLabel = demo.gender === 'female' ? 'Female' : demo.gender === 'male' ? 'Male' : (demo.gender || '—');
+      const genderLabel = demo.gender === 'female' ? 'Female' : demo.gender === 'male' ? 'Male' : (demo.gender === 'other' ? 'Other' : '—');
       const wardPart = demo.ward ? ` | **Ward:** **${demo.ward}**` : '';
       const bedPart = demo.bed ? ` | **Bed:** **${demo.bed}**` : '';
       out.push(
@@ -316,11 +316,17 @@ export function generateNarrativeCCAndHPI(state) {
     out.push(`\n### 2. History of Present Illness (HPI)`);
     const narrativeSentences = [];
 
-    const genderNoun = demo.gender === 'female' ? 'female' : demo.gender === 'male' ? 'male' : 'patient';
-    const agePhrase = demo.age ? `${demo.age}-year-old` : '';
+    let subjectDesc = 'patient';
+    if (demo.gender === 'female') {
+      subjectDesc = demo.age ? `${demo.age}-year-old female` : 'female';
+    } else if (demo.gender === 'male') {
+      subjectDesc = demo.age ? `${demo.age}-year-old male` : 'male';
+    } else if (demo.age) {
+      subjectDesc = `${demo.age}-year-old patient`;
+    }
     let introSentence = state.admission?.unresponsiveTrauma
-      ? `The patient is a ${agePhrase} ${genderNoun} transported emergently by EMS following severe trauma/acute critical condition with altered mental status.`
-      : `The patient is a ${agePhrase} ${genderNoun} presenting with chief complaint of "${ccText}".`;
+      ? `The patient is an emergent trauma admission (${subjectDesc}) transported by EMS following severe trauma/acute critical condition with altered mental status.`
+      : `The patient is a ${subjectDesc} presenting with chief complaint of "${ccText}".`;
     if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
       const att = cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || 'Attending Surgeon';
       const diag = cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis;
@@ -369,7 +375,7 @@ export function generateNarrativeCCAndHPI(state) {
     const agePart = demo.birthDate
       ? `${demo.birthDate} (${demo.age ? demo.age + ' ساله' : ''})`
       : (demo.age ? `${demo.age} ساله` : '—');
-    const genderLabel = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقا' : (demo.gender || 'سایر/ترنس');
+    const genderLabel = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقا' : (demo.gender === 'other' ? 'سایر/ترنس' : '—');
     const wardPart = demo.ward ? ` | **بخش:** **${demo.ward}**` : '';
     const bedPart = demo.bed ? ` | **تخت:** **${demo.bed}**` : '';
 
@@ -393,18 +399,19 @@ export function generateNarrativeCCAndHPI(state) {
   out.push(`\n### ۲. شرح بیماری فعلی (History of Present Illness - HPI)`);
   const narrativeSentences = [];
 
-  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : 'بیمار';
+  const genderWord = demo.gender === 'female' ? 'خانم ' : demo.gender === 'male' ? 'آقای ' : '';
   const agePhrase = demo.age ? `${demo.age} ساله` : '';
   const maritalPhrase = demo.marital ? `، ${demo.marital}` : '';
   const cityPhrase = demo.city ? `، اهل و ساکن ${normalizePersianClinicalText(demo.city)}` : '';
   const jobPhrase = demo.occupation ? `، شغل ${normalizePersianClinicalText(demo.occupation)}` : '';
+  const ptIntro = `بیمار ${genderWord}${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase}`.replace(/\s+/g, ' ').trim();
 
   // جمله اول: معرفی بیمار بر اساس ۳ مسیر بالینی پذیرش
   if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
     const att = normalizePersianClinicalText(cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || '');
     const diag = normalizePersianClinicalText(cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis || '');
     const proc = normalizePersianClinicalText(cc.clinicPlannedProcedure || cc.plannedProcedure || '');
-    let refSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت «${ccText}» مراجعه نموده و با نامه ارجاع استاد محترم ${att ? '**' + att + '**' : 'درمانگاه جراحی'}`;
+    let refSentence = `${ptIntro} هستند که با شکایت «${ccText}» مراجعه نموده و با نامه ارجاع استاد محترم ${att ? '**' + att + '**' : 'درمانگاه جراحی'}`;
     if (diag) refSentence += ` با تشخیص اولیه «${diag}»`;
     if (proc) refSentence += ` جهت اقدام برنامه‌ریزی‌شده «${proc}»`;
     refSentence += ` از درمانگاه به صورت الکتیو در این بخش بستری شده‌اند.`;
@@ -413,22 +420,22 @@ export function generateNarrativeCCAndHPI(state) {
     const src = normalizePersianClinicalText(cc.transferSource || cc.originWardHospital || '');
     const rsn = normalizePersianClinicalText(cc.transferReason || cc.primaryAdmissionReason || '');
     const ind = normalizePersianClinicalText(cc.transferSurgIndication || cc.transferConsultReason || '');
-    let transSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به صورت انتقال بین‌بخشی / اعزام از ${src ? '«' + src + '»' : 'بخش/مرکز دیگر'}`;
+    let transSentence = `${ptIntro} هستند که به صورت انتقال بین‌بخشی / اعزام از ${src ? '«' + src + '»' : 'بخش/مرکز دیگر'}`;
     if (rsn) transSentence += ` (علت بستری اولیه: «${rsn}»)`;
     if (ind) transSentence += `، به دنبال مشاوره و با اندیکاسیون «${ind}» به سرویس جراحی منتقل و پذیرش گردیدند.`;
     else transSentence += `، جهت ادامه درمان تحت نظر سرویس جراحی پذیرش گردیدند.`;
     narrativeSentences.push(transSentence);
   } else if (cc.pathway === 'postop_complication') {
     narrativeSentences.push(
-      `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به دنبال عمل جراحی اخیر، با شکایت «${ccText}» به این مرکز مراجعه کرده‌اند.`
+      `${ptIntro} هستند که به دنبال عمل جراحی اخیر، با شکایت «${ccText}» به این مرکز مراجعه کرده‌اند.`
     );
   } else if (state.admission?.unresponsiveTrauma) {
     const moiText = state.admission?.traumaMoi || state.hpi?.presentations?.find(p => p.archetype === 'trauma_burn_archetype')?.mechanism || 'تروما و کاهش سطح هوشیاری';
-    let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که به دنبال ${normalizePersianClinicalText(moiText)} توسط تیم فوریت‌های پزشکی ۱۱۵ (EMS) در شرایط حاد و فاقد هوشیاری کافی جهت اخذ شرح‌حال مستقیم به اورژانس جراحی منتقل گردیده‌اند.`;
+    let admSentence = `${ptIntro} هستند که به دنبال ${normalizePersianClinicalText(moiText)} توسط تیم فوریت‌های پزشکی ۱۱۵ (EMS) در شرایط حاد و فاقد هوشیاری کافی جهت اخذ شرح‌حال مستقیم به اورژانس جراحی منتقل گردیده‌اند.`;
     narrativeSentences.push(admSentence);
   } else {
     // emergency_acute
-    let admSentence = `بیمار ${genderWord} ${agePhrase}${maritalPhrase}${cityPhrase}${jobPhrase} هستند که با شکایت اصلی «${ccText}» به صورت حاد به اورژانس / بخش جراحی مراجعه و پذیرش نموده‌اند.`;
+    let admSentence = `${ptIntro} هستند که با شکایت اصلی «${ccText}» به صورت حاد به اورژانس / بخش جراحی مراجعه و پذیرش نموده‌اند.`;
     narrativeSentences.push(admSentence);
   }
 
@@ -1541,8 +1548,15 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   const p = soapState.plan || {};
 
   const demo = linkedCaseState?.demographics || ctx;
-  const genderNoun = demo.gender === 'female' ? 'female' : demo.gender === 'male' ? 'male' : 'patient';
-  const ageStr = demo.age ? `${demo.age}-year-old` : '';
+  let subjectDesc = 'Patient';
+  if (demo.gender === 'female') {
+    subjectDesc = demo.age ? `${demo.age}-year-old female` : 'Female patient';
+  } else if (demo.gender === 'male') {
+    subjectDesc = demo.age ? `${demo.age}-year-old male` : 'Male patient';
+  } else if (demo.age) {
+    subjectDesc = `${demo.age}-year-old patient`;
+  }
+  const ageStr = demo.age ? `${demo.age} y/o` : '';
   const diagStr = tLabel(ctx.workingDiagnosis || linkedCaseState?.cc?.establishedDiagnosis || linkedCaseState?.cc?.patientQuote || 'Surgical Inpatient');
   const procStr = tLabel(ctx.procedureDone || '');
   const hdStr = ctx.hdNumber ? `HD #${ctx.hdNumber}` : '';
@@ -1553,11 +1567,11 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   const bedStr = demo.bed ? ` | **Bed:** ${demo.bed}` : '';
 
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **Patient ID:** ${demo.fullName || '—'} (${ageStr})${wardStr}${bedStr} | **Progress Timestamp:** ${soapState.dateStr || new Date().toLocaleString('en-US')}`);
+    out.push(`> **Patient ID:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Progress Timestamp:** ${soapState.dateStr || new Date().toLocaleString('en-US')}`);
   }
   out.push(`### Daily Progress Note — SOAP`);
   out.push(
-    `**Clinical Trajectory:** Patient is a ${ageStr} ${genderNoun} | **Diagnosis:** ${diagStr}${procStr ? ` | **Procedure:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
+    `**Clinical Trajectory:** Patient (${subjectDesc}) | **Diagnosis:** ${diagStr}${procStr ? ` | **Procedure:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
   );
 
   // 1. S — Subjective
@@ -1677,7 +1691,7 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   out.push(`\n#### A — Assessment`);
   const autoAssessment = a.summaryText
     ? tLabel(a.summaryText)
-    : `Patient is a ${ageStr} ${genderNoun} admitted for ${diagStr}${procStr ? `, s/p ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}; currently clinically and hemodynamically ${v.hemodynamics || 'stable'}, demonstrating a ${tLabel(a.clinicalStatus) || 'progressing and stable'} post-operative trajectory.`;
+    : `Patient (${subjectDesc}) admitted for ${diagStr}${procStr ? `, s/p ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}; currently clinically and hemodynamically ${v.hemodynamics || 'stable'}, demonstrating a ${tLabel(a.clinicalStatus) || 'progressing and stable'} post-operative trajectory.`;
   out.push(`- ${autoAssessment}\n`);
 
   // 4. P — Plan
@@ -1717,8 +1731,9 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
 
   // استخراج اطلاعات پایه از پرونده متصل یا هدر مستقل
   const demo = linkedCaseState?.demographics || ctx;
-  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : 'بیمار';
+  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : '';
   const ageStr = demo.age ? `${demo.age} ساله` : '';
+  const ptIntro = ['بیمار', genderWord, ageStr].filter(Boolean).join(' ');
   const diagStr = normalizePersianClinicalText(ctx.workingDiagnosis || linkedCaseState?.cc?.establishedDiagnosis || linkedCaseState?.cc?.patientQuote || 'بستری در بخش جراحی');
   const procStr = normalizePersianClinicalText(ctx.procedureDone || '');
   const hdStr = ctx.hdNumber ? `HD #${ctx.hdNumber}` : '';
@@ -1729,11 +1744,11 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   const wardStr = demo.ward ? ` | **بخش:** ${demo.ward}` : '';
   const bedStr = demo.bed ? ` | **تخت:** ${demo.bed}` : '';
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **بیمار:** ${demo.fullName || '—'} (${ageStr})${wardStr}${bedStr} | **تاریخ و ساعت ثبت پراگرس:** ${soapState.dateStr || new Date().toLocaleDateString('fa-IR')}`);
+    out.push(`> **بیمار:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **تاریخ و ساعت ثبت پراگرس:** ${soapState.dateStr || new Date().toLocaleDateString('fa-IR')}`);
   }
   out.push(`### یادداشت سیر روزانه بیماری (Daily Progress Note — SOAP)`);
   out.push(
-    `**مشخصات سیر:** بیمار ${genderWord} ${ageStr} | **تشخیص:** ${diagStr}${procStr ? ` | **عمل/پروسیجر:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
+    `**مشخصات سیر:** ${ptIntro} | **تشخیص:** ${diagStr}${procStr ? ` | **عمل/پروسیجر:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
   );
 
   // 2. S — Subjective
@@ -1856,7 +1871,7 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   out.push(`\n#### A — Assessment (ارزیابی بالینی امروز)`);
   const autoAssessment = a.summaryText
     ? normalizePersianClinicalText(a.summaryText)
-    : `بیمار ${genderWord} ${ageStr} با تشخیص ${diagStr}${procStr ? `، پس از ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}؛ در حال حاضر وضعیت عمومی و همودینامیک ${v.hemodynamics || 'پایدار'} داشته و در سیر ${a.clinicalStatus || 'بهبودی و پیگیری'} قرار دارد.`;
+    : `${ptIntro} با تشخیص ${diagStr}${procStr ? `، پس از ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}؛ در حال حاضر وضعیت عمومی و همودینامیک ${v.hemodynamics || 'پایدار'} داشته و در سیر ${a.clinicalStatus || 'بهبودی و پیگیری'} قرار دارد.`;
   out.push(`- ${autoAssessment}\n`);
 
   // 5. P — Plan
@@ -1888,18 +1903,25 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
   const sec = atlsState.secondary || {};
   const demo = clinicalState?.demographics || {};
 
-  const genderNoun = demo.gender === 'female' ? 'Female' : demo.gender === 'male' ? 'Male' : 'Patient';
+  let subjectDesc = 'Patient';
+  if (demo.gender === 'female') {
+    subjectDesc = demo.age ? `${demo.age} y/o Female` : 'Female';
+  } else if (demo.gender === 'male') {
+    subjectDesc = demo.age ? `${demo.age} y/o Male` : 'Male';
+  } else if (demo.age) {
+    subjectDesc = `${demo.age} y/o Patient`;
+  }
   const ageStr = demo.age ? `${demo.age} y/o` : '';
   const wardStr = demo.ward ? ` | **Ward:** ${demo.ward}` : '';
   const bedStr = demo.bed ? ` | **Bed:** ${demo.bed}` : '';
 
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **Trauma Patient:** ${demo.fullName || '—'} (${ageStr})${wardStr}${bedStr} | **Record #:** ${demo.recordNumber || 'Trauma Bay'}`);
+    out.push(`> **Trauma Patient:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Record #:** ${demo.recordNumber || 'Trauma Bay'}`);
   }
 
   out.push(`### 🚑 Emergency ATLS Trauma Resuscitation Note`);
   out.push(
-    `**Patient Profile:** ${genderNoun} ${ageStr} | **Arrival Mode:** ${mist.arrivalMode || 'EMS / 115 Ambulance'} | **Time of Incident:** ${mist.incidentTime || 'Unspecified'}\n`
+    `**Patient Profile:** ${subjectDesc} | **Arrival Mode:** ${mist.arrivalMode || 'EMS / 115 Ambulance'} | **Time of Incident:** ${mist.incidentTime || 'Unspecified'}\n`
   );
 
   // 1. MIST
@@ -2013,18 +2035,19 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
   const sec = atlsState.secondary || {};
   const demo = clinicalState?.demographics || {};
 
-  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : 'بیمار';
+  const genderWord = demo.gender === 'female' ? 'خانم' : demo.gender === 'male' ? 'آقای' : '';
   const ageStr = demo.age ? `${demo.age} ساله` : '';
+  const ptIntro = ['مصدوم / بیمار', genderWord, ageStr].filter(Boolean).join(' ');
 
   const wardStr = demo.ward ? ` | **بخش:** ${demo.ward}` : '';
   const bedStr = demo.bed ? ` | **تخت:** ${demo.bed}` : '';
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **مصدوم / بیمار:** ${demo.fullName || '—'} (${ageStr})${wardStr}${bedStr} | **پرونده:** ${demo.recordNumber || 'اورژانس تروما'}`);
+    out.push(`> **مصدوم / بیمار:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **پرونده:** ${demo.recordNumber || 'اورژانس تروما'}`);
   }
 
   out.push(`### 🚑 پرونده احیا و ترومای حاد اورژانس (Emergency ATLS Trauma Note)`);
   out.push(
-    `**مشخصات مصدوم:** ${genderWord} ${ageStr} | **نحوه ورود:** ${mist.arrivalMode || 'اورژانس ۱۱۵ (EMS)'} | **زمان وقوع حادثه:** ${normalizePersianClinicalText(mist.incidentTime || 'نامشخص')}\n`
+    `**مشخصات مصدوم:** ${ptIntro} | **نحوه ورود:** ${mist.arrivalMode || 'اورژانس ۱۱۵ (EMS)'} | **زمان وقوع حادثه:** ${normalizePersianClinicalText(mist.incidentTime || 'نامشخص')}\n`
   );
 
   // 1. MIST & EMS Handover

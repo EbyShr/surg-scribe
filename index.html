@@ -158,23 +158,25 @@
 
           <div class="form-grid-3" style="margin-top: 0.5rem;">
             <div class="form-group">
-              <label class="form-label">جنسیت</label>
+              <label class="form-label" data-i18n="gender_label">جنسیت</label>
               <select class="input-select" id="demoGender">
-                <option value="female">خانم (زن)</option>
-                <option value="male">آقا (مرد)</option>
-                <option value="other">سایر / ترنس (نمایش تمام منوها)</option>
+                <option value="" selected data-i18n="gender_empty">-- انتخاب جنسیت --</option>
+                <option value="female" data-i18n="gender_female">خانم (زن)</option>
+                <option value="male" data-i18n="gender_male">آقا (مرد)</option>
+                <option value="other" data-i18n="gender_other">سایر / نامشخص (نمایش تمام منوها)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">سن (سال)</label>
-              <input type="number" class="input-text dir-ltr" id="demoAge" placeholder="مثلاً 45" min="1" max="120">
+              <label class="form-label" data-i18n="age_label">سن (سال)</label>
+              <input type="number" class="input-text dir-ltr" id="demoAge" placeholder="مثلاً 45" min="1" max="120" data-i18n-ph="age_ph">
             </div>
             <div class="form-group">
-              <label class="form-label">وضعیت تأهل</label>
+              <label class="form-label" data-i18n="marital_label">وضعیت تأهل</label>
               <select class="input-select" id="demoMarital">
-                <option value="متأهل">متأهل</option>
-                <option value="مجرد">مجرد</option>
-                <option value="همسر فوت‌شده">همسر فوت‌شده</option>
+                <option value="" selected data-i18n="marital_empty">-- انتخاب وضعیت تأهل --</option>
+                <option value="متأهل" data-i18n="marital_married">متأهل</option>
+                <option value="مجرد" data-i18n="marital_single">مجرد</option>
+                <option value="همسر فوت‌شده" data-i18n="marital_widowed">همسر فوت‌شده</option>
               </select>
             </div>
           </div>
@@ -1043,10 +1045,12 @@
               <input type="number" id="atlsPtAge" class="input-text dir-ltr" placeholder="مثلاً 28" />
             </div>
             <div class="form-group mb-0">
-              <label class="form-label">جنسیت</label>
+              <label class="form-label" data-i18n="gender_label">جنسیت</label>
               <select id="atlsPtGender" class="input-select">
-                <option value="male">آقا (مرد)</option>
-                <option value="female">خانم (زن)</option>
+                <option value="" selected data-i18n="gender_empty">-- انتخاب جنسیت --</option>
+                <option value="male" data-i18n="gender_male">آقا (مرد)</option>
+                <option value="female" data-i18n="gender_female">خانم (زن)</option>
+                <option value="other" data-i18n="gender_other">سایر / نامشخص</option>
               </select>
             </div>
           </div>
@@ -1450,10 +1454,12 @@
               <input type="number" id="soapPtAge" class="input-text" placeholder="سن" min="0" max="130" />
             </div>
             <div class="form-group mb-0">
-              <label class="form-label">جنسیت</label>
+              <label class="form-label" data-i18n="gender_label">جنسیت</label>
               <select id="soapPtGender" class="input-select">
-                <option value="male">مذکر (آقا)</option>
-                <option value="female">مؤنث (خانم)</option>
+                <option value="" selected data-i18n="gender_empty">-- انتخاب جنسیت --</option>
+                <option value="male" data-i18n="gender_male">مذکر (آقا)</option>
+                <option value="female" data-i18n="gender_female">مؤنث (خانم)</option>
+                <option value="other" data-i18n="gender_other">سایر / نامشخص</option>
               </select>
             </div>
             <div class="form-group mb-0">

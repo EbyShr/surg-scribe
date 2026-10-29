@@ -245,9 +245,9 @@ export function createDefaultClinicalState() {
       fullName: '',
       fatherName: '',
       birthDate: '',
-      gender: 'female',
+      gender: '',
       age: '',
-      marital: 'متأهل',
+      marital: '',
       city: '',
       occupation: '',
       informant: 'خود بیمار',
@@ -405,7 +405,7 @@ export function createDefaultSoapState() {
     context: {
       fullName: '',
       age: '',
-      gender: 'male',
+      gender: '',
       workingDiagnosis: '',
       procedureDone: '',
       hdNumber: '1',
@@ -3551,7 +3551,7 @@ function renderRosGroups() {
   if (!container) return;
   container.innerHTML = '';
 
-  const patientGender = clinicalState.demographics.gender || 'female';
+  const patientGender = clinicalState.demographics.gender || '';
   const showAllGenders = !!clinicalState.ros.showAllGenders;
 
   if (genderToggle) {
@@ -3568,6 +3568,7 @@ function renderRosGroups() {
   ROS_GROUPS_BILINGUAL.forEach((grp) => {
     const filteredItems = grp.items.filter((item) => {
       if (showAllGenders || item.gender === 'all') return true;
+      if (!patientGender) return true;
       if (patientGender === 'female' && item.gender === 'female') return true;
       if (patientGender === 'male' && item.gender === 'male') return true;
       if (patientGender === 'other') return true;
@@ -3746,12 +3747,12 @@ function initRosMasterNegativeHandler() {
   if (!masterBtn) return;
 
   masterBtn.addEventListener('click', () => {
-    const patientGender = clinicalState.demographics.gender || 'female';
+    const patientGender = clinicalState.demographics.gender || '';
     const showAllGenders = !!clinicalState.ros.showAllGenders;
 
     ROS_GROUPS_BILINGUAL.forEach((grp) => {
       grp.items.forEach((item) => {
-        if (!showAllGenders && item.gender !== 'all') {
+        if (!showAllGenders && item.gender !== 'all' && patientGender) {
           if (patientGender === 'female' && item.gender !== 'female') return;
           if (patientGender === 'male' && item.gender !== 'male') return;
         }
@@ -5915,9 +5916,9 @@ function syncDomFromState() {
   if (document.getElementById('demoFullName')) document.getElementById('demoFullName').value = d.fullName || '';
   if (document.getElementById('demoFatherName')) document.getElementById('demoFatherName').value = d.fatherName || '';
   if (document.getElementById('demoBirthDate')) document.getElementById('demoBirthDate').value = d.birthDate || '';
-  if (document.getElementById('demoGender')) document.getElementById('demoGender').value = d.gender || 'female';
+  if (document.getElementById('demoGender')) document.getElementById('demoGender').value = d.gender || '';
   if (document.getElementById('demoAge')) document.getElementById('demoAge').value = d.age || '';
-  if (document.getElementById('demoMarital')) document.getElementById('demoMarital').value = d.marital || 'متأهل';
+  if (document.getElementById('demoMarital')) document.getElementById('demoMarital').value = d.marital || '';
   if (document.getElementById('demoCity')) document.getElementById('demoCity').value = d.city || '';
   if (document.getElementById('demoOccupation')) document.getElementById('demoOccupation').value = d.occupation || '';
   if (document.getElementById('demoInformant')) document.getElementById('demoInformant').value = d.informant || 'خود بیمار';
@@ -6893,6 +6894,11 @@ export function syncAtlsDomFromState() {
     if (el) el.value = v !== undefined && v !== null ? v : '';
   };
 
+  const demo = clinicalState.demographics || {};
+  setVal('atlsPtName', demo.fullName);
+  setVal('atlsPtAge', demo.age);
+  setVal('atlsPtGender', demo.gender);
+
   setVal('atlsIncidentTime', mist.incidentTime);
   setVal('atlsMechanismDetail', mist.mechanismDetail);
 
@@ -6939,6 +6945,24 @@ export function syncAtlsDomFromState() {
 
 function initAtlsModeEngine() {
   if (!clinicalState.atls) clinicalState.atls = createDefaultAtlsState();
+
+  // ATLS Patient Demographics
+  document.getElementById('atlsPtName')?.addEventListener('input', (e) => {
+    clinicalState.demographics.fullName = e.target.value;
+    updateHeaderActivePatientBadge();
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  document.getElementById('atlsPtAge')?.addEventListener('input', (e) => {
+    clinicalState.demographics.age = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
+  document.getElementById('atlsPtGender')?.addEventListener('change', (e) => {
+    clinicalState.demographics.gender = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
 
   // Single-select chip groups
   document.querySelectorAll('[data-atls-single]').forEach((group) => {
@@ -7202,7 +7226,7 @@ export function initFreshDayOneSoapNote() {
   soapState.context = {
     fullName: demo.fullName || '',
     age: demo.age || '',
-    gender: demo.gender || 'male',
+    gender: demo.gender || '',
     ward: demo.ward || '',
     bed: demo.bed || '',
     workingDiagnosis: cc.establishedDiagnosis || cc.patientQuote || cc.preliminaryDiagnosis || '',
@@ -7403,7 +7427,7 @@ function syncSoapInputsFromState() {
   const ptAge = document.getElementById('soapPtAge');
   if (ptAge) ptAge.value = ctx.age || '';
   const ptGender = document.getElementById('soapPtGender');
-  if (ptGender) ptGender.value = ctx.gender || 'male';
+  if (ptGender) ptGender.value = ctx.gender || '';
   const ptWard = document.getElementById('soapPtWard');
   if (ptWard) ptWard.value = ctx.ward || '';
   const ptBed = document.getElementById('soapPtBed');
@@ -7629,8 +7653,9 @@ function autoGenerateAssessmentSentence() {
   const a = soapState.assessment || {};
 
   // 1. Patient Intro, HD#, POD#, Diagnosis & Procedure
-  const genderWord = ctx.gender === 'female' ? 'خانم' : ctx.gender === 'male' ? 'آقای' : 'بیمار';
+  const genderWord = ctx.gender === 'female' ? 'خانم' : ctx.gender === 'male' ? 'آقای' : '';
   const ageStr = ctx.age ? `${ctx.age} ساله` : '';
+  const ptIntro = ['بیمار', genderWord, ageStr].filter(Boolean).join(' ');
   const diagStr = normalizePersianClinicalText(ctx.workingDiagnosis || 'بستری در بخش جراحی');
   const procStr = ctx.procedureDone ? `، به دنبال عمل جراحی ${normalizePersianClinicalText(ctx.procedureDone)}` : '';
   const hdStr = ctx.hdNumber ? `روز ${ctx.hdNumber} بستری (HD #${ctx.hdNumber})` : '';
@@ -7677,7 +7702,7 @@ function autoGenerateAssessmentSentence() {
   });
   const labSentence = labAlerts.length > 0 ? ` در بررسی آزمایشگاهی امروز ${labAlerts.join(' ، ')} مشاهده می‌شود.` : '';
 
-  const sentence = `بیمار ${genderWord} ${ageStr} در ${timeline || 'سیر بستری بخش جراحی'} با تشخیص ${diagStr}${procStr}؛ در حال حاضر از نظر علائم حیاتی ${hemoStr} و ${feverStr} می‌باشد. ${giStr}، وضعیت ادراری به صورت «${uoStr}» است، ${drainSummary ? `${drainSummary} و ` : ''}در معاینه موضع عمل ${woundStr}.${labSentence} در مجموع بیمار در «${a.clinicalStatus || 'سیر بهبودی مناسب و پایدار'}» ارزیابی می‌گردد.`;
+  const sentence = `${ptIntro} در ${timeline || 'سیر بستری بخش جراحی'} با تشخیص ${diagStr}${procStr}؛ در حال حاضر از نظر علائم حیاتی ${hemoStr} و ${feverStr} می‌باشد. ${giStr}، وضعیت ادراری به صورت «${uoStr}» است، ${drainSummary ? `${drainSummary} و ` : ''}در معاینه موضع عمل ${woundStr}.${labSentence} در مجموع بیمار در «${a.clinicalStatus || 'سیر بهبودی مناسب و پایدار'}» ارزیابی می‌گردد.`;
 
   soapState.assessment.summaryText = sentence;
   const area = document.getElementById('soapAssessmentSummary');
