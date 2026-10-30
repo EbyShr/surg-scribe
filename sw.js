@@ -15,6 +15,8 @@ const STATIC_ASSETS = [
   './js/google-sync.js',
   './js/app.js',
   './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './icons/icon-192.svg',
   './icons/icon-512.svg'
 ];

@@ -197,6 +197,8 @@ export const I18N_DICTIONARY = {
     settings_cloud_label: 'همگام‌سازی ابری Google Sheets (Apps Script Web App)',
     settings_collector_label: 'نام ثبت‌کننده (Collector Name / ID)',
     settings_url_label: 'آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)',
+    settings_install_label: 'نصب مستقیم اپلیکیشن (Install App)',
+    settings_install_desc: 'نصب برنامه با عملکرد کاملاً مستقل و آفلاین روی گوشی اندروید یا سیستم ویندوز (بدون نیاز به باز کردن مرورگر).',
     btn_cancel: 'انصراف',
     btn_save_settings: 'ذخیره تنظیمات',
 
@@ -398,6 +400,8 @@ export const I18N_DICTIONARY = {
     settings_cloud_label: 'Google Sheets Cloud Sync (Apps Script Web App)',
     settings_collector_label: 'Collector Name / Attending ID',
     settings_url_label: 'Google Apps Script Web App Endpoint URL',
+    settings_install_label: 'Direct App Installation (Install App)',
+    settings_install_desc: 'Install SurgHistory as a standalone native app on Android, Windows, or iOS for seamless offline clinical charting.',
     btn_cancel: 'Cancel',
     btn_save_settings: 'Save Settings',
 

@@ -7895,15 +7895,24 @@ button,
     padding: 0 !important;
   }
 
-  #workstationTopBar.workstation-top-bar {
+  #workstationTopBar.workstation-top-bar,
+  header,
+  .app-header,
+  .top-bar {
     position: sticky !important;
     top: 0 !important;
     z-index: 100 !important;
     height: auto !important;
-    min-height: 56px !important;
+    min-height: 96px !important;
+    display: flex !important;
     flex-wrap: wrap !important;
-    padding: 0.45rem 0.65rem !important;
-    gap: 0.4rem !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    background-color: var(--bg-surface) !important;
+    border-bottom: 1px solid var(--border-strong) !important;
+    box-sizing: border-box !important;
   }
 
   #workstationTopBar button,
@@ -7915,9 +7924,71 @@ button,
     touch-action: manipulation !important;
   }
 
+  .topbar-brand-cluster {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
   .topbar-brand-cluster .version-pill,
-  .topbar-active-patient-pill {
+  .topbar-active-patient-pill,
+  .topbar-center-cluster,
+  .global-command-trigger {
     display: none !important;
+  }
+
+  .topbar-actions-cluster,
+  .header-left {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    margin-inline-start: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  /* Two-Tier Mobile Header: 3-Mode Switcher drops to Row 2 with 100% full width */
+  .mode-switcher,
+  #mode-switcher,
+  .topbar-mode-switcher,
+  .app-mode-switcher,
+  [class*="mode-switch"] {
+    order: 3 !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: 1 0 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+    background: var(--bg-input) !important;
+    padding: 4px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-strong) !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .mode-switcher button,
+  #mode-switcher button,
+  .topbar-mode-switcher .mode-switch-btn,
+  .app-mode-switcher button,
+  [class*="mode-switch"] button {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    padding: 0 6px !important;
+    border-radius: 6px !important;
   }
 
   #navigationRail.navigation-rail {
@@ -7946,7 +8017,7 @@ button,
 
   #mobileTabsBarWrapper.mobile-tabs-bar-wrapper {
     position: sticky !important;
-    top: 56px !important;
+    top: 96px !important;
     z-index: 90 !important;
     display: flex;
     width: 100% !important;

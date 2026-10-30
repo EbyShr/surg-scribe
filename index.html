@@ -30,19 +30,22 @@
       </div>
       <span class="brand-title">SurgHistory</span>
       <span class="brand-version version-pill" data-i18n="version_pill">v2.0-Pro</span>
+    </div>
 
-      <!-- Primary 3-Mode Switcher (H&P | ATLS | SOAP — Accessible in 1 tap on Desktop & Mobile/Android) -->
-      <div class="topbar-mode-switcher app-mode-switcher" id="appModeSwitcher" role="radiogroup" aria-label="Clinical Mode">
-        <button type="button" class="mode-switch-btn active" id="btnModeAdmission" data-mode="admission" data-fa-title="شرح‌حال کامل پذیرش (Admission H&amp;P)" data-en-title="Inpatient Admission History &amp; Physical (H&amp;P)">
-          <span class="mode-text" data-i18n="mode_admission">H&amp;P</span>
-        </button>
-        <button type="button" class="mode-switch-btn mode-switch-atls" id="btnModeAtls" data-mode="atls" data-fa-title="ترومای حاد اورژانس و احیا (Emergency ATLS)" data-en-title="Emergency Trauma &amp; ATLS Resuscitation">
-          <span class="mode-text" data-i18n="mode_atls">ATLS</span>
-        </button>
-        <button type="button" class="mode-switch-btn" id="btnModeSoap" data-mode="soap" data-fa-title="یادداشت سیر روزانه بستری (SOAP Progress Note)" data-en-title="Daily Inpatient SOAP Progress Note">
-          <span class="mode-text" data-i18n="mode_soap">SOAP</span>
-        </button>
-      </div>
+    <!-- Primary 3-Mode Switcher (H&P | ATLS | SOAP — Full Width Tier-2 in Mobile, 1/3 Width Each) -->
+    <div class="topbar-mode-switcher app-mode-switcher" id="appModeSwitcher" role="radiogroup" aria-label="Clinical Mode">
+      <button type="button" class="mode-switch-btn active" id="btnModeAdmission" data-mode="admission" data-fa-title="شرح‌حال کامل پذیرش (Admission H&amp;P)" data-en-title="Inpatient Admission History &amp; Physical (H&amp;P)">
+        <span class="mode-icon">📋</span>
+        <span class="mode-text" data-i18n="mode_admission">H&amp;P</span>
+      </button>
+      <button type="button" class="mode-switch-btn mode-switch-atls" id="btnModeAtls" data-mode="atls" data-fa-title="ترومای حاد اورژانس و احیا (Emergency ATLS)" data-en-title="Emergency Trauma &amp; ATLS Resuscitation">
+        <span class="mode-icon">🚑</span>
+        <span class="mode-text" data-i18n="mode_atls">ATLS</span>
+      </button>
+      <button type="button" class="mode-switch-btn" id="btnModeSoap" data-mode="soap" data-fa-title="یادداشت سیر روزانه بستری (SOAP Progress Note)" data-en-title="Daily Inpatient SOAP Progress Note">
+        <span class="mode-icon">📈</span>
+        <span class="mode-text" data-i18n="mode_soap">SOAP</span>
+      </button>
     </div>
 
     <div class="topbar-center-cluster">
@@ -2607,6 +2610,23 @@
             <div class="offline-queue-badge" id="offlineQueueBadge" style="display:none;">
               <span data-i18n="offline_queue">صف آفلاین:</span>
               <span id="offlineQueueCount" class="mono-num">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Setting 5: Native PWA App Installation (Android / Windows / iOS) -->
+        <div class="settings-group" id="settingsInstallGroup">
+          <label class="form-label" style="font-weight:700;" data-i18n="settings_install_label">نصب مستقیم اپلیکیشن (Install App)</label>
+          <div style="display:flex; flex-direction:column; gap:0.55rem;">
+            <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;" data-i18n="settings_install_desc">
+              نصب برنامه با عملکرد کاملاً مستقل و آفلاین روی گوشی اندروید یا سیستم ویندوز (بدون نیاز به باز کردن مرورگر).
+            </p>
+            <button type="button" class="btn btn-primary" id="btnInstallPwa" style="display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.65rem 1rem; font-weight:700; width:100%; border-radius:8px; font-size:0.88rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span id="btnInstallPwaText" data-fa="📲 نصب مستقیم اپلیکیشن روی دستگاه (Install App)" data-en="📲 Install App on Device">📲 نصب مستقیم اپلیکیشن روی دستگاه (Install App)</span>
+            </button>
+            <div id="pwaInstalledNotice" style="display:none; color:var(--accent-primary); font-size:0.82rem; font-weight:600; text-align:center; padding:0.3rem 0;">
+              ✓ اپلیکیشن روی این دستگاه نصب شده و فعال است (Standalone Native PWA)
             </div>
           </div>
         </div>

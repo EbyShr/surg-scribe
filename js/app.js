@@ -6564,6 +6564,27 @@ function initShiftManager() {
   });
 }
 
+// Native PWA Install Prompt State & Global Event Listeners
+let deferredPwaInstallPrompt = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPwaInstallPrompt = e;
+    const btn = document.getElementById('btnInstallPwa');
+    if (btn) btn.style.display = 'flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPwaInstallPrompt = null;
+    const btn = document.getElementById('btnInstallPwa');
+    const notice = document.getElementById('pwaInstalledNotice');
+    if (btn) btn.style.display = 'none';
+    if (notice) notice.style.display = 'block';
+    showToast(typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en' ? 'SurgHistory installed successfully on your device.' : 'اپلیکیشن با موفقیت روی دستگاه شما نصب شد.', 'success');
+  });
+}
+
 function initAppSettings() {
   const modal = document.getElementById('appSettingsModalBackdrop');
   const btnOpen = document.getElementById('btnAppSettings');
@@ -6595,6 +6616,18 @@ function initAppSettings() {
     document.querySelectorAll('.settings-font-pill').forEach((pill) => {
       pill.classList.toggle('active', pill.dataset.font === currentFont);
     });
+
+    // Check PWA standalone / install state
+    const isStandalone = (typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true));
+    const btnInstall = document.getElementById('btnInstallPwa');
+    const notice = document.getElementById('pwaInstalledNotice');
+    if (isStandalone) {
+      if (btnInstall) btnInstall.style.display = 'none';
+      if (notice) notice.style.display = 'block';
+    } else {
+      if (notice) notice.style.display = 'none';
+      if (btnInstall) btnInstall.style.display = 'flex';
+    }
 
     modal.classList.add('open');
     modal.style.display = 'flex';
@@ -6646,6 +6679,31 @@ function initAppSettings() {
       pill.classList.add('active');
       setFont(pill.dataset.font);
     });
+  });
+
+  // Direct PWA App Installation Button
+  document.getElementById('btnInstallPwa')?.addEventListener('click', async () => {
+    if (deferredPwaInstallPrompt) {
+      deferredPwaInstallPrompt.prompt();
+      const choice = await deferredPwaInstallPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        showToast(getCurrentLanguage() === 'en' ? 'Installing SurgHistory app...' : 'در حال نصب اپلیکیشن روی دستگاه...', 'info');
+        deferredPwaInstallPrompt = null;
+        const btn = document.getElementById('btnInstallPwa');
+        if (btn) btn.style.display = 'none';
+      }
+    } else {
+      const isStandalone = (typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true));
+      if (isStandalone) {
+        showToast(getCurrentLanguage() === 'en' ? 'SurgHistory is already running in native standalone mode.' : 'اپلیکیشن هم‌اکنون به صورت نصبی روی این دستگاه اجرا شده است.', 'info');
+      } else {
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const msg = isIos
+          ? (getCurrentLanguage() === 'en' ? 'To install on iOS: tap the Share button (square with arrow) and select "Add to Home Screen".' : 'جهت نصب در آیفون/آیپد: روی دکمه Share (مربع با فلش بالا) ضربه زده و گزینه Add to Home Screen (افزودن به صفحه اصلی) را انتخاب فرمایید.')
+          : (getCurrentLanguage() === 'en' ? 'To install: open your browser menu (⋮) and tap "Install app" or "Add to Home screen".' : 'جهت نصب: منوی مرورگر (سه نقطه ⋮ در بالا یا پایین) را باز کرده و گزینه «نصب برنامه» یا «افزودن به صفحه اصلی» (Install app / Add to Home screen) را انتخاب فرمایید.');
+        alert(msg);
+      }
+    }
   });
 
   // Save Settings
