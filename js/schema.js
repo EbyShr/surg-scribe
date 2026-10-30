@@ -16,6 +16,12 @@
  * - Compact Paraclinic Modality Launcher with multi-instance imaging & MRI/MRCP
  */
 
+import { HPI_QUALIFIERS_AND_SYMPTOMS } from './data/hpi-lexicon.js';
+import { MASTER_ROS_BANK } from './data/ros-bank.js';
+import { MASTER_PE_BANK } from './data/pe-bank.js';
+
+export { HPI_QUALIFIERS_AND_SYMPTOMS, MASTER_ROS_BANK, MASTER_PE_BANK };
+
 let currentSchemaLang = 'fa';
 
 export function getCurrentLang() {
@@ -31,6 +37,18 @@ export function setCurrentLang(lang) {
   if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
     localStorage.setItem('surg_app_lang_v05', currentSchemaLang);
   }
+}
+
+export function getItemDisplayTitle(item) {
+  if (!item) return '';
+  const lang = getCurrentLang();
+  if (lang === 'en') {
+    return item.en || item.labelEn || item.label || item.name || '';
+  }
+  if (item.fa && item.en) {
+    return `${item.fa} (${item.en})`;
+  }
+  return item.fa || item.labelFa || item.label || item.name || item.en || '';
 }
 
 export const DIRECT_FA_TO_EN_MAP = {
@@ -1869,194 +1887,117 @@ export const ALL_MASTER_DRUGS = MASTER_DRUG_CATEGORIES.flatMap(cat =>
   (cat.drugs || []).map(drg => ({ ...drg, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
 );
 
-export const ROS_GROUPS_BILINGUAL = [
-  {
-    id: 'ros_constitutional',
-    group: '۱. علائم عمومی (Constitutional Symptoms)',
-    items: [
-      { id: 'ros_fever', label: 'تب (Fever / Pyrexia)', gender: 'all' },
-      { id: 'ros_chills', label: 'لرز (Chills / Rigors)', gender: 'all' },
-      { id: 'sym_cold_sweats', label: 'عرق سرد (Cold Sweats / Clammy Diaphoresis)', category: 'عمومی (Constitutional)', aliases: 'عرق سرد تعریق سرد خیس عرق شوک قلبی', gender: 'all' },
-      { id: 'ros_weight_loss', label: 'کاهش وزن ناخواسته (Unintentional Weight Loss)', gender: 'all' },
-      { id: 'ros_weight_gain', label: 'افزایش وزن (Weight Gain)', gender: 'all' },
-      { id: 'ros_anorexia', label: 'بی‌اشتهایی (Anorexia)', gender: 'all' },
-      { id: 'ros_fatigue', label: 'ضعف و بی‌حالی (Fatigue / Malaise)', gender: 'all' },
-      { id: 'ros_night_sweats', label: 'تعریق شبانه (Night Sweats / Diaphoresis)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_skin_breast',
-    group: '۲. پوست، ضمائم و پستان (Integumentary & Breast)',
-    items: [
-      { id: 'ros_jaundice', label: 'زردی پوست (Cutaneous Icterus / Jaundice)', gender: 'all' },
-      { id: 'ros_pruritus', label: 'خارش پوستی (Pruritus)', gender: 'all' },
-      { id: 'ros_rash_ulcer', label: 'بثورات یا زخم پوستی (Skin Rash / Ulceration)', gender: 'all' },
-      { id: 'ros_ecchymosis', label: 'کبودی آسان و پتشی (Easy Bruising / Ecchymosis / Petechiae)', gender: 'all' },
-      { id: 'ros_mastalgia_mass', label: 'درد یا توده پستان (Mastalgia / Breast Mass)', gender: 'female' },
-      { id: 'ros_nipple_discharge', label: 'ترشح از نوک پستان (Nipple Discharge / Galactorrhea)', gender: 'female' },
-      { id: 'ros_gynecomastia', label: 'بزرگی یا توده پستان در آقایان (Gynecomastia / Male Breast Mass)', gender: 'male' }
-    ]
-  },
-  {
-    id: 'ros_heent',
-    group: '۳. سر، چشم، گوش، حلق و گردن (HEENT & Neck)',
-    items: [
-      { id: 'ros_headache', label: 'سردرد (Cephalgia / Headache)', gender: 'all' },
-      { id: 'ros_vision_diplopia', label: 'تاری دید یا دوبینی (Blurred Vision / Diplopia)', gender: 'all' },
-      { id: 'ros_scleral_icterus', label: 'زردی اسکلرا (Scleral Icterus)', gender: 'all' },
-      { id: 'ros_vertigo_tinnitus', label: 'سرگیجه حقیقی یا وزوز گوش (Vertigo / Tinnitus)', gender: 'all' },
-      { id: 'ros_epistaxis', label: 'خوندماغ یا خونریزی لثه (Epistaxis / Gingival Bleeding)', gender: 'all' },
-      { id: 'ros_hoarseness', label: 'خشونت صدا (Hoarseness / Dysphonia)', gender: 'all' },
-      { id: 'ros_neck_mass', label: 'توده یا لنفادنوپاتی گردنی (Cervical Mass / Lymphadenopathy)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_respiratory',
-    group: '۴. دستگاه تنفسی (Respiratory System)',
-    items: [
-      { id: 'ros_dyspnea', label: 'تنگی نفس (Dyspnea)', gender: 'all' },
-      { id: 'ros_cough', label: 'سرفه (Cough)', gender: 'all' },
-      { id: 'ros_sputum', label: 'خلط (Sputum Production)', gender: 'all' },
-      { id: 'ros_hemoptysis', label: 'خلط خونی (Hemoptysis)', gender: 'all' },
-      { id: 'ros_pleuritic_cp', label: 'درد قفسه سینه پلورتیک (Pleuritic Chest Pain)', gender: 'all' },
-      { id: 'ros_wheezing', label: 'خس‌خس سینه (Wheezing)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_cardiovascular',
-    group: '۵. دستگاه قلبی-عروقی (Cardiovascular System)',
-    items: [
-      { id: 'ros_exertional_cp', label: 'درد قفسه سینه فعالیتی (Exertional Angina / Chest Pain)', gender: 'all' },
-      { id: 'ros_doe', label: 'تنگی نفس فعالیتی (Dyspnea on Exertion - DOE)', gender: 'all' },
-      { id: 'ros_orthopnea', label: 'تنگی نفس در حالت درازکش (Orthopnea)', gender: 'all' },
-      { id: 'ros_pnd', label: 'تنگی نفس حمله‌ای شبانه (Paroxysmal Nocturnal Dyspnea - PND)', gender: 'all' },
-      { id: 'ros_palpitation', label: 'تپش قلب (Palpitations)', gender: 'all' },
-      { id: 'ros_syncope', label: 'سنکوپ یا پیش‌سنکوپ (Syncope / Presyncope)', gender: 'all' },
-      { id: 'ros_peripheral_edema', label: 'ادم اندام تحتانی (Peripheral Pitting Edema)', gender: 'all' },
-      { id: 'ros_claudication', label: 'لنگش متناوب عروقی (Intermittent Claudication)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_gastrointestinal',
-    group: '۶. دستگاه گوارش و کبد (Gastrointestinal & Hepatobiliary)',
-    items: [
-      { id: 'ros_nausea_vomiting', label: 'تهوع و استفراغ (Nausea & Vomiting)', gender: 'all' },
-      { id: 'ros_dysphagia', label: 'گیر کردن لقمه / اختلال بلع (Dysphagia)', gender: 'all' },
-      { id: 'ros_odynophagia', label: 'بلع دردناک (Odynophagia)', gender: 'all' },
-      { id: 'ros_heartburn', label: 'سوزش سردل و ریفلاکس (Pyrosis / Acid Regurgitation)', gender: 'all' },
-      { id: 'ros_early_satiety', label: 'سیری زودرس و نفخ (Early Satiety & Bloating)', gender: 'all' },
-      { id: 'ros_constipation', label: 'یبوست (Constipation)', gender: 'all' },
-      { id: 'ros_obstipation', label: 'عدم دفع گاز و مدفوع (Obstipation)', gender: 'all' },
-      { id: 'ros_diarrhea', label: 'اسهال (Diarrhea)', gender: 'all' },
-      { id: 'ros_bowel_caliber', label: 'تغییر عادات روده‌ای و کالیبر مدفوع (Altered Bowel Habits / Stool Caliber)', gender: 'all' },
-      { id: 'ros_melena', label: 'مدفوع قیری و سیاه (Melena)', gender: 'all' },
-      { id: 'ros_hematochezia', label: 'دفع خون روشن از رکتوم (Hematochezia / Rectorrhagia)', gender: 'all' },
-      { id: 'ros_hematemesis', label: 'استفراغ خونی (Hematemesis)', gender: 'all' },
-      { id: 'ros_tenesmus', label: 'زورپیچ و درد مقعدی (Tenesmus / Proctalgia)', gender: 'all' },
-      { id: 'ros_acholic_stool', label: 'مدفوع بی‌رنگ (Acholic / Clay-colored Stool)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_genitourinary',
-    group: '۷. دستگاه ادراری و تناسلی (Genitourinary System)',
-    items: [
-      { id: 'ros_dysuria', label: 'سوزش ادرار (Dysuria)', gender: 'all' },
-      { id: 'ros_frequency_urgency', label: 'تکرر و فوریت ادراری (Urinary Frequency & Urgency)', gender: 'all' },
-      { id: 'ros_hematuria', label: 'خون در ادرار (Hematuria)', gender: 'all' },
-      { id: 'ros_dark_urine', label: 'ادرار تیره / چای‌رنگ (Dark / Tea-colored Urine)', gender: 'all' },
-      { id: 'ros_flank_pain', label: 'درد پهلو (Flank Pain / Renal Colic)', gender: 'all' },
-      { id: 'ros_hesitancy_stream', label: 'تاخیر در شروع ادرار یا کاهش جریان ادرار (Urinary Hesitancy / Weak Stream / Retention)', gender: 'all' },
-      { id: 'ros_scrotal_pain', label: 'درد یا تورم اسکروتوم و بیضه (Scrotal Pain / Swelling)', gender: 'male' },
-      { id: 'ros_menometrorrhagia', label: 'خونریزی غیرطبیعی رحمی یا دیسمنوره (Abnormal Uterine Bleeding / Dysmenorrhea)', gender: 'female' },
-      { id: 'ros_vaginal_discharge', label: 'ترشحات غیرطبیعی واژینال یا درد لگنی (Abnormal Vaginal Discharge / Pelvic Pain)', gender: 'female' }
-    ]
-  },
-  {
-    id: 'ros_musculoskeletal',
-    group: '۸. دستگاه عضلانی-اسکلتی (Musculoskeletal System)',
-    items: [
-      { id: 'ros_arthralgia', label: 'درد یا التهاب مفاصل (Arthralgia / Arthritis)', gender: 'all' },
-      { id: 'ros_myalgia', label: 'درد عضلانی (Myalgia)', gender: 'all' },
-      { id: 'ros_back_pain', label: 'کمردرد (Low Back Pain / Lumbago)', gender: 'all' },
-      { id: 'ros_calf_swelling', label: 'درد و تورم یکطرفه ساق پا (Unilateral Calf Pain / Swelling)', gender: 'all' }
-    ]
-  },
-  {
-    id: 'ros_neuro_endo_heme',
-    group: '۹. عصبی، غدد و هماتولوژی (Neurological, Endocrine & Hematologic)',
-    items: [
-      { id: 'ros_paresthesia', label: 'گزگز و بی‌حسی اندام‌ها (Paresthesia / Numbness)', gender: 'all' },
-      { id: 'ros_paresis', label: 'ضعف حرکتی موضعی (Focal Motor Weakness / Paresis)', gender: 'all' },
-      { id: 'ros_seizure', label: 'تشنج (Seizure / Convulsion)', gender: 'all' },
-      { id: 'ros_heat_cold', label: 'عدم تحمل به گرما یا سرما (Heat / Cold Intolerance)', gender: 'all' },
-      { id: 'ros_polyuria_polydipsia', label: 'پرادراری و پرنوشی (Polyuria & Polydipsia)', gender: 'all' },
-      { id: 'ros_bleeding_diathesis', label: 'خونریزی طولانی از زخم یا مخاطات (Prolonged Mucocutaneous Bleeding)', gender: 'all' }
-    ]
-  }
+export const ROS_SYSTEM_META = [
+  { id: 'constitutional', group: '۱. علائم عمومی (Constitutional Symptoms)', en: 'Constitutional Symptoms' },
+  { id: 'skin_hair_nails', group: '۲. پوست، مو و ناخن‌ها (Skin, Hair & Nails)', en: 'Skin, Hair & Nails' },
+  { id: 'head_eyes_ent', group: '۳. سر، چشم، گوش، حلق و بینی (Head, Eyes & ENT)', en: 'Head, Eyes & ENT' },
+  { id: 'breast', group: '۴. پستان و ضمائم (Breast & Axilla)', en: 'Breast & Axilla' },
+  { id: 'respiratory', group: '۵. دستگاه تنفسی (Respiratory System)', en: 'Respiratory System' },
+  { id: 'cardiovascular_vascular', group: '۶. دستگاه قلبی و عروقی (Cardiovascular & Vascular)', en: 'Cardiovascular & Vascular' },
+  { id: 'gastrointestinal_hepatobiliary', group: '۷. گوارش، کبد و صفرا (Gastrointestinal & Hepatobiliary)', en: 'Gastrointestinal & Hepatobiliary' },
+  { id: 'urinary_renal', group: '۸. کلیه و مجاری ادراری (Urinary & Renal)', en: 'Urinary & Renal' },
+  { id: 'male_reproductive', group: '۹. دستگاه تناسلی مردان (Male Reproductive)', en: 'Male Reproductive' },
+  { id: 'female_reproductive_obgyn', group: '۱۰. دستگاه تناسلی زنان و مامایی (Female Reproductive & OB/GYN)', en: 'Female Reproductive & OB/GYN' },
+  { id: 'musculoskeletal', group: '۱۱. اسکلتی-عضلانی و مفاصل (Musculoskeletal & Joints)', en: 'Musculoskeletal & Joints' },
+  { id: 'neurological', group: '۱۲. دستگاه عصبی (Neurological System)', en: 'Neurological System' },
+  { id: 'endocrine_hematologic_allergic', group: '۱۳. غدد، خون و آلرژی (Endocrine, Hematologic & Allergic)', en: 'Endocrine, Hematologic & Allergic' },
+  { id: 'psychiatric', group: '۱۴. اعصاب و روان (Psychiatric & Mental Health)', en: 'Psychiatric & Mental Health' }
 ];
 
-export const PE_MANDATORY_PILLARS = [
-  {
-    id: 'pe_general_heent_cp',
-    title: '۱. ظاهر عمومی، سر و گردن و قلب و ریه (General, HEENT & Cardiopulmonary)',
-    items: [
-      { id: 'pe_conscious_oriented', label: 'هوشیار و آگاه به زمان، مکان و شخص (Oriented ×3)', detailHint: 'GCS...' },
-      { id: 'pe_ill_toxic', label: 'ظاهر Ill یا Toxic', detailHint: 'بیقراری، تعریق...' },
-      { id: 'pe_pale_conjunctiva', label: 'ملتحمه رنگ‌پریده (Pale Conjunctiva)', detailHint: 'شدت رنگ‌پریدگی...' },
-      { id: 'pe_icteric_sclera', label: 'اسکلرای ایکتریک (Icteric Sclera)', detailHint: 'شدت زردی...' },
-      { id: 'pe_clear_lungs', label: 'سمع ریه دوطرفه شفاف و بدون صدای اضافی', detailHint: '' },
-      { id: 'pe_abnormal_lung_sounds', label: 'صداهای غیرطبیعی ریه (کراکل / ویز / کاهش صدا)', detailHint: 'سمت راست/چپ، قاعده...' },
-      { id: 'pe_normal_heart_sounds', label: 'سمع قلب: S1 و S2 نرمال و منظم بدون سوفل', detailHint: '' },
-      { id: 'pe_heart_murmur_arrhythmia', label: 'سوفل قلبی یا ریتم نامنظم', detailHint: 'گرید و کانون سمع...' }
-    ]
-  },
-  {
-    id: 'pe_abd_inspection',
-    title: '۲. معاینه شکم - مشاهده (Abdominal Inspection)',
-    items: [
-      { id: 'pe_abd_flat_symmetrical', label: 'شکم صاف و قرینه (Flat & Symmetrical)', detailHint: '' },
-      { id: 'pe_abd_distension', label: 'دیستانسیون و اتساع شکمی (Abdominal Distension)', detailHint: 'ژنرالیزه یا موضعی...' },
-      { id: 'pe_abd_surgical_scar', label: 'اسکار جراحی قبلی روی شکم (Surgical Scar)', detailHint: 'نوع برش (میدلاین/مک‌برنی/کوشر/فان‌اشتیل) و نام عمل...' },
-      { id: 'pe_abd_ecchymosis', label: 'اکیموز جدار شکم (علامت کولن یا گری‌ترنر)', detailHint: 'دور ناف یا پهلوها...' },
-      { id: 'pe_abd_visible_bulge', label: 'برجستگی یا فتق واضح در مشاهده جدار شکم', detailHint: 'محل و سایز...' }
-    ]
-  },
-  {
-    id: 'pe_abd_auscultation',
-    title: '۳. معاینه شکم - سمع (Abdominal Auscultation)',
-    items: [
-      { id: 'pe_normoactive_bs', label: 'صداهای روده‌ای نرمال (Normoactive Bowel Sounds)', detailHint: '' },
-      { id: 'pe_hyperactive_metallic_bs', label: 'صداهای هیپراکتیو یا متالیک (Hyperactive / High-pitched Metallic BS)', detailHint: '' },
-      { id: 'pe_hypoactive_absent_bs', label: 'کاهش یا سکوت صداهای روده‌ای (Hypoactive / Absent BS)', detailHint: '' },
-      { id: 'pe_abdominal_bruit', label: 'بروئی عروقی آئورت یا شریان کلیوی (Abdominal Bruit)', detailHint: 'محل بروئی...' }
-    ]
-  },
-  {
-    id: 'pe_abd_percussion',
-    title: '۴. معاینه شکم - دق (Abdominal Percussion)',
-    items: [
-      { id: 'pe_normal_tympanism', label: 'دق تیمپان طبیعی در چهار چهارک (Normal Tympanic Percussion)', detailHint: '' },
-      { id: 'pe_shifting_dullness', label: 'ماتیته جابه‌جاشونده آسیت (Shifting Dullness)', detailHint: 'میزان مایع آزاد...' },
-      { id: 'pe_hyperresonance', label: 'افزایش رزونانس / تیمپانیسم شدید ناشی از گاز (Hyperresonance)', detailHint: '' },
-      { id: 'pe_cva_tenderness', label: 'تندرنس در دق زاویه دنده‌ای-مهره‌ای (CVA Percussion Tenderness)', detailHint: 'سمت راست یا چپ...' }
-    ]
-  },
-  {
-    id: 'pe_abd_palpation',
-    title: '۵. معاینه شکم - لمس و مانورهای تخصصی جراحی (Abdominal Palpation & Special Signs)',
-    items: [
-      { id: 'pe_soft_nontender', label: 'شکم نرم و بدون تندرنس (Soft, Non-tender)', detailHint: '' },
-      { id: 'pe_tenderness', label: 'تندرنس سطحی یا عمقی در لمس (Tenderness)', detailHint: 'نواحی دقیق (مثلاً RLQ، اپی‌گاستر)...' },
-      { id: 'pe_rebound_tenderness', label: 'ریباند تندرنس مثبت (Rebound Tenderness)', detailHint: 'محل دقیق...' },
-      { id: 'pe_guarding_rigidity', label: 'گاردینگ یا شکم تخته‌ای (Guarding / Board-like Rigidity)', detailHint: 'ارادی/غیرارادی، لوکالیزه یا ژنرالیزه...' },
-      { id: 'pe_murphy_sign', label: 'علامت مورفی مثبت (Murphy’s Sign)', detailHint: '' },
-      { id: 'pe_mcburney_rovsing', label: 'تندرنس مک‌برنی و علامت روزینگ (McBurney & Rovsing’s Sign)', detailHint: '' },
-      { id: 'pe_psoas_obturator', label: 'علامت پسواس و ابتوراتور (Psoas & Obturator Signs)', detailHint: '' },
-      { id: 'pe_palpable_mass', label: 'لمس توده شکمی یا جدار شکم (Palpable Mass / Carnett’s Sign)', detailHint: 'محل، ابعاد (cm)، قوام، تست کارنت...' },
-      { id: 'pe_hepatosplenomegaly', label: 'هپاتومگالی یا اسپلنومگالی (Hepatosplenomegaly)', detailHint: 'سانتیمتر زیر لبه دنده...' }
-    ]
-  }
+export const ROS_GROUPS_BILINGUAL = ROS_SYSTEM_META.map(meta => ({
+  id: `ros_${meta.id}`,
+  systemKey: meta.id,
+  group: meta.group,
+  en: meta.en,
+  items: MASTER_ROS_BANK.filter(it => it.system === meta.id).map(it => ({
+    ...it,
+    label: it.fa && it.en ? `${it.fa} (${it.en})` : (it.fa || it.en)
+  }))
+}));
+
+export const PE_SYSTEMS_CONFIG = [
+  { id: 'general_appearance', title: '۱. ظاهر عمومی، هوشیاری و وضعیت تغذیه (General Appearance & Mental Status)', en: 'General Appearance & Mental Status' },
+  { id: 'skin_hair_nails', title: '۲. پوست، مو و ناخن‌ها (Integumentary, Skin, Hair & Nails)', en: 'Integumentary, Skin, Hair & Nails' },
+  { id: 'heent_neck_thyroid', title: '۳. سر، چشم، گوش، حلق و بینی، گردن و تیروئید (HEENT, Neck & Thyroid)', en: 'HEENT, Neck & Thyroid' },
+  { id: 'thorax_lungs', title: '۴. قفسه سینه و ریه‌ها (Thorax & Lungs)', en: 'Thorax & Lungs' },
+  { id: 'cardiovascular_peripheral_vascular', title: '۵. قلب، عروق و نبض‌های محیطی (Cardiovascular & Peripheral Vascular)', en: 'Cardiovascular & Peripheral Vascular' },
+  { id: 'abdomen_4_pillars', title: '۶. ارکان چهارگانه معاینه شکم (Abdomen - 4 Pillars of Exam)', en: 'Abdomen - 4 Pillars of Core Exam' },
+  { id: 'breast_axilla', title: '۷. پستان و آگزیلا (Breast & Axillary Lymph Nodes)', en: 'Breast & Axillary Lymph Nodes' },
+  { id: 'inguinal_hernia_genitourinary_dre', title: '۸. کانال اینگوینال، فتق‌ها، ارولوژی و DRE (Inguinal Orifices, GU & DRE)', en: 'Inguinal Orifices, GU & DRE' },
+  { id: 'musculoskeletal_spine', title: '۹. دستگاه اسکلتی-عضلانی، ستون فقرات و مفاصل (Musculoskeletal, Spine & Joints)', en: 'Musculoskeletal, Spine & Joints' },
+  { id: 'neurological', title: '۱۰. معاینه دقیق عصبی و رفلکس‌ها (Neurological Examination)', en: 'Neurological Examination' },
+  { id: 'surgical_wound_drain_stoma', title: '۱۱. محل برش جراحی، زخم، درن‌ها و استومی (Surgical Wound, Drains & Stoma)', en: 'Surgical Wound, Drains & Stoma' },
+  { id: 'trauma_atls_signs', title: '۱۲. نشانه‌های ترومای حاد و ATLS (Acute Trauma & ATLS Signs)', en: 'Acute Trauma & ATLS Signs' }
 ];
+
+export const PE_SUBGROUP_TITLES = {
+  general_inspection: { fa: 'مشاهده عمومی و دیسترس', en: 'General Inspection & Distress' },
+  mental_status: { fa: 'سطح هوشیاری و جهت‌یابی', en: 'Mental Status & Orientation' },
+  nutrition_hydration: { fa: 'وضعیت تغذیه و هیدراتاسیون', en: 'Nutrition & Hydration' },
+  posture: { fa: 'پوزیشن و پوسچر بیمار', en: 'Posture & Body Positioning' },
+  inspection: { fa: 'مشاهده و ارزیابی ظاهری', en: 'Inspection & Appearance' },
+  primary_lesions: { fa: 'ضایعات اولیه پوستی', en: 'Primary Skin Lesions' },
+  secondary_lesions: { fa: 'ضایعات ثانویه پوستی', en: 'Secondary Skin Lesions' },
+  vascular_lesions: { fa: 'ضایعات عروقی و پورپورا', en: 'Vascular Lesions & Purpura' },
+  palpation: { fa: 'لمس، قوام و دما', en: 'Palpation, Consistency & Temp' },
+  perfusion: { fa: 'پرفیوژن و پرشدگی مویرگی', en: 'Perfusion & Capillary Refill' },
+  nails: { fa: 'ناخن‌ها', en: 'Nails' },
+  hair: { fa: 'مو و ضمائم', en: 'Hair' },
+  head: { fa: 'سر و جمجمه', en: 'Head & Skull' },
+  eyes_pupils: { fa: 'چشم‌ها و مردمک‌ها', en: 'Eyes & Pupils' },
+  eyes_fundus: { fa: 'فوندوسکوپی', en: 'Fundoscopy' },
+  ears: { fa: 'گوش‌ها و اتوسکوپی', en: 'Ears & Otoscopy' },
+  nose: { fa: 'بینی و رینوسکوپی', en: 'Nose & Rhinoscopy' },
+  oral_pharynx: { fa: 'دهان و حلق', en: 'Oral Cavity & Pharynx' },
+  neck: { fa: 'گردن و عروق ژوگولار', en: 'Neck & JVP' },
+  thyroid: { fa: 'غده تیروئید', en: 'Thyroid Gland' },
+  lymph_nodes: { fa: 'غدد لنفاوی', en: 'Lymph Nodes' },
+  percussion: { fa: 'دق', en: 'Percussion' },
+  auscultation: { fa: 'سمع', en: 'Auscultation' },
+  special_voice_tests: { fa: 'تست‌های انتقال صوت و تندرنس', en: 'Vocal Resonance & Palpation' },
+  precordium: { fa: 'پره‌کوردیوم و ضربه نوک قلب', en: 'Precordium & PMI' },
+  peripheral_pulses: { fa: 'نبض‌های محیطی', en: 'Peripheral Pulses' },
+  edema_venous: { fa: 'ادم محیطی و عروق وریدی', en: 'Peripheral Edema & Veins' },
+  dvt_assessment: { fa: 'بررسی DVT و ترومبوفلبیت', en: 'DVT Assessment' },
+  special_maneuvers: { fa: 'مانورهای تشخیصی ویژه', en: 'Special Diagnostic Maneuvers' },
+  palpation_special_signs: { fa: 'لمس شکم و نشانه‌های پریتونیت', en: 'Palpation & Peritoneal Signs' },
+  axilla: { fa: 'آگزیلا و لنفادنوپاتی', en: 'Axilla & Lymph Nodes' },
+  inguinal_hernia: { fa: 'کانال اینگوینال و فتق‌ها', en: 'Inguinal Orifices & Hernia' },
+  genital_exam: { fa: 'معاینه دستگاه تناسلی', en: 'External Genitalia' },
+  scrotum_testes: { fa: 'اسکروتوم و بیضه‌ها', en: 'Scrotum & Testes' },
+  dre: { fa: 'معاینه انگشتی رکتوم (DRE)', en: 'Digital Rectal Exam (DRE)' },
+  gait_posture: { fa: 'گام‌برداری و راستای ستون فقرات', en: 'Gait & Spinal Alignment' },
+  spine: { fa: 'ستون فقرات و تندرنس مهره‌ای', en: 'Spine & Vertebral Tenderness' },
+  range_of_motion: { fa: 'دامنه حرکتی مفاصل', en: 'Range of Motion (ROM)' },
+  joint_inspection: { fa: 'مشاهده و لمس مفاصل', en: 'Joint Inspection & Palpation' },
+  consciousness_gcs: { fa: 'سطح هوشیاری و GCS', en: 'Consciousness & GCS' },
+  cranial_nerves: { fa: 'اعصاب مغزی (CN I-XII)', en: 'Cranial Nerves (CN I-XII)' },
+  motor: { fa: 'سیستم حرکتی و قدرت عضلانی', en: 'Motor System & Tone' },
+  sensory: { fa: 'سیستم حسی', en: 'Sensory System' },
+  reflexes: { fa: 'رفلکس‌های وتری عمقی (DTR)', en: 'Deep Tendon Reflexes (DTR)' },
+  cerebellar: { fa: 'مخچه و تعادل', en: 'Cerebellar Function & Ataxia' },
+  meningeal: { fa: 'علائم تحریکی مننژ', en: 'Meningeal Signs' },
+  incision_wound: { fa: 'محل انسزیون و وضعیت زخم', en: 'Incision & Wound Status' },
+  wound_complications: { fa: 'عوارض زخم (دهیسنس، عفونت)', en: 'Wound Complications' },
+  dressing: { fa: 'پانسمان', en: 'Dressing Status' },
+  drains: { fa: 'درن‌های جراحی و ترشحات', en: 'Surgical Drains & Output' },
+  stoma: { fa: 'استومی جراحی (کلستومی/ایلئوستومی)', en: 'Surgical Stoma' },
+  head_face: { fa: 'سر و صورت در تروما', en: 'Head & Maxillofacial Trauma' },
+  chest: { fa: 'قفسه سینه در تروما', en: 'Thoracic Trauma' },
+  abdomen_pelvis: { fa: 'شکم و لگن در تروما', en: 'Abdominal & Pelvic Trauma' },
+  extremities: { fa: 'اندام‌ها و عروق در تروما', en: 'Extremities & Vascular Trauma' }
+};
+
+export const PE_MANDATORY_PILLARS = PE_SYSTEMS_CONFIG.map(cfg => ({
+  id: `pe_sys_${cfg.id}`,
+  systemKey: cfg.id,
+  title: cfg.title,
+  en: cfg.en,
+  items: MASTER_PE_BANK.filter(it => it.system === cfg.id).map(it => ({
+    ...it,
+    label: it.fa && it.en ? `${it.fa} (${it.en})` : (it.fa || it.en)
+  }))
+}));
 
 export const PE_UNLOCKABLE_MODULES = [
   {

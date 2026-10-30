@@ -69,15 +69,20 @@ export function smartClinicalSearch(query, dataset, limit = 25) {
   const scoredResults = [];
 
   for (const item of dataset) {
-    // تجمیع عنوان اصلی + نام انگلیسی + نام تجاری + تگ‌های مخفی (aliases)
+    // تجمیع عنوان اصلی + نام انگلیسی + فارسی + نام تجاری + اصطلاحات عامیانه + تگ‌های مخفی (aliases)
     const rawHaystack = [
       item.label || '',
+      item.fa || '',
       item.name || '',
       item.en || '',
       item.brands || '',
       item.aliases || '',
       item.keywords || '',
-      item.category || ''
+      item.category || '',
+      item.colloquial_fa || '',
+      Array.isArray(item.modifiers) ? item.modifiers.join(' ') : (item.modifiers || ''),
+      Array.isArray(item.subTypes) ? item.subTypes.join(' ') : (item.subTypes || ''),
+      item.detailHint || ''
     ].join(' ');
 
     const normHaystack = normalizeTextForSearch(rawHaystack);

@@ -6,6 +6,12 @@ import {
   smartClinicalSearch
 } from './fuzzy-search.js';
 import {
+  HPI_QUALIFIERS_AND_SYMPTOMS,
+  MASTER_ROS_BANK,
+  MASTER_PE_BANK,
+  getItemDisplayTitle,
+  PE_SUBGROUP_TITLES,
+  PE_SYSTEMS_CONFIG,
   SURGICAL_SCHEMA,
   LAB_PANELS,
   ROS_GROUPS_BILINGUAL,
@@ -540,7 +546,7 @@ function showToast(message, type = 'info') {
  * Instant 1-touch positive or negative without cycle fatigue.
  */
 function renderInlineDetailTriStateChip(options) {
-  const { id, label, detailHint, currentItemData, onStateChange, onDetailChange } = options;
+  const { id, label, detailHint, currentItemData, modifiers, subTypes, onStateChange, onDetailChange } = options;
   const stateVal = currentItemData ? (typeof currentItemData === 'object' ? currentItemData.state : currentItemData) : 0;
   const detail = currentItemData && typeof currentItemData === 'object' ? (currentItemData.detail || '') : '';
 
@@ -573,10 +579,53 @@ function renderInlineDetailTriStateChip(options) {
   chip.appendChild(titleSpan);
   chip.appendChild(btnNeg);
 
+  // Sub-options / Modifiers
+  const rawSub = modifiers || subTypes || [];
+  const subOptions = Array.isArray(rawSub) ? rawSub : (typeof rawSub === 'string' ? rawSub.split(/[,،]\s*/).filter(Boolean) : []);
+
+  let modifierChipsWrap = null;
+  if (subOptions.length > 0) {
+    modifierChipsWrap = document.createElement('div');
+    modifierChipsWrap.className = 'mini-modifier-chips';
+    modifierChipsWrap.style.display = stateVal === 1 ? 'flex' : 'none';
+
+    subOptions.forEach((optText) => {
+      const chipBtn = document.createElement('button');
+      chipBtn.type = 'button';
+      chipBtn.className = 'mini-modifier-chip';
+      chipBtn.textContent = optText;
+      if (detail && detail.includes(optText)) {
+        chipBtn.classList.add('is-selected');
+      }
+
+      chipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const curVal = inlineInput.value.trim();
+        let newVal = '';
+        if (curVal.includes(optText)) {
+          const parts = curVal.split(/[,،]\s*/).filter((p) => p !== optText && p.length > 0);
+          newVal = parts.join('، ');
+          chipBtn.classList.remove('is-selected');
+        } else {
+          newVal = curVal ? `${curVal}، ${optText}` : optText;
+          chipBtn.classList.add('is-selected');
+        }
+        inlineInput.value = newVal;
+        if (onDetailChange) {
+          onDetailChange(newVal);
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+
+      modifierChipsWrap.appendChild(chipBtn);
+    });
+  }
+
   const inlineInput = document.createElement('input');
   inlineInput.type = 'text';
   inlineInput.className = 'inline-detail-input';
-  inlineInput.placeholder = detailHint || 'توضیحات تکمیلی...';
+  inlineInput.placeholder = detailHint || (getCurrentLanguage() === 'en' ? 'Additional details...' : 'توضیحات تکمیلی...');
   inlineInput.value = detail;
 
   const updateState = (targetState) => {
@@ -593,12 +642,15 @@ function renderInlineDetailTriStateChip(options) {
     if (newState === 1) {
       chip.classList.add('active-pos');
       wrap.classList.add('has-inline-open');
+      if (modifierChipsWrap) modifierChipsWrap.style.display = 'flex';
       setTimeout(() => inlineInput.focus(), 50);
     } else if (newState === -1) {
       chip.classList.add('active-neg');
       wrap.classList.remove('has-inline-open');
+      if (modifierChipsWrap) modifierChipsWrap.style.display = 'none';
     } else {
       wrap.classList.remove('has-inline-open');
+      if (modifierChipsWrap) modifierChipsWrap.style.display = 'none';
     }
 
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -630,11 +682,18 @@ function renderInlineDetailTriStateChip(options) {
     if (onDetailChange) {
       onDetailChange(e.target.value);
     }
+    if (modifierChipsWrap) {
+      const val = e.target.value;
+      modifierChipsWrap.querySelectorAll('.mini-modifier-chip').forEach((btn) => {
+        btn.classList.toggle('is-selected', val.includes(btn.textContent));
+      });
+    }
     saveCurrentCase();
     updateLivePreview();
   });
 
   wrap.appendChild(chip);
+  if (modifierChipsWrap) wrap.appendChild(modifierChipsWrap);
   wrap.appendChild(inlineInput);
   return wrap;
 }
@@ -3637,19 +3696,19 @@ function renderRosGroups() {
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = grp.group;
+    titleSpan.textContent = getCurrentLanguage() === 'en' ? (grp.en || grp.group) : grp.group;
     headerRight.appendChild(titleSpan);
 
     if (posCount > 0) {
       const bPos = document.createElement('span');
       bPos.className = 'subsystem-badge-counter pos';
-      bPos.textContent = `${posCount} مثبت`;
+      bPos.textContent = getCurrentLanguage() === 'en' ? `${posCount} Pos` : `${posCount} مثبت`;
       headerRight.appendChild(bPos);
     }
     if (negCount > 0) {
       const bNeg = document.createElement('span');
       bNeg.className = 'subsystem-badge-counter neg';
-      bNeg.textContent = `${negCount} منفی`;
+      bNeg.textContent = getCurrentLanguage() === 'en' ? `${negCount} Neg` : `${negCount} منفی`;
       headerRight.appendChild(bNeg);
     }
 
@@ -3660,8 +3719,8 @@ function renderRosGroups() {
     toggleBtn.type = 'button';
     toggleBtn.className = `btn-toggle-sub-negatives ${isResetState ? 'is-reset' : ''}`;
     toggleBtn.innerHTML = isResetState
-      ? `<span>↺ بازنشانی منفی‌ها</span>`
-      : `<span>− منفی کردن بقیه</span>`;
+      ? `<span>${getCurrentLanguage() === 'en' ? '↺ Reset Negatives' : '↺ بازنشانی منفی‌ها'}</span>`
+      : `<span>${getCurrentLanguage() === 'en' ? '− Mark Rest Neg' : '− منفی کردن بقیه'}</span>`;
 
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3671,7 +3730,7 @@ function renderRosGroups() {
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.label };
+            clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '' };
           }
         } else {
           if (st === -1) {
@@ -3710,14 +3769,16 @@ function renderRosGroups() {
       const cur = clinicalState.ros.items[item.id];
       const chipWrap = renderInlineDetailTriStateChip({
         id: item.id,
-        label: item.label,
-        detailHint: item.detailHint || 'توضیحات...',
+        label: getItemDisplayTitle(item) || item.label || item.fa || item.en,
+        detailHint: item.detailHint || (getCurrentLanguage() === 'en' ? 'Additional details...' : 'توضیحات تکمیلی...'),
+        modifiers: item.modifiers || [],
+        subTypes: item.subTypes || [],
         currentItemData: cur,
         onStateChange: (newState, detailText) => {
           if (newState === 0) {
             delete clinicalState.ros.items[item.id];
           } else {
-            clinicalState.ros.items[item.id] = { state: newState, detail: detailText, label: item.label };
+            clinicalState.ros.items[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '' };
           }
         },
         onDetailChange: (detailText) => {
@@ -3826,6 +3887,12 @@ function renderPeMandatoryPillars() {
 
     const isResetState = neutralCount === 0 && negCount > 0;
 
+    const normalItems = pillar.items.filter((it) => it.isNormalBaseline === true);
+    const isAllNormal = normalItems.length > 0 && normalItems.every((it) => {
+      const f = clinicalState.pe.findings[it.id];
+      return f && (typeof f === 'object' ? f.state === 1 : f === 1);
+    });
+
     const pillarCard = document.createElement('div');
     pillarCard.className = 'subsystem-accordion';
     pillarCard.style.marginTop = '0.75rem';
@@ -3838,31 +3905,60 @@ function renderPeMandatoryPillars() {
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = pillar.title;
+    titleSpan.textContent = getCurrentLanguage() === 'en' ? (pillar.en || pillar.title) : pillar.title;
     headerRight.appendChild(titleSpan);
 
     if (posCount > 0) {
       const bPos = document.createElement('span');
       bPos.className = 'subsystem-badge-counter pos';
-      bPos.textContent = `${posCount} مثبت`;
+      bPos.textContent = getCurrentLanguage() === 'en' ? `${posCount} Pos` : `${posCount} مثبت`;
       headerRight.appendChild(bPos);
     }
     if (negCount > 0) {
       const bNeg = document.createElement('span');
       bNeg.className = 'subsystem-badge-counter neg';
-      bNeg.textContent = `${negCount} منفی`;
+      bNeg.textContent = getCurrentLanguage() === 'en' ? `${negCount} Neg` : `${negCount} منفی`;
       headerRight.appendChild(bNeg);
     }
 
     const headerLeft = document.createElement('div');
     headerLeft.className = 'subsystem-header-left';
 
+    // Normal baseline quick-confirm button
+    const btnNormal = document.createElement('button');
+    btnNormal.type = 'button';
+    btnNormal.className = `btn-system-normal-baseline ${isAllNormal ? 'is-all-normal' : ''}`;
+    btnNormal.title = getCurrentLanguage() === 'en' ? 'Record normal baseline findings for this system' : 'ثبت خودکار موارد نرمال و بیس‌لاین سالم این سیستم';
+    btnNormal.innerHTML = `<span>${getCurrentLanguage() === 'en' ? '✓ Mark System Normal' : '✓ ثبت معاینه نرمال این سیستم'}</span>`;
+
+    btnNormal.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isAllNormal) {
+        normalItems.forEach((it) => {
+          delete clinicalState.pe.findings[it.id];
+        });
+      } else {
+        normalItems.forEach((it) => {
+          clinicalState.pe.findings[it.id] = {
+            state: 1,
+            label: it.fa || it.label,
+            en: it.en || '',
+            detail: ''
+          };
+        });
+      }
+      renderPeMandatoryPillars();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    headerLeft.appendChild(btnNormal);
+
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = `btn-toggle-sub-negatives ${isResetState ? 'is-reset' : ''}`;
     toggleBtn.innerHTML = isResetState
-      ? `<span>↺ بازنشانی منفی‌ها</span>`
-      : `<span>− منفی کردن بقیه</span>`;
+      ? `<span>${getCurrentLanguage() === 'en' ? '↺ Reset Negatives' : '↺ بازنشانی منفی‌ها'}</span>`
+      : `<span>${getCurrentLanguage() === 'en' ? '− Mark Rest Neg' : '− منفی کردن بقیه'}</span>`;
 
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3872,7 +3968,7 @@ function renderPeMandatoryPillars() {
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.label };
+            clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '' };
           }
         } else {
           if (st === -1) {
@@ -3904,33 +4000,61 @@ function renderPeMandatoryPillars() {
     const body = document.createElement('div');
     body.className = 'subsystem-body';
 
-    const chipsContainer = document.createElement('div');
-    chipsContainer.className = 'chips-container';
-
+    // Group items by subGroup
+    const subGroupsMap = new Map();
     pillar.items.forEach((item) => {
-      const cur = clinicalState.pe.findings[item.id];
-      const chipWrap = renderInlineDetailTriStateChip({
-        id: item.id,
-        label: item.label,
-        detailHint: item.detailHint || 'توضیحات...',
-        currentItemData: cur,
-        onStateChange: (newState, detailText) => {
-          if (newState === 0) {
-            delete clinicalState.pe.findings[item.id];
-          } else {
-            clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.label };
-          }
-        },
-        onDetailChange: (detailText) => {
-          if (clinicalState.pe.findings[item.id]) {
-            clinicalState.pe.findings[item.id].detail = detailText;
-          }
-        }
-      });
-      chipsContainer.appendChild(chipWrap);
+      const sg = item.subGroup || 'general';
+      if (!subGroupsMap.has(sg)) subGroupsMap.set(sg, []);
+      subGroupsMap.get(sg).push(item);
     });
 
-    body.appendChild(chipsContainer);
+    const hasMultipleSubGroups = subGroupsMap.size > 1;
+
+    subGroupsMap.forEach((subItems, sgKey) => {
+      const subGroupBlock = document.createElement('div');
+      subGroupBlock.className = 'pe-subgroup-block';
+
+      if (hasMultipleSubGroups) {
+        const sgMeta = PE_SUBGROUP_TITLES[sgKey];
+        const sgTitle = sgMeta ? (getCurrentLanguage() === 'en' ? sgMeta.en : sgMeta.fa) : sgKey;
+        const sgHeader = document.createElement('div');
+        sgHeader.className = 'pe-subgroup-header';
+        sgHeader.textContent = sgTitle;
+        subGroupBlock.appendChild(sgHeader);
+      }
+
+      const chipsContainer = document.createElement('div');
+      chipsContainer.className = 'chips-container';
+
+      subItems.forEach((item) => {
+        const cur = clinicalState.pe.findings[item.id];
+        const chipWrap = renderInlineDetailTriStateChip({
+          id: item.id,
+          label: getItemDisplayTitle(item) || item.label || item.fa || item.en,
+          detailHint: item.detailHint || (getCurrentLanguage() === 'en' ? 'Additional details...' : 'توضیحات تکمیلی...'),
+          modifiers: item.modifiers || [],
+          subTypes: item.subTypes || [],
+          currentItemData: cur,
+          onStateChange: (newState, detailText) => {
+            if (newState === 0) {
+              delete clinicalState.pe.findings[item.id];
+            } else {
+              clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '' };
+            }
+          },
+          onDetailChange: (detailText) => {
+            if (clinicalState.pe.findings[item.id]) {
+              clinicalState.pe.findings[item.id].detail = detailText;
+            }
+          }
+        });
+        chipsContainer.appendChild(chipWrap);
+      });
+
+      subGroupBlock.appendChild(chipsContainer);
+      body.appendChild(subGroupBlock);
+    });
+
     pillarCard.appendChild(body);
     container.appendChild(pillarCard);
   });
@@ -4817,52 +4941,103 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
     btnPos.type = 'button';
     btnPos.className = `search-btn-pos ${st === 1 ? 'active' : ''}`;
     btnPos.textContent = '+';
-    btnPos.title = 'مثبت / دارد';
+    btnPos.title = getCurrentLanguage() === 'en' ? 'Positive / Present (+1)' : 'مثبت / دارد';
 
     const labelSpan = document.createElement('span');
     labelSpan.className = 'search-tray-label';
-    labelSpan.textContent = item.label;
-
+    labelSpan.textContent = getItemDisplayTitle(item) || item.label || item.fa || item.en;
+    labelSpan.title = item.en || item.fa || '';
 
     const btnNeg = document.createElement('button');
     btnNeg.type = 'button';
     btnNeg.className = `search-btn-neg ${st === -1 ? 'active' : ''}`;
     btnNeg.textContent = '−';
-    btnNeg.title = 'منفی / نفی شد';
+    btnNeg.title = getCurrentLanguage() === 'en' ? 'Negative / Denies (-1)' : 'منفی / نفی شد';
 
     chipRow.appendChild(btnPos);
     chipRow.appendChild(labelSpan);
     chipRow.appendChild(btnNeg);
     itemWrap.appendChild(chipRow);
 
+    // Sub-options / Modifiers
+    const rawSub = item.modifiers || item.subTypes || [];
+    const subOptions = Array.isArray(rawSub) ? rawSub : (typeof rawSub === 'string' ? rawSub.split(/[,،]\s*/).filter(Boolean) : []);
+
+    let modifierChipsWrap = null;
+    if (subOptions.length > 0) {
+      modifierChipsWrap = document.createElement('div');
+      modifierChipsWrap.className = 'mini-modifier-chips';
+      modifierChipsWrap.style.display = st === 1 ? 'flex' : 'none';
+
+      subOptions.forEach((optText) => {
+        const chipBtn = document.createElement('button');
+        chipBtn.type = 'button';
+        chipBtn.className = 'mini-modifier-chip';
+        chipBtn.textContent = optText;
+        if (det && det.includes(optText)) chipBtn.classList.add('is-selected');
+
+        chipBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const curVal = detailInp.value.trim();
+          let newVal = '';
+          if (curVal.includes(optText)) {
+            const parts = curVal.split(/[,،]\s*/).filter((p) => p !== optText && p.length > 0);
+            newVal = parts.join('، ');
+            chipBtn.classList.remove('is-selected');
+          } else {
+            newVal = curVal ? `${curVal}، ${optText}` : optText;
+            chipBtn.classList.add('is-selected');
+          }
+          detailInp.value = newVal;
+          detailInp.dispatchEvent(new Event('input'));
+        });
+        modifierChipsWrap.appendChild(chipBtn);
+      });
+      itemWrap.appendChild(modifierChipsWrap);
+    }
+
     // Inline detail input if positive
     const detailInp = document.createElement('input');
     detailInp.type = 'text';
     detailInp.className = 'search-tray-detail-input';
-    detailInp.placeholder = 'توضیحات تکمیلی (مدت، شدت، سیر...)...';
+    detailInp.placeholder = item.detailHint || (getCurrentLanguage() === 'en' ? 'Additional details...' : 'توضیحات تکمیلی (مدت، شدت، سیر...)...');
     detailInp.value = det;
     detailInp.style.display = st === 1 ? 'block' : 'none';
 
     detailInp.addEventListener('input', (e) => {
       const val = e.target.value;
+      if (modifierChipsWrap) {
+        modifierChipsWrap.querySelectorAll('.mini-modifier-chip').forEach((btn) => {
+          btn.classList.toggle('is-selected', val.includes(btn.textContent));
+        });
+      }
+
       if (sectionType === 'hpi') {
+        if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {}, presentations: [] };
         if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
-        if (!clinicalState.hpi.symptoms[item.id]) clinicalState.hpi.symptoms[item.id] = { state: 1, label: item.label, detail: '' };
+        if (!clinicalState.hpi.symptoms[item.id]) {
+          clinicalState.hpi.symptoms[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '' };
+        }
         clinicalState.hpi.symptoms[item.id].detail = val;
       } else if (sectionType === 'pmh') {
+        if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
         if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
         if (!clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id] = { state: 1, label: item.label, detail: '' };
         clinicalState.pmh.items[item.id].detail = val;
       } else if (sectionType === 'ros') {
         if (!clinicalState.ros) clinicalState.ros = { items: {} };
         if (!clinicalState.ros.items) clinicalState.ros.items = {};
-        if (!clinicalState.ros.items[item.id]) clinicalState.ros.items[item.id] = { state: 1, label: item.label, detail: '' };
+        if (!clinicalState.ros.items[item.id]) {
+          clinicalState.ros.items[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '' };
+        }
         clinicalState.ros.items[item.id].detail = val;
         renderRosGroups();
       } else if (sectionType === 'pe') {
         if (!clinicalState.pe) clinicalState.pe = { findings: {} };
         if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
-        if (!clinicalState.pe.findings[item.id]) clinicalState.pe.findings[item.id] = { state: 1, label: item.label, detail: '' };
+        if (!clinicalState.pe.findings[item.id]) {
+          clinicalState.pe.findings[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '' };
+        }
         clinicalState.pe.findings[item.id].detail = val;
         renderPeMandatoryPillars();
       }
@@ -4874,10 +5049,63 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
 
     const applyState = (newState) => {
       if (sectionType === 'hpi') {
-        if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {} };
+        if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {}, presentations: [] };
         if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
-        if (newState === 0) delete clinicalState.hpi.symptoms[item.id];
-        else clinicalState.hpi.symptoms[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+
+        if (item.type === 'pain_qualifier') {
+          const activePain = clinicalState.hpi.presentations?.find((p) => p.archetype === 'pain_archetype') || (clinicalState.hpi.painList && clinicalState.hpi.painList[0]);
+          const itemText = getItemDisplayTitle(item) || item.fa || item.label;
+          if (activePain) {
+            if (item.category === 'character') {
+              activePain.character = newState === 1 ? itemText : (newState === 0 && activePain.character === itemText ? '' : activePain.character);
+            } else if (item.category === 'timing') {
+              activePain.timing = newState === 1 ? itemText : (newState === 0 && activePain.timing === itemText ? '' : activePain.timing);
+            } else if (item.category === 'onset') {
+              activePain.onset = newState === 1 ? itemText : (newState === 0 && activePain.onset === itemText ? '' : activePain.onset);
+            } else if (item.category === 'severity') {
+              if (newState === 1) activePain.severity = item.en || item.fa || itemText;
+            } else if (item.category === 'aggravating') {
+              if (!Array.isArray(activePain.aggravating)) activePain.aggravating = [];
+              if (newState === 1) {
+                if (!activePain.aggravating.includes(itemText)) activePain.aggravating.push(itemText);
+              } else {
+                activePain.aggravating = activePain.aggravating.filter((x) => x !== itemText);
+              }
+            } else if (item.category === 'relieving') {
+              if (!Array.isArray(activePain.relieving)) activePain.relieving = [];
+              if (newState === 1) {
+                if (!activePain.relieving.includes(itemText)) activePain.relieving.push(itemText);
+              } else {
+                activePain.relieving = activePain.relieving.filter((x) => x !== itemText);
+              }
+            }
+            renderHpiPresentations();
+          }
+          if (newState === 0) {
+            delete clinicalState.hpi.symptoms[item.id];
+          } else {
+            clinicalState.hpi.symptoms[item.id] = {
+              state: newState,
+              label: item.fa || item.label,
+              en: item.en || '',
+              detail: detailInp.value,
+              type: item.type,
+              category: item.category
+            };
+          }
+        } else {
+          // hpi_symptom
+          if (newState === 0) {
+            delete clinicalState.hpi.symptoms[item.id];
+          } else {
+            clinicalState.hpi.symptoms[item.id] = {
+              state: newState,
+              label: item.fa || item.label,
+              en: item.en || '',
+              detail: detailInp.value
+            };
+          }
+        }
       } else if (sectionType === 'pmh') {
         if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
         if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
@@ -4896,7 +5124,12 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
         if (newState === 0) {
           delete clinicalState.ros.items[item.id];
         } else {
-          clinicalState.ros.items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+          clinicalState.ros.items[item.id] = {
+            state: newState,
+            label: item.fa || item.label,
+            en: item.en || '',
+            detail: detailInp.value
+          };
         }
         renderRosGroups();
       } else if (sectionType === 'pe') {
@@ -4905,7 +5138,12 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
         if (newState === 0) {
           delete clinicalState.pe.findings[item.id];
         } else {
-          clinicalState.pe.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+          clinicalState.pe.findings[item.id] = {
+            state: newState,
+            label: item.fa || item.label,
+            en: item.en || '',
+            detail: detailInp.value
+          };
         }
         renderPeMandatoryPillars();
       }
@@ -4916,6 +5154,9 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       btnNeg.classList.toggle('active', newState === -1);
       itemWrap.classList.toggle('is-positive', newState === 1);
       itemWrap.classList.toggle('is-negative', newState === -1);
+      if (modifierChipsWrap) {
+        modifierChipsWrap.style.display = newState === 1 ? 'flex' : 'none';
+      }
       detailInp.style.display = newState === 1 ? 'block' : 'none';
       if (newState === 1) detailInp.focus();
     };
@@ -5268,38 +5509,6 @@ function renderLabSearchTray(query, tray, input) {
 function initSchemaOmnisearch() {
   const searchInputs = document.querySelectorAll('.tag-quick-search-input');
 
-  const rosItems = ROS_GROUPS_BILINGUAL.flatMap((grp) =>
-    (grp.items || []).map((it) => ({
-      ...it,
-      category: grp.group || 'بررسی سیستم‌ها (ROS)',
-      keywords: it.keywords || ''
-    }))
-  );
-
-  const peItems = [
-    ...PE_MANDATORY_PILLARS.flatMap((p) =>
-      (p.items || []).map((it) => ({
-        ...it,
-        category: p.title || 'معاینه عمومی و اجباری',
-        keywords: it.keywords || ''
-      }))
-    ),
-    ...PE_UNLOCKABLE_MODULES.flatMap((m) =>
-      (m.items || []).map((it) => ({
-        ...it,
-        category: m.title || 'معاینه تخصصی',
-        keywords: it.keywords || ''
-      }))
-    ),
-    ...PE_COMPREHENSIVE_SYSTEMS.flatMap((s) =>
-      (s.items || []).map((it) => ({
-        ...it,
-        category: s.title || 'سیستم‌های معاینه فیزیکی',
-        keywords: it.keywords || ''
-      }))
-    )
-  ];
-
   searchInputs.forEach((input) => {
     const parentBox = input.closest('.tag-quick-search-box');
     let tray = parentBox?.querySelector('.search-results-tray');
@@ -5332,11 +5541,11 @@ function initSchemaOmnisearch() {
       } else if (targetSection === '#tab-pmh') {
         renderTriStateSearchTray(query, tray, input, ALL_MASTER_PMH_ITEMS, 'pmh');
       } else if (targetSection === '#tab-ros') {
-        renderTriStateSearchTray(query, tray, input, [...MASTER_SYMPTOMS_BANK, ...rosItems], 'ros');
+        renderTriStateSearchTray(query, tray, input, MASTER_ROS_BANK, 'ros');
       } else if (targetSection === '#tab-pe') {
-        renderTriStateSearchTray(query, tray, input, peItems, 'pe');
+        renderTriStateSearchTray(query, tray, input, MASTER_PE_BANK, 'pe');
       } else {
-        renderTriStateSearchTray(query, tray, input, MASTER_SYMPTOMS_BANK, 'hpi');
+        renderTriStateSearchTray(query, tray, input, HPI_QUALIFIERS_AND_SYMPTOMS, 'hpi');
       }
     };
 
@@ -7744,17 +7953,60 @@ function renderSoapCustomSymptoms() {
     item.className = 'soap-symptom-item';
     item.style.cssText = 'display:flex; flex-direction:column; gap:0.35rem;';
     const isPos = cs.status === 1;
+    const displayTitle = getItemDisplayTitle(cs) || cs.label;
+    const lexItem = HPI_QUALIFIERS_AND_SYMPTOMS.find((it) => it.id === cs.id);
+    const rawSub = lexItem?.modifiers || [];
+
     item.innerHTML = `
       <div class="soap-symptom-top-row" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
-        <span class="sym-label">${cs.label}</span>
+        <span class="sym-label">${displayTitle}</span>
         <div class="bipolar-btn-group">
           <button type="button" class="bipolar-btn sym-custom-pos ${isPos ? 'active-pos' : ''}">+ بله</button>
           <button type="button" class="bipolar-btn sym-custom-neg ${!isPos ? 'active-neg' : ''}">− خیر</button>
           <button type="button" class="btn-delete-imaging sym-custom-del" title="حذف علامت"></button>
         </div>
       </div>
-      <input type="text" class="input-text inline-detail-input sym-custom-det" placeholder="توضیحات تکمیلی «${cs.label}»..." value="${cs.detail || ''}" style="display:${isPos ? 'block' : 'none'}; font-size:0.8rem; padding:0.3rem 0.55rem;">
     `;
+
+    const detailInput = document.createElement('input');
+    detailInput.type = 'text';
+    detailInput.className = 'input-text inline-detail-input sym-custom-det';
+    detailInput.placeholder = `توضیحات تکمیلی «${displayTitle}»...`;
+    detailInput.value = cs.detail || '';
+    detailInput.style.cssText = `display:${isPos ? 'block' : 'none'}; font-size:0.8rem; padding:0.3rem 0.55rem;`;
+
+    let modifierChipsWrap = null;
+    if (rawSub.length > 0) {
+      modifierChipsWrap = document.createElement('div');
+      modifierChipsWrap.className = 'mini-modifier-chips';
+      modifierChipsWrap.style.display = isPos ? 'flex' : 'none';
+
+      rawSub.forEach((optText) => {
+        const chipBtn = document.createElement('button');
+        chipBtn.type = 'button';
+        chipBtn.className = 'mini-modifier-chip';
+        chipBtn.textContent = optText;
+        if (cs.detail && cs.detail.includes(optText)) chipBtn.classList.add('is-selected');
+
+        chipBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const curVal = detailInput.value.trim();
+          let newVal = '';
+          if (curVal.includes(optText)) {
+            const parts = curVal.split(/[,،]\s*/).filter((p) => p !== optText && p.length > 0);
+            newVal = parts.join('، ');
+            chipBtn.classList.remove('is-selected');
+          } else {
+            newVal = curVal ? `${curVal}، ${optText}` : optText;
+            chipBtn.classList.add('is-selected');
+          }
+          detailInput.value = newVal;
+          cs.detail = newVal;
+          updateLivePreview();
+        });
+        modifierChipsWrap.appendChild(chipBtn);
+      });
+    }
 
     item.querySelector('.sym-custom-pos')?.addEventListener('click', () => {
       cs.status = 1;
@@ -7766,8 +8018,13 @@ function renderSoapCustomSymptoms() {
       renderSoapCustomSymptoms();
       updateLivePreview();
     });
-    item.querySelector('.sym-custom-det')?.addEventListener('input', (e) => {
+    detailInput.addEventListener('input', (e) => {
       cs.detail = e.target.value;
+      if (modifierChipsWrap) {
+        modifierChipsWrap.querySelectorAll('.mini-modifier-chip').forEach((btn) => {
+          btn.classList.toggle('is-selected', cs.detail.includes(btn.textContent));
+        });
+      }
       updateLivePreview();
     });
     item.querySelector('.sym-custom-del')?.addEventListener('click', () => {
@@ -7776,6 +8033,8 @@ function renderSoapCustomSymptoms() {
       updateLivePreview();
     });
 
+    if (modifierChipsWrap) item.appendChild(modifierChipsWrap);
+    item.appendChild(detailInput);
     container.appendChild(item);
   });
 }
@@ -8317,7 +8576,7 @@ function initSoapEngine() {
         symSearchTray.innerHTML = '';
         return;
       }
-      const matches = smartClinicalSearch(q, ALL_MASTER_SYMPTOMS, ['label', 'en', 'keywords'], 10);
+      const matches = smartClinicalSearch(q, HPI_QUALIFIERS_AND_SYMPTOMS, 15);
       symSearchTray.innerHTML = '';
       if (matches.length === 0) {
         const customBtn = document.createElement('button');
@@ -8326,7 +8585,7 @@ function initSoapEngine() {
         customBtn.innerHTML = `<span></span> <span>افزودن علامت «${q}»</span>`;
         customBtn.addEventListener('click', () => {
           if (!soapState.subjective.customSymptoms) soapState.subjective.customSymptoms = [];
-          soapState.subjective.customSymptoms.push({ id: 'cs_' + Date.now(), label: q, status: 1, detail: '' });
+          soapState.subjective.customSymptoms.push({ id: 'cs_' + Date.now(), label: q, en: '', status: 1, detail: '' });
           symSearchInput.value = '';
           symSearchTray.style.display = 'none';
           renderSoapCustomSymptoms();
@@ -8338,12 +8597,13 @@ function initSoapEngine() {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'toggle-chip';
-          btn.innerHTML = `<span></span> <span>${m.label}</span>`;
+          const title = getItemDisplayTitle(m) || m.label || m.fa || m.en;
+          btn.innerHTML = `<span></span> <span>${title}</span>`;
           btn.addEventListener('click', () => {
             if (!soapState.subjective.customSymptoms) soapState.subjective.customSymptoms = [];
-            const exists = soapState.subjective.customSymptoms.some((c) => c.id === m.id || c.label === m.label);
+            const exists = soapState.subjective.customSymptoms.some((c) => c.id === m.id || c.label === (m.fa || m.label));
             if (!exists) {
-              soapState.subjective.customSymptoms.push({ id: m.id, label: m.label, status: 1, detail: '' });
+              soapState.subjective.customSymptoms.push({ id: m.id, label: m.fa || m.label, en: m.en || '', status: 1, detail: '' });
             }
             symSearchInput.value = '';
             symSearchTray.style.display = 'none';

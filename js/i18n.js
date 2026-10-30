@@ -9,10 +9,11 @@ import {
   tBrands,
   DIRECT_FA_TO_EN_MAP,
   getCurrentLang,
-  setCurrentLang
+  setCurrentLang,
+  getItemDisplayTitle
 } from './schema.js';
 
-export { tLabel, tBrands, DIRECT_FA_TO_EN_MAP, getCurrentLang, setCurrentLang };
+export { tLabel, tBrands, DIRECT_FA_TO_EN_MAP, getCurrentLang, setCurrentLang, getItemDisplayTitle };
 
 export const STORAGE_LANG_KEY = 'surg_app_lang_v05';
 export const STORAGE_FONT_KEY = 'surg_app_font_v05';

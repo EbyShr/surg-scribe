@@ -1,5 +1,8 @@
 import { getCurrentLanguage, getLocalizedItemLabel } from './i18n.js';
 import {
+  HPI_QUALIFIERS_AND_SYMPTOMS,
+  MASTER_ROS_BANK,
+  MASTER_PE_BANK,
   SURGICAL_SCHEMA,
   LAB_PANELS,
   ROS_GROUPS_BILINGUAL,
@@ -200,36 +203,38 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
 }
 
 /**
- * Helper to resolve schema item English/Persian label by ID across ROS & PE schemas
+ * Helper to resolve schema item English/Persian label by ID across ROS, PE & HPI schemas
  */
-function findRosItemLabel(itemId, fallbackLabel) {
+function findRosItemLabel(itemId, fallbackLabel, lang = 'en') {
+  const found = MASTER_ROS_BANK.find((it) => it.id === itemId);
+  if (found) return lang === 'en' ? found.en : (found.fa || found.en);
   for (const grp of (ROS_GROUPS_BILINGUAL || [])) {
-    const found = (grp.items || []).find((it) => it.id === itemId);
-    if (found) return tLabel(found.label, found.en);
+    const it = (grp.items || []).find((x) => x.id === itemId);
+    if (it) return lang === 'en' ? (it.en || tLabel(it.label, it.en)) : (it.fa || it.label);
   }
-  return tLabel(fallbackLabel || itemId);
+  return lang === 'en' ? tLabel(fallbackLabel || itemId) : (fallbackLabel || itemId);
 }
 
-function findPeItemLabel(itemId, fallbackLabel) {
+function findPeItemLabel(itemId, fallbackLabel, lang = 'en') {
+  const found = MASTER_PE_BANK.find((it) => it.id === itemId);
+  if (found) return lang === 'en' ? found.en : (found.fa || found.en);
   for (const p of (PE_MANDATORY_PILLARS || [])) {
-    const found = (p.items || []).find((it) => it.id === itemId);
-    if (found) return tLabel(found.label, found.en);
+    const it = (p.items || []).find((x) => x.id === itemId);
+    if (it) return lang === 'en' ? (it.en || tLabel(it.label, it.en)) : (it.fa || it.label);
   }
-  for (const m of (PE_UNLOCKABLE_MODULES || [])) {
-    const found = (m.items || []).find((it) => it.id === itemId);
-    if (found) return tLabel(found.label, found.en);
-  }
-  return tLabel(fallbackLabel || itemId);
+  return lang === 'en' ? tLabel(fallbackLabel || itemId) : (fallbackLabel || itemId);
 }
 
-function findHpiSymptomLabel(symId, fallbackLabel) {
+function findHpiSymptomLabel(symId, fallbackLabel, lang = 'en') {
+  const found = HPI_QUALIFIERS_AND_SYMPTOMS.find((it) => it.id === symId);
+  if (found) return lang === 'en' ? found.en : (found.fa || found.en);
   const basic = (HPI_BASIC_SYMPTOMS || []).find((s) => s.id === symId);
-  if (basic) return tLabel(basic.label, basic.en);
+  if (basic) return lang === 'en' ? (basic.en || tLabel(basic.label, basic.en)) : (basic.fa || basic.label);
   for (const mod of (HPI_UNLOCKABLE_MODULES || [])) {
     const chip = (mod.chips || []).find((c) => c.id === symId);
-    if (chip) return tLabel(chip.label, chip.en);
+    if (chip) return lang === 'en' ? (chip.en || tLabel(chip.label, chip.en)) : (chip.fa || chip.label);
   }
-  return tLabel(fallbackLabel || symId);
+  return lang === 'en' ? tLabel(fallbackLabel || symId) : (fallbackLabel || symId);
 }
 
 /**
@@ -860,18 +865,19 @@ export function generateEnglishClinicalNote(state) {
   const npoEn = vitals.npo ? tLabel(String(vitals.npo)) : 'Unspecified';
   lines.push(`- **Vital Signs:** BP: ${vitals.bp || '—'} mmHg | PR: ${vitals.pr || '—'} bpm | RR: ${vitals.rr || '—'} /min | Temp: ${vitals.temp || '—'} °C | SpO2: ${vitals.spo2 || '—'}% on RA | Fasting (NPO): ${npoEn}`);
 
-  lines.push(`- **Core Surgical & Abdominal Examination (4 Pillars):**`);
+  lines.push(`- **Comprehensive Physical Examination (12 Clinical Pillars):**`);
   PE_MANDATORY_PILLARS.forEach((pillar) => {
-    const pTitleEn = tLabel(pillar.title, pillar.en);
+    const pTitleEn = pillar.en || tLabel(pillar.title);
     const secPos = [];
     const secNeg = [];
     pillar.items.forEach((item) => {
       const itemData = state.pe?.findings?.[item.id] || (state.pe?.abdomen && (state.pe.abdomen[pillar.id]?.[item.id] || state.pe.abdomen[item.id])) || state.pe?.[item.id];
       const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
       const detail = typeof itemData === 'object' && itemData !== null ? (itemData.detail || itemData.note || '') : '';
-      const itemEn = tLabel(item.label, item.en);
+      const itemEn = item.en || tLabel(item.label, item.en);
+      const dtEn = detail ? tLabel(detail) : '';
       if (st === 1 || st === '+1') {
-        secPos.push(detail && detail.trim() ? `${itemEn} (${tLabel(detail)})` : itemEn);
+        secPos.push(dtEn && dtEn.trim() ? `${itemEn} (${dtEn})` : itemEn);
       } else if (st === -1 || st === '-1') {
         secNeg.push(itemEn);
       }
@@ -883,34 +889,9 @@ export function generateEnglishClinicalNote(state) {
     } else if (secNeg.length > 0) {
       lines.push(`  * **${pTitleEn}:** Negative for ${secNeg.join(', ')}`);
     } else {
-      lines.push(`  * **${pTitleEn}:** Unremarkable routine examination`);
+      lines.push(`  * **${pTitleEn}:** Unremarkable routine baseline examination`);
     }
   });
-
-  // Systemic Examination
-  const compSystemsEn = state.pe?.comprehensiveSystems || {};
-  const otherSysLinesEn = [];
-  PE_COMPREHENSIVE_SYSTEMS.filter(s => !s.isPrioritySurgical).forEach((sys) => {
-    const sysData = compSystemsEn[sys.id] || {};
-    const sysTitleEn = tLabel(sys.title, sys.en);
-    const hasNormal = !!sysData.isNormal;
-    const tags = Array.isArray(sysData.selectedTags) ? sysData.selectedTags.map(t => tLabel(t)) : [];
-    const note = sysData.text ? tLabel(sysData.text.trim()) : '';
-
-    if (hasNormal && tags.length === 0 && !note) {
-      otherSysLinesEn.push(`  * **${sysTitleEn}:** ${tLabel(sys.normalBaseline) || 'Normal baseline examination; unremarkable.'}`);
-    } else if (tags.length > 0 || note) {
-      const parts = [];
-      if (tags.length > 0) parts.push(`Findings: ${tags.join(', ')}`);
-      if (note) parts.push(note);
-      if (hasNormal) parts.push('Otherwise unremarkable');
-      otherSysLinesEn.push(`  * **${sysTitleEn}:** ${parts.join('; ')}`);
-    }
-  });
-  if (otherSysLinesEn.length > 0) {
-    lines.push(`- **Systemic Examination (Non-Abdominal Systems):**`);
-    lines.push(otherSysLinesEn.join('\n'));
-  }
 
   // Local Mass Exam Module
   const massExamsEn = state.pe?.massExams || state.pe?.massExamList || [];
@@ -1415,8 +1396,8 @@ export function generateClinicalNote(state) {
     `- **علائم حیاتی (Vitals):** BP: ${v.bp || '—'} mmHg | PR: ${v.pr || '—'} /min | RR: ${v.rr || '—'} /min | T: ${v.temp || '—'} °C | SpO2: ${v.spo2 || '—'}% | وضعیت NPO: ${v.npo || 'نامشخص'}`
   );
 
-  // ستون‌های ۴ گانه الزامی معاینه شکم
-  lines.push(`- **معاینه شکم (Abdominal Examination - 4 Pillars):**`);
+  // ستون‌های ۱۲ گانه جامع معاینه فیزیکی
+  lines.push(`- **معاینه فیزیکی سیستمیک (۱۲ ستون بالینی):**`);
   PE_MANDATORY_PILLARS.forEach((pillar) => {
     const secPos = [];
     const secNeg = [];
@@ -1425,10 +1406,11 @@ export function generateClinicalNote(state) {
       const itemData = state.pe?.findings?.[item.id] || (state.pe?.abdomen && (state.pe.abdomen[pillar.id]?.[item.id] || state.pe.abdomen[item.id])) || state.pe?.[item.id];
       const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
       const detail = typeof itemData === 'object' && itemData !== null ? (itemData.detail || itemData.note || '') : '';
+      const itemTitle = item.fa || item.label;
       if (st === 1 || st === '+1') {
-        secPos.push(detail && detail.trim() ? `${item.label} (${normalizePersianClinicalText(detail)})` : item.label);
+        secPos.push(detail && detail.trim() ? `${itemTitle} (${normalizePersianClinicalText(detail)})` : itemTitle);
       } else if (st === -1 || st === '-1') {
-        secNeg.push(item.label);
+        secNeg.push(itemTitle);
       }
     });
 
