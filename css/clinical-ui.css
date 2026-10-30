@@ -7149,7 +7149,7 @@ body.dark-mode .soap-action-toolbar {
 }
 
 /* 3-Mode Architecture Switcher (H&P | ATLS | SOAP) */
-.rail-mode-switcher, .app-mode-switcher {
+.rail-mode-switcher {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
   gap: 3px !important;
@@ -7760,7 +7760,8 @@ button,
   min-width: 0 !important;
 }
 
-.topbar-mode-switcher {
+.topbar-mode-switcher,
+#appModeSwitcher {
   display: inline-flex !important;
   align-items: center !important;
   background: var(--bg-input) !important;
@@ -7769,31 +7770,52 @@ button,
   padding: 2px !important;
   gap: 2px !important;
   flex-shrink: 0 !important;
+  width: auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
 }
 
-.topbar-mode-switcher .mode-switch-btn {
+.topbar-mode-switcher .mode-switch-btn,
+#appModeSwitcher .mode-switch-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.3rem !important;
-  padding: 0.32rem 0.7rem !important;
+  gap: 0.35rem !important;
+  padding: 0.32rem 0.75rem !important;
   border-radius: 4px !important;
-  border: none !important;
+  border: 1px solid transparent !important;
   background: transparent !important;
   color: var(--text-secondary) !important;
   font-size: 0.8rem !important;
   font-weight: 700 !important;
   cursor: pointer !important;
+  width: auto !important;
+  min-width: 72px !important;
+  white-space: nowrap !important;
   transition: background-color 0.15s ease, color 0.15s ease !important;
 }
 
-.topbar-mode-switcher .mode-switch-btn.active {
+.topbar-mode-switcher .mode-switch-btn.active,
+#appModeSwitcher .mode-switch-btn.active {
   background: var(--accent-primary) !important;
   color: #FFFFFF !important;
   box-shadow: var(--shadow-sm) !important;
 }
 
-/* Desktop 3-Column Workstation Grid (min-width: 1024px — Bug 3) */
+.topbar-mode-switcher .mode-switch-btn.mode-switch-atls.active,
+#appModeSwitcher .mode-switch-btn.mode-switch-atls.active {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.topbar-mode-switcher .mode-switch-btn#btnModeSoap.active,
+#appModeSwitcher .mode-switch-btn#btnModeSoap.active {
+  background: #0284C7 !important;
+  color: #FFFFFF !important;
+}
+
+/* Desktop 3-Column Workstation Grid (min-width: 1024px — Precision Desktop Header & Layout) */
 @media (min-width: 1024px) {
   html,
   body {
@@ -7806,7 +7828,136 @@ button,
 
   #workstationTopBar.workstation-top-bar {
     height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    display: flex !important;
+    flex-direction: row !important;
     flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 1rem !important;
+    gap: 12px !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar-brand-cluster {
+    order: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+  }
+
+  .topbar-brand-cluster .brand-logo-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .topbar-brand-cluster .brand-title {
+    display: inline-block !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar-brand-cluster .brand-version,
+  .topbar-brand-cluster .version-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    border-radius: var(--radius-xs) !important;
+    background: var(--brand-subtle) !important;
+    color: var(--brand-primary) !important;
+    border: 1px solid var(--brand-border) !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar-mode-switcher,
+  .app-mode-switcher#appModeSwitcher,
+  #appModeSwitcher {
+    order: 2 !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 2px !important;
+    gap: 3px !important;
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    grid-template-columns: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar-mode-switcher .mode-switch-btn,
+  .app-mode-switcher#appModeSwitcher .mode-switch-btn,
+  #appModeSwitcher .mode-switch-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: auto !important;
+    min-width: 76px !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    border: 1px solid transparent !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+  }
+
+  .topbar-center-cluster {
+    order: 3 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 1 auto !important;
+    max-width: 480px !important;
+    min-width: 180px !important;
+    margin: 0 auto !important;
+  }
+
+  .topbar-center-cluster .global-command-trigger {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 0.55rem !important;
+    padding: 0.4rem 0.75rem !important;
+    background: var(--bg-subtle) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-pill) !important;
+    color: var(--text-muted) !important;
+    font-size: 0.82rem !important;
+    cursor: pointer !important;
+  }
+
+  .topbar-actions-cluster,
+  .header-left.topbar-actions-cluster {
+    order: 4 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    margin-inline-start: 0 !important;
+  }
+
+  .topbar-actions-cluster .btn {
+    display: inline-flex !important;
+    align-items: center !important;
   }
 
   #clinicalWorkstation.clinical-workstation {
@@ -7950,11 +8101,11 @@ button,
   }
 
   /* Two-Tier Mobile Header: 3-Mode Switcher drops to Row 2 with 100% full width */
-  .mode-switcher,
-  #mode-switcher,
   .topbar-mode-switcher,
-  .app-mode-switcher,
-  [class*="mode-switch"] {
+  .app-mode-switcher#appModeSwitcher,
+  #appModeSwitcher,
+  .mode-switcher,
+  #mode-switcher {
     order: 3 !important;
     width: 100% !important;
     min-width: 100% !important;
@@ -7970,11 +8121,11 @@ button,
     box-sizing: border-box !important;
   }
 
-  .mode-switcher button,
-  #mode-switcher button,
   .topbar-mode-switcher .mode-switch-btn,
-  .app-mode-switcher button,
-  [class*="mode-switch"] button {
+  .app-mode-switcher#appModeSwitcher .mode-switch-btn,
+  #appModeSwitcher .mode-switch-btn,
+  .mode-switcher button,
+  #mode-switcher button {
     width: 100% !important;
     min-width: 0 !important;
     height: 38px !important;
