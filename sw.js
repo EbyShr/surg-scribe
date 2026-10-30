@@ -1,9 +1,10 @@
-const CACHE_NAME = 'surg-v1.2.0-bilingual-cleanui-cache-v120';
+const CACHE_NAME = 'surg-v2.0.0-clinical-pro-cache-v200';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/clinical-ui.css',
+  './js/icons.js',
   './js/storage-vault.js',
   './js/fuzzy-search.js',
   './js/schema.js',
@@ -22,7 +23,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v1.1-ATLS-MultiSOAP] Pre-caching offline surgical assets');
+      console.log('[SW v2.0-Pro] Pre-caching offline surgical clinical assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -34,7 +35,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW v1.1-ATLS-MultiSOAP] Removing old cache version:', key);
+            console.log('[SW v2.0-Pro] Removing old cache version:', key);
             return caches.delete(key);
           }
         })

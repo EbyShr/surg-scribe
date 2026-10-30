@@ -1,14 +1,20 @@
 {
-  "name": "SurgHistory - سامانه ثبت شرح‌حال جراحی عمومی",
+  "name": "SurgHistory Clinical Workstation",
   "short_name": "SurgHistory",
-  "description": "دستیار هوشمند و آفلاین ثبت شرح‌حال، معاینه بالینی، پاراکلینیک و استدلال تشخیصی جراحی",
+  "description": "سامانه جامع بالینی ثبت شرح‌حال، ترومای اورژانس و سیر روزانه جراحی عمومی",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0B0F17",
-  "theme_color": "#0284C7",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#090D16",
+  "theme_color": "#0D9488",
   "orientation": "any",
   "lang": "fa",
   "dir": "rtl",
+  "categories": ["medical", "health", "productivity"],
   "icons": [
     {
       "src": "icons/icon-192.svg",
@@ -21,6 +27,23 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "پذیرش جدید (H&P)",
+      "url": "./index.html?mode=admission",
+      "description": "ثبت شرح‌حال بیمار جدید"
+    },
+    {
+      "name": "ترومای اورژانس (ATLS)",
+      "url": "./index.html?mode=atls",
+      "description": "ثبت احیا و ترومای حاد اورژانس"
+    },
+    {
+      "name": "سیر روزانه (SOAP)",
+      "url": "./index.html?mode=soap",
+      "description": "ثبت ویزیت روزانه بخش"
     }
   ]
 }

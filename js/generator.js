@@ -200,82 +200,125 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
 }
 
 /**
+ * Helper to resolve schema item English/Persian label by ID across ROS & PE schemas
+ */
+function findRosItemLabel(itemId, fallbackLabel) {
+  for (const grp of (ROS_GROUPS_BILINGUAL || [])) {
+    const found = (grp.items || []).find((it) => it.id === itemId);
+    if (found) return tLabel(found.label, found.en);
+  }
+  return tLabel(fallbackLabel || itemId);
+}
+
+function findPeItemLabel(itemId, fallbackLabel) {
+  for (const p of (PE_MANDATORY_PILLARS || [])) {
+    const found = (p.items || []).find((it) => it.id === itemId);
+    if (found) return tLabel(found.label, found.en);
+  }
+  for (const m of (PE_UNLOCKABLE_MODULES || [])) {
+    const found = (m.items || []).find((it) => it.id === itemId);
+    if (found) return tLabel(found.label, found.en);
+  }
+  return tLabel(fallbackLabel || itemId);
+}
+
+function findHpiSymptomLabel(symId, fallbackLabel) {
+  const basic = (HPI_BASIC_SYMPTOMS || []).find((s) => s.id === symId);
+  if (basic) return tLabel(basic.label, basic.en);
+  for (const mod of (HPI_UNLOCKABLE_MODULES || [])) {
+    const chip = (mod.chips || []).find((c) => c.id === symId);
+    if (chip) return tLabel(chip.label, chip.en);
+  }
+  return tLabel(fallbackLabel || symId);
+}
+
+/**
  * Narrative Sentence Generator for each of the 5 Presentation Archetypes (English)
  */
 export function renderArchetypeNarrativeEn(item, index = 0, totalCount = 1) {
   const prefix = totalCount > 1 ? (index === 0 ? 'Regarding primary presentation: ' : 'Regarding concurrent presentation: ') : '';
 
   if (item.archetype === 'mass_lesion_archetype') {
-    let sentence = `${prefix}The patient reports a palpable mass/lesion located at **${item.location || 'the specified anatomical region'}**`;
-    if (item.discoveryTime) sentence += `, first noted approximately ${item.discoveryTime} prior to evaluation`;
-    if (item.growthPattern) sentence += `, exhibiting a ${item.growthPattern} growth pattern`;
+    let sentence = `${prefix}The patient reports a palpable mass/lesion located at **${tLabel(item.location) || 'the specified anatomical region'}**`;
+    if (item.discoveryTime) sentence += `, first noted approximately ${tLabel(item.discoveryTime)} prior to evaluation`;
+    if (item.growthPattern) sentence += `, exhibiting a ${tLabel(item.growthPattern)} growth pattern`;
     sentence += '.';
-    if (item.painStatus) sentence += ` The lesion is currently ${item.painStatus}.`;
-    if (item.posFindings?.length) sentence += ` Associated local signs: positive for ${item.posFindings.join(', ')}.`;
-    if (item.negFindings?.length) sentence += ` Negative for: ${item.negFindings.join(', ')}.`;
+    if (item.painStatus) sentence += ` The lesion is currently ${tLabel(item.painStatus)}.`;
+    if (item.posFindings?.length) sentence += ` Associated local signs: positive for ${item.posFindings.map((f) => tLabel(f)).join(', ')}.`;
+    if (item.negFindings?.length) sentence += ` Negative for: ${item.negFindings.map((f) => tLabel(f)).join(', ')}.`;
     return sentence;
   }
 
   if (item.archetype === 'trauma_burn_archetype') {
-    let sentence = `${prefix}The patient presented following **${item.mechanism || 'acute trauma'}**`;
-    if (item.timeSinceInjury) sentence += ` sustained approximately ${item.timeSinceInjury} prior to arrival`;
-    if (item.injuredZones?.length) sentence += ` with injuries involving **${item.injuredZones.join(', ')}**`;
-    if (item.transportMode) sentence += `, transported to the emergency department via ${item.transportMode}`;
+    let sentence = `${prefix}The patient presented following **${tLabel(item.mechanism) || 'acute trauma'}**`;
+    if (item.timeSinceInjury) sentence += ` sustained approximately ${tLabel(item.timeSinceInjury)} prior to arrival`;
+    if (item.injuredZones?.length) sentence += ` with injuries involving **${item.injuredZones.map((z) => tLabel(z)).join(', ')}**`;
+    if (item.transportMode) sentence += `, transported to the emergency department via ${tLabel(item.transportMode)}`;
     sentence += '.';
-    if (item.posFindings?.length) sentence += ` Trauma review: positive for ${item.posFindings.join(', ')}.`;
-    if (item.negFindings?.length) sentence += ` Denies: ${item.negFindings.join(', ')}.`;
+    if (item.posFindings?.length) sentence += ` Trauma review: positive for ${item.posFindings.map((f) => tLabel(f)).join(', ')}.`;
+    if (item.negFindings?.length) sentence += ` Denies: ${item.negFindings.map((f) => tLabel(f)).join(', ')}.`;
     return sentence;
   }
 
   if (item.archetype === 'elective_asymptomatic_archetype') {
     if (item.isProcedureOnly) {
-      let sentence = `${prefix}The patient is admitted electively solely for planned **${item.procedureName || 'surgical procedure/intervention'}** and is currently free of acute distress, abdominal pain, or acute surgical symptoms.`;
-      if (item.insertionReasonAndTime) sentence += ` History/indication for previous device: ${item.insertionReasonAndTime}.`;
-      if (item.lastChemoOrInterventionDate) sentence += ` Last chemotherapy/intervention date: ${item.lastChemoOrInterventionDate}.`;
-      if (item.siteExamStatus) sentence += ` Local site examination: ${item.siteExamStatus}.`;
+      let sentence = `${prefix}The patient is admitted electively solely for planned **${tLabel(item.procedureName) || 'surgical procedure/intervention'}** and is currently free of acute distress, abdominal pain, or acute surgical symptoms.`;
+      if (item.insertionReasonAndTime) sentence += ` History/indication for previous device: ${tLabel(item.insertionReasonAndTime)}.`;
+      if (item.lastChemoOrInterventionDate) sentence += ` Last chemotherapy/intervention date: ${tLabel(item.lastChemoOrInterventionDate)}.`;
+      if (item.siteExamStatus) sentence += ` Local site examination: ${tLabel(item.siteExamStatus)}.`;
       return sentence;
     }
     let sentence = `${prefix}The patient is currently asymptomatic with no acute pain or surgical distress`;
-    if (item.discoveryMethod) sentence += `, identified through ${item.discoveryMethod}`;
+    if (item.discoveryMethod) sentence += `, identified through ${tLabel(item.discoveryMethod)}`;
     sentence += '.';
-    if (item.workupSummary) sentence += ` Outpatient diagnostic trajectory: ${item.workupSummary}.`;
+    if (item.workupSummary) sentence += ` Outpatient diagnostic trajectory: ${tLabel(item.workupSummary)}.`;
     return sentence;
   }
 
   if (item.archetype === 'functional_bleeding_archetype') {
-    let sentence = `${prefix}The patient reports **${item.symptomTitle || 'functional symptoms'}**`;
-    if (item.duration) sentence += ` starting ${item.duration} ago`;
-    if (item.onset) sentence += ` (${item.onset})`;
-    if (item.severityOrFrequency) sentence += ` [${item.severityOrFrequency}]`;
+    let sentence = `${prefix}The patient reports **${tLabel(item.symptomTitle) || 'functional symptoms'}**`;
+    if (item.duration) sentence += ` starting ${tLabel(item.duration)} ago`;
+    if (item.onset) sentence += ` (${tLabel(item.onset)})`;
+    if (item.severityOrFrequency) sentence += ` [${tLabel(item.severityOrFrequency)}]`;
     sentence += '.';
-    if (item.aggravating?.length) sentence += ` Aggravated by ${item.aggravating.join(', ')}.`;
-    if (item.relieving?.length) sentence += ` Partially relieved by ${item.relieving.join(', ')}.`;
+    const aggArr = Array.isArray(item.aggravating) ? item.aggravating : (item.aggravating ? [item.aggravating] : []);
+    const relArr = Array.isArray(item.relieving) ? item.relieving : (item.relieving ? [item.relieving] : []);
+    if (aggArr.length) sentence += ` Aggravated by ${aggArr.map((x) => tLabel(x)).join(', ')}.`;
+    if (relArr.length) sentence += ` Partially relieved by ${relArr.map((x) => tLabel(x)).join(', ')}.`;
     return sentence;
   }
 
   // pain_archetype
-  const siteStr = item.site || (item.selectedRegions || []).map(getRegionLabel).join(', ') || item.title || `Focus #${index + 1}`;
-  let pSentence = `${prefix}Pain focus #${index + 1} (${siteStr}): Onset ${item.duration || 'recently'} prior to admission`;
-  if (item.character) pSentence += `, characterized as ${item.character}`;
-  if (item.course) pSentence += `, clinical course is ${item.course}`;
-  if (item.timing) pSentence += `, timing pattern: ${item.timing}`;
+  const siteStr = tLabel(item.site) || (item.selectedRegions || []).map(getRegionLabel).join(', ') || tLabel(item.title) || `Focus #${index + 1}`;
+  let pSentence = `${prefix}Pain focus #${index + 1} (${siteStr}): Onset ${tLabel(item.duration) || 'recently'} prior to admission`;
+  if (item.onset) pSentence += ` (${tLabel(item.onset)})`;
+  if (item.character) pSentence += `, characterized as ${tLabel(item.character)}`;
+  if (item.course) pSentence += `, clinical course is ${tLabel(item.course)}`;
+  if (item.timing) pSentence += `, timing pattern: ${tLabel(item.timing)}`;
   if (item.severity !== undefined && item.severity !== null && item.severity !== '') pSentence += `, severity rated ${item.severity}/10 on NRS`;
   pSentence += '.';
   if (item.radiationList && item.radiationList.length > 0) {
-    pSentence += ` Radiation: ${item.radiationList.map(r => r.label || r).join(', ')}.`;
+    pSentence += ` Radiation: ${item.radiationList.map((r) => tLabel(r.label || r)).join(', ')}.`;
+  } else if (item.radiation) {
+    const rList = Array.isArray(item.radiation) ? item.radiation.map((r) => tLabel(r.label || r)).join(', ') : tLabel(item.radiation);
+    if (rList) pSentence += ` Radiation: ${rList}.`;
+  } else if (item.noRadiation) {
+    pSentence += ` No radiation.`;
   }
-  if (item.aggravating && item.aggravating.length > 0) {
-    pSentence += ` Aggravated by: ${item.aggravating.join(', ')}.`;
+  const aggList = Array.isArray(item.aggravating) ? item.aggravating : (item.aggravating ? [item.aggravating] : []);
+  const relList = Array.isArray(item.relieving) ? item.relieving : (item.relieving ? [item.relieving] : []);
+  if (aggList.length > 0) {
+    pSentence += ` Aggravated by: ${aggList.map((x) => tLabel(x)).join(', ')}.`;
   }
-  if (item.relieving && item.relieving.length > 0) {
-    pSentence += ` Relieved by: ${item.relieving.join(', ')}.`;
+  if (relList.length > 0) {
+    pSentence += ` Relieved by: ${relList.map((x) => tLabel(x)).join(', ')}.`;
   }
   return pSentence;
 }
 
 /**
  * Flowing Medical Narrative Generator for Chief Complaint (CC) and History of Present Illness (HPI)
- * Generates natural, cohesive Persian prose structured like an expert attending surgeon's note.
+ * Generates natural, cohesive prose structured like an expert attending surgeon's note.
  */
 export function generateNarrativeCCAndHPI(state) {
   const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
@@ -297,14 +340,14 @@ export function generateNarrativeCCAndHPI(state) {
     if (demo.fullName || demo.fatherName || demo.birthDate || demo.age || demo.ward || demo.bed) {
       const agePart = demo.age ? `${demo.age} y/o` : (demo.birthDate || '—');
       const genderLabel = demo.gender === 'female' ? 'Female' : demo.gender === 'male' ? 'Male' : (demo.gender === 'other' ? 'Other' : '—');
-      const wardPart = demo.ward ? ` | **Ward:** **${demo.ward}**` : '';
+      const wardPart = demo.ward ? ` | **Ward:** **${tLabel(demo.ward)}**` : '';
       const bedPart = demo.bed ? ` | **Bed:** **${demo.bed}**` : '';
       out.push(
-        `> **Patient ID:** Name: **${demo.fullName || '—'}** | Father's Name: **${demo.fatherName || '—'}** | Age: **${agePart}** | Sex: **${genderLabel}**${wardPart}${bedPart}\n`
+        `> **Patient ID:** Name: **${tLabel(demo.fullName) || '—'}** | Father's Name: **${tLabel(demo.fatherName) || '—'}** | Age: **${agePart}** | Sex: **${genderLabel}**${wardPart}${bedPart}\n`
       );
     }
 
-    const ccText = cc.ccPhrase || cc.patientQuote || 'Acute Surgical Complaint';
+    const ccText = tLabel(cc.ccPhrase || cc.patientQuote || '') || 'Acute Surgical Presentation';
     if (state.admission?.unresponsiveTrauma) {
       out.push(`### 1. Reason for Presentation & EMS Handover`);
       out.push(`- **Emergent transport via EMS / acute presentation following severe trauma/unresponsiveness (Patient unable to provide direct history at presentation due to acute critical condition/altered mental status/intubation).**`);
@@ -318,30 +361,33 @@ export function generateNarrativeCCAndHPI(state) {
 
     let subjectDesc = 'patient';
     if (demo.gender === 'female') {
-      subjectDesc = demo.age ? `${demo.age}-year-old female` : 'female';
+      subjectDesc = demo.age ? `${demo.age}-year-old female` : 'female patient';
     } else if (demo.gender === 'male') {
-      subjectDesc = demo.age ? `${demo.age}-year-old male` : 'male';
+      subjectDesc = demo.age ? `${demo.age}-year-old male` : 'male patient';
     } else if (demo.age) {
       subjectDesc = `${demo.age}-year-old patient`;
     }
+    const maritalEn = demo.marital ? `, ${tLabel(demo.marital).toLowerCase()}` : '';
+    const cityEn = demo.city ? `, residing in ${tLabel(demo.city)}` : '';
+    const occEn = demo.occupation ? `, occupation: ${tLabel(demo.occupation)}` : '';
+
     let introSentence = state.admission?.unresponsiveTrauma
-      ? `The patient is an emergent trauma admission (${subjectDesc}) transported by EMS following severe trauma/acute critical condition with altered mental status.`
-      : `The patient is a ${subjectDesc} presenting with chief complaint of "${ccText}".`;
+      ? `The patient is an emergent trauma admission (${subjectDesc}${maritalEn}) transported by EMS following severe trauma/acute critical condition with altered mental status.`
+      : `The patient is a ${subjectDesc}${maritalEn}${cityEn}${occEn} presenting with a chief complaint of "${ccText}".`;
     if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
-      const att = cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || 'Attending Surgeon';
-      const diag = cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis;
-      const proc = cc.clinicPlannedProcedure || cc.plannedProcedure;
-      introSentence += ` Admitted electively from surgical clinic under Dr. ${att}${diag ? ` with initial diagnosis of "${diag}"` : ''}${proc ? ` for planned "${proc}"` : ''}.`;
+      const att = tLabel(cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || '') || 'Attending Surgeon';
+      const diag = tLabel(cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis || '');
+      const proc = tLabel(cc.clinicPlannedProcedure || cc.plannedProcedure || '');
+      introSentence += ` Admitted electively from surgical clinic under ${att}${diag ? ` with initial diagnosis of "${diag}"` : ''}${proc ? ` for planned "${proc}"` : ''}.`;
     } else if (cc.pathway === 'inpatient_transfer') {
-      const src = cc.transferSource || cc.originWardHospital || 'inpatient service';
-      const rsn = cc.transferReason || cc.primaryAdmissionReason;
-      const ind = cc.transferSurgIndication || cc.transferConsultReason;
+      const src = tLabel(cc.transferSource || cc.originWardHospital || '') || 'inpatient service';
+      const rsn = tLabel(cc.transferReason || cc.primaryAdmissionReason || '');
+      const ind = tLabel(cc.transferSurgIndication || cc.transferConsultReason || '');
       introSentence += ` Admitted via inpatient transfer from "${src}"${rsn ? ` (initial admission reason: ${rsn})` : ''} following surgical consultation${ind ? ` for "${ind}"` : ''}.`;
     } else if (cc.pathway === 'postop_complication') {
       introSentence += ` Presenting with acute post-operative complaint/complication following recent surgical intervention.`;
     } else {
-      // emergency_acute
-      introSentence += ` Evaluated acutely in the Emergency Department / Surgical Service for emergent management.`;
+      introSentence += ` Evaluated acutely in the Emergency Department / Surgical Service for surgical management.`;
     }
     narrativeSentences.push(introSentence);
 
@@ -351,20 +397,67 @@ export function generateNarrativeCCAndHPI(state) {
       });
     }
 
+    if (hpi.narrativeNote) {
+      narrativeSentences.push(tLabel(hpi.narrativeNote));
+    }
+    if (hpi.preAdmissionWorkup) {
+      narrativeSentences.push(`Prior diagnostic workup & pre-admission care: ${tLabel(hpi.preAdmissionWorkup)}.`);
+    }
+
     const posSyms = [];
     const negSyms = [];
     if (hpi.symptoms) {
       Object.entries(hpi.symptoms).forEach(([symId, data]) => {
-        const symObj = HPI_BASIC_SYMPTOMS.find(s => s.id === symId);
-        const symName = symObj ? (symObj.label.match(/\(([^)]+)\)/)?.[1] || symObj.label) : symId;
-        const st = typeof data === 'object' ? data.state : data;
-        const dt = typeof data === 'object' ? data.detail : '';
-        if (st === 1) posSyms.push(dt ? `${symName} (${dt})` : symName);
-        else if (st === -1) negSyms.push(symName);
+        const symName = findHpiSymptomLabel(symId, typeof data === 'object' ? data?.label : symId);
+        const st = typeof data === 'object' && data !== null ? data.state : data;
+        const dt = typeof data === 'object' && data !== null ? (data.detail || data.note || '') : '';
+        if (st === 1 || st === '+1') posSyms.push(dt ? `${symName} (${tLabel(dt)})` : symName);
+        else if (st === -1 || st === '-1') negSyms.push(symName);
       });
     }
-    if (posSyms.length > 0) narrativeSentences.push(`Associated symptoms: Positive for ${posSyms.join(', ')}.`);
-    if (negSyms.length > 0) narrativeSentences.push(`Pertinent review negatives: Denies ${negSyms.join(', ')}.`);
+    if (posSyms.length > 0) narrativeSentences.push(`- **Associated Symptoms:** Positive for ${posSyms.join(', ')}.`);
+    if (negSyms.length > 0) narrativeSentences.push(`- **Pertinent HPI Negatives:** Denies ${negSyms.join(', ')}.`);
+
+    const unlockedHpiModules = hpi.unlockedModules || [];
+    HPI_UNLOCKABLE_MODULES.forEach((mod) => {
+      const isUnlocked = Array.isArray(unlockedHpiModules)
+        ? unlockedHpiModules.includes(mod.id)
+        : !!unlockedHpiModules[mod.id];
+      if (isUnlocked) {
+        const modPos = [];
+        const modNeg = [];
+        mod.chips.forEach((c) => {
+          const itemData = (hpi.symptoms && hpi.symptoms[c.id] !== undefined)
+            ? hpi.symptoms[c.id]
+            : (hpi[mod.id] && hpi[mod.id][c.id] !== undefined ? hpi[mod.id][c.id] : undefined);
+          if (itemData !== undefined) {
+            const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
+            const det = typeof itemData === 'object' && itemData !== null && (itemData.detail || itemData.note)
+              ? ` (${tLabel(itemData.detail || itemData.note)})`
+              : '';
+            const labelEn = tLabel(c.label, c.en);
+            if (st === 1 || st === '+1') modPos.push(`${labelEn}${det}`);
+            else if (st === -1 || st === '-1') modNeg.push(labelEn);
+          }
+        });
+        if (modPos.length > 0 || modNeg.length > 0) {
+          const modTitleEn = tLabel(mod.title, mod.en);
+          const segments = [];
+          if (modPos.length > 0) segments.push(`**Positive:** ${modPos.join(', ')}`);
+          if (modNeg.length > 0) segments.push(`**Negative:** ${modNeg.join(', ')}`);
+          narrativeSentences.push(`- **${modTitleEn}:** ${segments.join(' | ')}`);
+        }
+      }
+    });
+
+    if (hpi.systemGapNote) {
+      narrativeSentences.push(`- **Additional HPI Findings:** ${tLabel(hpi.systemGapNote)}`);
+    }
+
+    if (demo.informant) {
+      const infEn = demo.informant === 'خود بیمار' ? 'Patient' : tLabel(demo.informant);
+      narrativeSentences.push(`(History source: ${infEn || 'Patient'}, reliable).`);
+    }
 
     out.push(narrativeSentences.join('\n\n'));
     return out.join('\n');
@@ -555,14 +648,15 @@ export function generateEnglishClinicalNote(state) {
       const dt = typeof val === 'object' && val !== null ? (val.detail || val.note || '') : '';
       if (st === 1 || st === '+1') {
         const itemEn = tLabel(item.label, item.en);
-        posItems.push(dt ? `${itemEn} (${dt})` : itemEn);
+        posItems.push(dt ? `${itemEn} (${tLabel(dt)})` : itemEn);
       }
     });
     const catTitleEn = tLabel(cat.title, cat.en);
     if (posItems.length > 0) {
-      catLines.push(`  * **${catTitleEn}:** ${posItems.join(', ')}`);
+      const otherNoteEn = catData.otherNote ? ` | Other: ${tLabel(catData.otherNote)}` : '';
+      catLines.push(`  * **${catTitleEn}:** ${posItems.join(', ')}${otherNoteEn}`);
     } else if (isNeg) {
-      catLines.push(`  * **${catTitleEn}:** Denies condition in this category`);
+      catLines.push(`  * **${catTitleEn}:** Negative (denies conditions in this category)`);
     }
   });
 
@@ -571,39 +665,80 @@ export function generateEnglishClinicalNote(state) {
   } else if (!masterNeg) {
     lines.push(`- **Past Medical History (PMH):** Denies significant chronic medical illnesses.`);
   }
+  if (pmhState.systemGapNote) {
+    lines.push(`- **Additional Medical History:** ${tLabel(pmhState.systemGapNote)}`);
+  }
 
   const pshPartsEn = [];
   if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
     const surgStr = state.psh.surgeries.map(s => {
-      const name = tLabel(s.label || s.procedure || 'Surgery', s.en);
-      const det = s.note || s.yearHospital || '';
+      const name = s.en || tLabel(s.label || s.procedure || 'Surgery', s.en);
+      const yearPart = s.year ? `Year: ${tLabel(s.year)}` : '';
+      const notePart = (s.note || s.yearHospital) ? tLabel(s.note || s.yearHospital) : '';
+      const det = [yearPart, notePart].filter(Boolean).join(' | ');
       return det ? `${name} (${det})` : name;
     }).join(', ');
     pshPartsEn.push(surgStr);
   }
   if (state.psh?.note && state.psh.note.trim()) {
-    pshPartsEn.push(state.psh.note.trim());
+    pshPartsEn.push(tLabel(state.psh.note.trim()));
   }
   if (pshPartsEn.length > 0) {
     lines.push(`- **Past Surgical History (PSH):** ${pshPartsEn.join(' | ')}`);
   } else {
     lines.push(`- **Past Surgical History (PSH):** Denies prior abdominal or major surgical procedures.`);
   }
-
-  if (demo.gender === 'female' && state.obgyn) {
-    const o = state.obgyn;
-    lines.push(`- **Obstetric History (Ob/Gyn):** Gravida: ${o.gravida || 0}, Para: ${o.para || 0}, Abortion: ${o.abortion || 0}, Living: ${o.living || 0}.`);
+  if (state.psh?.systemGapNote) {
+    lines.push(`- **Additional Surgical History:** ${tLabel(state.psh.systemGapNote)}`);
   }
 
-  // 4. Medications, Allergies, Social History
-  lines.push(`\n### 4. Medications, Allergies & Social History (DH / SH / AH / FH)`);
+  if (demo.gender !== 'male' && state.obgyn) {
+    const o = state.obgyn;
+    const gVal = o.g !== undefined && o.g !== '' ? o.g : (o.gravida || 0);
+    const pVal = o.p !== undefined && o.p !== '' ? o.p : (o.para || 0);
+    const abVal = o.ab !== undefined && o.ab !== '' ? o.ab : (o.abortion || 0);
+    const lVal = o.l !== undefined && o.l !== '' ? o.l : (o.living || 0);
+    const obSegments = [`G${gVal} P${pVal} Ab${abVal} L${lVal}`];
+    if (o.deliveryType) obSegments.push(`Delivery Mode: ${tLabel(o.deliveryType)}`);
+    if (o.lmp) obSegments.push(`LMP / Menstrual Status: ${tLabel(o.lmp)}`);
+    if (o.dysmenorrhea) obSegments.push(`Menstrual Pattern: ${tLabel(o.dysmenorrhea)}`);
+    if (demo.gender === 'female' || o.g || o.p || o.deliveryType || o.lmp || (o.pregnancies && o.pregnancies.length > 0)) {
+      lines.push(`- **Obstetric & Gynecologic History (Ob/Gyn):** ${obSegments.join(' | ')}.`);
+      if (Array.isArray(o.pregnancies) && o.pregnancies.length > 0) {
+        o.pregnancies.forEach((preg, idx) => {
+          const pDet = [
+            preg.outcome ? `Outcome: ${tLabel(preg.outcome)}` : '',
+            (preg.deliveryType || preg.deliveryMethod) ? `Mode: ${tLabel(preg.deliveryType || preg.deliveryMethod)}` : '',
+            preg.year ? `Year: ${tLabel(preg.year)}` : '',
+            preg.complications ? `Notes: ${tLabel(preg.complications)}` : ''
+          ].filter(Boolean);
+          if (pDet.length > 0) lines.push(`  * Pregnancy #${idx + 1}: ${pDet.join(' | ')}`);
+        });
+      }
+    }
+  }
+
+  // 4. Medications, Allergies, Social & Family History
+  lines.push(`\n### 4. Medications, Allergies, Social & Family History (DH / AH / SH / FH)`);
   const ahState = state.ah || {};
   if (ahState.nkda) {
-    lines.push(`- **Allergies:** No Known Drug Allergies (NKDA).`);
-  } else if (ahState.drugAllergies) {
-    lines.push(`- **Allergies:** Drug Allergies: ${ahState.drugAllergies}`);
+    lines.push(`- **Allergies (AH):** No Known Drug Allergies (NKDA).`);
   } else {
-    lines.push(`- **Allergies:** NKDA.`);
+    const ahSel = (ahState.selected || []).map((item) => {
+      if (typeof item === 'object' && item !== null) {
+        return item.detail ? `${tLabel(item.label)} (${tLabel(item.detail)})` : tLabel(item.label);
+      }
+      return tLabel(item);
+    }).filter(Boolean);
+    const ahCombined = [
+      ...(ahSel.length ? [ahSel.join(', ')] : []),
+      ...(ahState.drugAllergies ? [tLabel(ahState.drugAllergies)] : []),
+      ...(ahState.note ? [tLabel(ahState.note)] : [])
+    ].join(' — ');
+    lines.push(`- **Allergies (AH):** ${ahCombined || 'No known drug or food allergies reported.'}`);
+  }
+  if (ahState.systemGapNote) {
+    lines.push(`- **Additional Allergies:** ${tLabel(ahState.systemGapNote)}`);
   }
 
   const dhState = state.dh || {};
@@ -613,13 +748,21 @@ export function generateEnglishClinicalNote(state) {
     const activeList = [];
     if (dhState.activeDrugs && Array.isArray(dhState.activeDrugs)) {
       dhState.activeDrugs.forEach(ad => {
-        const parts = [ad.dose ? `dose: ${ad.dose}` : '', ad.sig ? `sig: ${ad.sig}` : '', ad.note ? `note: ${ad.note}` : ''].filter(Boolean);
+        const parts = [ad.dose ? `dose: ${tLabel(ad.dose)}` : '', ad.sig ? `sig: ${ad.sig}` : '', ad.note ? `note: ${tLabel(ad.note)}` : ''].filter(Boolean);
         activeList.push(`${tLabel(ad.name || ad.label || ad.id)}${parts.length ? ' (' + parts.join(' | ') + ')' : ''}`);
+      });
+    }
+    if (dhState.customDrugs && Array.isArray(dhState.customDrugs)) {
+      dhState.customDrugs.forEach(cd => {
+        if (cd.name && cd.name.trim()) {
+          const parts = [cd.dose ? `dose: ${tLabel(cd.dose)}` : '', cd.sig ? `sig: ${cd.sig}` : '', cd.note ? `note: ${tLabel(cd.note)}` : ''].filter(Boolean);
+          activeList.push(`${tLabel(cd.name)}${parts.length ? ' (' + parts.join(' | ') + ')' : ''}`);
+        }
       });
     }
     if (dhState.drugs && Array.isArray(dhState.drugs)) {
       dhState.drugs.forEach(d => {
-        const parts = [d.dose, d.sig, d.note ? '(' + d.note + ')' : ''].filter(Boolean);
+        const parts = [d.dose, d.sig, d.note ? '(' + tLabel(d.note) + ')' : ''].filter(Boolean);
         activeList.push(`${tLabel(d.name || '')}${parts.length ? ' ' + parts.join(' ') : ''}`.trim());
       });
     }
@@ -629,88 +772,120 @@ export function generateEnglishClinicalNote(state) {
       lines.push(`- **Current Medications (DH):** Denies regular prescription medication use.`);
     }
   }
+  if (dhState.note) {
+    lines.push(`- **Medication Notes:** ${tLabel(dhState.note)}`);
+  }
+  if (dhState.systemGapNote) {
+    lines.push(`- **Additional Medications:** ${tLabel(dhState.systemGapNote)}`);
+  }
 
   const shState = state.sh || {};
   const shParts = [];
+  if (demo.occupation) shParts.push(`Occupation: ${tLabel(demo.occupation)}`);
   if (shState.negSmoking) shParts.push('Tobacco: Denies smoking/tobacco');
   else if (shState.cigsPerDay && shState.yearsSmoked) {
     const py = ((Number(shState.cigsPerDay) / 20) * Number(shState.yearsSmoked)).toFixed(1);
     shParts.push(`Tobacco: ${shState.cigsPerDay} cigs/day for ${shState.yearsSmoked} yrs (~${py} pack-years)`);
-  } else if (shState.smoking) shParts.push(`Tobacco: ${shState.smoking}`);
+  } else if (shState.smoking) shParts.push(`Tobacco: ${tLabel(shState.smoking)}`);
 
   if (shState.negOpium) shParts.push('Substances: Denies opium/substance use');
-  else if (shState.opium) shParts.push(`Substances: ${shState.opium}`);
-  else if (shState.substance) shParts.push(`Substances: ${shState.substance}`);
+  else if (shState.opium) shParts.push(`Substances: ${tLabel(shState.opium)}`);
+  else if (shState.substance) shParts.push(`Substances: ${tLabel(shState.substance)}`);
 
   if (shState.negAlcohol) shParts.push('Alcohol: Denies alcohol use');
-  else if (shState.alcohol) shParts.push(`Alcohol: ${shState.alcohol}`);
+  else if (shState.alcohol) shParts.push(`Alcohol: ${tLabel(shState.alcohol)}`);
+  if (shState.note) shParts.push(tLabel(shState.note));
 
   lines.push(`- **Social History (SH):** ${shParts.length > 0 ? shParts.join('; ') : 'Non-contributory (denies tobacco, alcohol or substance use).'}`);
+  if (shState.systemGapNote) {
+    lines.push(`- **Additional Social History:** ${tLabel(shState.systemGapNote)}`);
+  }
 
   const fhState = state.fh || {};
   if (fhState.negFamilyHistory || fhState.masterNeg) {
     lines.push(`- **Family History (FH):** Negative for familial malignancies or premature CAD in first-degree relatives.`);
   } else if (fhState.diseases && Array.isArray(fhState.diseases) && fhState.diseases.length > 0) {
     const fhListEn = fhState.diseases.map(d => {
-      const dName = tLabel(d.en || d.name || d.label || 'Condition');
+      const dName = tLabel(d.en || d.diseaseLabel || d.name || d.label || 'Condition');
       if (d.relatives && Array.isArray(d.relatives) && d.relatives.length > 0) {
         const relParts = d.relatives.map(r => {
           if (typeof r === 'object' && r !== null) {
             const vStr = r.vitalStatus === 'deceased' ? 'deceased' : 'living';
-            const noteStr = r.ageOrNote ? ` — ${r.ageOrNote}` : '';
+            const noteStr = r.ageOrNote ? ` — ${tLabel(r.ageOrNote)}` : '';
             return `${tLabel(r.relation) || 'relative'} (${vStr}${noteStr})`;
           }
-          return String(r);
+          return tLabel(String(r));
         });
         return `${dName} in ${relParts.join(' & ')}`;
       }
       const vit = (d.status === 'deceased' || d.isAlive === false) ? 'deceased' : 'living';
-      const age = (d.ageNotes || d.ageNote) ? `, ${d.ageNotes || d.ageNote}` : '';
+      const age = (d.ageNotes || d.ageNote) ? `, ${tLabel(d.ageNotes || d.ageNote)}` : '';
       return `${dName} in family (${vit}${age})`;
     });
     lines.push(`- **Family History (FH):** Positive for ${fhListEn.join('; ')}.`);
   } else {
-    lines.push(`- **Family History (FH):** ${fhState.noncontributory ? 'Non-contributory (denies familial GI cancers or early deaths).' : (fhState.notes || 'Non-contributory.')}`);
+    const fhNoteEn = fhState.note || fhState.notes;
+    lines.push(`- **Family History (FH):** ${fhNoteEn ? tLabel(fhNoteEn) : 'Non-contributory (denies familial malignancies or hereditary disorders in first-degree relatives).'}`);
+  }
+  if (fhState.systemGapNote) {
+    lines.push(`- **Additional Family History:** ${tLabel(fhState.systemGapNote)}`);
   }
 
   // 5. ROS
   lines.push(`\n### 5. Review of Systems (ROS)`);
   if (state.ros?.unobtainable) {
-    lines.push(`- **Review of Systems Unobtainable:** Standard 11-point ROS could not be obtained due to altered level of consciousness, intubation, and acute critical trauma status. Clinical evaluation relies on objective findings, primary/secondary survey, and ATLS protocol.`);
+    lines.push(`- **Review of Systems Unobtainable:** Standard 11-point ROS could not be obtained due to altered level of consciousness, intubation, and acute critical trauma status. Clinical evaluation relies on physical examination, primary/secondary survey, and ATLS protocol.`);
   } else {
     const rosItems = state.ros?.items || {};
     const rosPos = [];
     const rosNeg = [];
     Object.entries(rosItems).forEach(([rId, val]) => {
-      const st = typeof val === 'object' ? val.state : val;
-      const lb = typeof val === 'object' ? val.label : rId;
-      const enLb = tLabel(lb);
-      if (st === 1) rosPos.push(enLb);
-      else if (st === -1) rosNeg.push(enLb);
+      const st = typeof val === 'object' && val !== null ? val.state : val;
+      const dt = typeof val === 'object' && val !== null && val.detail ? ` (${tLabel(val.detail)})` : '';
+      const enLb = findRosItemLabel(rId, typeof val === 'object' ? val?.label : rId);
+      if (st === 1 || st === '+1') rosPos.push(`${enLb}${dt}`);
+      else if (st === -1 || st === '-1') rosNeg.push(enLb);
     });
     if (rosPos.length > 0) lines.push(`- **Positive System Review:** ${rosPos.join(', ')}`);
     if (rosNeg.length > 0) lines.push(`- **Negative System Review:** Denies ${rosNeg.join(', ')}`);
     if (rosPos.length === 0 && rosNeg.length === 0) lines.push(`- **System Review:** 11-point review of systems otherwise negative except as noted in HPI.`);
+    if (state.ros?.systemGapNote) {
+      lines.push(`- **Additional ROS Findings:** ${tLabel(state.ros.systemGapNote)}`);
+    }
   }
 
   // 6. PE
   lines.push(`\n### 6. Physical Examination (PE)`);
   const vitals = state.pe?.vitals || {};
-  lines.push(`- **Vital Signs:** BP: ${vitals.bp || '—'} mmHg | PR: ${vitals.pr || '—'} bpm | RR: ${vitals.rr || '—'} /min | Temp: ${vitals.temp || '—'} °C | SpO2: ${vitals.spo2 || '—'}% on RA | Fasting (NPO): ${vitals.npo ? 'Yes' : 'No'}`);
+  const npoEn = vitals.npo ? tLabel(String(vitals.npo)) : 'Unspecified';
+  lines.push(`- **Vital Signs:** BP: ${vitals.bp || '—'} mmHg | PR: ${vitals.pr || '—'} bpm | RR: ${vitals.rr || '—'} /min | Temp: ${vitals.temp || '—'} °C | SpO2: ${vitals.spo2 || '—'}% on RA | Fasting (NPO): ${npoEn}`);
 
-  const peFindings = state.pe?.findings || {};
-  const pePos = [];
-  const peNeg = [];
-  Object.entries(peFindings).forEach(([fId, val]) => {
-    const st = typeof val === 'object' ? val.state : val;
-    const lb = typeof val === 'object' ? val.label : fId;
-    const enLb = tLabel(lb);
-    if (st === 1) pePos.push(enLb);
-    else if (st === -1) peNeg.push(enLb);
+  lines.push(`- **Core Surgical & Abdominal Examination (4 Pillars):**`);
+  PE_MANDATORY_PILLARS.forEach((pillar) => {
+    const pTitleEn = tLabel(pillar.title, pillar.en);
+    const secPos = [];
+    const secNeg = [];
+    pillar.items.forEach((item) => {
+      const itemData = state.pe?.findings?.[item.id] || (state.pe?.abdomen && (state.pe.abdomen[pillar.id]?.[item.id] || state.pe.abdomen[item.id])) || state.pe?.[item.id];
+      const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
+      const detail = typeof itemData === 'object' && itemData !== null ? (itemData.detail || itemData.note || '') : '';
+      const itemEn = tLabel(item.label, item.en);
+      if (st === 1 || st === '+1') {
+        secPos.push(detail && detail.trim() ? `${itemEn} (${tLabel(detail)})` : itemEn);
+      } else if (st === -1 || st === '-1') {
+        secNeg.push(itemEn);
+      }
+    });
+    if (secPos.length > 0 && secNeg.length > 0) {
+      lines.push(`  * **${pTitleEn}:** **Positive:** ${secPos.join(', ')} | **Negative:** No ${secNeg.join(', ')}`);
+    } else if (secPos.length > 0) {
+      lines.push(`  * **${pTitleEn}:** **Positive:** ${secPos.join(', ')}`);
+    } else if (secNeg.length > 0) {
+      lines.push(`  * **${pTitleEn}:** Negative for ${secNeg.join(', ')}`);
+    } else {
+      lines.push(`  * **${pTitleEn}:** Unremarkable routine examination`);
+    }
   });
-  lines.push(`- **Abdominal Examination (4 Pillars):**`);
-  if (pePos.length > 0) lines.push(`  * **Pertinent Positive Findings:** ${pePos.join(', ')}`);
-  if (peNeg.length > 0) lines.push(`  * **Normal / Negative Findings:** ${peNeg.join(', ')}`);
 
   // Systemic Examination
   const compSystemsEn = state.pe?.comprehensiveSystems || {};
@@ -720,10 +895,10 @@ export function generateEnglishClinicalNote(state) {
     const sysTitleEn = tLabel(sys.title, sys.en);
     const hasNormal = !!sysData.isNormal;
     const tags = Array.isArray(sysData.selectedTags) ? sysData.selectedTags.map(t => tLabel(t)) : [];
-    const note = sysData.text ? sysData.text.trim() : '';
+    const note = sysData.text ? tLabel(sysData.text.trim()) : '';
 
     if (hasNormal && tags.length === 0 && !note) {
-      otherSysLinesEn.push(`  * **${sysTitleEn}:** Normal baseline examination; unremarkable.`);
+      otherSysLinesEn.push(`  * **${sysTitleEn}:** ${tLabel(sys.normalBaseline) || 'Normal baseline examination; unremarkable.'}`);
     } else if (tags.length > 0 || note) {
       const parts = [];
       if (tags.length > 0) parts.push(`Findings: ${tags.join(', ')}`);
@@ -743,58 +918,131 @@ export function generateEnglishClinicalNote(state) {
     lines.push(`- **Local Mass & Lesion Examination:**`);
     massExamsEn.forEach((m, idx) => {
       lines.push(
-        `  * **Lesion #${idx + 1} (${m.location || 'Specified Site'}):** Dimensions: ${m.dimensions || 'Unspecified'} | Consistency: ${tLabel(m.consistency) || '—'} | Margins: ${tLabel(m.margin || m.margins) || '—'} | Mobility: ${tLabel(m.mobility) || '—'} | Skin & Tenderness: ${tLabel(m.skinSign || m.tendernessSkin) || 'Normal'} | Remarks: ${tLabel(m.note || m.neuroLymph) || 'Intact'}`
+        `  * **Lesion #${idx + 1} (${tLabel(m.location) || 'Specified Site'}):** Dimensions: ${m.dimensions || 'Unspecified'} | Consistency: ${tLabel(m.consistency) || '—'} | Margins: ${tLabel(m.margin || m.margins) || '—'} | Mobility: ${tLabel(m.mobility) || '—'} | Skin & Tenderness: ${tLabel(m.skinSign || m.tendernessSkin) || 'Normal'} | Remarks: ${tLabel(m.note || m.neuroLymph) || 'Intact'}`
       );
     });
   }
 
-  // ATLS Trauma Exam Module
+  // ATLS Trauma Exam Module inside H&P (strictly rendered only if active and real data entered)
   const atlsEn = state.pe?.atlsExam || {};
-  if (atlsEn.active || atlsEn.enabled || Object.keys(atlsEn.primarySurvey || {}).length > 0 || (atlsEn.wounds && atlsEn.wounds.length > 0) || atlsEn.burn?.degree || atlsEn.burn?.tbsa) {
+  const hasPrimarySurveyEn = Object.values(atlsEn.primarySurvey || {}).some(v => typeof v === 'string' ? v.trim().length > 0 : (Array.isArray(v) ? v.length > 0 : Boolean(v)));
+  const hasWoundsEn = Array.isArray(atlsEn.wounds) && atlsEn.wounds.length > 0;
+  const hasBurnEn = Boolean(atlsEn.burn && (atlsEn.burn.degree || atlsEn.burn.tbsa || atlsEn.burn.regions || (Array.isArray(atlsEn.burn.inhalationSigns) && atlsEn.burn.inhalationSigns.length > 0)));
+  const hasAtlsExamEn = (atlsEn.active === true || atlsEn.enabled === true) && (hasPrimarySurveyEn || hasWoundsEn || hasBurnEn);
+
+  if (hasAtlsExamEn) {
     lines.push(`- **ATLS Trauma & Burn Survey:**`);
-    const ps = atlsEn.primarySurvey || {};
-    lines.push(`  * **Primary Survey (ABCDE):** Airway: ${tLabel(ps.airway) || 'Patent'} | Breathing: ${tLabel(ps.breathing) || 'Symmetric'} | Circulation: ${tLabel(ps.circulation) || 'Stable'} | Disability: ${tLabel(ps.disability) || 'PERRLA / GCS 15'} | Exposure: ${tLabel(ps.exposure) || 'Normal'}`);
-    if (atlsEn.wounds && atlsEn.wounds.length > 0) {
+    if (hasPrimarySurveyEn) {
+      const ps = atlsEn.primarySurvey || {};
+      const psTokens = [
+        ps.airway ? `Airway: ${tLabel(ps.airway)}` : '',
+        ps.breathing ? `Breathing: ${tLabel(ps.breathing)}` : '',
+        ps.circulation ? `Circulation: ${tLabel(ps.circulation)}` : '',
+        ps.disability ? `Disability: ${tLabel(ps.disability)}` : '',
+        ps.exposure ? `Exposure: ${tLabel(ps.exposure)}` : ''
+      ].filter(Boolean);
+      if (psTokens.length > 0) {
+        lines.push(`  * **Primary Survey (ABCDE):** ${psTokens.join(' | ')}`);
+      }
+    }
+    if (hasWoundsEn) {
       lines.push(`  * **Wound Registry:**`);
       atlsEn.wounds.forEach((w, wIdx) => {
         lines.push(`    - #${wIdx + 1}: ${tLabel(w.type) || 'Wound'} at ${tLabel(w.location) || 'Site'} (${w.dimensions || '—'}) | Bleeding: ${tLabel(w.bleedingStatus || w.bleeding) || '—'} | Distal NV: ${tLabel(w.distalNv || w.distalNV) || 'Intact'}`);
       });
     }
-    if (atlsEn.burn && (atlsEn.burn.degree || atlsEn.burn.tbsa)) {
-      lines.push(`  * **Burn Assessment:** Degree: ${tLabel(atlsEn.burn.degree) || '—'} | % TBSA: ${atlsEn.burn.tbsa || '—'}% (Involved: ${tLabel(atlsEn.burn.regions) || '—'}) | Inhalation Signs: ${atlsEn.burn.inhalationSigns?.map(s => tLabel(s)).join(', ') || 'None'}`);
+    if (hasBurnEn) {
+      lines.push(`  * **Burn Assessment:** Degree: ${tLabel(atlsEn.burn.degree) || '—'} | % TBSA: ${atlsEn.burn.tbsa || '—'}%${atlsEn.burn.regions ? ` (Involved: ${tLabel(atlsEn.burn.regions)})` : ''} | Inhalation Signs: ${atlsEn.burn.inhalationSigns?.map(s => tLabel(s)).join(', ') || 'None'}`);
     }
   }
+  if (state.pe?.note) lines.push(`- **Supplementary PE Notes:** ${tLabel(state.pe.note)}`);
+  if (state.pe?.systemGapNote) lines.push(`- **Additional PE Findings:** ${tLabel(state.pe.systemGapNote)}`);
 
-  // 7. Paraclinics
+  // 7. Paraclinics (Imaging + Labs)
   lines.push(`\n### 7. Diagnostic Studies & Paraclinics`);
+  const modalitiesEn = state.paraclinics?.imagingReports || [];
+  if (modalitiesEn.length > 0) {
+    lines.push(`- **Diagnostic Imaging, Endoscopy & Pathology:**`);
+    modalitiesEn.forEach((rep) => {
+      const modTitle = tLabel(rep.modalityTitle || rep.modalityLabel || rep.modality || 'Diagnostic Study');
+      const chipArr = (rep.findingChips || rep.tags || []).map((t) => {
+        if (typeof t === 'object' && t !== null) {
+          return t.detail ? `${tLabel(t.label)} (${tLabel(t.detail)})` : tLabel(t.label);
+        }
+        return tLabel(t);
+      }).filter(Boolean);
+      const chipText = chipArr.length ? `[${chipArr.join(', ')}] ` : '';
+      const contentEn = tLabel(rep.impression || rep.findings || rep.summary || '');
+      lines.push(
+        `  * **${modTitle}${rep.targetOrgan ? ` (${tLabel(rep.targetOrgan)})` : ''}${rep.date ? ` [${rep.date}]` : ''}:** ${chipText}${contentEn}`
+      );
+    });
+  } else {
+    lines.push(`- **Diagnostic Imaging:** No formal imaging studies recorded yet.`);
+  }
+
   const labs = state.paraclinics?.labs || {};
-  const labEntries = Object.entries(labs).filter(([k, v]) => v && String(v).trim());
+  const panelLinesEn = [];
+  LAB_PANELS.forEach((panel) => {
+    const pTests = [];
+    panel.tests.forEach((def) => {
+      const val = labs[def.id];
+      if (val !== undefined && val !== '' && val !== null) {
+        const num = parseFloat(val);
+        let flag = '';
+        if (!isNaN(num)) {
+          if (num > def.max) flag = ' ↑(H)';
+          else if (num < def.min) flag = ' ↓(L)';
+        }
+        const unitStr = def.unit ? ` ${def.unit}` : '';
+        pTests.push(`${tLabel(def.label, def.en)}: ${val}${unitStr}${flag}`);
+      }
+    });
+    if (pTests.length > 0) {
+      panelLinesEn.push(`  * **${tLabel(panel.title, panel.en)}:** ${pTests.join(' | ')}`);
+    }
+  });
+
   const addLabsEn = state.paraclinics?.additionalLabs || {};
   const addEntriesEn = Object.entries(addLabsEn).filter(([k, v]) => {
     if (!v) return false;
     if (typeof v === 'object') return v.value && String(v.value).trim();
     return String(v).trim();
   });
-
-  if (labEntries.length > 0 || addEntriesEn.length > 0) {
-    const parts = labEntries.map(([k, v]) => `${k.toUpperCase()}: ${v}`);
-    addEntriesEn.forEach(([k, v]) => {
+  if (addEntriesEn.length > 0) {
+    const addParts = addEntriesEn.map(([k, v]) => {
       const val = typeof v === 'object' ? v.value : v;
       const unit = typeof v === 'object' && v.unit ? ` ${v.unit}` : '';
-      const name = typeof v === 'object' && v.name ? v.name : k;
-      parts.push(`${name}: ${val}${unit}`);
+      const name = typeof v === 'object' && v.name ? tLabel(v.name) : tLabel(k);
+      return `${name}: ${val}${unit}`;
     });
-    lines.push(`- **Laboratory Investigations:** ${parts.join(' | ')}`);
+    panelLinesEn.push(`  * **Specialized / Additional Labs:** ${addParts.join(' | ')}`);
+  }
+
+  if (panelLinesEn.length > 0) {
+    lines.push(`- **Laboratory Investigations:**\n${panelLinesEn.join('\n')}`);
   } else {
     lines.push(`- **Laboratory Investigations:** Results pending at time of admission.`);
   }
+  if (state.paraclinics?.labNote) {
+    lines.push(`- **Laboratory Trends & Notes:** ${tLabel(state.paraclinics.labNote)}`);
+  }
+  if (state.paraclinics?.systemGapNote) {
+    lines.push(`- **Additional Diagnostic Studies:** ${tLabel(state.paraclinics.systemGapNote)}`);
+  }
 
   // 8. DDx & Plan
-  lines.push(`\n### 8. Clinical Reasoning & Plan (DDx & Plan)`);
+  lines.push(`\n### 8. Clinical Reasoning, Differential Diagnoses & Initial Plan`);
   const reasoning = state.reasoning || {};
-  if (reasoning.problemRepresentation) lines.push(`- **Problem Representation:** ${tLabel(reasoning.problemRepresentation)}`);
-  if (reasoning.topDifferential) lines.push(`- **Primary Differential:** ${tLabel(reasoning.topDifferential)}`);
-  if (reasoning.managementPlan) lines.push(`- **Management Plan:** ${tLabel(reasoning.managementPlan)}`);
+  if (reasoning.problemRepresentation) {
+    lines.push(`- **Problem Representation:** ${tLabel(reasoning.problemRepresentation)}`);
+  }
+  if (reasoning.ddx) {
+    lines.push(`- **Differential Diagnoses (DDx) & Initial Surgical Plan:**\n${reasoning.ddx.split('\n').filter(Boolean).map(l => `  * ${tLabel(l)}`).join('\n')}`);
+  } else {
+    if (reasoning.topDifferential) lines.push(`- **Primary Differential:** ${tLabel(reasoning.topDifferential)}`);
+    if (reasoning.managementPlan) lines.push(`- **Management Plan:** ${tLabel(reasoning.managementPlan)}`);
+  }
 
   return lines.join('\n');
 }
@@ -864,7 +1112,9 @@ export function generateClinicalNote(state) {
   if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
     const surgItems = state.psh.surgeries.map((s) => {
       const name = s.label || s.procedure || '';
-      const det = normalizePersianClinicalText(s.note || s.yearHospital || '');
+      const yearPart = s.year ? `سال عمل: ${normalizePersianClinicalText(s.year)}` : '';
+      const notePart = (s.note || s.yearHospital) ? normalizePersianClinicalText(s.note || s.yearHospital) : '';
+      const det = [yearPart, notePart].filter(Boolean).join(' | ');
       return det ? `${name} (${det})` : name;
     }).filter(Boolean);
     if (surgItems.length > 0) {
@@ -1086,7 +1336,7 @@ export function generateClinicalNote(state) {
   // ۵. بررسی سیستم‌ها (ROS) - دوزبانه و تفکیک‌شده بر اساس زیرسیستم با فیلتر جنسیت
   lines.push(`\n### ۵. بررسی سیستم‌ها (Review of Systems - ROS)`);
   if (state.ros?.unobtainable) {
-    const reasonText = state.ros?.unobtainableReason || 'به علت شرایط حاد بالینی، کاهش سطح هوشیاری و اینتوباسیون بیمار، اخذ مرور سیستم‌های معمول امکان‌پذیر نبوده و ارزیابی بر پایه شواهد عینی، معاینه فیزیکی و پروتکل ترومای ATLS متمرکز می‌باشد.';
+    const reasonText = state.ros?.unobtainableReason || 'به علت شرایط حاد بالینی، کاهش سطح هوشیاری و اینتوباسیون بیمار، اخذ مرور سیستم‌های معمول امکان‌پذیر نبوده و ارزیابی بر پایه یافته‌های بالینی، معاینه فیزیکی و پروتکل ترومای ATLS متمرکز می‌باشد.';
     lines.push(`- **عدم امکان اخذ ROS:** ${reasonText}`);
   } else {
     const showAllGenders = state.ros?.showAllGenders || false;
@@ -1226,19 +1476,26 @@ export function generateClinicalNote(state) {
     });
   }
 
-  // ماژول معاینه تروما و سوختگی (ATLS Trauma & Burn Exam)
+  // ماژول معاینه تروما و سوختگی (ATLS Trauma & Burn Exam - فقط در صورت فعال‌سازی صریح و ورود داده توسط کاربر)
   const atlsFa = state.pe?.atlsExam || {};
-  if (atlsFa.active || atlsFa.enabled || Object.keys(atlsFa.primarySurvey || {}).length > 0 || (atlsFa.wounds && atlsFa.wounds.length > 0) || atlsFa.burn?.degree || atlsFa.burn?.tbsa) {
-    lines.push(`- **ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE):**`);
-    const ps = atlsFa.primarySurvey || {};
-    lines.push(`  * **ارزیابی اولیه (ABCDE):**`);
-    if (ps.airway) lines.push(`    - A (Airway & C-Spine): ${ps.airway}`);
-    if (ps.breathing) lines.push(`    - B (Breathing): ${ps.breathing}`);
-    if (ps.circulation) lines.push(`    - C (Circulation): ${ps.circulation}`);
-    if (ps.disability) lines.push(`    - D (Disability / GCS): ${ps.disability}`);
-    if (ps.exposure) lines.push(`    - E (Exposure): ${ps.exposure}`);
+  const hasPrimarySurveyFa = Object.values(atlsFa.primarySurvey || {}).some(v => typeof v === 'string' ? v.trim().length > 0 : (Array.isArray(v) ? v.length > 0 : Boolean(v)));
+  const hasWoundsFa = Array.isArray(atlsFa.wounds) && atlsFa.wounds.length > 0;
+  const hasBurnFa = Boolean(atlsFa.burn && (atlsFa.burn.degree || atlsFa.burn.tbsa || atlsFa.burn.regions || (Array.isArray(atlsFa.burn.inhalationSigns) && atlsFa.burn.inhalationSigns.length > 0)));
+  const hasAtlsExamFa = (atlsFa.active === true || atlsFa.enabled === true) && (hasPrimarySurveyFa || hasWoundsFa || hasBurnFa);
 
-    if (atlsFa.wounds && atlsFa.wounds.length > 0) {
+  if (hasAtlsExamFa) {
+    lines.push(`- **ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE):**`);
+    if (hasPrimarySurveyFa) {
+      const ps = atlsFa.primarySurvey || {};
+      lines.push(`  * **ارزیابی اولیه (ABCDE):**`);
+      if (ps.airway) lines.push(`    - A (Airway & C-Spine): ${ps.airway}`);
+      if (ps.breathing) lines.push(`    - B (Breathing): ${ps.breathing}`);
+      if (ps.circulation) lines.push(`    - C (Circulation): ${ps.circulation}`);
+      if (ps.disability) lines.push(`    - D (Disability / GCS): ${ps.disability}`);
+      if (ps.exposure) lines.push(`    - E (Exposure): ${ps.exposure}`);
+    }
+
+    if (hasWoundsFa) {
       lines.push(`  * **ثبت زخم‌ها و جراحات تروما (Wound & Injury Registry):**`);
       atlsFa.wounds.forEach((w, wIdx) => {
         lines.push(
@@ -1247,7 +1504,7 @@ export function generateClinicalNote(state) {
       });
     }
 
-    if (atlsFa.burn && (atlsFa.burn.degree || atlsFa.burn.tbsa)) {
+    if (hasBurnFa) {
       let burnLine = `  * **بررسی سوختگی:** درجه: ${atlsFa.burn.degree || 'نامشخص'} | وسعت: ${atlsFa.burn.tbsa ? atlsFa.burn.tbsa + '% TBSA' : 'نامشخص'}`;
       if (atlsFa.burn.regions) burnLine += ` (نواحی درگیر: ${atlsFa.burn.regions})`;
       if (atlsFa.burn.inhalationSigns?.length) burnLine += ` | شواهد آسیب استنشاقی: ${atlsFa.burn.inhalationSigns.join('، ')}`;
@@ -1384,10 +1641,132 @@ export function generateClinicalNote(state) {
  * (Free of Semantic Qualifiers)
  */
 export function synthesizeProblemRepresentation(state) {
+  const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
   const d = state.demographics || {};
   const cc = state.cc || {};
   const hpi = state.hpi || {};
-  const pains = hpi.painList || [];
+
+  if (lang === 'en') {
+    const genderEn = d.gender === 'female' ? 'female' : d.gender === 'male' ? 'male' : 'patient';
+    const ageEn = d.age ? `${d.age}-year-old` : 'Adult';
+    const ptPrefix = genderEn === 'patient' ? `${ageEn} patient` : `${ageEn} ${genderEn}`;
+
+    let mainComplaintEn = tLabel(cc.patientQuote) || 'acute surgical presentation';
+    let durationEn = tLabel(hpi.duration) || 'recent onset';
+
+    const presentations = (hpi.presentations && hpi.presentations.length > 0)
+      ? hpi.presentations
+      : (hpi.painList || []);
+
+    const firstPres = presentations[0];
+    if (firstPres) {
+      if (firstPres.archetype === 'mass_lesion_archetype') {
+        mainComplaintEn = `mass/lesion in the ${tLabel(firstPres.location) || 'specified region'}`;
+        if (firstPres.discoveryTime) durationEn = tLabel(firstPres.discoveryTime);
+      } else if (firstPres.archetype === 'trauma_burn_archetype') {
+        mainComplaintEn = tLabel(firstPres.mechanism) || 'acute trauma';
+        if (firstPres.injuredZones && firstPres.injuredZones.length > 0) {
+          mainComplaintEn += ` involving ${firstPres.injuredZones.map((z) => tLabel(z)).join(' and ')}`;
+        }
+        if (firstPres.timeSinceInjury) durationEn = tLabel(firstPres.timeSinceInjury);
+      } else if (firstPres.archetype === 'elective_asymptomatic_archetype') {
+        mainComplaintEn = `elective surgical admission (${tLabel(firstPres.procedureName || firstPres.discoveryMethod) || 'planned workup'})`;
+      } else if (firstPres.archetype === 'functional_bleeding_archetype') {
+        mainComplaintEn = tLabel(firstPres.symptomTitle) || 'functional surgical complaint';
+        if (firstPres.duration) durationEn = tLabel(firstPres.duration);
+      } else {
+        if (firstPres.selectedRegions && firstPres.selectedRegions.length > 0) {
+          const regLabels = firstPres.selectedRegions.map((r) => tLabel(getRegionLabel(r)));
+          mainComplaintEn += ` localized to ${regLabels.join(' and ')}`;
+        }
+        if (firstPres.duration) durationEn = tLabel(firstPres.duration);
+      }
+    }
+
+    const posSymptomsEn = [];
+    const negSymptomsEn = [];
+    Object.entries(hpi.symptoms || {}).forEach(([symId, obj]) => {
+      const st = typeof obj === 'object' ? obj.state : obj;
+      const det = typeof obj === 'object' && obj.detail ? ` (${tLabel(obj.detail)})` : '';
+      const label = findHpiSymptomLabel(symId, typeof obj === 'object' ? obj.label : symId);
+      if (st === 1 || st === '+1') posSymptomsEn.push(`${label}${det}`);
+      if (st === -1 || st === '-1') negSymptomsEn.push(label);
+    });
+
+    const partsEn = [];
+    partsEn.push(`${ptPrefix} presenting with "${mainComplaintEn}" of ${durationEn} duration.`);
+    if (posSymptomsEn.length > 0) {
+      partsEn.push(`Key pertinent positives include ${posSymptomsEn.slice(0, 3).join(', ')}`);
+    }
+    if (negSymptomsEn.length > 0) {
+      partsEn.push(`${posSymptomsEn.length > 0 ? 'in the absence of' : 'Denies'} ${negSymptomsEn.slice(0, 3).join(', ')}.`);
+    } else if (posSymptomsEn.length > 0) {
+      partsEn[partsEn.length - 1] += '.';
+    }
+
+    const labs = state.paraclinics?.labs || {};
+    const labFindingsEn = [];
+    const wbc = parseFloat(labs['wbc']);
+    if (!isNaN(wbc)) {
+      if (wbc > 11.0) labFindingsEn.push(`leukocytosis (WBC: ${wbc})`);
+      else if (wbc < 4.0) labFindingsEn.push(`leukopenia (WBC: ${wbc})`);
+    }
+    const hb = parseFloat(labs['hb']);
+    if (!isNaN(hb)) {
+      const anemiaCutoff = d.gender === 'female' ? 12.0 : 13.0;
+      if (hb < anemiaCutoff) labFindingsEn.push(`anemia (Hb: ${hb})`);
+    }
+    const crp = parseFloat(labs['crp']);
+    const esr = parseFloat(labs['esr']);
+    const inflammatoryEn = [];
+    if (!isNaN(crp) && crp > 10) inflammatoryEn.push(`CRP: ${crp}`);
+    if (!isNaN(esr) && esr > 20) inflammatoryEn.push(`ESR: ${esr}`);
+    if (inflammatoryEn.length) labFindingsEn.push(`elevated inflammatory markers (${inflammatoryEn.join(', ')})`);
+    const ddimer = parseFloat(labs['ddimer']);
+    if (!isNaN(ddimer) && ddimer > 500) labFindingsEn.push(`elevated D-Dimer (${ddimer})`);
+    const amylase = parseFloat(labs['amylase']);
+    const lipase = parseFloat(labs['lipase']);
+    if (!isNaN(amylase) && amylase > 110) labFindingsEn.push(`elevated Amylase (${amylase})`);
+    if (!isNaN(lipase) && lipase > 140) labFindingsEn.push(`elevated Lipase (${lipase})`);
+    const ast = parseFloat(labs['ast']);
+    const alt = parseFloat(labs['alt']);
+    const alp = parseFloat(labs['alp']);
+    const lftsEn = [];
+    if (!isNaN(ast) && ast > 40) lftsEn.push(`AST: ${ast}`);
+    if (!isNaN(alt) && alt > 40) lftsEn.push(`ALT: ${alt}`);
+    if (!isNaN(alp) && alp > 130) lftsEn.push(`ALP: ${alp}`);
+    if (lftsEn.length) labFindingsEn.push(`deranged hepatobiliary enzymes (${lftsEn.join(', ')})`);
+    const bili_t = parseFloat(labs['bili_t']);
+    if (!isNaN(bili_t) && bili_t > 1.2) labFindingsEn.push(`hyperbilirubinemia (Total Bili: ${bili_t})`);
+    const cr = parseFloat(labs['cr']);
+    if (!isNaN(cr) && cr > 1.3) labFindingsEn.push(`elevated Creatinine (Cr: ${cr})`);
+    const na = parseFloat(labs['na']);
+    if (!isNaN(na)) {
+      if (na < 135) labFindingsEn.push(`hyponatremia (Na: ${na})`);
+      else if (na > 145) labFindingsEn.push(`hypernatremia (Na: ${na})`);
+    }
+    const k = parseFloat(labs['k']);
+    if (!isNaN(k)) {
+      if (k < 3.5) labFindingsEn.push(`hypokalemia (K: ${k})`);
+      else if (k > 5.1) labFindingsEn.push(`hyperkalemia (K: ${k})`);
+    }
+    const ph = parseFloat(labs['ph']);
+    const pco2 = parseFloat(labs['pco2']);
+    if (!isNaN(ph)) {
+      if (ph < 7.35) labFindingsEn.push(`acidosis (pH: ${ph})`);
+      else if (ph > 7.45) {
+        if (!isNaN(pco2) && pco2 < 35) labFindingsEn.push(`respiratory alkalosis (pH: ${ph})`);
+        else labFindingsEn.push(`alkalosis (pH: ${ph})`);
+      }
+    }
+    const lactate = parseFloat(labs['lactate']);
+    if (!isNaN(lactate) && lactate > 2.2) labFindingsEn.push(`hyperlactatemia (Lactate: ${lactate})`);
+
+    if (labFindingsEn.length > 0) {
+      partsEn.push(`Notable laboratory abnormalities: ${labFindingsEn.join(', ')}.`);
+    }
+    return partsEn.join(' ');
+  }
 
   const genderStr = d.gender === 'female' ? 'خانم' : d.gender === 'male' ? 'آقای' : 'بیمار';
   const ageStr = d.age ? `${d.age} ساله` : '[نامشخص]';
@@ -1535,6 +1914,63 @@ export function synthesizeProblemRepresentation(state) {
   return parts.join(' ');
 }
 
+function synthesizeFocusedDailyPeLines(o, isEn) {
+  const fpe = o.focusedPe;
+  const examParts = [];
+
+  if (fpe && typeof fpe === 'object') {
+    const rowConfigs = isEn
+      ? [
+          { key: 'general', title: 'General & Hemodynamics' },
+          { key: 'cardio', title: 'Cardiopulmonary' },
+          { key: 'abdomen', title: 'Abdomen' },
+          { key: 'wound', title: 'Wound & Dressing' },
+          { key: 'extremities', title: 'Extremities & DVT' }
+        ]
+      : [
+          { key: 'general', title: 'عمومی و همودینامیک' },
+          { key: 'cardio', title: 'قلب و ریه' },
+          { key: 'abdomen', title: 'شکم' },
+          { key: 'wound', title: 'زخم و پانسمان' },
+          { key: 'extremities', title: 'اندام‌ها و DVT' }
+        ];
+
+    rowConfigs.forEach(({ key, title }) => {
+      const rowObj = fpe[key] || {};
+      const pills = Array.isArray(rowObj.pills) ? rowObj.pills : [];
+      const note = rowObj.note ? String(rowObj.note).trim() : '';
+      const segs = [];
+      if (pills.length > 0) {
+        segs.push(isEn ? pills.map((p) => tLabel(p)).join(', ') : pills.join('، '));
+      }
+      if (note) {
+        segs.push(isEn ? tLabel(note) : normalizePersianClinicalText(note));
+      }
+      if (segs.length > 0) {
+        examParts.push(`**${title}:** ${segs.join(isEn ? '; ' : ' — ')}`);
+      }
+    });
+  } else {
+    if (o.generalAndCardioPulm) {
+      examParts.push(isEn ? tLabel(o.generalAndCardioPulm) : normalizePersianClinicalText(o.generalAndCardioPulm));
+    }
+    if (o.abdomenExam) {
+      examParts.push(isEn ? `**Abdomen:** ${tLabel(o.abdomenExam)}` : `**شکم:** ${normalizePersianClinicalText(o.abdomenExam)}`);
+    }
+    if (o.woundAndDressing) {
+      examParts.push(isEn ? `**Wound & Dressing:** ${tLabel(o.woundAndDressing)}` : `**زخم و پانسمان:** ${normalizePersianClinicalText(o.woundAndDressing)}`);
+    }
+    if (o.extremitiesDvt) {
+      examParts.push(isEn ? `**Extremities:** ${tLabel(o.extremitiesDvt)}` : `**اندام‌ها:** ${normalizePersianClinicalText(o.extremitiesDvt)}`);
+    }
+  }
+
+  if (o.examNote && String(o.examNote).trim()) {
+    examParts.push(isEn ? tLabel(o.examNote) : normalizePersianClinicalText(o.examNote));
+  }
+
+  return examParts;
+}
 
 /**
  * Pure English Daily Progress Note Generator (v1.2-Bilingual-CleanUI)
@@ -1560,14 +1996,17 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   const diagStr = tLabel(ctx.workingDiagnosis || linkedCaseState?.cc?.establishedDiagnosis || linkedCaseState?.cc?.patientQuote || 'Surgical Inpatient');
   const procStr = tLabel(ctx.procedureDone || '');
   const hdStr = ctx.hdNumber ? `HD #${ctx.hdNumber}` : '';
-  const podStr = ctx.podNumber ? `${ctx.podType || 'POD'} #${ctx.podNumber}` : '';
+  const podStr = ctx.podNumber ? `${tLabel(ctx.podType) || 'POD'} #${ctx.podNumber}` : '';
   const timelineBadge = [hdStr, podStr].filter(Boolean).join(' | ');
 
-  const wardStr = demo.ward ? ` | **Ward:** ${demo.ward}` : '';
+  const wardStr = demo.ward ? ` | **Ward:** ${tLabel(demo.ward)}` : '';
   const bedStr = demo.bed ? ` | **Bed:** ${demo.bed}` : '';
+  const dateDisplay = (soapState.dateStr && !/[\u0600-\u06FF\u06F0-\u06F9]/.test(soapState.dateStr))
+    ? soapState.dateStr
+    : new Date(soapState.timestamp || Date.now()).toLocaleDateString('en-US');
 
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **Patient ID:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Progress Timestamp:** ${soapState.dateStr || new Date().toLocaleString('en-US')}`);
+    out.push(`> **Patient ID:** ${tLabel(demo.fullName) || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Progress Date:** ${dateDisplay}`);
   }
   out.push(`### Daily Progress Note — SOAP`);
   out.push(
@@ -1575,9 +2014,9 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   );
 
   // 1. S — Subjective
-  out.push(`#### S — Subjective (24-Hour Clinical Review & Patient Symptoms)`);
+  out.push(`#### S — Subjective (24-Hour Patient Report & Symptoms)`);
   const sParts = [];
-  if (s.overallTrend) sParts.push(`Overall 24-hr clinical course is **${tLabel(s.overallTrend)}**`);
+  if (s.overallTrend) sParts.push(`Overall 24-hr clinical course: **${tLabel(s.overallTrend)}**`);
   if (s.painStatus) sParts.push(`Pain: ${tLabel(s.painStatus)}${s.painDetail ? ` (${tLabel(s.painDetail)})` : ''}`);
   if (s.dietTolerance) sParts.push(`Oral intake / Diet: ${tLabel(s.dietTolerance)}`);
 
@@ -1627,14 +2066,14 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   out.push(`- ${sParts.join(' | ') || 'Patient reports no new acute complaints or distress over the past 24 hours.'}.\n`);
 
   // 2. O — Objective
-  out.push(`#### O — Objective (Vitals, Fluid Balances, Drains, Focused Exam & Daily Labs)`);
+  out.push(`#### O — Objective (Vitals, Fluid Balance, Focused PE & Paraclinics)`);
   const v = o.vitals || {};
   const vitalTokens = [];
   if (v.bp) vitalTokens.push(`BP: ${v.bp} mmHg`);
   if (v.pr) vitalTokens.push(`PR: ${v.pr} /min`);
   if (v.rr) vitalTokens.push(`RR: ${v.rr} /min`);
   if (v.temp) vitalTokens.push(`T: ${v.temp} °C`);
-  if (v.tmax) vitalTokens.push(`Tmax: ${v.tmax} °C`);
+  if (v.tmax) vitalTokens.push(`Tmax (24h): ${v.tmax} °C`);
   if (v.spo2) vitalTokens.push(`SpO2: ${v.spo2}%`);
   out.push(`- **Vital Signs:** ${vitalTokens.join(' | ') || 'Pending'} ${v.hemodynamics ? `(${tLabel(v.hemodynamics)})` : ''}`);
 
@@ -1643,26 +2082,21 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   if (ioObj.intake24h || o.intake24h) ioTokens.push(`24-hr Intake: ${ioObj.intake24h || o.intake24h} mL`);
   if (ioObj.urineStatus) ioTokens.push(`Voiding: ${tLabel(ioObj.urineStatus)}`);
   if (ioObj.urineOutput24h || o.urineOutput24h) ioTokens.push(`Urine Output: ${ioObj.urineOutput24h || o.urineOutput24h} mL`);
-  if (ioObj.ngtOutput24h || o.ngtOutput24h) ioTokens.push(`NGT Output: ${ioObj.ngtOutput24h || o.ngtOutput24h}`);
+  if (ioObj.ngtOutput24h || o.ngtOutput24h) ioTokens.push(`NGT Output: ${tLabel(ioObj.ngtOutput24h || o.ngtOutput24h)}`);
   if (ioTokens.length > 0) {
-    out.push(`- **Fluid Balances & Tubes (I/O):** ${ioTokens.join(' | ')}`);
+    out.push(`- **Fluid Balance & Tubes (I/O):** ${ioTokens.join(' | ')}`);
   }
 
   if (o.drains && o.drains.length > 0) {
     const drainStrings = o.drains.map(
-      (d, idx) => `Drain #${idx + 1} (${tLabel(d.typeAndSite) || 'Surgical'}): 24-hr output **${d.volumeCc || '—'} mL**, character **${tLabel(d.character) || 'serous'}**`
+      (d, idx) => `Drain #${idx + 1} (${tLabel(d.typeAndSite) || 'Surgical'}): 24-hr output **${d.volumeCc || '—'} mL**, character **${tLabel(d.character) || 'Serous'}**`
     );
     out.push(`- **Surgical Drains:** ${drainStrings.join('; ')}`);
   }
 
-  const examParts = [];
-  if (o.generalAndCardioPulm) examParts.push(tLabel(o.generalAndCardioPulm));
-  if (o.abdomenExam) examParts.push(`Abdomen: ${tLabel(o.abdomenExam)}`);
-  if (o.woundAndDressing) examParts.push(`Incision / Dressing: ${tLabel(o.woundAndDressing)}`);
-  if (o.extremitiesDvt) examParts.push(`Extremities: ${tLabel(o.extremitiesDvt)}`);
-  if (o.examNote) examParts.push(tLabel(o.examNote));
+  const examParts = synthesizeFocusedDailyPeLines(o, true);
   if (examParts.length > 0) {
-    out.push(`- **Focused Examination:** ${examParts.join(' | ')}.`);
+    out.push(`- **Focused Daily Physical Exam:** ${examParts.join(' | ')}.`);
   }
 
   const prevLabs = linkedCaseState?.paraclinics?.labs || o.previousBaselineLabs || {};
@@ -1688,14 +2122,15 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   }
 
   // 3. A — Assessment
-  out.push(`\n#### A — Assessment`);
-  const autoAssessment = a.summaryText
+  out.push(`\n#### A — Assessment (Today's Clinical Synthesis)`);
+  const hasPersianInSummary = a.summaryText && /[\u0600-\u06FF]/.test(a.summaryText);
+  const autoAssessment = (a.summaryText && !hasPersianInSummary)
     ? tLabel(a.summaryText)
-    : `Patient (${subjectDesc}) admitted for ${diagStr}${procStr ? `, s/p ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}; currently clinically and hemodynamically ${v.hemodynamics || 'stable'}, demonstrating a ${tLabel(a.clinicalStatus) || 'progressing and stable'} post-operative trajectory.`;
+    : `Patient (${subjectDesc}) admitted for ${diagStr}${procStr ? `, s/p ${procStr}` : ''}${timelineBadge ? ` (${timelineBadge})` : ''}; currently clinically and hemodynamically ${tLabel(v.hemodynamics) || 'stable'}, demonstrating an ${tLabel(a.clinicalStatus) || 'improving and stable'} clinical trajectory.`;
   out.push(`- ${autoAssessment}\n`);
 
   // 4. P — Plan
-  out.push(`#### P — Plan (24-Hour Clinical Directives)`);
+  out.push(`#### P — Plan (Daily Surgical Plan & Orders)`);
   const planItems = [];
   (p.selectedTags || []).forEach(tag => planItems.push(tLabel(tag)));
   if (p.customPlanText) {
@@ -1748,11 +2183,11 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   }
   out.push(`### یادداشت سیر روزانه بیماری (Daily Progress Note — SOAP)`);
   out.push(
-    `**مشخصات سیر:** ${ptIntro} | **تشخیص:** ${diagStr}${procStr ? ` | **عمل/پروسیجر:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
+    `**مشخصات سیر و روز بستری (HD / POD):** ${ptIntro} | **تشخیص:** ${diagStr}${procStr ? ` | **عمل/پروسیجر:** ${procStr}` : ''}${timelineBadge ? ` | **[ ${timelineBadge} ]**` : ''}\n`
   );
 
-  // 2. S — Subjective
-  out.push(`#### S — Subjective (گزارش ۲۴ ساعت گذشته و علائم فعلی)`);
+  // 2. S — Subjective (Bug 6: استاندارد بیمارستانی ایران)
+  out.push(`#### S — Subjective (گزارش بیمار و علائم ۲۴ ساعت اخیر)`);
   const sParts = [];
   if (s.overallTrend) sParts.push(`در ۲۴ ساعت گذشته، بیمار از نظر بالینی **${s.overallTrend}** داشته است`);
   if (s.painStatus) sParts.push(`وضعیت درد: ${normalizePersianClinicalText(s.painStatus)}${s.painDetail ? ` (${normalizePersianClinicalText(s.painDetail)})` : ''}`);
@@ -1803,8 +2238,8 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
 
   out.push(`- ${sParts.join(' | ') || 'بیمار در ۲۴ ساعت گذشته شکایت حاد جدیدی نداشته است.'}.\n`);
 
-  // 3. O — Objective
-  out.push(`#### O — Objective (یافته‌های عینی، بیلان، درن‌ها، معاینه و آزمایشگاه امروز)`);
+  // 3. O — Objective (Bug 6: استاندارد بیمارستانی ایران — حذف کامل کلمه «عینی»)
+  out.push(`#### O — Objective (علائم حیاتی، بیلان، معاینه و پاراکلینیک)`);
   const v = o.vitals || {};
   const vitalTokens = [];
   if (v.bp) vitalTokens.push(`BP: ${v.bp} mmHg`);
@@ -1833,15 +2268,10 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
     out.push(`- **وضعیت درن‌ها (Surgical Drains):** ${drainStrings.join(' ؛ ')}`);
   }
 
-  // Focused Physical Exam
-  const examParts = [];
-  if (o.generalAndCardioPulm) examParts.push(normalizePersianClinicalText(o.generalAndCardioPulm));
-  if (o.abdomenExam) examParts.push(`شکم: ${normalizePersianClinicalText(o.abdomenExam)}`);
-  if (o.woundAndDressing) examParts.push(`زخم و پانسمان: ${normalizePersianClinicalText(o.woundAndDressing)}`);
-  if (o.extremitiesDvt) examParts.push(`اندام‌ها: ${normalizePersianClinicalText(o.extremitiesDvt)}`);
-  if (o.examNote) examParts.push(normalizePersianClinicalText(o.examNote));
+  // Focused Daily Physical Exam (5-Row Capsule Matrix + Legacy Fallback)
+  const examParts = synthesizeFocusedDailyPeLines(o, false);
   if (examParts.length > 0) {
-    out.push(`- **معاینه فیزیکی متمرکز امروز (Focused PE):** ${examParts.join(' | ')}.`);
+    out.push(`- **معاینه فیزیکی متمرکز امروز (Focused Daily PE):** ${examParts.join(' | ')}.`);
   }
 
   // Labs with Trend comparison
@@ -1875,7 +2305,7 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   out.push(`- ${autoAssessment}\n`);
 
   // 5. P — Plan
-  out.push(`#### P — Plan (پلن درمانی و اقدامات امروز)`);
+  out.push(`#### P — Plan (پلن درمانی و دستورات)`);
   const planItems = [...(p.selectedTags || [])];
   if (p.customPlanText) {
     p.customPlanText.split('\n').filter(Boolean).forEach((line) => planItems.push(normalizePersianClinicalText(line)));
@@ -1889,6 +2319,53 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   }
 
   return out.join('\n');
+}
+
+function formatAtlsValue(val, isEn) {
+  if (!val) return '';
+  if (Array.isArray(val)) {
+    const cleaned = val.filter(Boolean).map((item) => (isEn ? tLabel(item) : item));
+    return cleaned.join(isEn ? ', ' : ' ، ');
+  }
+  return isEn ? tLabel(val) : String(val);
+}
+
+function synthesizeAtlsHeadToToeLines(sec, isEn) {
+  const caps = sec.headToToeCapsules || {};
+  const regions = isEn
+    ? [
+        { capKey: 'headFace', noteKey: 'headFace', title: 'Head & Maxillofacial' },
+        { capKey: 'neck', noteKey: 'neck', title: 'Neck & Cervical Spine' },
+        { capKey: 'chest', noteKey: 'chest', title: 'Chest & Thorax' },
+        { capKey: 'abdomenPelvis', noteKey: 'abdomenPelvis', title: 'Abdomen & Pelvis' },
+        { capKey: 'perineumBack', noteKey: 'perineumDre', title: 'Perineum, Back & DRE' },
+        { capKey: 'extremities', noteKey: 'extremitiesNeuro', title: 'Extremities & Distal Neurovascular' }
+      ]
+    : [
+        { capKey: 'headFace', noteKey: 'headFace', title: 'سر، فک و صورت' },
+        { capKey: 'neck', noteKey: 'neck', title: 'گردن و ستون فقرات گردنی' },
+        { capKey: 'chest', noteKey: 'chest', title: 'قفسه سینه' },
+        { capKey: 'abdomenPelvis', noteKey: 'abdomenPelvis', title: 'شکم و لگن' },
+        { capKey: 'perineumBack', noteKey: 'perineumDre', title: 'پرینه، پشت و DRE' },
+        { capKey: 'extremities', noteKey: 'extremitiesNeuro', title: 'اندام‌ها و نوروواسکولار دیستال' }
+      ];
+
+  const lines = [];
+  regions.forEach(({ capKey, noteKey, title }) => {
+    const pillArr = Array.isArray(caps[capKey]) ? caps[capKey].filter(Boolean) : [];
+    const noteText = sec[noteKey] ? String(sec[noteKey]).trim() : '';
+    const segs = [];
+    if (pillArr.length > 0) {
+      segs.push(isEn ? pillArr.map((p) => tLabel(p)).join(', ') : pillArr.join('، '));
+    }
+    if (noteText) {
+      segs.push(isEn ? tLabel(noteText) : normalizePersianClinicalText(noteText));
+    }
+    if (segs.length > 0) {
+      lines.push(`**${title}:** ${segs.join(isEn ? '; ' : ' — ')}`);
+    }
+  });
+  return lines;
 }
 
 /**
@@ -1912,34 +2389,20 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
     subjectDesc = `${demo.age} y/o Patient`;
   }
   const ageStr = demo.age ? `${demo.age} y/o` : '';
-  const wardStr = demo.ward ? ` | **Ward:** ${demo.ward}` : '';
+  const wardStr = demo.ward ? ` | **Ward:** ${tLabel(demo.ward)}` : '';
   const bedStr = demo.bed ? ` | **Bed:** ${demo.bed}` : '';
 
   if (demo.fullName || demo.ward || demo.bed) {
-    out.push(`> **Trauma Patient:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Record #:** ${demo.recordNumber || 'Trauma Bay'}`);
+    out.push(`> **Trauma Patient:** ${tLabel(demo.fullName) || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **Record #:** ${tLabel(demo.recordNumber) || 'Trauma Bay'}`);
   }
 
-  out.push(`### 🚑 Emergency ATLS Trauma Resuscitation Note`);
+  out.push(`### Emergency ATLS Trauma Resuscitation Note`);
   out.push(
-    `**Patient Profile:** ${subjectDesc} | **Arrival Mode:** ${mist.arrivalMode || 'EMS / 115 Ambulance'} | **Time of Incident:** ${mist.incidentTime || 'Unspecified'}\n`
+    `**Patient Profile:** ${subjectDesc} | **Arrival Mode:** ${tLabel(mist.arrivalMode) || 'EMS Ambulance (115)'} | **Time of Incident:** ${tLabel(mist.incidentTime) || 'Unspecified'}\n`
   );
 
-  // 1. MIST
-  out.push(`#### 1. Mechanism & Prehospital Handover (MIST)`);
-  const mechs = Array.isArray(mist.mechanisms) && mist.mechanisms.length > 0
-    ? mist.mechanisms.map(m => tLabel(m)).join(', ')
-    : 'Acute Trauma (Mechanism under evaluation)';
-  out.push(`- **M — Mechanism of Injury:** ${mechs}`);
-  if (mist.mechanismDetail) {
-    out.push(`- **I/S — Injury & Scene Description:** ${tLabel(mist.mechanismDetail)}`);
-  }
-  const preHosp = Array.isArray(mist.prehospitalCare) && mist.prehospitalCare.length > 0
-    ? mist.prehospitalCare.map(t => tLabel(t)).join(', ')
-    : 'No invasive prehospital interventions';
-  out.push(`- **T — Treatments Given Prehospital:** ${preHosp}\n`);
-
-  // 2. Primary Survey
-  out.push(`#### 2. Primary Survey (ABCDE) & Resuscitation Vitals`);
+  // 1. Primary Survey (ABCDE)
+  out.push(`#### 1. Primary Survey (ABCDE) & Resuscitation Vitals`);
   const gcsTotal = vit.gcsTotal || ((Number(vit.gcsE) || 4) + (Number(vit.gcsV) || 5) + (Number(vit.gcsM) || 6));
   const gcsBreakdown = `GCS: **${gcsTotal}/15** (E${vit.gcsE || 4} V${vit.gcsV || 5} M${vit.gcsM || 6})`;
   const vTokens = [
@@ -1951,43 +2414,78 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
     gcsBreakdown
   ].filter(Boolean);
   out.push(`- **Resuscitation Vitals:** ${vTokens.join(' | ')}`);
-  out.push(`- **A — Airway & C-Spine Protection:** ${tLabel(pri.airway) || 'Patent & Intact (C-collar in situ)'}`);
-  out.push(`- **B — Breathing & Ventilation:** ${tLabel(pri.breathing) || 'Bilateral breath sounds symmetric and clear'}`);
-  out.push(`- **C — Circulation & Hemorrhage Control:** ${tLabel(pri.circulation) || 'Hemodynamically stable, distal pulses palpable'}`);
-  out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | Pupils: ${tLabel(pri.disabilityPupils) || 'PERRLA 3mm bilaterally'}`);
-  out.push(`- **E — Exposure & Hypothermia Prevention:** ${tLabel(pri.exposure) || 'Fully exposed, full body log-rolled, warm blankets applied'}\n`);
+  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, true) || 'Airway Patent & C-Spine Immobilized'}`);
+  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, true) || 'Symmetric Chest Wall Expansion & Clear Bilateral Breath Sounds'}`);
+  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, true) || 'Hemodynamically Stable, Full & Symmetric Pulses'}`);
+  const disText = formatAtlsValue(pri.disability || pri.disabilityPupils, true) || 'Pupils Equal, Round & Reactive to Light (PERRLA), No Focal Deficit';
+  out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | ${disText}`);
+  out.push(`- **E — Exposure & Hypothermia Prevention:** ${formatAtlsValue(pri.exposure, true) || 'Full Exposure & Inline Log-Roll Performed; Hypothermia Prevention Applied'}\n`);
 
-  // 3. AMPLE
-  out.push(`#### 3. Rapid AMPLE History`);
-  out.push(`- **A (Allergies):** ${tLabel(ample.allergies) || 'NKDA (No known drug allergies)'}`);
-  out.push(`- **M (Medications):** ${tLabel(ample.medications) || 'Denies routine medications / No anticoagulants'}`);
-  out.push(`- **P (Past Illnesses / Pregnancy):** ${tLabel(ample.pastHistory) || 'No known chronic medical or surgical conditions'}`);
+  // 2. MIST & AMPLE
+  out.push(`#### 2. Mechanism, Prehospital Handover (MIST) & Rapid AMPLE History`);
+  const mechs = Array.isArray(mist.mechanisms) && mist.mechanisms.length > 0
+    ? mist.mechanisms.map((m) => tLabel(m)).join(', ')
+    : 'Acute Trauma (Mechanism under evaluation)';
+  out.push(`- **M — Mechanism of Injury:** ${mechs}`);
+  if (mist.mechanismDetail) {
+    out.push(`- **I/S — Injury & Scene Description:** ${tLabel(mist.mechanismDetail)}`);
+  }
+  const preHospList = Array.isArray(mist.prehospitalActions) && mist.prehospitalActions.length > 0
+    ? mist.prehospitalActions
+    : (Array.isArray(mist.prehospitalCare) ? mist.prehospitalCare : []);
+  const preHosp = preHospList.length > 0
+    ? preHospList.map((t) => tLabel(t)).join(', ')
+    : 'No invasive prehospital interventions';
+  out.push(`- **T — Prehospital Interventions:** ${preHosp}`);
+  out.push(`- **A (Allergies):** ${tLabel(ample.allergies) || 'No Known Drug Allergies (NKDA)'}`);
+  out.push(`- **M (Medications):** ${tLabel(ample.medications) || 'No Regular Medications or Anticoagulants'}`);
+  out.push(`- **P (Past Illnesses / Pregnancy):** ${tLabel(ample.pastHistory) || 'No Significant Past Medical or Surgical History'}`);
   out.push(`- **L (Last Meal / NPO Status):** ${tLabel(ample.lastMeal) || 'Unspecified'}`);
-  out.push(`- **E (Events / Tetanus):** ${tLabel(ample.eventsTetanus) || 'Tetanus toxoid evaluation indicated'}\n`);
+  out.push(`- **E (Events / Tetanus):** ${tLabel(ample.eventsTetanus) || 'Evaluate & Administer Tetanus Prophylaxis if Indicated'}\n`);
 
-  // 4. Secondary Survey & Trauma Diagnostics
-  out.push(`#### 4. Secondary Survey, Trauma Injury Map & Diagnostics`);
+  // 3. Secondary Survey, Injuries & Burn
+  out.push(`#### 3. Head-to-Toe Secondary Survey, Injury Registry & Burn Assessment`);
+  const h2tEn = synthesizeAtlsHeadToToeLines(sec, true);
+  if (h2tEn.length > 0) {
+    out.push(`- **Head-to-Toe Secondary Examination:**\n  * ${h2tEn.join('\n  * ')}`);
+  }
+
   if (Array.isArray(sec.injuries) && sec.injuries.length > 0) {
-    out.push(`- **Trauma Injury Map:**`);
+    out.push(`- **Localized Trauma & Wound Registry:**`);
     sec.injuries.forEach((inj, idx) => {
+      const nvVal = inj.neurovascular || inj.distalNv || '';
+      const siteVal = inj.site || inj.location || '';
       const parts = [
         inj.type ? `Type: **${tLabel(inj.type)}**` : '',
-        inj.site ? `Site: **${tLabel(inj.site)}**` : '',
-        inj.dimensions ? `Dimensions: ${inj.dimensions}` : '',
+        siteVal ? `Site: **${tLabel(siteVal)}**` : '',
+        inj.dimensions ? `Dimensions: ${tLabel(inj.dimensions)}` : '',
         inj.bleeding ? `Bleeding: ${tLabel(inj.bleeding)}` : '',
-        inj.distalNv ? `Distal NV: ${tLabel(inj.distalNv)}` : ''
+        nvVal ? `Distal NV: **${tLabel(nvVal)}**` : ''
       ].filter(Boolean);
       out.push(`  * #${idx + 1}: ${parts.join(' | ')}`);
     });
+  } else {
+    out.push(`- **Localized Wound Registry:** No active open penetrating wound or laceration recorded.`);
   }
 
-  // Burns
-  if (sec.burn && (sec.burn.degree || sec.burn.tbsa)) {
-    out.push(`- **Burn Evaluation:** Degree: ${tLabel(sec.burn.degree) || '—'} | % TBSA: ${sec.burn.tbsa || '—'}% (Involved: ${tLabel(sec.burn.regions) || '—'}) | Inhalation Signs: ${sec.burn.inhalationSigns?.map(s => tLabel(s)).join(', ') || 'None'}`);
+  if (sec.burnActive) {
+    const bDeg = tLabel(sec.burnDegree) || 'Partial-Thickness (2nd Degree)';
+    const bTbsa = sec.burnTbsa ? `${tLabel(sec.burnTbsa).replace(/%$/, '')}% TBSA` : 'Unspecified % TBSA';
+    const bInh = tLabel(sec.burnInhalation) || 'No clinical signs of inhalation injury';
+    out.push(`- **Burn Assessment:** **${bDeg}** involving **${bTbsa}** | Airway / Inhalation: ${bInh}`);
+  } else if (sec.burn && (sec.burn.degree || sec.burn.tbsa)) {
+    out.push(`- **Burn Assessment:** Degree: ${tLabel(sec.burn.degree) || '—'} | % TBSA: ${sec.burn.tbsa || '—'}%${sec.burn.regions ? ` (Involved: ${tLabel(sec.burn.regions)})` : ''} | Inhalation Signs: ${sec.burn.inhalationSigns?.map((s) => tLabel(s)).join(', ') || 'None'}`);
   }
 
-  // eFAST
-  if (sec.efast) {
+  // 4. eFAST, Trauma Imaging, STAT Labs & Plan
+  out.push(`\n#### 4. Bedside eFAST, Trauma Imaging, STAT Labs & Emergency Plan`);
+  if (sec.efastStatus || (Array.isArray(sec.efastWindows) && sec.efastWindows.length > 0) || sec.efastDetail) {
+    const winStr = Array.isArray(sec.efastWindows) && sec.efastWindows.length > 0
+      ? ` [Positive Windows: ${sec.efastWindows.map((w) => tLabel(w)).join(', ')}]`
+      : '';
+    const detStr = sec.efastDetail ? ` (${tLabel(sec.efastDetail)})` : '';
+    out.push(`- **Bedside eFAST:** **${tLabel(sec.efastStatus) || 'Not Performed'}**${winStr}${detStr}`);
+  } else if (sec.efast) {
     const ef = sec.efast;
     const efParts = [
       `Pericardial: **${tLabel(ef.pericardial || 'Negative')}**`,
@@ -1996,22 +2494,30 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
       `Pelvis/Suprapubic: **${tLabel(ef.pelvic || 'Negative')}**`,
       `Thoracic Sliding: **${tLabel(ef.thoracic || 'Sliding Present')}**`
     ];
-    out.push(`- **eFAST Ultrasound Findings:** ${efParts.join(' | ')}`);
+    out.push(`- **Bedside eFAST Findings:** ${efParts.join(' | ')}`);
   }
 
-  // Plan
-  out.push(`\n#### 5. Immediate Trauma Management & Disposition Plan`);
+  if (sec.imagingNote) {
+    out.push(`- **Portable Radiographs & Trauma CT:** ${tLabel(sec.imagingNote)}`);
+  }
+  if (sec.statLabsNote) {
+    out.push(`- **STAT Trauma Laboratories:** ${tLabel(sec.statLabsNote)}`);
+  }
+
+  out.push(`\n#### 5. Emergency Resuscitation Interventions & Disposition Plan`);
   const planItems = [];
-  (sec.planTags || []).forEach(tag => planItems.push(tLabel(tag)));
-  if (sec.planText) {
-    sec.planText.split('\n').filter(Boolean).forEach(l => planItems.push(tLabel(l)));
+  const rawPlanTags = Array.isArray(sec.actionsAndPlan) ? sec.actionsAndPlan : (Array.isArray(sec.planTags) ? sec.planTags : []);
+  rawPlanTags.forEach((tag) => planItems.push(tLabel(tag)));
+  const rawPlanNote = sec.planCustomNote || sec.planText || '';
+  if (rawPlanNote) {
+    rawPlanNote.split('\n').filter(Boolean).forEach((l) => planItems.push(tLabel(l)));
   }
   if (planItems.length > 0) {
     planItems.forEach((item, i) => {
       out.push(`${i + 1}. ${item}`);
     });
   } else {
-    out.push(`1. Serial trauma abdominal examinations, resuscitation labs, and imaging per ATLS protocol.`);
+    out.push(`1. Serial trauma physical examinations, resuscitation laboratories, and imaging per ATLS protocol.`);
   }
 
   return out.join('\n');
@@ -2045,27 +2551,13 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
     out.push(`> **مصدوم / بیمار:** ${demo.fullName || '—'} (${ageStr || '-'})${wardStr}${bedStr} | **پرونده:** ${demo.recordNumber || 'اورژانس تروما'}`);
   }
 
-  out.push(`### 🚑 پرونده احیا و ترومای حاد اورژانس (Emergency ATLS Trauma Note)`);
+  out.push(`### پرونده احیا و ترومای حاد اورژانس (Emergency ATLS Trauma Note)`);
   out.push(
     `**مشخصات مصدوم:** ${ptIntro} | **نحوه ورود:** ${mist.arrivalMode || 'اورژانس ۱۱۵ (EMS)'} | **زمان وقوع حادثه:** ${normalizePersianClinicalText(mist.incidentTime || 'نامشخص')}\n`
   );
 
-  // 1. MIST & EMS Handover
-  out.push(`#### ۱. مکانیسم تروما و تحویل پیش‌بیمارستانی (MIST & EMS Handover)`);
-  const mechs = Array.isArray(mist.mechanisms) && mist.mechanisms.length > 0
-    ? mist.mechanisms.join(' ، ')
-    : 'ترومای حاد (مکانیسم در حال بررسی)';
-  out.push(`- **مکانیسم آسیب (M — Mechanism of Injury):** ${mechs}`);
-  if (mist.mechanismDetail) {
-    out.push(`- **شرح دقیق صحنه حادثه و آسیب‌های مشکوک (I/S):** ${normalizePersianClinicalText(mist.mechanismDetail)}`);
-  }
-  const preHosp = Array.isArray(mist.prehospitalCare) && mist.prehospitalCare.length > 0
-    ? mist.prehospitalCare.join(' ، ')
-    : 'بدون اقدام تهاجمی پیش‌بیمارستانی';
-  out.push(`- **اقدامات پیش‌بیمارستانی (T — Treatment Given):** ${preHosp}\n`);
-
-  // 2. Primary Survey (ABCDE)
-  out.push(`#### ۲. ارزیابی اولیه و احیا (Primary Survey — ABCDE & Resuscitation Vitals)`);
+  // 1. Primary Survey (ABCDE)
+  out.push(`#### ۱. ارزیابی اولیه و علائم حیاتی احیا (Primary Survey — ABCDE)`);
   const gcsTotal = vit.gcsTotal || ((Number(vit.gcsE) || 4) + (Number(vit.gcsV) || 5) + (Number(vit.gcsM) || 6));
   const gcsBreakdown = `GCS: **${gcsTotal}/15** (E${vit.gcsE || 4} V${vit.gcsV || 5} M${vit.gcsM || 6})`;
   const vTokens = [
@@ -2077,33 +2569,53 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
     gcsBreakdown
   ].filter(Boolean);
   out.push(`- **علائم حیاتی بدو ورود به تریاژ/احیا (Admission Vitals):** ${vTokens.join(' | ')}`);
-  out.push(`- **A — Airway & C-Spine Protection:** ${pri.airway || 'راه هوایی باز و ایمن (Patent & Intact)'}`);
-  out.push(`- **B — Breathing & Ventilation:** ${pri.breathing || 'سمع دوطرفه ریه شفاف و متقارن (Bilateral Clear Breath Sounds)'}`);
-  out.push(`- **C — Circulation & Hemorrhage Control:** ${pri.circulation || 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر (Class I)'}`);
-  out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | مردمک‌ها: ${pri.disabilityPupils || 'مردمک‌ها قرینه و واکنش‌دار به نور (PERRLA 3mm)'}`);
-  out.push(`- **E — Exposure & Environmental Control:** ${pri.exposure || 'لباس‌ها خارج شد، بررسی کامل سطح بدن و پیشگیری از هیپوترمی انجام شد'}\n`);
+  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, false) || 'راه هوایی باز و ایمن (Patent & Intact)'}`);
+  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, false) || 'حرکات قفسه سینه قرینه و سمع دوطرفه شفاف'}`);
+  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, false) || 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر'}`);
+  const disFa = formatAtlsValue(pri.disability || pri.disabilityPupils, false) || 'مردمک‌ها قرینه و راکتیو به نور (PERRLA)، بدون نقص عصبی فوکال';
+  out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | ${disFa}`);
+  out.push(`- **E — Exposure & Environmental Control:** ${formatAtlsValue(pri.exposure, false) || 'برهنه‌سازی کامل و بررسی پشت (Log-roll) انجام شد؛ پیشگیری از هیپوترمی برقرار است'}\n`);
 
-  // 3. AMPLE History
-  out.push(`#### ۳. شرح‌حال سریع اورژانسی (AMPLE History)`);
-  out.push(`- **A (Allergies):** ${normalizePersianClinicalText(ample.allergies || 'NKDA (عدم سابقه حساسیت دارویی)')}`);
-  out.push(`- **M (Medications):** ${normalizePersianClinicalText(ample.medications || 'عدم مصرف داروی خاص / ضدانعقاد')}`);
-  out.push(`- **P (Past Illnesses / Pregnancy):** ${normalizePersianClinicalText(ample.pastHistory || 'بدون سابقه بیماری زمینه‌ای یا جراحی شناخته‌شده')}`);
+  // 2. MIST & AMPLE
+  out.push(`#### ۲. مکانیسم تروما، اقدامات پیش‌بیمارستانی و شرح‌حال اورژانس (MIST & AMPLE)`);
+  const mechs = Array.isArray(mist.mechanisms) && mist.mechanisms.length > 0
+    ? mist.mechanisms.join(' ، ')
+    : 'ترومای حاد (مکانیسم در حال بررسی)';
+  out.push(`- **مکانیسم آسیب (M — Mechanism of Injury):** ${mechs}`);
+  if (mist.mechanismDetail) {
+    out.push(`- **شرح دقیق صحنه حادثه و آسیب‌های مشکوک (I/S):** ${normalizePersianClinicalText(mist.mechanismDetail)}`);
+  }
+  const preHospArr = Array.isArray(mist.prehospitalActions) && mist.prehospitalActions.length > 0
+    ? mist.prehospitalActions
+    : (Array.isArray(mist.prehospitalCare) ? mist.prehospitalCare : []);
+  const preHosp = preHospArr.length > 0
+    ? preHospArr.join(' ، ')
+    : 'بدون اقدام تهاجمی پیش‌بیمارستانی';
+  out.push(`- **اقدامات پیش‌بیمارستانی (T — Treatment Given):** ${preHosp}`);
+  out.push(`- **A (Allergies):** ${normalizePersianClinicalText(ample.allergies || 'حساسیت دارویی یا غذایی شناخته‌شده‌ای ندارد (NKDA)')}`);
+  out.push(`- **M (Medications):** ${normalizePersianClinicalText(ample.medications || 'عدم مصرف داروی خاص یا ضدانعقاد')}`);
+  out.push(`- **P (Past Illnesses / Pregnancy):** ${normalizePersianClinicalText(ample.pastHistory || 'بدون سابقه بیماری زمینه‌ای یا جراحی قبلی')}`);
   out.push(`- **L (Last Meal / NPO Status):** ${normalizePersianClinicalText(ample.lastMeal || 'نامشخص')}`);
   out.push(`- **E (Events / Environment / Tetanus):** ${normalizePersianClinicalText(ample.eventsTetanus || 'نیازمند بررسی واکسیناسیون کزاز')}\n`);
 
-  // 4. Secondary Survey, Injury Map, Burns, eFAST & Plan
-  out.push(`#### ۴. ارزیابی ثانویه، نقشه آسیب‌ها، سوختگی و پاراکلینیک تروما (Secondary Survey & eFAST)`);
+  // 3. Secondary Survey, Injury Registry & Burn
+  out.push(`#### ۳. ارزیابی ثانویه سر تا پا، نقشه جراحات و سوختگی (Secondary Survey & Injuries)`);
+  const h2tFa = synthesizeAtlsHeadToToeLines(sec, false);
+  if (h2tFa.length > 0) {
+    out.push(`- **معاینه سرتاپایی (Head-to-Toe Secondary Survey):**\n  * ${h2tFa.join('\n  * ')}`);
+  }
 
-  // Dynamic Injury Map
   if (Array.isArray(sec.injuries) && sec.injuries.length > 0) {
-    out.push(`- **نقشه ضایعات، پارگی‌ها و آسیب‌های موضعی (Trauma Injury Map):**`);
+    out.push(`- **نقشه ضایعات، پارگی‌ها و آسیب‌های موضعی (Trauma Injury Registry):**`);
     sec.injuries.forEach((inj, idx) => {
+      const nvVal = inj.neurovascular || inj.distalNv || '';
+      const siteVal = inj.site || inj.location || '';
       const parts = [
         inj.type ? `نوع ضایعه: **${inj.type}**` : '',
-        inj.site ? `محل آناتومیک: **${normalizePersianClinicalText(inj.site)}**` : '',
+        siteVal ? `محل آناتومیک: **${normalizePersianClinicalText(siteVal)}**` : '',
         inj.dimensions ? `ابعاد/عمق: ${normalizePersianClinicalText(inj.dimensions)}` : '',
         inj.bleeding ? `خونریزی: ${inj.bleeding}` : '',
-        inj.neurovascular ? `وضعیت نوروواسکولار دیستال: **${normalizePersianClinicalText(inj.neurovascular)}**` : ''
+        nvVal ? `وضعیت نوروواسکولار دیستال: **${normalizePersianClinicalText(nvVal)}**` : ''
       ].filter(Boolean);
       out.push(`  ${idx + 1}. ${parts.join(' | ')}`);
     });
@@ -2111,41 +2623,34 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
     out.push(`- **نقشه ضایعات ظاهری:** ضایعه نافذ یا لاسراسیون باز فعالی ثبت نشده است.`);
   }
 
-  // Burn Module
   if (sec.burnActive) {
-    const bDeg = sec.burnDegree || 'درجه ۲';
-    const bTbsa = sec.burnTbsa ? `${sec.burnTbsa}% TBSA` : 'درصد تعیین نشده';
+    const bDeg = sec.burnDegree || 'درجه ۲ سطحی / عمقی (Partial Thickness - II)';
+    const bTbsa = sec.burnTbsa ? `${String(sec.burnTbsa).replace(/%$/, '')}% TBSA` : 'درصد تعیین نشده';
     const bInh = normalizePersianClinicalText(sec.burnInhalation || 'بدون شواهد سوختگی استنشاقی');
-    out.push(`- **🔥 ارزیابی تخصصی سوختگی (Burn Assessment):** سوختگی **${bDeg}** به وسعت **${bTbsa}** | وضعیت راه هوایی و استنشاقی: ${bInh}`);
+    out.push(`- **ارزیابی تخصصی سوختگی (Burn Assessment):** سوختگی **${bDeg}** به وسعت **${bTbsa}** | وضعیت راه هوایی و استنشاقی: ${bInh}`);
+  } else if (sec.burn && (sec.burn.degree || sec.burn.tbsa)) {
+    out.push(`- **ارزیابی سوختگی:** درجه: **${sec.burn.degree || '—'}** | وسعت: **${sec.burn.tbsa || '—'}% TBSA**`);
   }
 
-  // Head-to-Toe Exam
-  const h2t = [
-    sec.headFace ? `**سر و فک و صورت:** ${normalizePersianClinicalText(sec.headFace)}` : '',
-    sec.neck ? `**گردن:** ${normalizePersianClinicalText(sec.neck)}` : '',
-    sec.chest ? `**قفسه سینه:** ${normalizePersianClinicalText(sec.chest)}` : '',
-    sec.abdomenPelvis ? `**شکم و لگن:** ${normalizePersianClinicalText(sec.abdomenPelvis)}` : '',
-    sec.perineumDre ? `**پرینه و DRE:** ${normalizePersianClinicalText(sec.perineumDre)}` : '',
-    sec.extremitiesNeuro ? `**اندام‌ها و نوروواسکولار:** ${normalizePersianClinicalText(sec.extremitiesNeuro)}` : ''
-  ].filter(Boolean);
-  if (h2t.length > 0) {
-    out.push(`- **معاینه سرتاپایی (Head-to-Toe Secondary Survey):**\n  * ${h2t.join('\n  * ')}`);
-  }
-
-  // eFAST & Trauma Imaging & Stat Labs
-  out.push(`- **سونوگرافی بر بالین (eFAST):** **${sec.efastStatus || 'انجام نشده'}**${sec.efastDetail ? ` (${normalizePersianClinicalText(sec.efastDetail)})` : ''}`);
+  // 4. eFAST, Trauma Imaging, Stat Labs & Plan
+  out.push(`\n#### ۴. eFAST، تصویربرداری تروما، آزمایش‌های اورژانس و پلن نهایی`);
+  const efastWinFa = Array.isArray(sec.efastWindows) && sec.efastWindows.length > 0
+    ? ` [پنجره‌های مثبت: ${sec.efastWindows.join(' ، ')}]`
+    : '';
+  out.push(`- **سونوگرافی بر بالین (eFAST):** **${sec.efastStatus || 'انجام نشده'}**${efastWinFa}${sec.efastDetail ? ` (${normalizePersianClinicalText(sec.efastDetail)})` : ''}`);
   if (sec.imagingNote) {
     out.push(`- **گرافی‌های پرتابل و سی‌تی‌اسکن تروما (Trauma Imaging):** ${normalizePersianClinicalText(sec.imagingNote)}`);
   }
   if (sec.statLabsNote) {
-    out.push(`- **آزمایش‌های اورژانسی (Stat Trauma Labs):** ${normalizePersianClinicalText(sec.statLabsNote)}`);
+    out.push(`- **آزمایش‌های اورژانسی (STAT Trauma Labs):** ${normalizePersianClinicalText(sec.statLabsNote)}`);
   }
 
   // Emergency Actions & Disposition Plan
   out.push(`\n#### ۵. اقدامات احیا، پروفیلاکسی و تعیین تکلیف اورژانس (ATLS Resuscitation & Disposition Plan)`);
-  const planActions = [...(Array.isArray(sec.actionsAndPlan) ? sec.actionsAndPlan : [])];
-  if (sec.planCustomNote) {
-    sec.planCustomNote.split('\n').filter(Boolean).forEach((line) => planActions.push(normalizePersianClinicalText(line)));
+  const planActions = [...(Array.isArray(sec.actionsAndPlan) ? sec.actionsAndPlan : (Array.isArray(sec.planTags) ? sec.planTags : []))];
+  const customPlanFa = sec.planCustomNote || sec.planText || '';
+  if (customPlanFa) {
+    customPlanFa.split('\n').filter(Boolean).forEach((line) => planActions.push(normalizePersianClinicalText(line)));
   }
   if (planActions.length > 0) {
     planActions.forEach((act, idx) => {

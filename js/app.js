@@ -1,3 +1,4 @@
+import { getIconSvg, injectDomIcons, ICONS } from './icons.js';
 import {
   storageVault
 } from './storage-vault.js';
@@ -40,6 +41,7 @@ import {
   ATLS_EXAM_SCHEMA,
   PE_NORMAL_BASELINES,
   HIDDEN_EXTENDED_PMH_DATABASE,
+  MASTER_PSH_SURGERIES_BANK,
   PSH_SURGICAL_PROCEDURES_BANK,
   FH_CANCER_HEREDITARY_DATABASE,
   EXTENDED_LAB_DATABASE,
@@ -182,11 +184,11 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
 export function createDefaultAtlsState() {
   return {
     mist: {
-      arrivalMode: 'آمبولانس اورژانس ۱۱۵ (EMS)',
+      arrivalMode: '',
       mechanisms: [],
       incidentTime: '',
       mechanismDetail: '',
-      prehospitalCare: []
+      prehospitalActions: []
     },
     primary: {
       vitals: {
@@ -195,19 +197,20 @@ export function createDefaultAtlsState() {
         rr: '',
         temp: '',
         spo2: '',
-        gcsE: 4,
-        gcsV: 5,
-        gcsM: 6,
-        gcsTotal: 15
+        gcsE: null,
+        gcsV: null,
+        gcsM: null,
+        gcsTotal: null
       },
-      airway: 'راه هوایی باز و ایمن — بیمار بیدار و سخنگو (Patent & Intact)',
-      breathing: 'سمع دوطرفه ریه شفاف و متقارن (Bilateral Clear Breath Sounds)',
-      circulation: 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر (Class I)',
-      disabilityPupils: 'مردمک‌ها قرینه و واکنش‌دار به نور (PERRLA 3mm)',
-      exposure: 'لباس‌ها خارج شد، بررسی کامل سطح بدن و پیشگیری از هیپوترمی انجام شد'
+      airway: [],
+      breathing: [],
+      circulation: [],
+      disability: [],
+      disabilityPupils: '',
+      exposure: []
     },
     ample: {
-      allergies: 'NKDA (عدم سابقه حساسیت دارویی)',
+      allergies: '',
       medications: '',
       pastHistory: '',
       lastMeal: '',
@@ -216,16 +219,18 @@ export function createDefaultAtlsState() {
     secondary: {
       injuries: [],
       burnActive: false,
-      burnDegree: 'درجه ۲ سطحی/عمقی (Partial Thickness)',
+      burnDegree: '',
       burnTbsa: '',
-      burnInhalation: 'بدون شواهد سوختگی استنشاقی (No Inhalation Injury)',
+      burnInhalation: '',
+      headToToeCapsules: {},
       headFace: '',
       neck: '',
       chest: '',
       abdomenPelvis: '',
       perineumDre: '',
       extremitiesNeuro: '',
-      efastStatus: 'منفی (Negative eFAST — بدون مایع آزاد در ۴ ناحیه و پریکارد)',
+      efastStatus: '',
+      efastWindows: [],
       efastDetail: '',
       imagingNote: '',
       statLabsNote: '',
@@ -364,7 +369,7 @@ export function createDefaultClinicalState() {
       atlsExam: {
         active: false,
         enabled: false,
-        primarySurvey: { airway: '', breathing: '', circulation: '', disability: '', exposure: '' },
+        primarySurvey: {},
         wounds: [],
         burn: { degree: '', tbsa: '', regions: '', inhalationSigns: [] }
       },
@@ -520,7 +525,7 @@ function showToast(message, type = 'info') {
   if (!container) return;
   const toast = document.createElement('div');
   toast.className = 'toast';
-  const icon = type === 'success' ? '✓' : type === 'warning' ? '⚠' : 'ℹ';
+  const icon = type === 'success' ? '' : type === 'warning' ? '!' : 'i';
   toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
   container.appendChild(toast);
   setTimeout(() => {
@@ -596,6 +601,9 @@ function renderInlineDetailTriStateChip(options) {
       wrap.classList.remove('has-inline-open');
     }
 
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
     if (onStateChange) {
       onStateChange(newState, inlineInput.value);
     }
@@ -987,7 +995,7 @@ export function renderArchetypeSelectorGrid() {
       id: 'pain_archetype',
       cardClass: 'arch-card-pain',
       iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>',
-      title: '🔥 درد و ناراحتی (Pain & Discomfort)',
+      title: 'درد و ناراحتی (Pain & Discomfort)',
       subtitle: 'شکمی، قفسه سینه، سر و گردن، کمر و اندام',
       defaultTitle: 'درد و ناراحتی'
     },
@@ -995,7 +1003,7 @@ export function renderArchetypeSelectorGrid() {
       id: 'mass_lesion_archetype',
       cardClass: 'arch-card-mass',
       iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>',
-      title: '🟣 توده، تورم و ضایعه (Mass, Cyst & Lesion)',
+      title: 'توده، تورم و ضایعه (Mass, Cyst & Lesion)',
       subtitle: 'پستان، تیروئید، فک و صورت، کیست سر، فتق',
       defaultTitle: 'توده / ضایعه'
     },
@@ -1003,7 +1011,7 @@ export function renderArchetypeSelectorGrid() {
       id: 'trauma_burn_archetype',
       cardClass: 'arch-card-trauma',
       iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
-      title: '🚑 تروما، جراحت و سوختگی (Trauma, Stab/GSW & Burn)',
+      title: 'تروما، جراحت و سوختگی (Trauma, Stab/GSW & Burn)',
       subtitle: 'چاقو، گلوله، تصادف، سقوط، سوختگی',
       defaultTitle: 'تروما و جراحت'
     },
@@ -1011,7 +1019,7 @@ export function renderArchetypeSelectorGrid() {
       id: 'functional_bleeding_archetype',
       cardClass: 'arch-card-functional',
       iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>',
-      title: '🌊 اختلال عملکرد، خونریزی یا زردی (Functional & Bleeding)',
+      title: 'اختلال عملکرد، خونریزی یا زردی (Functional & Bleeding)',
       subtitle: 'تنگی نفس، خونریزی گوارشی، ایکتر، احتباس',
       defaultTitle: 'اختلال عملکرد / خونریزی'
     },
@@ -1019,7 +1027,7 @@ export function renderArchetypeSelectorGrid() {
       id: 'elective_asymptomatic_archetype',
       cardClass: 'arch-card-elective',
       iconSvg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>',
-      title: '📋 بستری الکتیو / ارجاع بی‌علامت (Elective & Pre-Op)',
+      title: 'بستری الکتیو / ارجاع بی‌علامت (Elective & Pre-Op)',
       subtitle: 'نامه استاد، کانسر/سنگ تشخیصدادهشده، چکاپ',
       defaultTitle: 'بستری الکتیو / ارجاع'
     }
@@ -1072,7 +1080,7 @@ export function renderHpiPresentations() {
   if (!clinicalState.hpi.presentations || clinicalState.hpi.presentations.length === 0) {
     container.innerHTML = `
       <div class="hpi-empty-state">
-        <div class="hpi-empty-icon">🩺</div>
+        <div class="hpi-empty-icon">${getIconSvg("stethoscope", { size: 36 })}</div>
         <div class="hpi-empty-title">هنوز مواجهه‌ای ثبت نشده است</div>
         <div class="hpi-empty-desc">
           برای شروع، نوع شکایت بیمار را از یکی از ۵ الگوی بالا انتخاب کنید (امکان افزودن چندین الگوی همزمان وجود دارد).
@@ -1096,11 +1104,11 @@ export function renderHpiPresentations() {
   };
 
   const iconMap = {
-    pain_archetype: '🔥',
-    mass_lesion_archetype: '🟣',
-    trauma_burn_archetype: '🚑',
-    functional_bleeding_archetype: '🌊',
-    elective_asymptomatic_archetype: '📋'
+    pain_archetype: 'zap',
+    mass_lesion_archetype: 'circle-dot',
+    trauma_burn_archetype: 'ambulance',
+    functional_bleeding_archetype: 'droplet',
+    elective_asymptomatic_archetype: 'clipboard'
   };
 
   clinicalState.hpi.presentations.forEach((pres, index) => {
@@ -1118,7 +1126,7 @@ export function renderHpiPresentations() {
 
     const iconSpan = document.createElement('span');
     iconSpan.className = 'archetype-card-icon-pill';
-    iconSpan.textContent = iconMap[archType] || '📍';
+    iconSpan.innerHTML = getIconSvg(iconMap[archType] || 'file-text', { size: 16 });
     titleArea.appendChild(iconSpan);
 
     const badge = document.createElement('span');
@@ -1670,7 +1678,7 @@ function renderElectiveArchetypeBody(card, pres) {
 
     procCard.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; padding-bottom:0.5rem; border-bottom:1px solid var(--border-medium);">
-        <span style="font-weight:700; color:var(--primary); font-size:0.88rem;">⚡ اقدام الکتیو برنامه‌ریزی‌شده (فاقد شکایت حاد)</span>
+        <span style="font-weight:700; color:var(--primary); font-size:0.88rem;">اقدام الکتیو برنامه‌ریزی‌شده (فاقد شکایت حاد)</span>
         <button type="button" class="btn btn-secondary btn-sm btn-switch-to-asymptomatic" style="font-size:0.75rem;">تغییر به مود بررسی علامت/توده</button>
       </div>
       <div class="form-grid-2">
@@ -2020,7 +2028,7 @@ function renderPainArchetypeBody(card, pain, index) {
 
     const radLabel = document.createElement('span');
     radLabel.className = 'radiation-capsule-label';
-    radLabel.innerHTML = `<span>${isSelected ? '🔘' : '⚪'}</span> <span>${site.label}</span>`;
+    radLabel.innerHTML = `<span>${isSelected ? '' : ''}</span> <span>${site.label}</span>`;
 
     radItem.appendChild(radLabel);
 
@@ -2215,7 +2223,7 @@ function renderPainRegionsForEpisode(cardElement, pain) {
 
     const row2 = document.createElement('div');
     row2.className = 'form-group';
-    row2.innerHTML = `<label class="form-label">🎯 ناحیه(های) لوکالیزه‌شده فعلی (Current Localized Region)</label>`;
+    row2.innerHTML = `<label class="form-label">ناحیه(های) لوکالیزه‌شده فعلی (Current Localized Region)</label>`;
     const grid2 = document.createElement('div');
     grid2.className = 'abdominal-matrix-grid';
     renderRegionButtonsIntoGrid(grid2, pain.currentRegions || [], (newArr) => {
@@ -2228,7 +2236,7 @@ function renderPainRegionsForEpisode(cardElement, pain) {
   } else if (pattern === 'localized_to_generalized' || pattern === 'migratory_shifting') {
     const row1 = document.createElement('div');
     row1.className = 'form-group';
-    row1.innerHTML = `<label class="form-label">📍 ۱. محل(های) شروع اولیه درد</label>`;
+    row1.innerHTML = `<label class="form-label">۱. محل(های) شروع اولیه درد</label>`;
     const grid1 = document.createElement('div');
     grid1.className = 'abdominal-matrix-grid';
     renderRegionButtonsIntoGrid(grid1, pain.initialRegions || [], (newArr) => {
@@ -2241,7 +2249,7 @@ function renderPainRegionsForEpisode(cardElement, pain) {
 
     const row2 = document.createElement('div');
     row2.className = 'form-group';
-    row2.innerHTML = `<label class="form-label">🎯 ۲. محل(های) فعلی / ثانویه درد</label>`;
+    row2.innerHTML = `<label class="form-label">۲. محل(های) فعلی / ثانویه درد</label>`;
     const grid2 = document.createElement('div');
     grid2.className = 'abdominal-matrix-grid';
     renderRegionButtonsIntoGrid(grid2, pain.currentRegions || [], (newArr) => {
@@ -2364,7 +2372,7 @@ function renderHpiUnlockableModules() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn-unlock-module';
-      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>🔒</span>`;
+      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>${getIconSvg('lock', { size: 13 })}</span>`;
       btn.addEventListener('click', () => {
         clinicalState.hpi.unlockedModules.push(mod.id);
         renderHpiUnlockableModules();
@@ -2380,7 +2388,7 @@ function renderHpiUnlockableModules() {
       const header = document.createElement('div');
       header.className = 'unlocked-module-header';
       header.innerHTML = `
-        <span class="unlocked-module-title">🔓 ${mod.title}</span>
+        <span class="unlocked-module-title">${getIconSvg('unlock', { size: 14 })} ${mod.title}</span>
         <button type="button" class="btn btn-secondary btn-sm btn-close-module" style="color:#EF4444;">بستن و حذف</button>
       `;
 
@@ -2467,7 +2475,7 @@ function renderPmhCategories() {
     const btnNeg = document.createElement('button');
     btnNeg.type = 'button';
     btnNeg.className = `btn-category-neg ${catData.status === 'negated' ? 'active' : ''}`;
-    btnNeg.textContent = catData.status === 'negated' ? '✓ نفی شد' : '− نفی کل دسته';
+    btnNeg.textContent = catData.status === 'negated' ? 'نفی شد' : '− نفی کل دسته';
 
     const btnPos = document.createElement('button');
     btnPos.type = 'button';
@@ -2570,7 +2578,8 @@ export function addPshSurgeryItem(procObj) {
       label: procObj.label || procObj.name || 'جراحی قبلی',
       procedure: procObj.label || procObj.name || 'جراحی قبلی',
       en: procObj.en || '',
-      note: ''
+      year: procObj.year || '',
+      note: procObj.note || ''
     });
   }
   renderPshCapsulesAndSelected();
@@ -2581,35 +2590,52 @@ export function addPshSurgeryItem(procObj) {
 export function renderPshCapsulesAndSelected(filterQuery = '') {
   const capsulesBar = document.getElementById('pshCommonCapsulesBar');
   const selectedContainer = document.getElementById('pshSelectedSurgeriesContainer');
+  const searchTray = document.querySelector('#cardPshHistory .search-results-tray');
   if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '' };
   if (!Array.isArray(clinicalState.psh.surgeries)) clinicalState.psh.surgeries = [];
 
   if (capsulesBar) {
     capsulesBar.innerHTML = '';
-    const q = (filterQuery || '').trim();
-    const pool = Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : [];
-    const itemsToShow = q
-      ? smartClinicalSearch(q, pool, ['label', 'en', 'keywords'], 15)
-      : pool.slice(0, 12);
+  }
 
-    itemsToShow.forEach((proc) => {
-      const isAdded = clinicalState.psh.surgeries.some((s) => s.id === proc.id);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `toggle-chip ${isAdded ? 'active' : ''}`;
-      btn.innerHTML = `<span>${isAdded ? '✓' : '➕'}</span> <span>${proc.label}</span>`;
-      btn.addEventListener('click', () => {
-        if (isAdded) {
-          clinicalState.psh.surgeries = clinicalState.psh.surgeries.filter((s) => s.id !== proc.id);
-          renderPshCapsulesAndSelected(filterQuery);
-          saveCurrentCase();
-          updateLivePreview();
-        } else {
-          addPshSurgeryItem(proc);
-        }
-      });
-      capsulesBar.appendChild(btn);
-    });
+  const q = (filterQuery || '').trim();
+  if (searchTray) {
+    searchTray.innerHTML = '';
+    if (q) {
+      const pool = Array.isArray(MASTER_PSH_SURGERIES_BANK) ? MASTER_PSH_SURGERIES_BANK : (Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : []);
+      const matches = smartClinicalSearch(q, pool, ['label', 'en'], 12);
+      if (matches.length > 0) {
+        searchTray.style.display = 'flex';
+        searchTray.style.flexWrap = 'wrap';
+        searchTray.style.gap = '0.45rem';
+        searchTray.style.padding = '0.5rem';
+        searchTray.style.background = 'var(--bg-elevated)';
+        searchTray.style.border = '1px solid var(--border-subtle)';
+        searchTray.style.borderRadius = '8px';
+
+        matches.forEach((proc) => {
+          const isSelected = clinicalState.psh.surgeries.some((s) => s.id === proc.id || s.label === proc.label);
+          const chip = document.createElement('div');
+          chip.className = `search-tray-item ${isSelected ? 'is-positive' : ''}`;
+          chip.style.cssText = 'display:inline-flex; align-items:center; gap:0.4rem; padding:0.25rem 0.65rem; background:var(--bg-surface); border:1px solid var(--border-strong); border-radius:9999px; cursor:pointer; font-size:0.82rem; user-select:none;';
+          chip.innerHTML = `
+            <span style="font-weight:700; color:var(--primary); font-size:1.05rem; line-height:1;">+</span>
+            <span style="font-weight:600; color:var(--text-primary);">${proc.label}</span>
+          `;
+          chip.addEventListener('click', () => {
+            addPshSurgeryItem(proc);
+            searchTray.style.display = 'none';
+            const searchInput = document.getElementById('pshQuickSearchInput');
+            if (searchInput) searchInput.value = '';
+          });
+          searchTray.appendChild(chip);
+        });
+      } else {
+        searchTray.style.display = 'none';
+      }
+    } else {
+      searchTray.style.display = 'none';
+    }
   }
 
   if (selectedContainer) {
@@ -2617,12 +2643,20 @@ export function renderPshCapsulesAndSelected(filterQuery = '') {
     clinicalState.psh.surgeries.forEach((surg, idx) => {
       const row = document.createElement('div');
       row.className = 'psh-selected-surgery-row';
-      row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:8px; padding:0.4rem 0.65rem;';
+      row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; background:var(--bg-surface); border:1px solid var(--border-strong); border-radius:8px; padding:0.45rem 0.75rem; flex-wrap:wrap; box-shadow:var(--card-shadow);';
       row.innerHTML = `
-        <span style="font-weight:700; font-size:0.84rem; color:var(--primary); white-space:nowrap;">🔪 ${surg.label || surg.procedure}</span>
-        <input type="text" class="input-text psh-surg-note-inp" style="flex:1; min-width:160px; padding:0.28rem 0.55rem; font-size:0.82rem;" placeholder="سال عمل / سمت (چپ یا راست) / علت یا عارضه..." value="${surg.note || surg.yearHospital || ''}">
-        <button type="button" class="btn-delete-imaging psh-surg-del-btn" title="حذف این جراحی">✕</button>
+        <span style="font-weight:700; font-size:0.85rem; color:var(--primary); min-width:130px; flex:0 0 auto;">${surg.label || surg.procedure}</span>
+        <input type="text" class="input-text psh-surg-year-inp" style="flex:1; min-width:110px; max-width:160px; padding:0.3rem 0.55rem; font-size:0.82rem;" placeholder="سال عمل (مثلاً ۱۴۰۰)..." value="${surg.year || ''}">
+        <input type="text" class="input-text psh-surg-note-inp" style="flex:2; min-width:180px; padding:0.3rem 0.55rem; font-size:0.82rem;" placeholder="توضیحات (بیمارستان، بیهوشی، عوارض...)..." value="${surg.note || surg.yearHospital || ''}">
+        <button type="button" class="btn btn-icon-only psh-surg-del-btn" style="color:var(--text-muted); cursor:pointer; padding:0.25rem;" title="حذف این جراحی">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       `;
+      row.querySelector('.psh-surg-year-inp')?.addEventListener('input', (e) => {
+        surg.year = e.target.value;
+        saveCurrentCase();
+        updateLivePreview();
+      });
       row.querySelector('.psh-surg-note-inp')?.addEventListener('input', (e) => {
         surg.note = e.target.value;
         surg.yearHospital = e.target.value;
@@ -2747,7 +2781,7 @@ function renderPregnancyHistoryRows() {
         <input type="text" class="pregnancy-row-input row-comp" placeholder="مثلاً سزارین تکراری" value="${preg.complications || ''}">
       </td>
       <td style="text-align: center;">
-        <button type="button" class="btn-delete-imaging row-del" title="حذف ردیف">✕</button>
+        <button type="button" class="btn-delete-imaging row-del" title="حذف ردیف"></button>
       </td>
     `;
 
@@ -2833,12 +2867,12 @@ export function renderActiveDrugs() {
 
     const titleBox = document.createElement('div');
     titleBox.className = 'dh-active-title';
-    titleBox.innerHTML = `<span>💊</span><strong>${drug.name}</strong>${drug.en ? ` <span style="font-size: 0.8rem; opacity: 0.8;">(${drug.en})</span>` : ''}`;
+    titleBox.innerHTML = `<span>${getIconSvg('pill', { size: 14 })}</span><strong>${drug.name}</strong>${drug.en ? ` <span style="font-size: 0.8rem; opacity: 0.8;">(${drug.en})</span>` : ''}`;
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'btn-delete-card';
-    delBtn.innerHTML = `<span>🗑️</span><span>حذف</span>`;
+    delBtn.innerHTML = `<span>${getIconSvg('trash', { size: 13 })}</span><span>حذف</span>`;
     delBtn.title = 'حذف این دارو از لیست مصرفی';
     delBtn.addEventListener('click', () => {
       clinicalState.dh.activeDrugs.splice(idx, 1);
@@ -2910,7 +2944,7 @@ export function renderDhCategoryPills() {
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = `dh-category-pill ${activeDhDrawerCatId === cat.id ? 'is-active' : ''}`;
-    pill.innerHTML = `<span>📂</span><span>${cat.title}</span>`;
+    pill.innerHTML = `<span>${getIconSvg('folder', { size: 13 })}</span><span>${cat.title}</span>`;
     pill.addEventListener('click', () => {
       if (activeDhDrawerCatId === cat.id) {
         activeDhDrawerCatId = null;
@@ -2953,10 +2987,10 @@ function renderDhCategoryDrawer() {
     chip.type = 'button';
     chip.className = `dh-drawer-drug-chip ${isAdded ? 'is-added' : ''}`;
     chip.style.cssText = `padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border-medium); background: ${isAdded ? 'var(--emerald-50, #ecfdf5)' : 'var(--bg-card)'}; color: ${isAdded ? 'var(--emerald-700, #047857)' : 'var(--text-primary)'};`;
-    chip.innerHTML = `${isAdded ? '✓ ' : '➕ '}${d.label}`;
+    chip.innerHTML = `${isAdded ? '' : ''}${d.label}`;
     chip.addEventListener('click', () => {
       addActiveDrug(d);
-      chip.innerHTML = `✓ ${d.label}`;
+      chip.innerHTML = `${d.label}`;
       chip.style.background = 'var(--emerald-50, #ecfdf5)';
       chip.style.color = 'var(--emerald-700, #047857)';
     });
@@ -2986,8 +3020,8 @@ function renderCustomDrugs() {
 
     row.innerHTML = `
       <div class="dh-drug-top-bar">
-        <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">💊 ${cd.name || 'داروی جدید'}</span>
-        <button type="button" class="btn-delete-imaging" title="حذف این دارو">✕</button>
+        <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">${cd.name || 'داروی جدید'}</span>
+        <button type="button" class="btn-delete-imaging" title="حذف این دارو"></button>
       </div>
       <div class="dh-3box-container" style="display:flex;">
         <input type="text" class="dh-dose-input cd-dose" placeholder="دوز" value="${cd.dose || ''}">
@@ -3068,7 +3102,7 @@ export function renderFhQuickPills() {
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = `toggle-chip ${isAdded ? 'active' : ''}`;
-    pill.innerHTML = `<span>${isAdded ? '✓' : '➕'}</span> <span>${p.name}</span>`;
+    pill.innerHTML = `<span>${isAdded ? '' : '+'}</span> <span>${p.name}</span>`;
     pill.addEventListener('click', () => {
       addFhDisease(p);
     });
@@ -3162,7 +3196,7 @@ export function renderFhActiveDiseases() {
     const empty = document.createElement('div');
     empty.className = 'fh-empty-state-card';
     empty.innerHTML = `
-      <div class="fh-empty-icon">🧬</div>
+      <div class="fh-empty-icon">${getIconSvg("dna", { size: 36 })}</div>
       <div class="fh-empty-title">هیچ سابقه بیماری خانوادگی ثبت نشده است</div>
       <div class="fh-empty-desc">از ۶ دکمه آماده بالا یا کادر جستجو، بیماری را به پرونده اضافه کنید و سپس برای هر عضو مبتلا در خانواده (پدر، مادر، برادر، خواهر...) ردیف مستقل ایجاد نمایید.</div>
     `;
@@ -3187,7 +3221,7 @@ export function renderFhActiveDiseases() {
 
     const iconSpan = document.createElement('span');
     iconSpan.className = 'fh-disease-icon-pill';
-    iconSpan.textContent = '🧬';
+    iconSpan.innerHTML = getIconSvg('dna', { size: 18 });
     titleArea.appendChild(iconSpan);
 
     const titleText = document.createElement('span');
@@ -3273,7 +3307,7 @@ export function renderFhActiveDiseases() {
       // A. Relation Badge
       const relBadge = document.createElement('span');
       relBadge.className = 'fh-rel-row-badge';
-      relBadge.innerHTML = `👤 <strong>${relObj.relation}</strong>`;
+      relBadge.innerHTML = `<span>${getIconSvg('user', { size: 14 })}</span> <strong>${relObj.relation}</strong>`;
       relRow.appendChild(relBadge);
 
       // B. Vital Status Toggle ([ در قید حیات ] | [ فوت‌شده ])
@@ -3283,7 +3317,7 @@ export function renderFhActiveDiseases() {
       const btnAlive = document.createElement('button');
       btnAlive.type = 'button';
       btnAlive.className = `fh-vital-btn ${relObj.vitalStatus !== 'deceased' ? 'active-alive' : ''}`;
-      btnAlive.innerHTML = `<span>🟢</span> <span>در قید حیات</span>`;
+      btnAlive.innerHTML = `<span class="status-dot alive"></span> <span>در قید حیات</span>`;
       btnAlive.addEventListener('click', () => {
         relObj.vitalStatus = 'alive';
         btnAlive.className = 'fh-vital-btn active-alive';
@@ -3295,7 +3329,7 @@ export function renderFhActiveDiseases() {
       const btnDeceased = document.createElement('button');
       btnDeceased.type = 'button';
       btnDeceased.className = `fh-vital-btn ${relObj.vitalStatus === 'deceased' ? 'active-deceased' : ''}`;
-      btnDeceased.innerHTML = `<span>⚫</span> <span>فوت‌شده</span>`;
+      btnDeceased.innerHTML = `<span class="status-dot deceased"></span> <span>فوت‌شده</span>`;
       btnDeceased.addEventListener('click', () => {
         relObj.vitalStatus = 'deceased';
         btnDeceased.className = 'fh-vital-btn active-deceased';
@@ -3326,7 +3360,7 @@ export function renderFhActiveDiseases() {
       delRelBtn.type = 'button';
       delRelBtn.className = 'btn-delete-fh-rel-row';
       delRelBtn.title = `حذف ردیف ${relObj.relation}`;
-      delRelBtn.textContent = '✕';
+      delRelBtn.textContent = '';
       delRelBtn.addEventListener('click', () => {
         dis.relatives.splice(rIdx, 1);
         if (dis.relatives.length === 0) {
@@ -3354,7 +3388,7 @@ function initAhShFhHandlers() {
   nkdaBtn?.addEventListener('click', () => {
     clinicalState.ah.nkda = !clinicalState.ah.nkda;
     const check = document.getElementById('nkdaCheckIcon');
-    if (check) check.textContent = clinicalState.ah.nkda ? '☑️' : '◻️';
+    if (check) check.textContent = clinicalState.ah.nkda ? '' : '◻️';
     if (details) details.style.opacity = clinicalState.ah.nkda ? '0.4' : '1';
     saveCurrentCase();
     updateLivePreview();
@@ -3555,7 +3589,7 @@ function renderRosGroups() {
   const showAllGenders = !!clinicalState.ros.showAllGenders;
 
   if (genderToggle) {
-    document.getElementById('rosGenderFilterIcon').textContent = showAllGenders ? '🔓' : '🔒';
+    document.getElementById('rosGenderFilterIcon').innerHTML = showAllGenders ? getIconSvg('unlock', { size: 13 }) : getIconSvg('lock', { size: 13 });
     document.getElementById('rosGenderFilterText').textContent = showAllGenders ? 'نمایش همه آیتم‌ها' : 'فیلتر جنسیت فعال';
     genderToggle.onclick = () => {
       clinicalState.ros.showAllGenders = !clinicalState.ros.showAllGenders;
@@ -3654,7 +3688,7 @@ function renderRosGroups() {
     const normalBtn = document.createElement('button');
     normalBtn.type = 'button';
     normalBtn.className = 'btn-set-section-normal';
-    normalBtn.innerHTML = `<span>✓</span><span>معاینه کاملاً طبیعی</span>`;
+    normalBtn.innerHTML = `<span></span><span>معاینه کاملاً طبیعی</span>`;
     normalBtn.title = 'ثبت معاینه کاملاً طبیعی این بخش بر اساس استانداردهای بالینی';
     normalBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3944,7 +3978,7 @@ function renderPeUnlockableModules() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn-unlock-module';
-      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>🔒</span>`;
+      btn.innerHTML = `<span>${mod.buttonLabel}</span><span>${getIconSvg('lock', { size: 13 })}</span>`;
       btn.addEventListener('click', () => {
         clinicalState.pe.unlockedModules.push(mod.id);
         renderPeUnlockableModules();
@@ -3960,7 +3994,7 @@ function renderPeUnlockableModules() {
       const header = document.createElement('div');
       header.className = 'unlocked-module-header';
       header.innerHTML = `
-        <span class="unlocked-module-title">🔓 ${mod.title}</span>
+        <span class="unlocked-module-title">${getIconSvg('unlock', { size: 14 })} ${mod.title}</span>
         <button type="button" class="btn btn-secondary btn-sm btn-close-exam-mod" style="color:#EF4444;">بستن و حذف</button>
       `;
 
@@ -4022,13 +4056,13 @@ function renderMassExamModule() {
 
     const title = document.createElement('span');
     title.className = 'mass-exam-title';
-    title.innerHTML = `<span>🔘</span> <span>معاینه موضعی توده / ضایعه #${idx + 1}</span>`;
+    title.innerHTML = `<span>${getIconSvg('circle-dot', { size: 14 })}</span> <span>معاینه موضعی توده / ضایعه #${idx + 1}</span>`;
     header.appendChild(title);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'btn-delete-mass-exam';
-    delBtn.innerHTML = `<span>🗑️</span><span>حذف این کارت معاینه</span>`;
+    delBtn.innerHTML = `<span>${getIconSvg('trash', { size: 13 })}</span><span>حذف این کارت معاینه</span>`;
     delBtn.addEventListener('click', () => {
       list.splice(idx, 1);
       renderMassExamModule();
@@ -4226,8 +4260,8 @@ export function renderPeComprehensiveSystems() {
     const badge = document.createElement('span');
     badge.className = `pe-system-badge ${sysData.isNormal ? 'badge-normal' : sysData.selectedTags?.length > 0 || sysData.text ? 'badge-finding' : 'badge-idle'}`;
     badge.textContent = sysData.isNormal
-      ? '✓ طبیعی (Normal)'
-      : (sysData.selectedTags?.length > 0 || sysData.text ? '⚠️ یافته ثبت‌شده' : 'ثبت نشده');
+      ? 'طبیعی (Normal)'
+      : (sysData.selectedTags?.length > 0 || sysData.text ? 'یافته ثبت‌شده' : 'ثبت نشده');
     right.appendChild(badge);
 
     const left = document.createElement('div');
@@ -4236,7 +4270,7 @@ export function renderPeComprehensiveSystems() {
     const btnNormal = document.createElement('button');
     btnNormal.type = 'button';
     btnNormal.className = `btn-mark-system-normal ${sysData.isNormal ? 'is-confirmed' : ''}`;
-    btnNormal.innerHTML = `<span>✓</span><span>ثبت معاینه نرمال</span>`;
+    btnNormal.innerHTML = `<span></span><span>ثبت معاینه نرمال</span>`;
     btnNormal.title = 'ثبت معاینه کامل طبیعی این سیستم';
     btnNormal.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -4246,7 +4280,7 @@ export function renderPeComprehensiveSystems() {
         card.classList.add('is-normal-confirmed');
         btnNormal.classList.add('is-confirmed');
         badge.className = 'pe-system-badge badge-normal';
-        badge.textContent = '✓ طبیعی (Normal)';
+        badge.textContent = 'طبیعی (Normal)';
       } else {
         card.classList.remove('is-normal-confirmed');
         btnNormal.classList.remove('is-confirmed');
@@ -4306,7 +4340,7 @@ export function renderPeComprehensiveSystems() {
           sysData.examined = true;
         }
         badge.className = `pe-system-badge ${sysData.isNormal ? 'badge-normal' : sysData.selectedTags.length > 0 || sysData.text ? 'badge-finding' : 'badge-idle'}`;
-        badge.textContent = sysData.isNormal ? '✓ طبیعی (Normal)' : (sysData.selectedTags.length > 0 || sysData.text ? '⚠️ یافته ثبت‌شده' : 'ثبت نشده');
+        badge.textContent = sysData.isNormal ? 'طبیعی (Normal)' : (sysData.selectedTags.length > 0 || sysData.text ? 'یافته ثبت‌شده' : 'ثبت نشده');
         saveCurrentCase();
         updateLivePreview();
       });
@@ -4325,7 +4359,7 @@ export function renderPeComprehensiveSystems() {
       sysData.text = e.target.value;
       if (e.target.value.trim().length > 0) sysData.examined = true;
       badge.className = `pe-system-badge ${sysData.isNormal ? 'badge-normal' : sysData.selectedTags?.length > 0 || sysData.text ? 'badge-finding' : 'badge-idle'}`;
-      badge.textContent = sysData.isNormal ? '✓ طبیعی (Normal)' : (sysData.selectedTags?.length > 0 || sysData.text ? '⚠️ یافته ثبت‌شده' : 'ثبت نشده');
+      badge.textContent = sysData.isNormal ? 'طبیعی (Normal)' : (sysData.selectedTags?.length > 0 || sysData.text ? 'یافته ثبت‌شده' : 'ثبت نشده');
       saveCurrentCase();
       updateLivePreview();
     });
@@ -4367,13 +4401,13 @@ function renderAtlsExamModule() {
   const atls = clinicalState.pe.atlsExam;
   if (!atls || !atls.active) {
     if (toggleBtn) {
-      toggleBtn.innerHTML = `<span>🚨</span> <span>باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)</span>`;
+      toggleBtn.innerHTML = `<span>${getIconSvg('alert-triangle', { size: 14 })}</span> <span>باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)</span>`;
     }
     return;
   }
 
   if (toggleBtn) {
-    toggleBtn.innerHTML = `<span>✕</span> <span>بستن ماژول تروما و ATLS</span>`;
+    toggleBtn.innerHTML = `<span></span> <span>بستن ماژول تروما و ATLS</span>`;
   }
 
   const card = document.createElement('div');
@@ -4382,7 +4416,7 @@ function renderAtlsExamModule() {
   // Primary survey header
   const title = document.createElement('div');
   title.className = 'atls-exam-title';
-  title.innerHTML = `<span>🚨</span> <span>ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE)</span>`;
+  title.innerHTML = `<span>${getIconSvg('ambulance', { size: 16 })}</span> <span>ارزیابی اولیه ترومای جراحی (ATLS Primary Survey ABCDE)</span>`;
   card.appendChild(title);
 
   // Survey Form
@@ -4484,12 +4518,12 @@ function renderAtlsExamModule() {
   woundHeader.className = 'subsystem-header';
   woundHeader.style.marginTop = '1rem';
   woundHeader.innerHTML = `
-    <span class="subsystem-title" style="font-size: 0.95rem;">🔪 ثبت زخم‌ها و جراحات تروما (Wound & Injury Registry)</span>
+    <span class="subsystem-title" style="font-size: 0.95rem;">ثبت زخم‌ها و جراحات تروما (Wound & Injury Registry)</span>
   `;
   const addWoundBtn = document.createElement('button');
   addWoundBtn.type = 'button';
   addWoundBtn.className = 'btn btn-secondary btn-sm';
-  addWoundBtn.innerHTML = `<span>➕</span><span>افزودن زخم / جراحت جدید</span>`;
+  addWoundBtn.innerHTML = `<span></span><span>افزودن زخم / جراحت جدید</span>`;
   addWoundBtn.addEventListener('click', () => {
     if (!atls.wounds) atls.wounds = [];
     atls.wounds.push({
@@ -4628,7 +4662,7 @@ function renderAtlsExamModule() {
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'btn-delete-wound-row';
-      delBtn.innerHTML = '🗑️';
+      delBtn.innerHTML = '';
       delBtn.title = 'حذف این ردیف زخم';
       delBtn.addEventListener('click', () => {
         atls.wounds.splice(wIdx, 1);
@@ -4651,7 +4685,7 @@ function renderAtlsExamModule() {
   burnHeader.style.marginTop = '1rem';
   burnHeader.innerHTML = `
     <label class="form-label" style="font-weight: 700; color: var(--text-primary);">
-      🔥 ارزیابی سوختگی، درصد TBSA و آسیب استنشاقی (Burns & Inhalation Injury):
+      ارزیابی سوختگی، درصد TBSA و آسیب استنشاقی (Burns & Inhalation Injury):
     </label>
   `;
   card.appendChild(burnHeader);
@@ -4809,12 +4843,6 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
     labelSpan.className = 'search-tray-label';
     labelSpan.textContent = item.label;
 
-    if (item.category) {
-      const catBadge = document.createElement('span');
-      catBadge.className = 'search-tray-category-badge';
-      catBadge.textContent = item.category;
-      chipRow.appendChild(catBadge);
-    }
 
     const btnNeg = document.createElement('button');
     btnNeg.type = 'button';
@@ -4913,7 +4941,7 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان آیتم جدید به این بخش`;
+  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به عنوان آیتم جدید به این بخش`;
   addBtn.addEventListener('click', () => {
     const customId = `custom_${Date.now()}`;
     if (sectionType === 'hpi') {
@@ -4929,7 +4957,7 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
     }
     saveCurrentCase();
     updateLivePreview();
-    addBtn.innerHTML = `✓ «${query}» با موفقیت اضافه شد`;
+    addBtn.innerHTML = `«${query}» با موفقیت اضافه شد`;
     addBtn.style.borderColor = '#10b981';
     addBtn.style.color = '#10b981';
   });
@@ -4973,7 +5001,7 @@ function renderDrugSearchTray(query, tray, input) {
     info.innerHTML = `
       <div class="dh-tray-drug-name">
         ${drug.label}
-        ${drug.highAlert ? '<span class="dh-tray-high-alert">⚠️ High-Alert</span>' : ''}
+        ${drug.highAlert ? '<span class="dh-tray-high-alert">High-Alert</span>' : ''}
       </div>
       ${drug.brands ? `<div class="dh-tray-brands">نام‌های تجاری: ${drug.brands}</div>` : ''}
     `;
@@ -4982,7 +5010,7 @@ function renderDrugSearchTray(query, tray, input) {
     const actionBtn = document.createElement('button');
     actionBtn.type = 'button';
     actionBtn.className = `dh-tray-action-btn ${drugEntry.active ? 'active' : ''}`;
-    actionBtn.innerHTML = drugEntry.active ? '✓ فعال (حذف)' : '+ افزودن دارو';
+    actionBtn.innerHTML = drugEntry.active ? 'فعال (حذف)' : '+ افزودن دارو';
 
     topRow.appendChild(actionBtn);
     card.appendChild(topRow);
@@ -5040,7 +5068,7 @@ function renderDrugSearchTray(query, tray, input) {
       e.stopPropagation();
       drugEntry.active = !drugEntry.active;
       actionBtn.classList.toggle('active', drugEntry.active);
-      actionBtn.innerHTML = drugEntry.active ? '✓ فعال (حذف)' : '+ افزودن دارو';
+      actionBtn.innerHTML = drugEntry.active ? 'فعال (حذف)' : '+ افزودن دارو';
       card.classList.toggle('is-active', drugEntry.active);
       box3.style.display = drugEntry.active ? 'flex' : 'none';
       if (drugEntry.active && !drugEntry.dose) {
@@ -5063,7 +5091,7 @@ function renderDrugSearchTray(query, tray, input) {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان داروی جدید`;
+  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به عنوان داروی جدید`;
   addBtn.addEventListener('click', () => {
     if (!clinicalState.dh.customDrugs) clinicalState.dh.customDrugs = [];
     clinicalState.dh.customDrugs.push({
@@ -5076,7 +5104,7 @@ function renderDrugSearchTray(query, tray, input) {
     renderCustomDrugs();
     saveCurrentCase();
     updateLivePreview();
-    addBtn.innerHTML = `✓ داروی «${query}» با موفقیت اضافه شد`;
+    addBtn.innerHTML = `داروی «${query}» با موفقیت اضافه شد`;
     addBtn.style.borderColor = '#10b981';
     addBtn.style.color = '#10b981';
   });
@@ -5110,7 +5138,7 @@ export function renderFhSearchTray(query, tray, input) {
     const info = document.createElement('div');
     info.className = 'dh-tray-main-info';
     info.innerHTML = `
-      <div class="dh-tray-drug-name">🧬 ${item.label}</div>
+      <div class="dh-tray-drug-name">${item.label}</div>
       ${item.category ? `<div class="dh-tray-brands">گروه: ${item.category}</div>` : ''}
     `;
     topRow.appendChild(info);
@@ -5118,13 +5146,13 @@ export function renderFhSearchTray(query, tray, input) {
     const actionBtn = document.createElement('button');
     actionBtn.type = 'button';
     actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
-    actionBtn.innerHTML = isAdded ? '✓ افزوده شد' : '+ افزودن به سوابق خانوادگی';
+    actionBtn.innerHTML = isAdded ? 'افزوده شد' : '+ افزودن به سوابق خانوادگی';
 
     actionBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       addFhDisease(item);
       actionBtn.classList.add('active');
-      actionBtn.innerHTML = '✓ افزوده شد';
+      actionBtn.innerHTML = 'افزوده شد';
       card.classList.add('is-active');
     });
 
@@ -5141,10 +5169,10 @@ export function renderFhSearchTray(query, tray, input) {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان بیماری خانوادگی جدید`;
+  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به عنوان بیماری خانوادگی جدید`;
   addBtn.addEventListener('click', () => {
     addFhDisease({ id: 'fh_' + Date.now(), label: query, name: query, relatives: ['پدر'], status: 'living' });
-    addBtn.innerHTML = `✓ بیماری «${query}» با موفقیت اضافه شد`;
+    addBtn.innerHTML = `بیماری «${query}» با موفقیت اضافه شد`;
     addBtn.style.borderColor = '#10b981';
     addBtn.style.color = '#10b981';
   });
@@ -5178,7 +5206,7 @@ function renderLabSearchTray(query, tray, input) {
     info.className = 'dh-tray-main-info';
     const rangeText = test.normalRange ? `[نرمال: ${test.normalRange}]` : ((test.min !== undefined && test.max !== undefined) ? `[نرمال: ${test.min}-${test.max}]` : '');
     info.innerHTML = `
-      <div class="dh-tray-drug-name">🧪 ${test.label} ${test.unit ? `<span class="additional-lab-unit">${test.unit}</span>` : ''}</div>
+      <div class="dh-tray-drug-name">${test.label} ${test.unit ? `<span class="additional-lab-unit">${test.unit}</span>` : ''}</div>
       ${test.category ? `<div class="dh-tray-brands">پنل: ${test.category} ${rangeText}</div>` : (rangeText ? `<div class="dh-tray-brands">${rangeText}</div>` : '')}
     `;
     topRow.appendChild(info);
@@ -5186,13 +5214,13 @@ function renderLabSearchTray(query, tray, input) {
     const actionBtn = document.createElement('button');
     actionBtn.type = 'button';
     actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
-    actionBtn.innerHTML = isAdded ? '✓ در جدول موجود است' : '+ افزودن به جدول آزمایش‌ها';
+    actionBtn.innerHTML = isAdded ? 'در جدول موجود است' : '+ افزودن به جدول آزمایش‌ها';
 
     const handleAdd = (e) => {
       e?.stopPropagation();
       addAdditionalLab(test);
       actionBtn.classList.add('active');
-      actionBtn.innerHTML = '✓ اضافه شد';
+      actionBtn.innerHTML = 'اضافه شد';
       card.classList.add('is-active');
       // Highlight in table
       const el = document.getElementById('additionalLabsSection');
@@ -5215,10 +5243,10 @@ function renderLabSearchTray(query, tray, input) {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `➕ افزودن مستقیم «<strong>${query}</strong>» به عنوان آزمایش تشخیصی جدید`;
+  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به عنوان آزمایش تشخیصی جدید`;
   addBtn.addEventListener('click', () => {
     addAdditionalLab({ id: 'ext_lab_' + Date.now(), label: query, name: query, unit: '', normalRange: '' });
-    addBtn.innerHTML = `✓ آزمایش «${query}» به جدول اضافه شد`;
+    addBtn.innerHTML = `آزمایش «${query}» به جدول اضافه شد`;
     addBtn.style.borderColor = '#10b981';
     addBtn.style.color = '#10b981';
   });
@@ -5404,7 +5432,7 @@ export function renderParaclinicLabs() {
     header.className = 'lab-panel-header';
     header.innerHTML = `
       <div class="lab-panel-title">
-        <span>🧪</span>
+        <span>${getIconSvg('test-tube', { size: 14 })}</span>
         <span>${panel.title}</span>
       </div>
       <span class="lab-panel-badge">${panel.badge}</span>
@@ -5434,10 +5462,28 @@ export function renderParaclinicLabs() {
 
       function updateFlag(valStr) {
         mini.classList.remove('flag-high', 'flag-low');
+        const oldBadge = mini.querySelector('.lab-flag-badge');
+        if (oldBadge) oldBadge.remove();
         const num = parseFloat(valStr);
         if (!isNaN(num) && valStr.trim() !== '') {
-          if (num > t.max) mini.classList.add('flag-high');
-          else if (num < t.min) mini.classList.add('flag-low');
+          const hdr = mini.querySelector('.lab-mini-header');
+          if (num > t.max) {
+            mini.classList.add('flag-high');
+            if (hdr) {
+              const b = document.createElement('span');
+              b.className = 'lab-flag-badge flag-h';
+              b.textContent = 'H';
+              hdr.appendChild(b);
+            }
+          } else if (num < t.min) {
+            mini.classList.add('flag-low');
+            if (hdr) {
+              const b = document.createElement('span');
+              b.className = 'lab-flag-badge flag-l';
+              b.textContent = 'L';
+              hdr.appendChild(b);
+            }
+          }
         }
       }
       updateFlag(val);
@@ -5540,7 +5586,7 @@ export function renderAdditionalLabs() {
     delBtn.type = 'button';
     delBtn.className = 'btn-remove-additional-lab';
     delBtn.title = 'حذف این آزمایش';
-    delBtn.innerHTML = '✕';
+    delBtn.innerHTML = '';
     delBtn.addEventListener('click', () => {
       delete clinicalState.paraclinics.additionalLabs[labId];
       renderAdditionalLabs();
@@ -5631,7 +5677,7 @@ function initModalityLauncherBar() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-modality-launch';
-    btn.innerHTML = `<span>➕</span><span>${mod.label}</span>`;
+    btn.innerHTML = `<span></span><span>${mod.label}</span>`;
     btn.addEventListener('click', () => {
       if (!clinicalState.paraclinics.imagingReports) clinicalState.paraclinics.imagingReports = [];
       const count = clinicalState.paraclinics.imagingReports.filter((r) => r.modalityId === mod.id).length + 1;
@@ -5668,10 +5714,10 @@ function renderImagingReportsList() {
     header.className = 'imaging-card-header';
     header.innerHTML = `
       <div class="imaging-card-title">
-        <span>📸</span>
+        <span>${getIconSvg('camera', { size: 14 })}</span>
         <span>${rep.modalityLabel}</span>
       </div>
-      <button type="button" class="btn-delete-imaging" title="حذف این نوبت">🗑️ حذف</button>
+      <button type="button" class="btn-delete-imaging" title="حذف این نوبت">حذف</button>
     `;
 
     header.querySelector('.btn-delete-imaging').addEventListener('click', () => {
@@ -5789,7 +5835,7 @@ function initReasoningHandlers() {
 }
 
 /* ==========================================================================
-   System Gap Loggers
+   System Gap Loggers & Clean Unified Note Inputs
    ========================================================================== */
 function initSystemGapLoggers() {
   const gapMap = [
@@ -5809,7 +5855,32 @@ function initSystemGapLoggers() {
     const el = document.getElementById(inputId);
     if (!el) return;
     el.addEventListener('input', (e) => {
-      target().systemGapNote = e.target.value;
+      const tgt = target();
+      if (tgt) {
+        tgt.systemGapNote = e.target.value;
+      }
+      saveCurrentCase();
+      updateLivePreview();
+    });
+  });
+
+  // Single clean note fields (Tab 3 PSH & Tab 4 DH, AH, SH, FH)
+  const singleNoteMap = [
+    { inputId: 'pshNote', target: () => clinicalState.psh },
+    { inputId: 'dhNote', target: () => clinicalState.dh },
+    { inputId: 'ahNote', target: () => clinicalState.ah },
+    { inputId: 'shNote', target: () => clinicalState.sh },
+    { inputId: 'fhNote', target: () => clinicalState.fh }
+  ];
+
+  singleNoteMap.forEach(({ inputId, target }) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      const tgt = target();
+      if (tgt) {
+        tgt.note = e.target.value;
+      }
       saveCurrentCase();
       updateLivePreview();
     });
@@ -5861,6 +5932,42 @@ export function updateLivePreview() {
 
   if (desktopPreview) desktopPreview.innerHTML = formattedHtml;
   if (mobilePreview) mobilePreview.innerHTML = formattedHtml;
+
+  // Sync demographics table on live medical chart paper (bilingual support)
+  const isEn = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() === 'en' : false;
+
+  const chartPtName = document.getElementById('chartPtName');
+  if (chartPtName) chartPtName.textContent = clinicalState.demographics?.fullName || '—';
+
+  const chartPtAgeGender = document.getElementById('chartPtAgeGender');
+  if (chartPtAgeGender) {
+    const ageStr = clinicalState.demographics?.age
+      ? (isEn ? `${clinicalState.demographics.age} y/o` : `${clinicalState.demographics.age} ساله`)
+      : '—';
+    const genStr = clinicalState.demographics?.gender === 'female'
+      ? (isEn ? 'Female' : 'خانم')
+      : clinicalState.demographics?.gender === 'male'
+      ? (isEn ? 'Male' : 'آقا')
+      : '—';
+    chartPtAgeGender.textContent = `${ageStr} / ${genStr}`;
+  }
+
+  const chartPtWardBed = document.getElementById('chartPtWardBed');
+  if (chartPtWardBed) {
+    const wardStr = clinicalState.demographics?.ward || (isEn ? 'Surgery' : 'جراحی');
+    const bedStr = clinicalState.demographics?.bed || '—';
+    chartPtWardBed.textContent = isEn ? `${wardStr} • Bed ${bedStr}` : `${wardStr} • تخت ${bedStr}`;
+  }
+
+  const chartPtCaseId = document.getElementById('chartPtCaseId');
+  if (chartPtCaseId) chartPtCaseId.textContent = clinicalState.caseId || '—';
+
+  const chartPtDate = document.getElementById('chartPtDate');
+  if (chartPtDate) {
+    chartPtDate.textContent = clinicalState.demographics?.admissionDate || (isEn ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR'));
+  }
+
+  updateSectionCounters();
 
   // Update SOAP notes counter badge on H&P preview toolbar
   const soapCountBadge = document.getElementById('patientSoapNotesCountBadge');
@@ -5939,7 +6046,7 @@ function syncDomFromState() {
     btnTraumaToggle.classList.toggle('active', isTraumaUnresponsive);
     btnTraumaToggle.setAttribute('aria-pressed', isTraumaUnresponsive ? 'true' : 'false');
     const icon = btnTraumaToggle.querySelector('.btn-check-icon');
-    if (icon) icon.textContent = isTraumaUnresponsive ? '🟢' : '⚪';
+    if (icon) icon.textContent = isTraumaUnresponsive ? '' : '';
     const txt = btnTraumaToggle.querySelector('span:last-child');
     if (txt) txt.textContent = isTraumaUnresponsive ? 'حالت ترومای بدحال فعال است (کلیک جهت لغو)' : 'فعال‌سازی حالت ترومای بدحال / ۱۱۵';
   }
@@ -6182,7 +6289,7 @@ async function populateHeaderCaseSwitcher() {
     const currentOpt = document.createElement('option');
     currentOpt.value = clinicalState.caseId;
     const curName = clinicalState.demographics?.fullName || 'بیمار بدون نام';
-    currentOpt.textContent = `📌 پرونده فعال: ${curName} (${clinicalState.caseId})`;
+    currentOpt.textContent = `پرونده فعال: ${curName} (${clinicalState.caseId})`;
     currentOpt.selected = true;
     select.appendChild(currentOpt);
 
@@ -6192,7 +6299,7 @@ async function populateHeaderCaseSwitcher() {
       opt.value = c.caseId;
       const patName = c.demographics?.fullName || 'بیمار بدون نام';
       const timeStr = c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '';
-      opt.textContent = `📁 ${patName} (${c.caseId}) - ${timeStr}`;
+      opt.textContent = `${patName} (${c.caseId}) - ${timeStr}`;
       select.appendChild(opt);
     });
   } catch (e) {
@@ -6361,7 +6468,7 @@ function initShiftManager() {
       </div>
       <div class="shift-vault-actions">
         <span style="font-size:0.75rem; color:var(--primary); font-weight:700;">${isEn ? 'Editing' : 'در حال ثبت'}</span>
-        <button type="button" class="btn btn-secondary btn-sm btn-delete-active-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete Case' : 'حذف قطعی پرونده'}">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm btn-delete-active-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete Case' : 'حذف قطعی پرونده'}"></button>
       </div>
     `;
 
@@ -6405,7 +6512,7 @@ function initShiftManager() {
         </div>
         <div class="shift-vault-actions">
           <button type="button" class="btn btn-secondary btn-sm btn-load-case">${isEn ? 'Load' : 'بارگذاری'}</button>
-          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete' : 'حذف قطعی پرونده'}">✕</button>
+          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete' : 'حذف قطعی پرونده'}"></button>
         </div>
       `;
 
@@ -6594,7 +6701,7 @@ function initCloudSyncUI() {
       showToast('خطا در همگام‌سازی ابری.', 'warning');
     } finally {
       btnSync.disabled = false;
-      btnSync.innerHTML = '<span>📊</span><span>ثبت در Google Sheets</span>';
+      btnSync.innerHTML = `<span>${getIconSvg('bar-chart', { size: 14 })}</span><span>ثبت در Google Sheets</span>`;
     }
   });
 }
@@ -6681,31 +6788,79 @@ function initAppModeSwitcher() {
   btnBackToPatientHp?.addEventListener('click', () => {
     switchAppMode('admission');
   });
+
+  // Adaptive Rail Navigation Scroll Handlers (ATLS & SOAP)
+  document.querySelectorAll('.rail-atls-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.rail-atls-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const targetId = btn.getAttribute('data-scroll-to');
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  document.querySelectorAll('.rail-soap-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.rail-soap-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const targetId = btn.getAttribute('data-scroll-to');
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
 }
 
 export function switchAppMode(mode) {
   currentAppMode = mode;
+  const isAdmission = mode === 'admission' || mode === 'hp';
+  const isAtls = mode === 'atls';
+  const isSoap = mode === 'soap';
+
   const btnAdmission = document.getElementById('btnModeAdmission');
   const btnAtls = document.getElementById('btnModeAtls');
   const btnSoap = document.getElementById('btnModeSoap');
   const tabsNav = document.querySelector('.tabs-navigation-wrapper');
   const tabPanes = document.querySelectorAll('.tab-pane');
-  const atlsContainer = document.getElementById('atlsModeContainer');
-  const soapContainer = document.getElementById('soapModeContainer');
+
+  const hpContainer = document.getElementById('view-mode-hp');
+  const atlsContainer = document.getElementById('view-mode-atls') || document.getElementById('atlsModeContainer');
+  const soapContainer = document.getElementById('view-mode-soap') || document.getElementById('soapModeContainer');
   const btnGoToSoap = document.getElementById('btnGoToPatientSoap');
 
-  btnAdmission?.classList.toggle('active', mode === 'admission');
-  btnAtls?.classList.toggle('active', mode === 'atls');
-  btnSoap?.classList.toggle('active', mode === 'soap');
+  const railNavAdmission = document.getElementById('railNavAdmission');
+  const railNavAtls = document.getElementById('railNavAtls');
+  const railNavSoap = document.getElementById('railNavSoap');
 
-  if (mode === 'soap') {
+  const hpMobileTabs = document.getElementById('hp-mobile-tabs');
+  const atlsMobileTabs = document.getElementById('atls-mobile-tabs');
+  const soapMobileTabs = document.getElementById('soap-mobile-tabs');
+
+  btnAdmission?.classList.toggle('active', isAdmission);
+  btnAtls?.classList.toggle('active', isAtls);
+  btnSoap?.classList.toggle('active', isSoap);
+
+  if (railNavAdmission) railNavAdmission.style.display = isAdmission ? '' : 'none';
+  if (railNavAtls) railNavAtls.style.display = isAtls ? '' : 'none';
+  if (railNavSoap) railNavSoap.style.display = isSoap ? '' : 'none';
+
+  if (hpMobileTabs) hpMobileTabs.hidden = !isAdmission;
+  if (atlsMobileTabs) atlsMobileTabs.hidden = !isAtls;
+  if (soapMobileTabs) soapMobileTabs.hidden = !isSoap;
+
+  if (isSoap) {
     if (tabsNav) tabsNav.style.display = 'none';
     tabPanes.forEach((pane) => {
       pane.style.display = 'none';
       pane.classList.remove('active');
     });
-    if (atlsContainer) atlsContainer.style.display = 'none';
-    if (soapContainer) soapContainer.style.display = 'flex';
+    if (hpContainer) hpContainer.style.setProperty('display', 'none', 'important');
+    if (atlsContainer) atlsContainer.style.setProperty('display', 'none', 'important');
+    if (soapContainer) soapContainer.style.setProperty('display', 'flex', 'important');
     if (btnGoToSoap) btnGoToSoap.style.display = 'none';
 
     if (!soapState.linkedCaseId && clinicalState?.caseId) {
@@ -6736,26 +6891,30 @@ export function switchAppMode(mode) {
       syncSoapInputsFromState();
       renderSoapDayTracker();
     }
-  } else if (mode === 'atls') {
+  } else if (isAtls) {
     if (tabsNav) tabsNav.style.display = 'none';
     tabPanes.forEach((pane) => {
       pane.style.display = 'none';
       pane.classList.remove('active');
     });
-    if (soapContainer) soapContainer.style.display = 'none';
-    if (atlsContainer) atlsContainer.style.display = 'flex';
+    if (hpContainer) hpContainer.style.setProperty('display', 'none', 'important');
+    if (soapContainer) soapContainer.style.setProperty('display', 'none', 'important');
+    if (atlsContainer) atlsContainer.style.setProperty('display', 'flex', 'important');
     if (btnGoToSoap) btnGoToSoap.style.display = '';
     syncAtlsDomFromState();
   } else {
+    // Mode Admission / H&P
     if (tabsNav) tabsNav.style.display = '';
+    if (atlsContainer) atlsContainer.style.setProperty('display', 'none', 'important');
+    if (soapContainer) soapContainer.style.setProperty('display', 'none', 'important');
+    if (hpContainer) hpContainer.style.setProperty('display', 'block', 'important');
+
     const activeTab = document.querySelector('.segmented-tabs-bar .tab-btn.active');
     const activeTabId = activeTab ? activeTab.getAttribute('data-tab') : 'tab-cc';
     tabPanes.forEach((pane) => {
       pane.style.display = '';
       pane.classList.toggle('active', pane.id === activeTabId);
     });
-    if (atlsContainer) atlsContainer.style.display = 'none';
-    if (soapContainer) soapContainer.style.display = 'none';
     if (btnGoToSoap) btnGoToSoap.style.display = '';
   }
 
@@ -6788,7 +6947,7 @@ export function renderAtlsInjuriesList() {
   const injuries = clinicalState.atls.secondary.injuries || [];
 
   if (injuries.length === 0) {
-    container.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.35rem 0;">هنوز ضایعه یا بریدگی موضعی ثبت نشده است. با دکمه «➕ افزودن ضایعه / آسیب جدید» اضافه کنید.</div>`;
+    container.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.35rem 0;">هنوز ضایعه یا بریدگی موضعی ثبت نشده است. با دکمه «+ ثبت جراحت / زخم جدید» اضافه کنید.</div>`;
     return;
   }
 
@@ -6822,7 +6981,7 @@ export function renderAtlsInjuriesList() {
         ${bleedingStatuses.map((b) => `<option value="${b}" ${inj.bleeding === b ? 'selected' : ''}>${b}</option>`).join('')}
       </select>
       <input type="text" class="input-text atls-inj-nv" placeholder="معاینه نوروواسکولار دیستال (نبض، حس، حرکت تاندون)..." value="${inj.neurovascular || ''}">
-      <button type="button" class="btn-delete-imaging atls-inj-del" title="حذف ضایعه">✕</button>
+      <button type="button" class="btn-delete-imaging atls-inj-del" title="حذف ضایعه" style="cursor:pointer; display:flex; align-items:center; justify-content:center; color:#DC2626; font-size:16px; font-weight:bold; width:28px; height:28px; border:none; background:rgba(220,38,38,0.08); border-radius:4px;">&times;</button>
     `;
 
     row.querySelector('.atls-inj-type')?.addEventListener('change', (e) => {
@@ -6874,7 +7033,7 @@ export function syncAtlsDomFromState() {
   document.querySelectorAll('[data-atls-single]').forEach((group) => {
     const path = group.getAttribute('data-atls-single');
     const curVal = getNestedAtlsProp(path);
-    group.querySelectorAll('.soap-chip').forEach((chip) => {
+    group.querySelectorAll('.soap-chip, .atls-chip, button').forEach((chip) => {
       chip.classList.toggle('active', chip.getAttribute('data-val') === curVal);
     });
   });
@@ -6883,8 +7042,23 @@ export function syncAtlsDomFromState() {
   document.querySelectorAll('[data-atls-multi]').forEach((group) => {
     const path = group.getAttribute('data-atls-multi');
     const arr = getNestedAtlsProp(path) || [];
-    group.querySelectorAll('.soap-chip, .soap-plan-pill').forEach((chip) => {
-      chip.classList.toggle('active', Array.isArray(arr) && arr.includes(chip.getAttribute('data-val')));
+    group.querySelectorAll('.soap-chip, .atls-chip, .soap-plan-pill, button').forEach((chip) => {
+      const val = chip.getAttribute('data-val');
+      const isAct = Array.isArray(arr)
+        ? arr.includes(val)
+        : (typeof arr === 'string' && arr ? arr.includes(val) : false);
+      chip.classList.toggle('active', isAct);
+    });
+  });
+
+  // Secondary Survey Interactive Head-to-Toe Regional Capsules
+  const caps = sec.headToToeCapsules || {};
+  document.querySelectorAll('[data-atls-sec-region]').forEach((group) => {
+    const reg = group.getAttribute('data-atls-sec-region');
+    const regArr = Array.isArray(caps[reg]) ? caps[reg] : [];
+    group.querySelectorAll('.soap-chip, .atls-chip, button').forEach((chip) => {
+      const val = chip.getAttribute('data-val');
+      chip.classList.toggle('active', regArr.includes(val));
     });
   });
 
@@ -6899,6 +7073,7 @@ export function syncAtlsDomFromState() {
   setVal('atlsPtAge', demo.age);
   setVal('atlsPtGender', demo.gender);
 
+  setVal('atlsMistTime', mist.incidentTime);
   setVal('atlsIncidentTime', mist.incidentTime);
   setVal('atlsMechanismDetail', mist.mechanismDetail);
 
@@ -6912,31 +7087,48 @@ export function syncAtlsDomFromState() {
   setVal('atlsGcsM', vit.gcsM || 6);
   const gcsTotalEl = document.getElementById('atlsGcsTotal');
   if (gcsTotalEl) {
-    gcsTotalEl.textContent = String(vit.gcsTotal || ((Number(vit.gcsE) || 4) + (Number(vit.gcsV) || 5) + (Number(vit.gcsM) || 6)));
+    const tot = String(vit.gcsTotal || ((Number(vit.gcsE) || 4) + (Number(vit.gcsV) || 5) + (Number(vit.gcsM) || 6)));
+    if ('value' in gcsTotalEl) gcsTotalEl.value = tot;
+    gcsTotalEl.textContent = tot;
   }
 
+  setVal('atlsAmpleA', ample.allergies);
   setVal('atlsAmpleAllergies', ample.allergies);
+  setVal('atlsAmpleM', ample.medications);
   setVal('atlsAmpleMedications', ample.medications);
+  setVal('atlsAmpleP', ample.pastHistory);
   setVal('atlsAmplePastHistory', ample.pastHistory);
+  setVal('atlsAmpleL', ample.lastMeal);
   setVal('atlsAmpleLastMeal', ample.lastMeal);
+  setVal('atlsAmpleE', ample.eventsTetanus);
   setVal('atlsAmpleEventsTetanus', ample.eventsTetanus);
 
   const burnChk = document.getElementById('atlsBurnToggleCheckbox');
   const burnFields = document.getElementById('atlsBurnModuleFields');
   if (burnChk) burnChk.checked = !!sec.burnActive;
   if (burnFields) burnFields.style.display = sec.burnActive ? 'block' : 'none';
-  setVal('atlsBurnDegree', sec.burnDegree || 'درجه ۲ سطحی/عمقی (Partial Thickness)');
+  setVal('atlsBurnDegree', sec.burnDegree || 'درجه ۲ سطحی / عمقی (Partial Thickness - II)');
   setVal('atlsBurnTbsa', sec.burnTbsa);
   setVal('atlsBurnInhalation', sec.burnInhalation);
 
+  setVal('atlsSecHead', sec.headFace);
   setVal('atlsExamHeadFace', sec.headFace);
+  setVal('atlsSecNeck', sec.neck);
   setVal('atlsExamNeck', sec.neck);
+  setVal('atlsSecChest', sec.chest);
   setVal('atlsExamChest', sec.chest);
+  setVal('atlsSecAbdomen', sec.abdomenPelvis);
   setVal('atlsExamAbdomenPelvis', sec.abdomenPelvis);
+  setVal('atlsSecPerineum', sec.perineumDre);
   setVal('atlsExamPerineumDre', sec.perineumDre);
+  setVal('atlsSecExtremities', sec.extremitiesNeuro);
   setVal('atlsExamExtremitiesNeuro', sec.extremitiesNeuro);
+
+  setVal('atlsParaclinicEfastDetail', sec.efastDetail);
   setVal('atlsEfastDetail', sec.efastDetail);
+  setVal('atlsParaclinicImaging', sec.imagingNote);
   setVal('atlsImagingNote', sec.imagingNote);
+  setVal('atlsParaclinicLabs', sec.statLabsNote);
   setVal('atlsStatLabsNote', sec.statLabsNote);
   setVal('atlsPlanCustomNote', sec.planCustomNote);
 
@@ -6967,9 +7159,9 @@ function initAtlsModeEngine() {
   // Single-select chip groups
   document.querySelectorAll('[data-atls-single]').forEach((group) => {
     const path = group.getAttribute('data-atls-single');
-    group.querySelectorAll('.soap-chip').forEach((chip) => {
+    group.querySelectorAll('.soap-chip, .atls-chip, button').forEach((chip) => {
       chip.addEventListener('click', () => {
-        group.querySelectorAll('.soap-chip').forEach((c) => c.classList.remove('active'));
+        group.querySelectorAll('.soap-chip, .atls-chip, button').forEach((c) => c.classList.remove('active'));
         chip.classList.add('active');
         setNestedAtlsProp(path, chip.getAttribute('data-val'));
         saveCurrentCase();
@@ -6981,12 +7173,40 @@ function initAtlsModeEngine() {
   // Multi-select chip groups
   document.querySelectorAll('[data-atls-multi]').forEach((group) => {
     const path = group.getAttribute('data-atls-multi');
-    group.querySelectorAll('.soap-chip, .soap-plan-pill').forEach((chip) => {
+    group.querySelectorAll('.soap-chip, .atls-chip, .soap-plan-pill, button').forEach((chip) => {
       chip.addEventListener('click', () => {
         let arr = getNestedAtlsProp(path);
         if (!Array.isArray(arr)) {
-          arr = [];
+          arr = typeof arr === 'string' && arr ? [arr] : [];
           setNestedAtlsProp(path, arr);
+        }
+        const val = chip.getAttribute('data-val');
+        const idx = arr.indexOf(val);
+        if (idx >= 0) {
+          arr.splice(idx, 1);
+          chip.classList.remove('active');
+        } else {
+          arr.push(val);
+          chip.classList.add('active');
+        }
+        saveCurrentCase();
+        updateLivePreview();
+      });
+    });
+  });
+
+  // Secondary Survey Interactive Head-to-Toe Regional Capsules
+  document.querySelectorAll('[data-atls-sec-region]').forEach((group) => {
+    const reg = group.getAttribute('data-atls-sec-region');
+    group.querySelectorAll('.soap-chip, .atls-chip, button').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        if (!clinicalState.atls.secondary.headToToeCapsules) {
+          clinicalState.atls.secondary.headToToeCapsules = {};
+        }
+        let arr = clinicalState.atls.secondary.headToToeCapsules[reg];
+        if (!Array.isArray(arr)) {
+          arr = [];
+          clinicalState.atls.secondary.headToToeCapsules[reg] = arr;
         }
         const val = chip.getAttribute('data-val');
         const idx = arr.indexOf(val);
@@ -7015,6 +7235,7 @@ function initAtlsModeEngine() {
     });
   };
 
+  bindAtlsInput('atlsMistTime', 'mist.incidentTime');
   bindAtlsInput('atlsIncidentTime', 'mist.incidentTime');
   bindAtlsInput('atlsMechanismDetail', 'mist.mechanismDetail');
   bindAtlsInput('atlsVitalBp', 'primary.vitals.bp');
@@ -7034,21 +7255,42 @@ function initAtlsModeEngine() {
     clinicalState.atls.primary.vitals.gcsM = mVal;
     clinicalState.atls.primary.vitals.gcsTotal = tot;
     const badge = document.getElementById('atlsGcsTotal');
-    if (badge) badge.textContent = String(tot);
+    if (badge) {
+      if ('value' in badge) badge.value = String(tot);
+      badge.textContent = String(tot);
+    }
     saveCurrentCase();
     updateLivePreview();
   };
   ['atlsGcsE', 'atlsGcsV', 'atlsGcsM'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('change', updateGcsTotal);
+    const el = document.getElementById(id);
+    el?.addEventListener('input', updateGcsTotal);
+    el?.addEventListener('change', updateGcsTotal);
   });
 
-  // Preset Primary Survey Stable
+  // 1. Preset Primary Survey Stable
   document.getElementById('btnAtlsPrimaryStablePreset')?.addEventListener('click', () => {
-    clinicalState.atls.primary.airway = 'راه هوایی باز و ایمن — بیمار بیدار و سخنگو (Patent & Intact)';
-    clinicalState.atls.primary.breathing = 'سمع دوطرفه ریه شفاف و متقارن (Bilateral Clear Breath Sounds)';
-    clinicalState.atls.primary.circulation = 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر (Class I)';
-    clinicalState.atls.primary.disabilityPupils = 'مردمک‌ها قرینه و واکنش‌دار به نور (PERRLA 3mm)';
-    clinicalState.atls.primary.exposure = 'لباس‌ها خارج شد، بررسی کامل سطح بدن و پیشگیری از هیپوترمی انجام شد';
+    clinicalState.atls.primary.airway = [
+      'راه هوایی باز و بیمار قادر به تکلم (Patent & Intact)',
+      'کلار گردنی سخت (Hard Collar) فیکس شده'
+    ];
+    clinicalState.atls.primary.breathing = [
+      'حرکات قفسه سینه قرینه و سمع دوطرفه شفاف (Clear & Symmetric)'
+    ];
+    clinicalState.atls.primary.circulation = [
+      'همودینامیک پایدار (Hemodynamically Stable)',
+      'نبض‌های مرکزی و محیطی پر و قرینه',
+      'لگن در معاینه پایدار (Pelvic Ring Stable)'
+    ];
+    clinicalState.atls.primary.disability = [
+      'مردمک‌ها قرینه و راکتیو به نور (PERRLA)',
+      'بدون نقص عصبی فوکال (No Focal Deficit)'
+    ];
+    clinicalState.atls.primary.disabilityPupils = 'مردمک‌ها قرینه و راکتیو به نور (PERRLA)';
+    clinicalState.atls.primary.exposure = [
+      'برهنه‌سازی کامل و بررسی پشت (Log-roll) انجام شد',
+      'جلوگیری از هیپوترمی (پتو گرم و مایعات گرم)'
+    ];
     clinicalState.atls.primary.vitals.gcsE = 4;
     clinicalState.atls.primary.vitals.gcsV = 5;
     clinicalState.atls.primary.vitals.gcsM = 6;
@@ -7056,13 +7298,74 @@ function initAtlsModeEngine() {
     syncAtlsDomFromState();
     saveCurrentCase();
     updateLivePreview();
-    showToast('ارزیابی اولیه (ABCDE) به صورت پایدار و نرمال تنظیم شد.', 'info');
+    showToast('ارزیابی اولیه (ABCDE) به صورت پایدار و GCS=15 تنظیم شد.', 'info');
   });
 
+  // 2. Preset AMPLE Negative
+  document.getElementById('btnAtlsAmpleNegativePreset')?.addEventListener('click', () => {
+    clinicalState.atls.ample.allergies = 'NKDA (عدم سابقه حساسیت دارویی یا غذایی)';
+    clinicalState.atls.ample.medications = 'عدم سابقه مصرف داروی خاص یا داروی ضدانعقاد / بتابلاکر';
+    clinicalState.atls.ample.pastHistory = 'بدون سابقه بیماری زمینه‌ای مزمن، بستری یا جراحی قبلی، عدم بارداری';
+    clinicalState.atls.ample.lastMeal = 'بیش از ۶ ساعت قبل (NPO از بدو مراجعه)';
+    clinicalState.atls.ample.eventsTetanus = 'مکانیسم تروما بدون آلودگی شدید زخم؛ وضعیت واکسیناسیون کزاز نیاز به بررسی/تزریق دارد';
+    syncAtlsDomFromState();
+    saveCurrentCase();
+    updateLivePreview();
+    showToast('شرح‌حال AMPLE منفی روتین با موفقیت ثبت شد.', 'info');
+  });
+
+  // 3. Preset Secondary Survey Normal
+  document.getElementById('btnAtlsSecondaryNormalPreset')?.addEventListener('click', () => {
+    clinicalState.atls.secondary.headToToeCapsules = {
+      headFace: [
+        'نرموسفال، بدون دفرمیتی یا شکستگی استخوانی',
+        'بدون اتوره، رینوره یا Battle/Raccoon Sign'
+      ],
+      neck: [
+        'تراشه در خط وسط، بدون JVD یا هماتوم در حال گسترش',
+        'بدون تندرنس خط وسط گردن (تحت کلار گردنی)'
+      ],
+      chest: [
+        'سمع دوطرفه شفاف، بدون تندرنس یا کرپیتاسیون دنده‌ای',
+        'صداهای قلبی واضح و طبیعی (بدون مافل بودن)'
+      ],
+      abdomenPelvis: [
+        'شکم نرم، غیرمتسع و بدون گاردینگ یا تندرنس Rebound',
+        'لگن در لمس کاملاً استیبل و فاقد لقی یا درد'
+      ],
+      perineumBack: [
+        'پرینه و ژنیتالیا طبیعی، بدون اکیموز پرینه‌ای یا خون در مئاتوس',
+        'معاینه رکتال (DRE): تون اسفنکتر نرمال، بدون خونریزی'
+      ],
+      extremities: [
+        'حرکت و حس هر ۴ اندام سالم، بدون دفرمیتی واضح',
+        'نبض‌های دیستال (رادیال، DP/PT) دوطرفه پر و قرینه'
+      ]
+    };
+    clinicalState.atls.secondary.headFace = '';
+    clinicalState.atls.secondary.neck = '';
+    clinicalState.atls.secondary.chest = '';
+    clinicalState.atls.secondary.abdomenPelvis = '';
+    clinicalState.atls.secondary.perineumDre = '';
+    clinicalState.atls.secondary.extremitiesNeuro = '';
+    clinicalState.atls.secondary.efastStatus = 'eFAST منفی (فاقد مایع آزاد در پریکارد، موریسون، اسپلنورنال و لگن)';
+    clinicalState.atls.secondary.efastWindows = [];
+    syncAtlsDomFromState();
+    saveCurrentCase();
+    updateLivePreview();
+    showToast('معاینه ثانویه سر تا پا و eFAST منفی با موفقیت تنظیم شد.', 'info');
+  });
+
+  // AMPLE inputs (bind both short and long IDs)
+  bindAtlsInput('atlsAmpleA', 'ample.allergies');
   bindAtlsInput('atlsAmpleAllergies', 'ample.allergies');
+  bindAtlsInput('atlsAmpleM', 'ample.medications');
   bindAtlsInput('atlsAmpleMedications', 'ample.medications');
+  bindAtlsInput('atlsAmpleP', 'ample.pastHistory');
   bindAtlsInput('atlsAmplePastHistory', 'ample.pastHistory');
+  bindAtlsInput('atlsAmpleL', 'ample.lastMeal');
   bindAtlsInput('atlsAmpleLastMeal', 'ample.lastMeal');
+  bindAtlsInput('atlsAmpleE', 'ample.eventsTetanus');
   bindAtlsInput('atlsAmpleEventsTetanus', 'ample.eventsTetanus');
 
   // Dynamic Injury Add Button
@@ -7097,14 +7400,26 @@ function initAtlsModeEngine() {
   bindAtlsInput('atlsBurnTbsa', 'secondary.burnTbsa');
   bindAtlsInput('atlsBurnInhalation', 'secondary.burnInhalation');
 
+  // Secondary Survey inputs (bind both short and long IDs)
+  bindAtlsInput('atlsSecHead', 'secondary.headFace');
   bindAtlsInput('atlsExamHeadFace', 'secondary.headFace');
+  bindAtlsInput('atlsSecNeck', 'secondary.neck');
   bindAtlsInput('atlsExamNeck', 'secondary.neck');
+  bindAtlsInput('atlsSecChest', 'secondary.chest');
   bindAtlsInput('atlsExamChest', 'secondary.chest');
+  bindAtlsInput('atlsSecAbdomen', 'secondary.abdomenPelvis');
   bindAtlsInput('atlsExamAbdomenPelvis', 'secondary.abdomenPelvis');
+  bindAtlsInput('atlsSecPerineum', 'secondary.perineumDre');
   bindAtlsInput('atlsExamPerineumDre', 'secondary.perineumDre');
+  bindAtlsInput('atlsSecExtremities', 'secondary.extremitiesNeuro');
   bindAtlsInput('atlsExamExtremitiesNeuro', 'secondary.extremitiesNeuro');
+
+  // Paraclinic inputs
+  bindAtlsInput('atlsParaclinicEfastDetail', 'secondary.efastDetail');
   bindAtlsInput('atlsEfastDetail', 'secondary.efastDetail');
+  bindAtlsInput('atlsParaclinicImaging', 'secondary.imagingNote');
   bindAtlsInput('atlsImagingNote', 'secondary.imagingNote');
+  bindAtlsInput('atlsParaclinicLabs', 'secondary.statLabsNote');
   bindAtlsInput('atlsStatLabsNote', 'secondary.statLabsNote');
   bindAtlsInput('atlsPlanCustomNote', 'secondary.planCustomNote');
 
@@ -7122,6 +7437,10 @@ function initAtlsModeEngine() {
     }).catch(() => {
       showToast('خطا در کپی متن.', 'warning');
     });
+  });
+
+  document.getElementById('atlsBtnGoToSoap')?.addEventListener('click', () => {
+    switchAppMode('soap');
   });
 
   syncAtlsDomFromState();
@@ -7165,8 +7484,7 @@ export function renderSoapDayTracker() {
   if (historyList.length === 0) {
     const currentChip = document.createElement('span');
     currentChip.className = 'soap-history-tab active';
-    currentChip.textContent = `📄 ${getCurrentLanguage() === 'en' ? 'Active Day Note' : 'نوت فعال امروز'} (${soapState.dateStr || new Date().toLocaleDateString()} - HD#${soapState.context.hdNumber || 1})`;
-    container.appendChild(currentChip);
+    currentChip.innerHTML = `${getIconSvg('file-text', { size: 13 })} <span>${getCurrentLanguage() === 'en' ? 'Active Day Note' : 'نوت فعال امروز'} (${soapState.dateStr || new Date().toLocaleDateString()} - HD#${soapState.context?.hdNumber || 1})</span>`;    container.appendChild(currentChip);
     return;
   }
 
@@ -7185,8 +7503,7 @@ export function renderSoapDayTracker() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `soap-history-tab ${isActive ? 'active' : ''}`;
-    btn.textContent = `📄 ${dStr} — HD#${hd}${pod ? ` / ${podType}#${pod}` : ''}`;
-    btn.addEventListener('click', () => {
+    btn.innerHTML = `${getIconSvg('file-text', { size: 13 })} <span>${dStr} — HD#${hd}${pod ? ` / ${podType}#${pod}` : ''}</span>`;    btn.addEventListener('click', () => {
       if (entry.soapState) {
         soapState = JSON.parse(JSON.stringify(entry.soapState));
         soapState.dayId = entryId;
@@ -7201,7 +7518,7 @@ export function renderSoapDayTracker() {
     delBtn.className = 'soap-tab-del-btn';
     delBtn.style.cssText = 'background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px;';
     delBtn.title = getCurrentLanguage() === 'en' ? 'Delete this daily note' : 'حذف این نوت روزانه';
-    delBtn.textContent = '✕';
+    delBtn.innerHTML = '<span style="font-size:14px; font-weight:bold; line-height:1;">&times;</span>';
     delBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteSoapDay(entryId);
@@ -7364,7 +7681,7 @@ function renderSoapCustomSymptoms() {
         <div class="bipolar-btn-group">
           <button type="button" class="bipolar-btn sym-custom-pos ${isPos ? 'active-pos' : ''}">+ بله</button>
           <button type="button" class="bipolar-btn sym-custom-neg ${!isPos ? 'active-neg' : ''}">− خیر</button>
-          <button type="button" class="btn-delete-imaging sym-custom-del" title="حذف علامت">✕</button>
+          <button type="button" class="btn-delete-imaging sym-custom-del" title="حذف علامت"></button>
         </div>
       </div>
       <input type="text" class="input-text inline-detail-input sym-custom-det" placeholder="توضیحات تکمیلی «${cs.label}»..." value="${cs.detail || ''}" style="display:${isPos ? 'block' : 'none'}; font-size:0.8rem; padding:0.3rem 0.55rem;">
@@ -7575,7 +7892,7 @@ function renderSoapDrains() {
         <option value="شفاف بدون نشت هوا No Air Leak" ${d.character === 'شفاف بدون نشت هوا No Air Leak' ? 'selected' : ''}>چست‌تیوب - بدون نشت هوا</option>
         <option value="دارای نشت هوا Air Leak+" ${d.character === 'دارای نشت هوا Air Leak+' ? 'selected' : ''}>چست‌تیوب - نشت هوا (+)</option>
       </select>
-      <button type="button" class="btn-remove-drain" title="حذف این درن" data-idx="${idx}">✕</button>
+      <button type="button" class="btn-remove-drain" title="حذف این درن" data-idx="${idx}"></button>
     </div>
   `).join('');
 
@@ -7817,7 +8134,7 @@ function initSoapEngine() {
   });
 
   // 2. Subjective Listeners
-  document.querySelectorAll('#soapModeContainer .soap-chip[data-val]').forEach((chip) => {
+  document.querySelectorAll('.soap-mode-container .soap-chip[data-val], #view-mode-soap .soap-chip[data-val], #soapModeContainer .soap-chip[data-val]').forEach((chip) => {
     chip.addEventListener('click', () => {
       const parentGroup = chip.closest('.soap-chip-group');
       if (!parentGroup) return;
@@ -7937,7 +8254,7 @@ function initSoapEngine() {
         const customBtn = document.createElement('button');
         customBtn.type = 'button';
         customBtn.className = 'toggle-chip';
-        customBtn.innerHTML = `<span>➕</span> <span>افزودن علامت «${q}»</span>`;
+        customBtn.innerHTML = `<span></span> <span>افزودن علامت «${q}»</span>`;
         customBtn.addEventListener('click', () => {
           if (!soapState.subjective.customSymptoms) soapState.subjective.customSymptoms = [];
           soapState.subjective.customSymptoms.push({ id: 'cs_' + Date.now(), label: q, status: 1, detail: '' });
@@ -7952,7 +8269,7 @@ function initSoapEngine() {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'toggle-chip';
-          btn.innerHTML = `<span>➕</span> <span>${m.label}</span>`;
+          btn.innerHTML = `<span></span> <span>${m.label}</span>`;
           btn.addEventListener('click', () => {
             if (!soapState.subjective.customSymptoms) soapState.subjective.customSymptoms = [];
             const exists = soapState.subjective.customSymptoms.some((c) => c.id === m.id || c.label === m.label);
@@ -8110,7 +8427,7 @@ function initSoapEngine() {
   });
 
   // 5. Plan Checklist Pills
-  document.querySelectorAll('#soapModeContainer .soap-plan-pill').forEach((pill) => {
+  document.querySelectorAll('.soap-mode-container .soap-plan-pill, #view-mode-soap .soap-plan-pill, #soapModeContainer .soap-plan-pill').forEach((pill) => {
     pill.addEventListener('click', () => {
       const planTag = pill.getAttribute('data-plan');
       pill.classList.toggle('active');
@@ -8188,7 +8505,7 @@ function initSoapEngine() {
       showToast('خطا در ارسال به Google Sheets.', 'warning');
     } finally {
       btnSync.disabled = false;
-      btnSync.innerHTML = '<span>📊</span><span>ثبت SOAP در Google Sheets</span>';
+      btnSync.innerHTML = `<span>${getIconSvg('bar-chart', { size: 14 })}</span><span>ثبت SOAP در Google Sheets</span>`;
     }
   });
 
@@ -8374,6 +8691,383 @@ export function saveSoapProgressNote(silent = false) {
   }
 }
 
+
+/* ==========================================================================
+   Section Completion Badges & Real-Time Counters
+   ========================================================================== */
+export function updateSectionCounters() {
+  // CC
+  const ccBadge = document.getElementById('badgeCountCC');
+  if (ccBadge) {
+    const isDone = Boolean(clinicalState.cc?.primaryComplaint || clinicalState.cc?.admissionType);
+    ccBadge.innerHTML = isDone ? getIconSvg('check', { size: 10 }) : '';
+    ccBadge.classList.toggle('has-count', isDone);
+  }
+
+  // HPI
+  const hpiBadge = document.getElementById('badgeCountHPI');
+  if (hpiBadge) {
+    const count = (clinicalState.hpi?.presentations?.length || 0);
+    hpiBadge.textContent = count > 0 ? String(count) : '';
+    hpiBadge.classList.toggle('has-count', count > 0);
+  }
+
+  // PMH
+  const pmhBadge = document.getElementById('badgeCountPMH');
+  if (pmhBadge) {
+    let pmhCount = 0;
+    if (clinicalState.pmh) {
+      Object.values(clinicalState.pmh).forEach(cat => {
+        if (cat && typeof cat === 'object') {
+          if (cat.status === 'negated') pmhCount++;
+          if (cat.items && typeof cat.items === 'object') {
+            Object.values(cat.items).forEach(st => {
+              const v = typeof st === 'object' ? st.state : st;
+              if (v === 1 || v === -1) pmhCount++;
+            });
+          }
+        }
+      });
+    }
+    if (Array.isArray(clinicalState.psh?.surgeries)) {
+      pmhCount += clinicalState.psh.surgeries.length;
+    }
+    pmhBadge.textContent = pmhCount > 0 ? String(pmhCount) : '';
+    pmhBadge.classList.toggle('has-count', pmhCount > 0);
+  }
+
+  // DH
+  const dhBadge = document.getElementById('badgeCountDH');
+  if (dhBadge) {
+    const dhCount = (clinicalState.dh?.activeDrugs?.length || 0) + (clinicalState.dh?.customDrugs?.length || 0);
+    dhBadge.textContent = dhCount > 0 ? String(dhCount) : '';
+    dhBadge.classList.toggle('has-count', dhCount > 0);
+  }
+
+  // ROS
+  const rosBadge = document.getElementById('badgeCountROS');
+  if (rosBadge) {
+    let rosCount = 0;
+    if (clinicalState.ros && clinicalState.ros.systems) {
+      Object.values(clinicalState.ros.systems).forEach(sys => {
+        if (sys && typeof sys === 'object') {
+          Object.values(sys).forEach(st => {
+            const v = typeof st === 'object' ? st.state : st;
+            if (v === 1 || v === -1) rosCount++;
+          });
+        }
+      });
+    }
+    rosBadge.textContent = rosCount > 0 ? String(rosCount) : '';
+    rosBadge.classList.toggle('has-count', rosCount > 0);
+  }
+
+  // PE
+  const peBadge = document.getElementById('badgeCountPE');
+  if (peBadge) {
+    let peCount = 0;
+    if (clinicalState.pe) {
+      if (clinicalState.pe.vitals && Object.values(clinicalState.pe.vitals).some(v => v !== '')) peCount++;
+      if (clinicalState.pe.comprehensiveSystems) {
+        Object.values(clinicalState.pe.comprehensiveSystems).forEach(s => {
+          if (s.isNormal || (s.selectedTags && s.selectedTags.length > 0) || s.text) peCount++;
+        });
+      }
+    }
+    peBadge.textContent = peCount > 0 ? String(peCount) : '';
+    peBadge.classList.toggle('has-count', peCount > 0);
+  }
+
+  // Labs
+  const labsBadge = document.getElementById('badgeCountLabs');
+  if (labsBadge) {
+    let labsCount = 0;
+    if (clinicalState.paraclinics?.labs) {
+      labsCount += Object.values(clinicalState.paraclinics.labs).filter(v => v !== '' && v != null).length;
+    }
+    if (clinicalState.paraclinics?.additionalLabs) {
+      labsCount += Object.keys(clinicalState.paraclinics.additionalLabs).length;
+    }
+    labsBadge.textContent = labsCount > 0 ? String(labsCount) : '';
+    labsBadge.classList.toggle('has-count', labsCount > 0);
+  }
+
+  // DDx
+  const ddxBadge = document.getElementById('badgeCountDDx');
+  if (ddxBadge) {
+    let ddxCount = 0;
+    if (clinicalState.reasoning?.workingDiagnosis) ddxCount++;
+    if (Array.isArray(clinicalState.reasoning?.differentials)) ddxCount += clinicalState.reasoning.differentials.length;
+    ddxBadge.textContent = ddxCount > 0 ? String(ddxCount) : '';
+    ddxBadge.classList.toggle('has-count', ddxCount > 0);
+  }
+}
+
+/* ==========================================================================
+   Global Command Bar & Palette Modal (Ctrl+K)
+   ========================================================================== */
+function initCommandPalette() {
+  const trigger = document.getElementById('globalCommandBarTrigger');
+  const modal = document.getElementById('commandPaletteModal');
+  const input = document.getElementById('commandPaletteInput');
+  const results = document.getElementById('commandPaletteResults');
+  const btnClose = document.getElementById('btnCloseCommandPalette');
+
+  if (!modal || !input) return;
+
+  let selectedIndex = 0;
+  let currentItems = [];
+
+  function openPalette() {
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    input.value = '';
+    renderResults('');
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closePalette() {
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+  }
+
+  if (trigger) trigger.addEventListener('click', openPalette);
+  if (btnClose) btnClose.addEventListener('click', closePalette);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closePalette();
+  });
+
+  function renderResults(query) {
+    results.innerHTML = '';
+    currentItems = [];
+    const q = query.trim().toLowerCase();
+
+    // 1. Navigation items
+    const navSections = [
+      { type: 'nav', id: 'tab-cc', label: '۱. پذیرش و شکایت اصلی (CC)', shortcut: 'Alt+1' },
+      { type: 'nav', id: 'tab-hpi', label: '۲. شرح بیماری فعلی (HPI)', shortcut: 'Alt+2' },
+      { type: 'nav', id: 'tab-pmh', label: '۳. سوابق پزشکی و جراحی (PMH/PSH)', shortcut: 'Alt+3' },
+      { type: 'nav', id: 'tab-dh', label: '۴. داروها و عادات (DH/SH/FH)', shortcut: 'Alt+4' },
+      { type: 'nav', id: 'tab-ros', label: '۵. بررسی سیستم‌ها (ROS)', shortcut: 'Alt+5' },
+      { type: 'nav', id: 'tab-pe', label: '۶. معاینه فیزیکی جامع (PE)', shortcut: 'Alt+6' },
+      { type: 'nav', id: 'tab-paraclinics', label: '۷. پاراکلینیک و آزمایشگاه (Labs)', shortcut: 'Alt+7' },
+      { type: 'nav', id: 'tab-reasoning', label: '۸. استدلال و نقشه درمان (DDx)', shortcut: 'Alt+8' },
+      { type: 'mode', id: 'atls', label: 'مود ترومای حاد اورژانس (Emergency ATLS)', shortcut: 'Mode ATLS' },
+      { type: 'mode', id: 'soap', label: 'مود سیر روزانه و ویزیت (SOAP Tracker)', shortcut: 'Mode SOAP' }
+    ];
+
+    const matchedNav = q ? navSections.filter(n => n.label.toLowerCase().includes(q)) : navSections;
+    if (matchedNav.length > 0) {
+      const cat = document.createElement('div');
+      cat.className = 'cmd-category-title';
+      cat.textContent = 'بخش‌ها و مودهای سیستم (Navigation)';
+      results.appendChild(cat);
+
+      matchedNav.forEach(n => {
+        const row = document.createElement('div');
+        row.className = 'cmd-item';
+        row.innerHTML = `<span>${n.label}</span><kbd class="cmd-item-badge">${n.shortcut}</kbd>`;
+        row.addEventListener('click', () => {
+          closePalette();
+          if (n.type === 'mode') {
+            switchAppMode(n.id);
+          } else {
+            if (currentAppMode !== 'admission') switchAppMode('admission');
+            const btn = document.querySelector(`.tab-btn[data-tab="${n.id}"]`);
+            if (btn) btn.click();
+          }
+        });
+        results.appendChild(row);
+        currentItems.push(row);
+      });
+    }
+
+    // 2. Symptoms Bank
+    if (q.length >= 2) {
+      const matchedSymptoms = filterSchemaItems(q, MASTER_SYMPTOMS_BANK).slice(0, 6);
+      if (matchedSymptoms.length > 0) {
+        const cat = document.createElement('div');
+        cat.className = 'cmd-category-title';
+        cat.textContent = 'علائم بالینی (Symptoms Bank)';
+        results.appendChild(cat);
+
+        matchedSymptoms.forEach(sym => {
+          const row = document.createElement('div');
+          row.className = 'cmd-item';
+          row.innerHTML = `<span>${sym.label}</span><span class="cmd-item-badge">علامت بالینی</span>`;
+          row.addEventListener('click', () => {
+            closePalette();
+            if (currentAppMode !== 'admission') switchAppMode('admission');
+            const btn = document.querySelector('.tab-btn[data-tab="tab-hpi"]');
+            if (btn) btn.click();
+            showToast(`علامت «${sym.label}» یافت شد.`, 'info');
+          });
+          results.appendChild(row);
+          currentItems.push(row);
+        });
+      }
+
+      // 3. Drugs Bank
+      const matchedDrugs = filterSchemaItems(q, ALL_MASTER_DRUGS).slice(0, 6);
+      if (matchedDrugs.length > 0) {
+        const cat = document.createElement('div');
+        cat.className = 'cmd-category-title';
+        cat.textContent = 'داروهای مصرفی (Medications Bank)';
+        results.appendChild(cat);
+
+        matchedDrugs.forEach(drug => {
+          const row = document.createElement('div');
+          row.className = 'cmd-item';
+          row.innerHTML = `<span>${drug.label} ${drug.brands ? `<small>(${drug.brands})</small>` : ''}</span><span class="cmd-item-badge">+ افزودن به داروها</span>`;
+          row.addEventListener('click', () => {
+            closePalette();
+            addActiveDrug(drug.id, drug.label, drug.category);
+            if (currentAppMode !== 'admission') switchAppMode('admission');
+            const btn = document.querySelector('.tab-btn[data-tab="tab-dh"]');
+            if (btn) btn.click();
+            showToast(`داروی «${drug.label}» به لیست داروهای فعال اضافه شد.`, 'success');
+          });
+          results.appendChild(row);
+          currentItems.push(row);
+        });
+      }
+    }
+
+    selectedIndex = 0;
+    updateHighlight();
+  }
+
+  function updateHighlight() {
+    currentItems.forEach((el, idx) => {
+      el.classList.toggle('selected', idx === selectedIndex);
+    });
+  }
+
+  input.addEventListener('input', (e) => {
+    renderResults(e.target.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (currentItems.length > 0) {
+        selectedIndex = (selectedIndex + 1) % currentItems.length;
+        updateHighlight();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentItems.length > 0) {
+        selectedIndex = (selectedIndex - 1 + currentItems.length) % currentItems.length;
+        updateHighlight();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (currentItems[selectedIndex]) {
+        currentItems[selectedIndex].click();
+      }
+    } else if (e.key === 'Escape') {
+      closePalette();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      if (modal.style.display === 'flex') closePalette();
+      else openPalette();
+    }
+  });
+}
+
+function initKeyboardShortcuts() {
+  window.addEventListener('keydown', (e) => {
+    if (e.altKey && e.key >= '1' && e.key <= '8') {
+      e.preventDefault();
+      const tabIndex = parseInt(e.key, 10) - 1;
+      const tabIds = [
+        'tab-cc', 'tab-hpi', 'tab-pmh', 'tab-dh',
+        'tab-ros', 'tab-pe', 'tab-paraclinics', 'tab-reasoning'
+      ];
+      const targetId = tabIds[tabIndex];
+      if (targetId) {
+        if (currentAppMode !== 'admission') {
+          switchAppMode('admission');
+        }
+        const targetBtn = document.querySelector(`.tab-btn[data-tab="${targetId}"]`);
+        if (targetBtn) targetBtn.click();
+      }
+    }
+  });
+}
+
+function initMobileDock() {
+  const btnPrev = document.getElementById('btnMobilePrevTab');
+  const btnNext = document.getElementById('btnMobileNextTab');
+  const btnCopy = document.getElementById('btnMobileQuickCopy');
+
+  const tabIds = [
+    'tab-cc', 'tab-hpi', 'tab-pmh', 'tab-dh',
+    'tab-ros', 'tab-pe', 'tab-paraclinics', 'tab-reasoning'
+  ];
+
+  function getCurrentTabIndex() {
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const activeTabId = activeBtn?.dataset?.tab;
+    return tabIds.indexOf(activeTabId);
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => {
+      const idx = getCurrentTabIndex();
+      if (idx > 0) {
+        const prevId = tabIds[idx - 1];
+        const btn = document.querySelector(`.tab-btn[data-tab="${prevId}"]`);
+        if (btn) btn.click();
+      }
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      const idx = getCurrentTabIndex();
+      if (idx !== -1 && idx < tabIds.length - 1) {
+        const nextId = tabIds[idx + 1];
+        const btn = document.querySelector(`.tab-btn[data-tab="${nextId}"]`);
+        if (btn) btn.click();
+      }
+    });
+  }
+
+  if (btnCopy) {
+    btnCopy.addEventListener('click', () => {
+      const btnCopyNote = document.getElementById('btnCopyNote');
+      if (btnCopyNote) btnCopyNote.click();
+    });
+  }
+}
+
+function initDirectPrint() {
+  const btnPrint = document.getElementById('btnPrintNote');
+  if (btnPrint) {
+    btnPrint.addEventListener('click', () => {
+      updateLivePreview();
+      window.print();
+    });
+  }
+}
+
+function initManualThemeToggle() {
+  const btnTheme = document.getElementById('btnThemeToggleManual');
+  if (btnTheme) {
+    btnTheme.addEventListener('click', () => {
+      const isDark = document.body.classList.toggle('dark-mode');
+      localStorage.setItem(STORAGE_THEME_KEY, isDark ? 'dark' : 'light');
+      showToast(isDark ? 'تم شبانه (Dark Mode) فعال شد.' : 'تم روشن بالینی (Light Mode) فعال شد.', 'info');
+    });
+  }
+}
+
 export async function initApp() {
   try {
     initAdmissionPathwayHandlers();
@@ -8402,6 +9096,11 @@ export async function initApp() {
     initAppModeSwitcher();
     initAtlsModeEngine();
     initSoapEngine();
+    initCommandPalette();
+    initKeyboardShortcuts();
+    initMobileDock();
+    initDirectPrint();
+    initManualThemeToggle();
 
     await loadSavedState();
     syncDomFromState();

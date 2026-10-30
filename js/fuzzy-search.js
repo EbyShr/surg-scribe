@@ -92,31 +92,36 @@ export function smartClinicalSearch(query, dataset, limit = 25) {
       const tokenSkel = buildPhoneticSkeleton(token);
       let bestTokenScore = 0;
 
-      // 1. تطبیق مستقیم زیررشته
+      // 1. تطبیق مستقیم زیررشته (برای تمام کلمات از جمله کلمات کوتاه کمتر از ۴ حرف)
       if (normHaystack.includes(token)) {
         bestTokenScore = normHaystack.startsWith(token) ? 100 : 85;
       }
-      // 2. تطبیق اسکلت آوایی (مثلاً کترولاک == کتورولاک)
-      else if (tokenSkel.length >= 2 && skelHaystack.includes(tokenSkel)) {
-        bestTokenScore = 75;
-      }
-      // 3. تطبیق فازی ضدِ غلط املایی (مثلاً آشپرین == آسپرین)
-      else if (token.length >= 3) {
-        const maxAllowedDist = token.length >= 5 ? 2 : 1;
-        for (const w of words) {
-          const prefixW = w.slice(0, Math.min(w.length, token.length + 1));
-          const dist = editDistance(token, prefixW);
-          if (dist <= maxAllowedDist) {
-            bestTokenScore = Math.max(bestTokenScore, 60 - dist * 15);
-          }
+      // برای کلمات کوتاه کمتر از ۴ حرف (مثل «زرد»)، فقط تطبیق زیررشته مجاز است تا «درد» یا «سرد» نیایند
+      else if (token.length >= 4) {
+        // 2. تطبیق اسکلت آوایی (مثلاً کترولاک == کتورولاک) با الزام یکسان بودن حرف اول
+        if (tokenSkel.length >= 3 && skelHaystack.includes(tokenSkel) && words.some((w) => w[0] === token[0])) {
+          bestTokenScore = 75;
         }
-        // بررسی فاصله ویرایشی روی اسکلت آوایی
-        if (bestTokenScore === 0 && tokenSkel.length >= 3) {
-          for (const sw of skelWords) {
-            const prefixSw = sw.slice(0, Math.min(sw.length, tokenSkel.length + 1));
-            const dist = editDistance(tokenSkel, prefixSw);
-            if (dist <= 1) {
-              bestTokenScore = Math.max(bestTokenScore, 50);
+        // 3. تطبیق فازی ضدِ غلط املایی با شرط قطعی یکسان بودن حرف اول (w[0] === token[0])
+        else {
+          const maxAllowedDist = token.length >= 6 ? 2 : 1;
+          for (const w of words) {
+            if (w[0] !== token[0]) continue;
+            const prefixW = w.slice(0, Math.min(w.length, token.length + 1));
+            const dist = editDistance(token, prefixW);
+            if (dist <= maxAllowedDist) {
+              bestTokenScore = Math.max(bestTokenScore, 60 - dist * 15);
+            }
+          }
+          // بررسی فاصله ویرایشی روی اسکلت آوایی برای کلمات بلند
+          if (bestTokenScore === 0 && tokenSkel.length >= 4) {
+            for (const sw of skelWords) {
+              if (sw[0] !== tokenSkel[0]) continue;
+              const prefixSw = sw.slice(0, Math.min(sw.length, tokenSkel.length + 1));
+              const dist = editDistance(tokenSkel, prefixSw);
+              if (dist <= 1) {
+                bestTokenScore = Math.max(bestTokenScore, 50);
+              }
             }
           }
         }

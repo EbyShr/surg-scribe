@@ -1,0 +1,13 @@
+{
+  "name": "surghistory-clinical",
+  "version": "2.0.0",
+  "description": "SurgHistory Clinical Workstation - General Surgery Admission H&P, Trauma ATLS & SOAP Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_v07.mjs"
+  },
+  "keywords": ["medical", "clinical", "surgery", "pwa", "capacitor"],
+  "author": "",
+  "license": "ISC"
+}

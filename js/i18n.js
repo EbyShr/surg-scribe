@@ -6,12 +6,13 @@
 
 import {
   tLabel,
+  tBrands,
   DIRECT_FA_TO_EN_MAP,
   getCurrentLang,
   setCurrentLang
 } from './schema.js';
 
-export { tLabel, DIRECT_FA_TO_EN_MAP, getCurrentLang, setCurrentLang };
+export { tLabel, tBrands, DIRECT_FA_TO_EN_MAP, getCurrentLang, setCurrentLang };
 
 export const STORAGE_LANG_KEY = 'surg_app_lang_v05';
 export const STORAGE_FONT_KEY = 'surg_app_font_v05';
@@ -19,9 +20,9 @@ export const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 export const I18N_DICTIONARY = {
   fa: {
-    app_title: 'دستیار جامع شرح‌حال و پیگیری جراحی | v1.2-Bilingual-CleanUI',
+    app_title: 'سامانه جامع شرح‌حال و پیگیری جراحی | v2.0-Pro',
     brand_title: 'SurgHistory',
-    version_pill: 'v1.2-CleanUI',
+    version_pill: 'v2.0-Pro',
     case_id_tooltip: 'شناسه یکتا پرونده شیفت',
     btn_new_case: 'پرونده جدید',
     collector_label: 'ثبت‌کننده:',
@@ -35,9 +36,9 @@ export const I18N_DICTIONARY = {
     btn_theme_title: 'تغییر تم تاریک / روشن',
 
     // Modes
-    mode_admission: '📋 پذیرش (H&P)',
-    mode_atls: '🚑 تروما (ATLS)',
-    mode_soap: '📈 ویزیت (SOAP)',
+    mode_admission: 'H&P',
+    mode_atls: 'ATLS',
+    mode_soap: 'SOAP',
 
     // Tabs
     tab_cc: '۱. پذیرش و CC',
@@ -51,7 +52,7 @@ export const I18N_DICTIONARY = {
 
     // Tab 1 Demographics
     demo_title: 'مشخصات هویتی بیمار (ویژه پرونده بیمارستان)',
-    privacy_shield: '🛡️ سپر حریم خصوصی فعال',
+    privacy_shield: 'سپر حریم خصوصی فعال',
     privacy_shield_tip: 'نام و تاریخ تولد هنگام ارسال به کلاد یا اکسل جهت حفظ حریم خصوصی به طور خودکار پاک می‌شوند',
     fullname_label: 'نام و نام خانوادگی بیمار',
     fullname_ph: 'مثلاً علی رضایی',
@@ -94,8 +95,8 @@ export const I18N_DICTIONARY = {
     cc_quote_ph: 'مثلاً دل‌پیچه شدید دور ناف از دیشب که به پایین راست تیر می‌کشد...',
 
     // SOAP
-    soap_btn_add_day: '➕ روز جدید',
-    soap_btn_del_day: '🗑️ حذف این روز',
+    soap_btn_add_day: 'روز جدید',
+    soap_btn_del_day: 'حذف این روز',
     soap_confirm_delete_day: 'آیا از حذف یادداشت پیگیری این روز اطمینان دارید؟ این عمل قابل بازگشت نیست.',
     shift_confirm_delete_case: 'آیا از حذف دائمی و قطعی این پرونده از حافظه اطمینان دارید؟ این عمل غیرقابل بازگشت است.',
 
@@ -106,10 +107,10 @@ export const I18N_DICTIONARY = {
     archetype_trauma: 'تروما / سوختگی (ATLS Trauma)',
     archetype_functional: 'عملکردی / خونریزی (Functional/Bleed)',
     archetype_elective: 'بستری الکتیو / بی‌علامت',
-    btn_add_presentation: '➕ افزودن کهن‌الگوی مواجهه بالینی دیگر',
-    quick_search_ph: '🔍 جستجوی سریع تگ‌ها (مثلاً: تهوع، دیابت، پلاویکس، مورفی، ارتوپنه...)',
+    btn_add_presentation: 'افزودن کهن‌الگوی مواجهه بالینی دیگر',
+    quick_search_ph: 'جستجوی سریع تگ‌ها (مثلاً: تهوع، دیابت، پلاویکس، مورفی، ارتوپنه...)',
     pain_episodes_title: 'کانون‌های درد و شکایات محوری (Pain Episodes & Trajectory)',
-    btn_add_pain: '➕ افزودن کانون درد / شکایت همزمان دیگر',
+    btn_add_pain: 'افزودن کانون درد / شکایت همزمان دیگر',
     hpi_associated_title: 'علائم همراه HPI (معماری ماژولار Unlockable)',
     hpi_badge_tip: 'تپ: خنثی / + مثبت / − منفی',
     hpi_basic_label: 'علائم پایه و همراه عمومی (Basic GI & Constitutional):',
@@ -118,17 +119,17 @@ export const I18N_DICTIONARY = {
     pmh_gatekeepers_title: 'سوابق پزشکی گذشته (PMH - ساختار درختی ۷ گانه)',
     pmh_routine_btn: 'نفی کلیه سوابق بیماری‌های زمینه‌ای روتین (دیابت، پرفشاری خون، IHD، چربی خون)',
     psh_card_title: 'سوابق جراحی و بستری قبلی (Past Surgical History - PSH)',
-    btn_add_surgery: '➕ افزودن عمل جراحی قبلی',
+    btn_add_surgery: 'افزودن عمل جراحی قبلی',
     obgyn_card_title: 'سوابق بارداری و زایمان (Ob/Gyn - ویژه بانوان)',
     obgyn_gravida: 'تعداد بارداری (Gravida):',
     obgyn_para: 'تعداد زایمان (Para):',
     obgyn_abortion: 'تعداد سقط (Abortion):',
     obgyn_living: 'فرزند زنده (Living):',
-    btn_add_pregnancy: '➕ ثبت زایمان / سقط جدید',
+    btn_add_pregnancy: 'ثبت زایمان / سقط جدید',
 
     // Tab 4 DH, SH, AH, FH
     dh_card_title: 'سوابق دارویی دسته‌بندی‌شده (Drug History - DH)',
-    btn_add_custom_drug: '➕ افزودن داروی دلخواه',
+    btn_add_custom_drug: 'افزودن داروی دلخواه',
     ah_card_title: 'سوابق حساسیت‌ها (Allergy History - AH)',
     ah_nkda: 'عدم سابقه حساسیت دارویی یا غذایی شناخته‌شده (NKDA)',
     ah_drug_label: 'حساسیت‌های دارویی مشخص (Drug Allergies):',
@@ -152,15 +153,15 @@ export const I18N_DICTIONARY = {
     general_exam_title: 'وضعیت عمومی بیمار (General Appearance & Exam)',
     abdominal_pillars_title: 'ارکان چهارگانه معاینه شکم (4 Mandatory Abdominal Pillars)',
     rectal_exam_title: 'معاینه رکتوم و پرینه (DRE & Perineal Exam)',
-    btn_set_normal_exam: '✓ ثبت معاینه کاملاً طبیعی این بخش',
-    mass_exam_btn: '➕ افزودن کارت معاینه موضعی توده / ضایعه (سر، فک، گردن، پستان، تنه، اندام)',
-    atls_module_btn: '➕ باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)',
+    btn_set_normal_exam: 'ثبت معاینه کاملاً طبیعی این بخش',
+    mass_exam_btn: 'افزودن کارت معاینه موضعی توده / ضایعه (سر، فک، گردن، پستان، تنه، اندام)',
+    atls_module_btn: 'باز کردن ماژول تروما، جراحات نافذ و سوختگی (ATLS Exam)',
 
     // Tab 7 Paraclinics
     paraclinics_title: 'پاراکلینیک جامع و مطالعات تشخیصی',
     paraclinics_tip: 'تپ روی هر مدالیته تصویربرداری کارت مجزای آن را برای ثبت گزارش باز می‌کند.',
     imaging_launcher_title: 'مدالیته‌های تصویربرداری و گزارش‌ها:',
-    efast_modality_btn: '➕ سونوگرافی eFAST (تروما)',
+    efast_modality_btn: 'سونوگرافی eFAST (تروما)',
 
     // Tab 8 DDx
     ddx_card_title: 'استدلال بالینی، تشخیص‌های افتراقی و پلن (DDx & Plan)',
@@ -186,14 +187,14 @@ export const I18N_DICTIONARY = {
 
     // Settings Modal
     settings_modal_title: 'تنظیمات سامانه | System Settings',
-    settings_lang_label: '🌐 زبان سامانه و جهت نمایش (Language & Direction)',
-    settings_theme_label: '🎨 پوسته بصری نرم‌افزار (Theme & Appearance)',
+    settings_lang_label: 'زبان سامانه و جهت نمایش (Language & Direction)',
+    settings_theme_label: 'پوسته بصری نرم‌افزار (Theme & Appearance)',
     theme_dark_title: 'تیره جراحی (Dark Slate)',
     theme_dark_desc: 'کاهش خستگی چشم در شیفت شب',
     theme_light_title: 'روشن پزشکی (Clean Medical)',
     theme_light_desc: 'کنتراست استاندارد بیمارستانی',
-    settings_font_label: '🔤 فونت سامانه (Typography - 5 Styles)',
-    settings_cloud_label: '📊 همگام‌سازی ابری Google Sheets (Apps Script Web App)',
+    settings_font_label: 'فونت سامانه (Typography - 5 Styles)',
+    settings_cloud_label: 'همگام‌سازی ابری Google Sheets (Apps Script Web App)',
     settings_collector_label: 'نام ثبت‌کننده (Collector Name / ID)',
     settings_url_label: 'آدرس وب‌اپ گوگل اسکریپت (Google Apps Script Web App URL)',
     btn_cancel: 'انصراف',
@@ -201,13 +202,34 @@ export const I18N_DICTIONARY = {
 
     // Common Buttons
     btn_toggle_negatives: '− منفی کردن بقیه',
-    btn_toggle_reset: '↺ بازنشانی منفی‌ها'
+    btn_toggle_reset: '↺ بازنشانی منفی‌ها',
+
+    // Chart Letterhead & Preview Header
+    chart_hospital_title: 'برگه شرح‌حال، معاینه بالینی و سیر بستری بخش جراحی',
+    chart_hospital_subtitle: 'Medical Center Clinical Chart — Department of General Surgery',
+    btn_copy_short: 'کپی',
+    btn_print_short: 'پرینت',
+    btn_json_short: 'JSON',
+    mobile_preview_btn: 'مشاهده و کپی متن شرح‌حال',
+
+    // SOAP Standard Hospital Titles (Bug 6 — Zero ذهنی/عینی)
+    soap_nav_hd: '۱. مشخصات سیر و روز بستری (HD / POD)',
+    soap_nav_s: '۲. Subjective (گزارش بیمار و علائم ۲۴ ساعت اخیر)',
+    soap_nav_o: '۳. Objective (علائم حیاتی، بیلان، معاینه و پاراکلینیک)',
+    soap_nav_a: '۴. Assessment (ارزیابی بالینی امروز)',
+    soap_nav_p: '۵. Plan (پلن درمانی و دستورات)',
+
+    // ATLS Navigation Titles
+    atls_nav_primary: '۱. ارزیابی اولیه حیاتی (Primary Survey - ABCDE)',
+    atls_nav_mist_ample: '۲. مکانیسم تروما و سوابق (MIST & AMPLE)',
+    atls_nav_secondary: '۳. ارزیابی ثانویه، زخم‌ها و سوختگی (Secondary Survey)',
+    atls_nav_efast_plan: '۴. eFAST، تصویربرداری و پلن اورژانس'
   },
 
   en: {
-    app_title: 'Surgical Admission & Progress Note Assistant | v1.2-Bilingual-CleanUI',
+    app_title: 'SurgHistory Clinical Workstation | v2.0-Pro',
     brand_title: 'SurgHistory',
-    version_pill: 'v1.2-CleanUI',
+    version_pill: 'v2.0-Pro',
     case_id_tooltip: 'Unique Shift Case ID',
     btn_new_case: 'New Patient',
     collector_label: 'Collector:',
@@ -221,9 +243,9 @@ export const I18N_DICTIONARY = {
     btn_theme_title: 'Toggle Dark / Light Mode',
 
     // Modes
-    mode_admission: '📋 H&P',
-    mode_atls: '🚑 ATLS',
-    mode_soap: '📈 SOAP',
+    mode_admission: 'H&P',
+    mode_atls: 'ATLS',
+    mode_soap: 'SOAP',
 
     // Tabs
     tab_cc: '1. Admission & CC',
@@ -237,7 +259,7 @@ export const I18N_DICTIONARY = {
 
     // Tab 1 Demographics
     demo_title: 'Patient Demographics & Identification (Local Hospital Note)',
-    privacy_shield: '🛡️ Privacy Shield Active',
+    privacy_shield: 'Privacy Shield Active',
     privacy_shield_tip: 'Patient Name & Birth Date are automatically stripped before exporting or syncing to Cloud',
     fullname_label: 'Patient Full Name',
     fullname_ph: 'e.g. John Doe',
@@ -286,10 +308,10 @@ export const I18N_DICTIONARY = {
     archetype_trauma: 'Trauma & Burns (ATLS)',
     archetype_functional: 'Functional & Bleeding',
     archetype_elective: 'Elective / Asymptomatic Referral',
-    btn_add_presentation: '➕ Add Clinical Presentation Archetype',
-    quick_search_ph: '🔍 Quick search tags (e.g. nausea, diabetes, plavix, murphy, orthopnea...)',
+    btn_add_presentation: 'Add Clinical Presentation Archetype',
+    quick_search_ph: 'Quick search tags (e.g. nausea, diabetes, plavix, murphy, orthopnea...)',
     pain_episodes_title: 'Pain Focus Episodes & Trajectory',
-    btn_add_pain: '➕ Add Secondary Pain Focus / Concurrent Symptom',
+    btn_add_pain: 'Add Secondary Pain Focus / Concurrent Symptom',
     hpi_associated_title: 'Associated Symptoms (Unlockable Clinical Modules)',
     hpi_badge_tip: 'Tap: Neutral / + Positive / − Negative',
     hpi_basic_label: 'Constitutional & Core GI Symptoms:',
@@ -298,17 +320,17 @@ export const I18N_DICTIONARY = {
     pmh_gatekeepers_title: 'Past Medical History (PMH - 7 Organ Gatekeepers)',
     pmh_routine_btn: 'Denies All Chronic Routine Illnesses (DM, HTN, IHD, Dyslipidemia)',
     psh_card_title: 'Past Surgical History (PSH & Prior Admissions)',
-    btn_add_surgery: '➕ Add Prior Surgical Procedure',
+    btn_add_surgery: 'Add Prior Surgical Procedure',
     obgyn_card_title: 'Obstetric & Gynecologic History (Ob/Gyn - Females)',
     obgyn_gravida: 'Gravida (Total Pregnancies):',
     obgyn_para: 'Para (Viable Births):',
     obgyn_abortion: 'Abortion / Miscarriages:',
     obgyn_living: 'Living Children:',
-    btn_add_pregnancy: '➕ Add Pregnancy Event',
+    btn_add_pregnancy: 'Add Pregnancy Event',
 
     // Tab 4 DH, SH, AH, FH
     dh_card_title: 'Categorized Medications (Drug History - DH)',
-    btn_add_custom_drug: '➕ Add Custom Medication',
+    btn_add_custom_drug: 'Add Custom Medication',
     ah_card_title: 'Allergies & Adverse Drug Reactions (AH)',
     ah_nkda: 'No Known Drug Allergies (NKDA)',
     ah_drug_label: 'Drug Allergies & Manifestations:',
@@ -332,15 +354,15 @@ export const I18N_DICTIONARY = {
     general_exam_title: 'General Appearance & Sensorium',
     abdominal_pillars_title: 'Four Mandatory Pillars of Abdominal Examination',
     rectal_exam_title: 'Digital Rectal Exam (DRE) & Perineum',
-    btn_set_normal_exam: '✓ Set Normal Baseline for this Section',
-    mass_exam_btn: '➕ Add Local Mass & Lesion Exam Card',
-    atls_module_btn: '➕ Open Trauma, Penetrating Injury & Burn Module (ATLS)',
+    btn_set_normal_exam: 'Set Normal Baseline for this Section',
+    mass_exam_btn: 'Add Local Mass & Lesion Exam Card',
+    atls_module_btn: 'Open Trauma, Penetrating Injury & Burn Module (ATLS)',
 
     // Tab 7 Paraclinics
     paraclinics_title: 'Diagnostic Studies, Labs & Imaging',
     paraclinics_tip: 'Click any imaging modality button to launch a dedicated reporting card.',
     imaging_launcher_title: 'Imaging Modalities & Diagnostic Reports:',
-    efast_modality_btn: '➕ eFAST Ultrasound (Trauma)',
+    efast_modality_btn: 'eFAST Ultrasound (Trauma)',
 
     // Tab 8 DDx
     ddx_card_title: 'Clinical Reasoning, Differential Diagnosis & Plan (DDx & Plan)',
@@ -366,28 +388,49 @@ export const I18N_DICTIONARY = {
 
     // Settings Modal
     settings_modal_title: 'System Settings',
-    settings_lang_label: '🌐 Language & Layout Direction',
-    settings_theme_label: '🎨 Appearance & Color Theme',
+    settings_lang_label: 'Language & Layout Direction',
+    settings_theme_label: 'Appearance & Color Theme',
     theme_dark_title: 'Dark Slate Surgical',
     theme_dark_desc: 'Reduces glare during night calls',
     theme_light_title: 'Clean Medical Light',
     theme_light_desc: 'High-contrast hospital documentation',
-    settings_font_label: '🔤 Typography & Font Style (5 Options)',
-    settings_cloud_label: '📊 Google Sheets Cloud Sync (Apps Script Web App)',
+    settings_font_label: 'Typography & Font Style (5 Options)',
+    settings_cloud_label: 'Google Sheets Cloud Sync (Apps Script Web App)',
     settings_collector_label: 'Collector Name / Attending ID',
     settings_url_label: 'Google Apps Script Web App Endpoint URL',
     btn_cancel: 'Cancel',
     btn_save_settings: 'Save Settings',
 
     // SOAP
-    soap_btn_add_day: '➕ Add Day',
-    soap_btn_del_day: '🗑️ Delete Day',
+    soap_btn_add_day: 'Add Day',
+    soap_btn_del_day: 'Delete Day',
     soap_confirm_delete_day: 'Are you sure you want to permanently delete this daily SOAP note? This cannot be undone.',
     shift_confirm_delete_case: 'Are you sure you want to permanently delete this case? This action cannot be undone.',
 
     // Common Buttons
     btn_toggle_negatives: '− Mark Rest as Negative',
-    btn_toggle_reset: '↺ Reset Negatives'
+    btn_toggle_reset: '↺ Reset Negatives',
+
+    // Chart Letterhead & Preview Header
+    chart_hospital_title: 'Department of General Surgery — Clinical Chart & Progress Record',
+    chart_hospital_subtitle: 'Medical Center Clinical Chart — Inpatient & Trauma Documentation',
+    btn_copy_short: 'Copy',
+    btn_print_short: 'Print',
+    btn_json_short: 'JSON',
+    mobile_preview_btn: 'Preview & Copy Clinical Note',
+
+    // SOAP Standard Hospital Titles
+    soap_nav_hd: '1. Course & Hospital Day (HD# / POD#)',
+    soap_nav_s: '2. Subjective (24h Patient Report & Symptoms)',
+    soap_nav_o: '3. Objective (Vitals, I/O, Focused PE & Labs)',
+    soap_nav_a: '4. Assessment (Daily Clinical Impression)',
+    soap_nav_p: '5. Plan (Management & Daily Orders)',
+
+    // ATLS Navigation Titles
+    atls_nav_primary: '1. Primary Survey (ABCDE)',
+    atls_nav_mist_ample: '2. Mechanism & History (MIST & AMPLE)',
+    atls_nav_secondary: '3. Secondary Survey, Wounds & Burns',
+    atls_nav_efast_plan: '4. eFAST, Imaging & Trauma Plan'
   }
 };
 
@@ -405,11 +448,24 @@ export function getCurrentLanguage() {
 }
 
 /**
- * Translate a key according to current language
+ * Central bilingual translator:
+ * - Supports dictionary key lookup: t('btn_new_case')
+ * - Supports inline bilingual strings: t('متن فارسی', 'English Text')
  */
-export function t(key, fallback = '') {
+export function t(faOrKey, enStr = '') {
   const lang = getCurrentLanguage();
-  return I18N_DICTIONARY[lang]?.[key] || I18N_DICTIONARY.fa?.[key] || fallback || key;
+  if (
+    typeof faOrKey === 'string' &&
+    I18N_DICTIONARY.fa &&
+    Object.prototype.hasOwnProperty.call(I18N_DICTIONARY.fa, faOrKey)
+  ) {
+    return I18N_DICTIONARY[lang]?.[faOrKey] ?? (lang === 'en' && enStr ? enStr : I18N_DICTIONARY.fa[faOrKey]);
+  }
+  if (lang === 'en') {
+    if (enStr !== undefined && enStr !== '') return enStr;
+    return tLabel(faOrKey);
+  }
+  return faOrKey;
 }
 
 /**
@@ -455,12 +511,18 @@ export function setLanguage(lang) {
  */
 export function applyI18nToDOM(lang = getCurrentLanguage()) {
   if (typeof document === 'undefined') return;
+  const isEn = lang === 'en';
   const dict = I18N_DICTIONARY[lang] || I18N_DICTIONARY.fa;
 
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     const key = el.getAttribute('data-i18n');
     if (dict[key]) {
-      el.textContent = dict[key];
+      const labelSpan = el.querySelector('.i18n-text');
+      if (labelSpan) {
+        labelSpan.textContent = dict[key];
+      } else if (el.children.length === 0) {
+        el.textContent = dict[key];
+      }
     }
   });
 
@@ -475,6 +537,66 @@ export function applyI18nToDOM(lang = getCurrentLanguage()) {
     const key = el.getAttribute('data-i18n-title');
     if (dict[key]) {
       el.setAttribute('title', dict[key]);
+    }
+  });
+
+  // Inline bilingual text attributes: data-fa / data-en
+  document.querySelectorAll('[data-fa][data-en]').forEach((el) => {
+    const txt = isEn ? el.getAttribute('data-en') : el.getAttribute('data-fa');
+    if (txt !== null) {
+      const labelSpan = el.querySelector('.i18n-text');
+      if (labelSpan) {
+        labelSpan.textContent = txt;
+      } else if (el.children.length === 0) {
+        el.textContent = txt;
+      }
+    }
+  });
+
+  document.querySelectorAll('[data-fa-ph][data-en-ph]').forEach((el) => {
+    const txt = isEn ? el.getAttribute('data-en-ph') : el.getAttribute('data-fa-ph');
+    if (txt !== null) el.setAttribute('placeholder', txt);
+  });
+
+  document.querySelectorAll('[data-fa-title][data-en-title]').forEach((el) => {
+    const txt = isEn ? el.getAttribute('data-en-title') : el.getAttribute('data-fa-title');
+    if (txt !== null) el.setAttribute('title', txt);
+  });
+
+  // Auto-localize static clinical capsule buttons while preserving dataset values
+  document
+    .querySelectorAll('[data-val], [data-plan], [data-uo-status], [data-pe-val], [data-atls-val]')
+    .forEach((el) => {
+      if (el.hasAttribute('data-fa') || el.hasAttribute('data-i18n')) return;
+      const raw =
+        el.getAttribute('data-val') ||
+        el.getAttribute('data-plan') ||
+        el.getAttribute('data-uo-status') ||
+        el.getAttribute('data-pe-val') ||
+        el.getAttribute('data-atls-val') ||
+        '';
+      if (!raw) return;
+      const localized = isEn ? tLabel(raw) : raw;
+      const chipSpan = el.querySelector('.chip-text');
+      if (chipSpan) {
+        chipSpan.textContent = localized;
+      } else if (el.children.length === 0) {
+        el.textContent = localized;
+      }
+    });
+
+  // Auto-localize static <select> <option> labels while keeping option.value intact
+  document.querySelectorAll('select option').forEach((opt) => {
+    if (opt.hasAttribute('data-i18n') || opt.hasAttribute('data-fa')) return;
+    if (!opt.hasAttribute('data-orig-fa')) {
+      const currentTxt = (opt.textContent || '').trim();
+      if (/[\u0600-\u06FF]/.test(currentTxt)) {
+        opt.setAttribute('data-orig-fa', currentTxt);
+      }
+    }
+    const origFa = opt.getAttribute('data-orig-fa');
+    if (origFa) {
+      opt.textContent = isEn ? tLabel(origFa) : origFa;
     }
   });
 
@@ -534,6 +656,7 @@ export function setTheme(theme) {
   }
   if (typeof document !== 'undefined') {
     document.body.classList.toggle('dark-mode', isDark);
+    document.body.classList.toggle('theme-light', !isDark);
 
     const sun = document.getElementById('themeIconSun');
     const moon = document.getElementById('themeIconMoon');

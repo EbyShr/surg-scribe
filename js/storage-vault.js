@@ -277,7 +277,24 @@ export class ImmortalStorageVault {
     localStorage.setItem(PERMANENT_CASES_KEY, JSON.stringify(allCases));
     await this._idbSet(PERMANENT_CASES_KEY, allCases);
 
-    // 3. پاکسازی از تمام کلیدهای فرعی احتمالی در localStorage
+    // 3. پاکسازی قطعی از تمام کلیدهای فرعی و شیفت در localStorage
+    try {
+      const shiftRaw = localStorage.getItem('surg_shift_cases_v05');
+      if (shiftRaw) {
+        const shiftList = JSON.parse(shiftRaw);
+        if (Array.isArray(shiftList)) {
+          localStorage.setItem('surg_shift_cases_v05', JSON.stringify(shiftList.filter((c) => c && c.caseId !== caseId)));
+        }
+      }
+    } catch (_) {}
+
+    try {
+      const currRaw = localStorage.getItem('surg_current_case_state_v05');
+      if (currRaw && currRaw.includes(caseId)) {
+        localStorage.removeItem('surg_current_case_state_v05');
+      }
+    } catch (_) {}
+
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (!k || k === PERMANENT_CASES_KEY || k === PERMANENT_DELETED_IDS_KEY) continue;
@@ -296,13 +313,16 @@ export class ImmortalStorageVault {
 
     // 4. اگر پرونده‌ای که پاک شد، همان پرونده فعال روی صفحه بود، به پرونده بعدی سوییچ کن یا فرم سفید باز کن
     const activeDraftRaw = localStorage.getItem(PERMANENT_ACTIVE_DRAFT_KEY);
-    if (activeDraftRaw && activeDraftRaw.includes(caseId)) {
+    const idbDraft = await this._idbGet(PERMANENT_ACTIVE_DRAFT_KEY);
+    const isTargetActive = (activeDraftRaw && activeDraftRaw.includes(caseId)) || (idbDraft && idbDraft.caseId === caseId);
+
+    if (isTargetActive) {
       if (allCases.length > 0) {
-        this.saveActiveDraft(allCases[0], 'tab-cc');
+        await this.saveActiveDraft(allCases[0], 'tab-cc');
         return allCases[0];
       } else {
         const freshState = typeof createEmptyStateFn === 'function' ? createEmptyStateFn() : {};
-        this.saveActiveDraft(freshState, 'tab-cc');
+        await this.saveActiveDraft(freshState, 'tab-cc');
         return freshState;
       }
     }

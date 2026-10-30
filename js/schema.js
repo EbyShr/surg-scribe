@@ -139,15 +139,741 @@ export const DIRECT_FA_TO_EN_MAP = {
   'پیوند کلیه': 'Renal Transplant',
   'تعویض مفصل': 'Joint Arthroplasty',
 
-  // Statuses
+  // Statuses & Demographics & Admission
   'مثبت': 'Positive',
   'منفی': 'Negative',
   'طبیعی': 'Normal',
   'غیرطبیعی': 'Abnormal',
   'نامشخص': 'Unknown',
   'بخش بستری': 'Ward',
-  'شماره تخت': 'Bed #'
+  'شماره تخت': 'Bed #',
+  'خود بیمار': 'Patient',
+  'همراه (همسر/والدین/فرزند)': 'Family Member (Spouse/Parent/Child)',
+  'همراه بیمار': 'Patient Companion',
+  'کادر اورژانس (EMS)': 'EMS Personnel',
+  'پرونده ارجاعی': 'Referral Medical Record',
+  'آقا': 'Male',
+  'مرد': 'Male',
+  'خانم': 'Female',
+  'زن': 'Female',
+  'مجرد': 'Single',
+  'متأهل': 'Married',
+  'متاهل': 'Married',
+  'مطلقه / همسر فوت‌شده': 'Divorced / Widowed',
+  'اورژانس جراحی': 'Surgical ED',
+  'بخش جراحی عمومی ۱': 'General Surgery Ward 1',
+  'بخش جراحی عمومی ۲': 'General Surgery Ward 2',
+  'بخش جراحی زنان': 'Women Surgery Ward',
+  'بخش تروما': 'Trauma Ward',
+  'ICU جراحی': 'Surgical ICU (SICU)',
+  'سایر / تایپ دستی...': 'Other / Custom...',
+  'منظم (Regular)': 'Regular',
+  'نامنظم (Irregular)': 'Irregular',
+  'یائسه (Menopause)': 'Menopause',
+  'ندارد': 'None',
+  'خفیف': 'Mild',
+  'شدید': 'Severe',
+  'زایمان طبیعی (NVD)': 'Normal Vaginal Delivery (NVD)',
+  'سزارین (C/S)': 'Cesarean Section (C/S)',
+  'سقط (Abortion)': 'Abortion',
+  'خاموش / غیرفعال': 'Inactive / None',
+  'هرگز (Never)': 'Never',
+  'مصرف فعلی (Current)': 'Current',
+  'ترک کرده (Former)': 'Former',
+
+  // Admission Pathways & Spatial Patterns & Pain Modifiers
+  'مراجعه با علامت حاد / اورژانس': 'Acute / Emergency Presentation',
+  'ارجاع از درمانگاه با نامه استاد / بستری الکتیو': 'Clinic Attending Referral / Elective Admission',
+  'مراجعه به دنبال عمل جراحی اخیر / عوارض پس از عمل': 'Recent Post-Op Presentation / Complication',
+  'لوکالیزه (تک‌ناحیه‌ای یا چندناحیه‌ای)': 'Localized (Single or Multi-region)',
+  'ژنرالیزه با ارجحیت در ناحیه خاص': 'Generalized with Focal Predominance',
+  'شروع لوکالیزه و سپس ژنرالیزه شدن': 'Initially Localized, Progressing to Generalized',
+  'شروع منتشر/ژنرالیزه در شکم و سپس لوکالیزه شدن در ناحیه خاص (الگوی کلاسیک آپاندیسیت و...)': 'Diffuse Onset Migrating/Localizing to Focal Region (Classic Appendicitis Pattern)',
+  'پریکوردیال / سمت چپ قفسه سینه': 'Precordial / Left Anterior Chest',
+  'سمت راست قفسه سینه': 'Right Anterior Chest',
+  'مصرف غذای چرب / غذا خوردن': 'Fatty Meals / Eating',
+  'حرکت، سرفه و دم عمیق': 'Movement, Coughing & Deep Inspiration',
+  'گرسنگی / ناشتایی': 'Fasting / Hunger',
+  'استراحت و بی‌حرکتی': 'Rest & Immobility',
+  'مصرف مسکن / ضدالتهاب': 'Analgesics / NSAIDs',
+  'استفراغ کردن': 'Vomiting',
+  'دفع گاز یا مدفوع': 'Passing Flatus or Stool',
+  'مصرف آنتی‌اسید یا غذا': 'Antacids or Food Intake',
+  'راست / چپ...': 'Right / Left...',
+  'کمربندی / مهره‌ای...': 'Band-like / Vertebral...',
+  'جزئیات...': 'Details...',
+
+  // Functional, Mass & Trauma Schema Options
+  'خونریزی گوارشی فوقانی (هماتمز / ملنا)': 'Upper GI Bleeding (Hematemesis / Melena)',
+  'خونریزی گوارشی تحتانی (هماتوشزی / رکتوراژی)': 'Lower GI Bleeding (Hematochezia / Rectorrhagia)',
+  'علائم فشاری موضعی (دیسفاژی، دیسپنه، خشونت صدا، تریسموس یا بی‌حسی)': 'Local Compressive Symptoms (Dysphagia, Dyspnea, Hoarseness, Trismus or Numbness)',
+  'سابقه توده مشابه در سایر نقاط یا عود پس از جراحی قبلی': 'Similar Mass Elsewhere or Recurrence After Prior Surgery',
+  'حساسیت خفیف در لمس یا فشار': 'Mild Tenderness on Palpation',
+  'دردناک شدن اخیر': 'Recently Painful',
+  'تنگی نفس حاد یا درد قفسه سینه پس از تروما': 'Acute Post-Traumatic Dyspnea or Chest Pain',
+  'هماتوری یا خونریزی گوارشی پس از تروما': 'Post-Traumatic Hematuria or GI Bleeding',
+  'اختلال حس یا حرکت در اندام آسیب‌دیده': 'Sensory or Motor Deficit in Injured Limb',
+  'سوختگی حرارتی (شعله / مایعات داغ Scald / انفجار)': 'Thermal Burn (Flame / Scald / Blast)',
+  'خودروی شخصی / همراهان': 'Private Vehicle / Family',
+
+  // HPI Basic Symptoms & Unlockable Modules & Hints
+  'مدت و شدت...': 'Duration and severity...',
+  'مداوم یا متناوب...': 'Constant or intermittent...',
+  'تعداد دفعات، محتویات (غذایی/صفراوی/خونی)، تسکین درد پس از آن...': 'Frequency, contents (bilious/bloody/food), post-emetic relief...',
+  'درجه، زمانبندی...': 'Grade, timing...',
+  'تناوب و شدت...': 'Frequency and severity...',
+  'توضیحات، همزمانی با درد یا افت فشار...': 'Details, concurrence with pain or hypotension...',
+  'از چند ساعت/روز قبل...': 'Duration in hours/days...',
+  'قوام، دفعات، خونی یا آبکی...': 'Consistency, frequency, bloody or watery...',
+  'باز کردن ماژول: علائم صفراوی و کلستاز (زردی، خارش، ادرار چای‌رنگ، مدفوع آکولیک)': 'Open Module: Hepatobiliary & Cholestasis (Jaundice, Pruritus, Dark Urine, Acholic Stool)',
+  'سیر پیشرونده یا نوسانی...': 'Progressive or fluctuating course...',
+  'شدت و زمان تشدید...': 'Severity and timing...',
+  'از چند روز قبل...': 'Since how many days ago...',
+  'مدت زمان...': 'Duration...',
+  'باز کردن ماژول: عوارض محل عمل جراحی اخیر و درن (درد/سفتی محل درن، ترشح، باز شدن بخیه)': 'Open Module: Post-Op & Drain Complications (Induration, Discharge, Dehiscence)',
+  'درد و سفتی (Induration) در محل درن یا خط بخیه': 'Pain & Induration at Drain or Incision Site',
+  'ناحیه درن و فاصله زمانی از عمل...': 'Drain site and time elapsed since surgery...',
+  'تغییر حجم یا ماهیت ترشحات درن': 'Change in Drain Output Volume or Character',
+  'حجم ۲۴ ساعته به cc و ماهیت: سروزی/هموراژیک/چرکی/صفراوی...': '24h volume (cc) & character (serous/bloody/purulent/bilious)...',
+  'انسداد، نشت از کنار درن یا خروج ناخواسته درن': 'Drain Occlusion, Peri-tubular Leakage or Dislodgement',
+  'میزان نشت یا انسداد...': 'Extent of leakage or occlusion...',
+  'قرمزی، گرمی، ترشح یا باز شدن (Dehiscence) خط بخیه': 'Incisional Erythema, Warmth, Discharge or Dehiscence',
+  'ترشح، باز شدن لبه‌ها...': 'Discharge, wound edge separation...',
+  'باز کردن ماژول: علائم خونریزی گوارشی و آنورکتال (هماتمز، ملنا، هماتوشزی، دیسفاژی)': 'Open Module: GI Bleeding & Anorectal (Hematemesis, Melena, Hematochezia, Dysphagia)',
+  'هماتمز (استفراغ خونی یا Coffee-ground)': 'Hematemesis (Bloody or Coffee-ground Emesis)',
+  'حجم و دفعات...': 'Volume and frequency...',
+  'دفعات و حجم...': 'Frequency and volume...',
+  'هماتوشزی / رکتوراژی (خون روشن از رکتوم)': 'Hematochezia / Rectorrhagia (Bright Red Blood per Rectum)',
+  'مخلوط با مدفوع یا قطره‌ای پس از دفع...': 'Mixed with stool or post-defecation dripping...',
+  'دیسفاژی یا ادینوفاژی (اختلال یا درد بلع)': 'Dysphagia or Odynophagia',
+  'به جامدات یا مایعات...': 'To solids or liquids...',
+  'زورپیچ (Tenesmus) یا درد حین اجابت مزاج': 'Tenesmus or Defecation Pain',
+  'شدت درد...': 'Pain severity...',
+  'باز کردن ماژول: علائم توده، فتق، پستان و تیروئید (جا رفتن توده، تغییرات پوست، خشونت صدا)': 'Open Module: Mass, Hernia, Breast & Thyroid (Reducibility, Skin Changes, Hoarseness)',
+  'روش جااندازی...': 'Reduction method...',
+  'از چند ساعت قبل...': 'Hours since onset...',
+  'علائم ایسکمی...': 'Signs of ischemia...',
+  'ترشح از نیپل یا فرورفتگی نوک پستان': 'Nipple Discharge or Inversion',
+  'خونی/سروزی، یکطرفه/دوطرفه...': 'Bloody/serous, unilateral/bilateral...',
+  'محل در پستان...': 'Quadrant / clock-face position...',
+  'باز کردن ماژول: علائم ادراری و لگنی (دیزوری، هماچوری، احتباس/کاهش جریان ادرار)': 'Open Module: Urinary & Pelvic Symptoms (Dysuria, Hematuria, Retention)',
+  'تغییر رنگ ادرار...': 'Urine color change...',
+  'هماچوری (تغییر رنگ خونی ادرار)': 'Hematuria (Gross Blood in Urine)',
+  'لخته، ابتدا یا کل ادرار...': 'Clots, initial or terminal/total stream...',
+  'احتباس، تاخیر در شروع یا کاهش جریان ادرار': 'Urinary Retention, Hesitancy or Weak Stream',
+  'سابقه سوندگذاری...': 'Prior catheterization history...',
+  'ترشح/خونریزی غیرطبیعی واژینال یا تاخیر پریود (در خانم‌ها)': 'Abnormal Vaginal Discharge/Bleeding or Missed Period',
+  'تاریخ LMP...': 'LMP date...',
+
+  // PMH, PSH, DH, AH, FH Categories & Items
+  'نارسایی آدرنال / سندرم کوشینگ / مصرف مزمن کورتون': 'Adrenal Insufficiency / Cushing Syndrome / Chronic Corticosteroid Use',
+  'سابقه پریکاردیت یا اندوکاردیت عفونی': 'History of Pericarditis or Infective Endocarditis',
+  'آدنوم هیپوفیز / پرولاکتینوما / آکرومگالی': 'Pituitary Adenoma / Prolactinoma / Acromegaly',
+  'سابقه پنوموتوراکس خودبه‌خودی یا چست‌تیوب': 'History of Spontaneous Pneumothorax or Chest Tube',
+  'ترومبوفیلی ارثی / فاکتور ۵ لیدن / آنتی‌فسفولیپید': 'Hereditary Thrombophilia / Factor V Leiden / Antiphospholipid Syndrome',
+  '۲. داروهای قلبی، فشار خون، ضدآریتمی و چربی خون': '2. Cardiovascular, Antihypertensive, Antiarrhythmic & Lipid Drugs',
+  '۳. داروهای دیابت، انسولین‌ها، تیروئید، کورتون‌ها و هورمونی': '3. Antidiabetics, Insulins, Thyroid, Corticosteroids & Hormonal Drugs',
+  '۴. داروهای گوارشی، کبدی و ضدتهوع': '4. Gastrointestinal, Hepatobiliary & Antiemetic Drugs',
+  '۵. مسکن‌ها (NSAIDs و اپیوئیدها)، روماتولوژی و سرکوب‌کننده ایمنی': '5. Analgesics (NSAIDs & Opioids), Rheumatology & Immunosuppressants',
+  '۶. تنفسی، اورولوژی، اعصاب و روان و مکمل‌ها': '6. Respiratory, Urologic, Neuropsychiatric & Supplements',
+  'مادر': 'Mother',
+  'پدر': 'Father',
+  'برادر': 'Brother',
+  'خواهر': 'Sister',
+  'درجه ۲': '2nd-Degree Relative',
+  'پنیسیلین و بتالاکتام‌ها': 'Penicillins & Beta-Lactams',
+  'نوع واکنش: کهیر، آنژیوادم، آنافیلاکسی...': 'Reaction: urticaria, angioedema, anaphylaxis...',
+  'سفالوسپورین‌ها': 'Cephalosporins',
+  'نوع واکنش...': 'Reaction type...',
+  'سابقه پیش‌درمانی با هیدروکورتیزون...': 'Prior premedication with hydrocortisone...',
+  'حساسیت تماسی یا تنفسی...': 'Contact or respiratory reaction...',
+  'داروهای بیهوشی / شل‌کننده عضلانی': 'Anesthetic Agents / Neuromuscular Blockers',
+  'هیپرترمی بدخیم یا آپنه طولانی...': 'Malignant hyperthermia or prolonged apnea...',
+  'مواد غذایی (کیوی/گوجه/مغزیجات)': 'Food Allergens (Kiwi / Tomato / Tree Nuts)',
+  'سرطان و گوارش': 'GI Oncology',
+  'سرطان و زنان': 'Gynecologic / Breast Oncology',
+  'سرطان و غدد': 'Endocrine Oncology',
+  'سرطان و اورولوژی': 'Urologic Oncology',
+  'سرطان عمومی': 'General Oncology',
+  'قلبی-عروقی': 'Cardiovascular',
+  'غدد': 'Endocrine',
+  'اعصاب': 'Neurology',
+  'گوارش': 'Gastrointestinal',
+  'سرطان ارثی': 'Hereditary Cancer Syndromes',
+  'خون': 'Hematology',
+  'گوارش و کلیه': 'GI & Renal',
+  'ژنتیک و روماتولوژی': 'Genetics & Rheumatology',
+  'خون ارثی': 'Hereditary Hematology',
+  'سنگ کیسه صفرا یا سنگ کلیه مکرر در خانواده': 'Familial Recurrent Cholelithiasis or Nephrolithiasis',
+  'تالاسمی مینور/ماژور یا هموفیلی در خانواده': 'Familial Thalassemia Minor/Major or Hemophilia',
+  'کانسر کولورکتال در بستگان درجه یک': 'Colorectal Cancer in First-Degree Relatives',
+  'نسبت فامیلی و سن بروز...': 'Relationship and age at onset...',
+  'کانسر معده یا مری': 'Gastric or Esophageal Cancer',
+  'نسبت و سن بروز...': 'Relationship and age at onset...',
+  'تعداد افراد مبتلا در خانواده...': 'Number of affected relatives...',
+  'کانسر مدولاری/پاپیلاری تیروئید یا سندروم MEN': 'Medullary/Papillary Thyroid Cancer or MEN Syndrome',
+  'نوع بدخیمی...': 'Malignancy subtype...',
+  'بیماری ایسکمیک قلبی زودرس (مرد <55، زن <65)': 'Premature Ischemic Heart Disease (M <55, F <65)',
+  'نسبت...': 'Relationship...',
+  'دیابت شیرین و پرفشاری خون خانوادگی': 'Familial Diabetes Mellitus & Hypertension',
+  'نسبت فامیلی...': 'Family relationship...',
+  'اختلالات ترومبوفیلی، DVT مکرر یا خونریزی ارثی': 'Hereditary Thrombophilia, Recurrent DVT or Bleeding Disorder',
+  'سابقه آمبولی در خانواده...': 'Family history of embolism...',
+
+  // Physical Examination (PE Mandatory Pillars, Unlockable Modules & Comprehensive 12-System Baselines)
+  'ظاهر Ill یا Toxic': 'Ill or Toxic-Appearing',
+  'بیقراری، تعریق...': 'Agitation, diaphoresis...',
+  'شدت رنگ‌پریدگی...': 'Degree of pallor...',
+  'شدت زردی...': 'Degree of icterus...',
+  'سمع ریه دوطرفه شفاف و بدون صدای اضافی': 'Bilateral Clear Breath Sounds without Adventitious Sounds',
+  'صداهای غیرطبیعی ریه (کراکل / ویز / کاهش صدا)': 'Abnormal Breath Sounds (Crackles / Wheezes / Decreased Sounds)',
+  'سمت راست/چپ، قاعده...': 'Right/left side, lung base...',
+  'سمع قلب: S1 و S2 نرمال و منظم بدون سوفل': 'Heart Auscultation: Normal Regular S1 & S2 without Murmur',
+  'سوفل قلبی یا ریتم نامنظم': 'Cardiac Murmur or Irregular Rhythm',
+  'گرید و کانون سمع...': 'Grade and auscultation focus...',
+  'ژنرالیزه یا موضعی...': 'Generalized or localized...',
+  'نوع برش (میدلاین/مک‌برنی/کوشر/فان‌اشتیل) و نام عمل...': 'Incision type (Midline/McBurney/Kocher/Pfannenstiel) & surgery...',
+  'اکیموز جدار شکم (علامت کولن یا گری‌ترنر)': 'Abdominal Wall Ecchymosis (Cullen or Grey Turner Sign)',
+  'دور ناف یا پهلوها...': 'Periumbilical or flanks...',
+  'برجستگی یا فتق واضح در مشاهده جدار شکم': 'Visible Bulge or Hernia on Abdominal Wall Inspection',
+  'محل و سایز...': 'Location and size...',
+  'محل بروئی...': 'Bruit location...',
+  'میزان مایع آزاد...': 'Estimated ascites volume...',
+  'سمت راست یا چپ...': 'Right or left side...',
+  'نواحی دقیق (مثلاً RLQ، اپی‌گاستر)...': 'Exact quadrants (e.g. RLQ, Epigastric)...',
+  'محل دقیق...': 'Exact location...',
+  'ارادی/غیرارادی، لوکالیزه یا ژنرالیزه...': 'Voluntary/involuntary, localized or generalized...',
+  'سانتیمتر زیر لبه دنده...': 'cm below costal margin...',
+  'تون اسفنکتر نرمال، بدون توده، دستکش آغشته به مدفوع طبیعی': 'Normal Sphincter Tone, No Mass, Normal Brown Stool on Glove',
+  'مشاهده ملنا یا خون روشن روی انگشت دستکش': 'Melena or Bright Red Blood on Examining Finger',
+  'آمپول رکتوم خالی یا ایمپکشن مدفوعی': 'Empty Rectal Vault or Fecal Impaction',
+  'لمس توده، فیشر، فیستول یا هموروئید': 'Palpable Rectal Mass, Fissure, Fistula or Hemorrhoids',
+  'فاصله از Anal verge، ساعت، تندرنس...': 'Distance from anal verge, clock position, tenderness...',
+  'معاینه پستان و آگزیلا دوطرفه طبیعی، بدون توده یا ترشح': 'Normal Bilateral Breast & Axillary Exam, No Mass or Discharge',
+  'توده قابل لمس در پستان': 'Palpable Breast Mass',
+  'سمت، ساعت، فاصله از آرئول، ابعاد cm، قوام، تحرک...': 'Side, clock position, distance from areola, size (cm), mobility...',
+  'لنفادنوپاتی آگزیلاری قابل لمس': 'Palpable Axillary Lymphadenopathy',
+  'سمت، تعداد، سایز، متحرک یا فیکس...': 'Side, count, size, mobile vs fixed...',
+  'فرورفتگی نوک پستان، کشیدگی یا نمای پوست‌پرتقالی': 'Nipple Inversion, Skin Tethering or Peau d’orange',
+  'موضع...': 'Location...',
+  'تیروئید بدون بزرگی، بدون ندول لمس‌پذیر و متحرک با بلع': 'Non-enlarged Thyroid, No Palpable Nodules, Mobile with Swallowing',
+  'گواتر منتشر یا ندول قابل لمس تیروئید': 'Diffuse Goiter or Palpable Thyroid Nodule',
+  'لوب راست/چپ/ایستموس، ابعاد به cm، قوام...': 'Right/left lobe or isthmus, size (cm), consistency...',
+  'سطح لول گردنی، سایز cm، متحرک یا فیکس...': 'Cervical level, size (cm), mobile vs fixed...',
+  'کانال‌های اینگوئینال دوطرفه بدون بالج یا فتق لمس‌پذیر': 'Bilateral Inguinal Canals Intact without Bulge or Palpable Hernia',
+  'فتق اینگوئینال (مستقیم یا غیرمستقیم)': 'Inguinal Hernia (Direct or Indirect)',
+  'سمت راست یا چپ، قابل جااندازی (Reducible) یا گیرکرده...': 'Right/left, reducible vs incarcerated...',
+  'فتق فمورال، نافی یا اپی‌گاستریک': 'Femoral, Umbilical or Epigastric Hernia',
+  'محل و سایز نقص فاشیا به cm...': 'Location and fascial defect size (cm)...',
+  'فتق انسزیونال در محل اسکار جراحی قبلی': 'Incisional Hernia at Prior Surgical Scar',
+  'ابعاد نقص فاشیا به cm...': 'Fascial defect dimensions (cm)...',
+  'خط بخیه تمیز، خشک و بدون ترشح یا اریتم': 'Clean, Dry, Intact Suture Line without Erythema or Discharge',
+  'اریتم، گرمی، ترشح یا باز شدن (Dehiscence) لبه‌های بخیه': 'Wound Erythema, Warmth, Discharge or Dehiscence',
+  'وسعت اریتم، ماهیت ترشح...': 'Extent of erythema, discharge character...',
+  'درن جراحی فیکس، فعال و دارای کارکرد مناسب': 'Surgical Drain Secured, Patent and Functioning Properly',
+  'نشت ترشح از اطراف درن، جابه‌جایی یا اریتم محل ورود درن': 'Peri-drain Leakage, Dislodgement or Exit-Site Erythema',
+  'توضیحات نشت یا انسداد...': 'Details of leakage or blockage...',
+
+  // PE Comprehensive 12-System Normal Baselines & Pure-Persian Items
+  'هوشیار، با جهت‌یابی کامل (Oriented ×3)، بدون دیسترس حاد تنفسی یا درد بارز، پرفیوژن محیطی مناسب و هیدراتاسیون نرمال.': 'Alert and fully oriented (Oriented x3), in no acute respiratory distress or overt pain, with adequate peripheral perfusion and normal hydration.',
+  'شکم متقارن، فاقد دیستانسیون بارز، بدون اسکار جراحی قبلی، بدون ایکموز یا اتساع وریدی، ناف در وضعیت طبیعی و بدون ضایعه جدار.': 'Abdomen symmetrical, non-distended, without prior surgical scars, ecchymosis, or venous dilation; umbilicus midline and abdominal wall intact.',
+  'صداهای روده‌ای نرمال (Normoactive Bowel Sounds: ~5–30/min)، بدون صدای متالیک یا راش روده، فاقد بروئی عروقی آئورت یا رنال.': 'Normoactive bowel sounds (~5–30/min) in all quadrants, without metallic rushes or aortic/renal vascular bruits.',
+  'تیمپانیسم عمومی نرمال در تمامی رباع‌ها، فاقد ماتیته جابه‌جاشونده (No Shifting Dullness)، تندرنس دق منفی و فاقد CVA Tenderness.': 'Normal tympany across all four quadrants, no shifting dullness, negative percussion tenderness, and no CVA tenderness.',
+  'شکم نرم، فاقد تندرنس سطحی یا عمقی، ریباند منفی، بدون گاردینگ ارادی یا غیرارادی (No Guarding/Rigidity)، علائم مورفی و مک‌برنی منفی، بدون توده قابل لمس یا فتق جدار.': 'Abdomen soft, non-tender to superficial and deep palpation, negative rebound, no voluntary or involuntary guarding/rigidity, negative Murphy and McBurney signs, and no palpable masses or abdominal wall hernias.',
+  'سر نرموسفال بدون تروما، ملتحمه فاقد رنگ‌پریدگی، اسکلرا آنیکتریک، مردمک‌ها متقارن و واکنش به نور طبیعی (PERRLA)، مخاط دهان مرطوب، بدون دیستنشن ورید ژوگولار (No JVD)، تراشه در خط وسط، تیروئید بدون بزرگی، ندول یا تندرنس، فاقد لنفادنوپاتی سرویکال یا سوپراکلاویکولار.': 'Normocephalic and atraumatic, pink conjunctivae, anicteric sclerae, pupils equal and reactive to light (PERRLA), moist oral mucosa, no JVD, midline trachea, non-enlarged non-tender thyroid without nodules, and no cervical or supraclavicular lymphadenopathy.',
+  'قفسه سینه متقارن، حرکات تنفسی دوطرفه مناسب بدون رترکشن اینترکوستال، دق ریه‌ها در تمام فیلدها رزونانت، سمع ریه دوطرفه پاک با صداهای وزیکولار طبیعی، فاقد رال (Crackles)، ویزینگ یا استریدور.': 'Symmetric thorax with normal bilateral chest expansion and no intercostal retractions, resonant to percussion throughout, clear bilateral vesicular breath sounds without crackles, wheezes, or stridor.',
+  'لمس PMI در فضای بین‌دنده‌ای پنجم خط میدکلاویکولار، صدای S1 و S2 نرمال و منظم، بدون سوفل قلبی سیستولیک یا دیاستولیک، فاقد گالوپ S3/S4، نبض‌های محیطی (رادیال، دورسالیس پدیس، تیبیالیس خلفی) دوطرفه پر و قرینه (2+)، پرشدگی مویرگی کمتر از ۲ ثانیه، بدون ادم گوده‌گذار و شواهد DVT منفی.': 'PMI palpable at 5th ICS midclavicular line, normal regular S1 and S2 without murmurs or S3/S4 gallops, full symmetric 2+ peripheral pulses (radial, dorsalis pedis, posterior tibial), capillary refill < 2 sec, no pitting edema, and no signs of DVT.',
+  'پستان‌ها دوطرفه متقارن، فاقد فرورفتگی پوست یا نمای پوست‌پرتقالی (No Dimpling/Peau d’orange)، نیپل‌ها سالم بدون انحراف یا ترشح، لمس هر چهار ربع و دم اسپنس فاقد هرگونه توده، ندولاریته غالب یا تندرنس، لنفادنوپاتی آگزیلاری لمس نمی‌شود.': 'Bilateral symmetric breasts without skin dimpling or peau d’orange, intact nipples without retraction or discharge, no palpable masses or tenderness across all four quadrants and tail of Spence, and no palpable axillary lymphadenopathy.',
+  'مشاهده پری‌آنال طبیعی بدون فیشر، شقاق، فیستول، هموروئید ترومبوزه یا آبسه، تون اسفنکتر مقعد طبیعی، لمس جدار کانال آنال و رکتوم فاقد توده یا خون، پروستات با ابعاد نرمال و فاقد ندول سفت، نمونه مدفوع روی دستکش با رنگ طبیعی، معاینه ژنیتالیا نرمال.': 'Normal perianal inspection without fissure, fistula, thrombosed hemorrhoids, or abscess; normal anal sphincter tone, smooth rectal vault without palpable mass or blood, normal-sized smooth prostate, normal brown stool on glove, and normal external genitalia.',
+  'هوشیاری کامل (GCS 15/15, Oriented ×3)، اعصاب کرانیال II تا XII سالم و قرینه (به‌ویژه عدم فلج فاسیال یا خشونت صدا)، قدرت عضلانی هر چهار اندام کامل (Motor Power 5/5)، حس لمس سطحی و درد دوطرفه قرینه، رفلکس‌های تاندونی عمقی نرمال (DTR 2+)، علامت بابنسکی منفی (پلانتار فلکسور دوطرفه)، بدون علائم تحریک مننژ (گردن نرم، بدون کرنیگ/برودزینسکی).': 'Alert and oriented x3 (GCS 15/15), cranial nerves II–XII intact and symmetric, 5/5 motor strength in all four extremities, intact symmetric light touch and pinprick sensation, symmetric 2+ deep tendon reflexes, downgoing plantar reflexes (negative Babinski), and supple neck without meningeal signs.',
+  'دامنه حرکتی مفاصل محیطی و ستون فقرات کامل و بدون درد (Full ROM)، فاقد تورم، افیوژن یا اریتم مفصلی، بدون دفورمیتی یا کوتاهی اندام، تندرنس خط وسط مهره‌ها منفی، تست SLR دوطرفه منفی.': 'Full painless range of motion across peripheral joints and spine, no joint swelling, effusion, erythema, or limb deformity/shortening, no midline vertebral tenderness, and negative bilateral straight-leg raise (SLR).',
+  'پوزیشن بیمار (مثلاً پوزیشن طاق‌باز، بی‌حرکت، نشسته به جلو)': 'Patient Posture (e.g. Supine, Lying Still, Leaning Forward)',
+  'سر نرموسفال و بدون دفورمیتی یا هماتوم': 'Normocephalic Head without Deformity or Hematoma',
+  'مخاط دهان و زبان مرطوب و بدون ضایعه': 'Moist Oral Mucosa and Tongue without Lesions',
+  'معاینه تیروئید: بزرگی، ندول، قوام، حرکت با بلع': 'Thyroid Exam: Enlargement, Nodules, Consistency, Mobility on Swallowing',
+  'دق ریه: رزونانس طبیعی / ماتیته (افیوژن) / هایپررزونانس (پنوموتوراکس)': 'Lung Percussion: Normal Resonance / Dullness (Effusion) / Hyperresonance (Pneumothorax)',
+  'صداهای قلبی S1 و S2 طبیعی و ریتمیک': 'Normal Rhythmic S1 & S2 Heart Sounds',
+  'سوفل قلبی: سیستولیک/دیاستولیک، گرید و کانون سمع': 'Cardiac Murmur: Systolic/Diastolic, Grade & Auscultatory Focus',
+  'لمس ربع‌های پستان و دم اسپنس (توده، ساعت، ابعاد، قوام، تحرک)': 'Palpation of Breast Quadrants & Tail of Spence (Mass, Clock Position, Size, Mobility)',
+  'مشاهده پری‌آنال: فیشر، فیستول، هموروئید خارجی، آبسه، سینوس پیلونیدال': 'Perianal Inspection: Fissure, Fistula, External Hemorrhoids, Abscess, Pilonidal Sinus',
+  'لمس دیواره‌های رکتوم: توده، پولیپ، فاصله از Anal Verge': 'Rectal Wall Palpation: Mass, Polyp, Distance from Anal Verge',
+  'معاینه پروستات (Prostate: سایز، شیار میانی، قوام، ندول سفت)': 'Prostate Exam (Size, Median Sulcus, Consistency, Firm Nodule)',
+  'نمونه مدفوع روی دستکش: طبیعی / ملنا / خون روشن / آمپول خالی': 'Stool on Examining Glove: Normal / Melena / Bright Blood / Empty Vault',
+  'معاینه بیضه‌ها و اسکروتوم (تورشن، اپیدیدیمیت، هیدروسل، واریکوسل)': 'Scrotal & Testicular Exam (Torsion, Epididymitis, Hydrocele, Varicocele)',
+  'رفلکس‌های تاندونی عمقی (DTR 2+ قرینه)': 'Deep Tendon Reflexes (Symmetric 2+ DTR)',
+  'علائم تحریک مننژ (سفتی گردن، نشانه کرنیگ، نشانه برودزینسکی)': 'Meningeal Signs (Nuchal Rigidity, Kernig & Brudzinski Signs)',
+
+  // Paraclinic Modalities, QuickTags & Lab Panels
+  'هماتولوژی تکمیلی': 'Extended Hematology',
+  'بیوشیمی و الکترولیت': 'Biochemistry & Electrolytes',
+  'قلبی و ترومبوز': 'Cardiac, Thrombosis & Sepsis',
+  'غدد و ویتامین‌ها': 'Endocrine, Iron & Vitamins',
+  'تومورمارکرها': 'Tumor Markers',
+  'ویروسی و عفونی': 'Viral Serology & Cultures',
+  'انعقادی و نشانگرهای التهابی': 'Coagulation & Inflammatory Markers',
+  'بیوشیمی، کلیوی و الکترولیت‌ها': 'Biochemistry, Renal & Electrolytes',
+  'کبدی، صفراوی و آنزیم‌های پانکراس': 'Liver Function & Pancreatic Enzymes',
+  'هورمونی و تومورمارکرها': 'Endocrine & Tumor Markers',
+  'سونوگرافی eFAST (تروما)': 'eFAST Ultrasound (Trauma)',
+  'سونوگرافی اورژانس eFAST (تروما و بررسی مایع آزاد/پنوموتوراکس)': 'Emergency eFAST Ultrasound (Free Fluid & Pneumothorax)',
+  'eFAST کاملاً منفی از نظر مایع آزاد شکمی، پریکارد و پنوموتوراکس': 'Negative eFAST (No Intraperitoneal/Pericardial Free Fluid or Pneumothorax)',
+  'میزان مایع (کم/متوسط/زیاد)...': 'Fluid amount (trace/moderate/large)...',
+  'میزان مایع...': 'Fluid volume...',
+  'کلاپس دیاستولیک RV...': 'RV diastolic collapse...',
+  'شواهد پنوموتوراکس یا هموتوراکس در بررسی قفسه سینه': 'Thoracic Window Positive for Pneumothorax or Hemothorax',
+  'تعداد و حداکثر سایز به mm...': 'Stone count and max diameter (mm)...',
+  'شواهد لجن...': 'Biliary sludge details...',
+  'افزایش ضخامت جدار کیسه صفرا': 'Gallbladder Wall Thickening',
+  'ضخامت به mm (مثلاً 5mm) و مایع دور کیسه...': 'Wall thickness (mm) and pericholecystic fluid...',
+  'علامت مورفی سونوگرافیک مثبت': 'Positive Sonographic Murphy Sign',
+  'قطر CBD به mm و وجود سنگ داخل آن...': 'CBD diameter (mm) and choledocholithiasis...',
+  'قطر CBD و مجاری داخل کبدی طبیعی': 'Normal CBD Caliber and Intrahepatic Bile Ducts',
+  'قطر CBD به mm...': 'CBD diameter (mm)...',
+  'لوپ بلایند و غیرقابل کمپرس آپاندیس': 'Non-compressible Blind-ending Appendiceal Loop',
+  'قطر آپاندیس به mm، آپاندیکولیت، Fat stranding...': 'Appendix diameter (mm), appendicolith, periappendiceal fat stranding...',
+  'مایع آزاد در حفره شکم یا لگن': 'Free Fluid in Peritoneal Cavity or Pelvis',
+  'نقص فاشیا و فتق در سونوگرافی سطحی': 'Fascial Defect & Hernia on Superficial Ultrasound',
+  'سایز دهانه فتق به mm و محتویات (امنتوم/لوپ روده)...': 'Neck diameter (mm) and contents (omentum/bowel loop)...',
+  'ندول تیروئید': 'Thyroid Nodule',
+  'لوب، ابعاد به mm و کلاس TI-RADS...': 'Lobe, dimensions (mm) and TI-RADS category...',
+  'ضایعه پستان یا آگزیلا': 'Breast or Axillary Lesion',
+  'سمت، ساعت، ابعاد و کلاس BI-RADS...': 'Side, clock position, size and BI-RADS category...',
+  'التهاب و Fat Stranding موضعی': 'Focal Inflammation & Fat Stranding',
+  'اطراف آپاندیس / پانکراس / کیسه صفرا / دیورتیکول...': 'Periappendiceal / Peripancreatic / Pericholecystic / Peridiverticular...',
+  'محل و حجم هوا...': 'Location and volume of free air...',
+  'دیلاتاسیون لوپ‌های روده و سطح مایع-هوا': 'Dilated Bowel Loops with Air-Fluid Levels',
+  'روده باریک یا کولون، محل Transition point...': 'Small bowel vs colon, transition point location...',
+  'ضخامت نامنظم جدار یا توده فضاگیر گوارشی': 'Irregular Mural Thickening or GI Mass Lesion',
+  'محل آناتومیک و ابعاد...': 'Anatomic site and dimensions...',
+  'کلکسیون، آبسه یا مایع آزاد': 'Fluid Collection, Abscess or Ascites',
+  'محل و ابعاد به mm...': 'Location and dimensions (mm)...',
+  'لنفادنوپاتی یا ضایعات متاستاتیک کبد/ریه': 'Lymphadenopathy or Hepatic/Pulmonary Metastases',
+  'تعداد و محل...': 'Count and location...',
+  'محل سنگ یا تنگی در CBD/CHD...': 'Stone or stricture site in CBD/CHD...',
+  'ابعاد و لایه‌های عضلانی درگیر...': 'Dimensions and invaded muscular layers...',
+  'توده تخمدان، کیست شکلاتی یا فیبروم...': 'Ovarian mass, endometrioma or fibroid...',
+  'کلاس پارک، اسفنکتر درگیر...': 'Parks classification, sphincter involvement...',
+  'ضایعه کبدی، پانکراس یا متاستاز': 'Hepatic, Pancreatic or Metastatic Lesion',
+  'تعداد، سگمان کبد یا محل در پانکراس...': 'Count, hepatic segment or pancreatic site...',
+  'هوای آزاد زیر دیافراگم در CXR ایستاده': 'Subdiaphragmatic Free Air on Upright CXR',
+  'یکطرفه یا دوطرفه...': 'Unilateral or bilateral...',
+  'سطوح متعدد مایع-هوا (Air-Fluid Levels) در AXR ایستاده': 'Multiple Air-Fluid Levels on Upright AXR',
+  'تعداد سطوح...': 'Number of levels...',
+  'دیلاتاسیون لوپ‌های روده در AXR خوابیده': 'Dilated Bowel Loops on Supine AXR',
+  'مرکزی یا محیطی...': 'Central vs peripheral...',
+  'وضعیت گاز در آمپول رکتوم': 'Rectal Vault Gas Status',
+  'موجود است / فاقد گاز...': 'Present / Paucity of rectal gas...',
+  'CXR: فیلدهای ریوی پاک، زاویه دنده‌ای-فرنیک باز، سایه قلبی طبیعی': 'CXR: Clear Lung Fields, Sharp Costophrenic Angles, Normal Cardiac Silhouette',
+  'اولسر پپتیک معده یا دئودنوم': 'Gastric or Duodenal Peptic Ulcer',
+  'محل زخم، سایز و کلاس Forrest...': 'Ulcer site, size and Forrest class...',
+  'ضایعه توده‌ای، اولسراتیو یا تنگی مری/معده': 'Esophagogastric Mass, Ulcerative Lesion or Stricture',
+  'فاصله از دندان‌های پیشین و درصد انسداد...': 'Distance from incisors and luminal narrowing (%)...',
+  'واریس مری/فوندوس یا گاستریت اروزویو': 'Esophageal/Fundic Varices or Erosive Gastritis',
+  'گرید واریس و شواهد خونریزی فعال...': 'Varix grade and active bleeding stigmata...',
+  'کولونوسکوپی': 'Colonoscopy',
+  'توده شکننده یا انسدادی در رکتوم/کولون': 'Friable or Obstructing Colorectal Mass',
+  'فاصله از Anal verge (به cm) و وضعیت عبور اسکوپ...': 'Distance from anal verge (cm) and scope traversability...',
+  'پولیپ‌های کولورکتال': 'Colorectal Polyps',
+  'تعداد، محل و سایز...': 'Count, location and size...',
+  'دیورتیکولوز، کولیت یا هموروئید داخلی': 'Diverticulosis, Colitis or Internal Hemorrhoids',
+  'محل و شدت...': 'Location and severity...',
+  'لارنگوسکوپی': 'Laryngoscopy',
+  'حرکت طناب‌های صوتی حقیقی (TVC) دوطرفه طبیعی و قرینه': 'Normal Symmetric Bilateral True Vocal Cord (TVC) Mobility',
+  'فلج یا کاهش حرکت طناب صوتی': 'Vocal Cord Paresis or Paralysis',
+  'سمت راست یا چپ، وضعیت راه هوایی...': 'Right or left side, airway patency...',
+  'پاتولوژی / FNA': 'Pathology / FNA',
+  'گرید تمایز (Well/Mod/Poorly differentiated)...': 'Differentiation grade (Well/Mod/Poorly)...',
+  'نتیجه FNA تیروئید (Bethesda System)': 'Thyroid FNA Cytology (Bethesda System)',
+  'کلاس Bethesda (I تا VI) و نوع سلول (مثلاً PTC)...': 'Bethesda class (I–VI) and cell type (e.g. PTC)...',
+  'نتیجه Core Needle Biopsy پستان': 'Breast Core Needle Biopsy Result',
+  'نوع تومور (IDC/ILC) و وضعیت ER/PR/HER2/Ki67...': 'Histologic type (IDC/ILC) & ER/PR/HER2/Ki67...',
+  'پاتولوژی خوش‌خیم / التهابی': 'Benign / Inflammatory Histopathology',
+  'تشخیص دقیق گزارش پاتولوژی...': 'Exact histopathologic diagnosis...',
+
+  // SOAP Progress Note Capsules, Options & Focused Daily PE (Bug 8 & Bug 9)
+  'رو به بهبود': 'Improving',
+  'ثابت / بدون تغییر': 'Stable / Unchanged',
+  'تشدید علائم / بدتر شدن': 'Worsening / Deteriorating',
+  'بدون درد / کنترل شده': 'Pain-Free / Well Controlled',
+  'درد خفیف در محل عمل': 'Mild Incisional Pain',
+  'درد متوسط تا شدید': 'Moderate-to-Severe Pain',
+  'NPO (ناشتا)': 'NPO (Nil Per Os)',
+  'مایعات صاف (Clear Liquid)': 'Clear Liquid Diet',
+  'مایعات کامل / سوپ': 'Full Liquid / Soup Diet',
+  'رژیم معمولی / تحمل کامل': 'Regular Diet / Well Tolerated',
+  'عدم تحمل PO': 'PO Intolerance',
+  'CBR (استراحت مطلق)': 'Complete Bed Rest (CBR)',
+  'نشستن لبه تخت (OOB)': 'Out of Bed to Chair (OOB)',
+  'راه رفتن با کمک': 'Assisted Ambulation',
+  'راه رفتن مستقل (Ambulatory)': 'Independent Ambulation',
+  'کافی (>0.5 cc/kg/hr)': 'Adequate (>0.5 mL/kg/hr)',
+  'الیگوری': 'Oliguria',
+  'آنوری': 'Anuria',
+  'دارای سوند فولی': 'Foley Catheter in Place',
+  'پایدار (Stable)': 'Hemodynamically Stable',
+  'نیازمند مایع‌درمانی': 'Fluid Resuscitation Required',
+  'تحت وازوپرسور': 'Vasopressor Dependent',
+  'سروزی (Serous)': 'Serous',
+  'سروزانگوئینوس (Serosanguinous)': 'Serosanguinous',
+  'خونی (Bloody/Hemorrhagic)': 'Bloody / Hemorrhagic',
+  'صفراوی (Bilious)': 'Bilious',
+  'چرکی (Purulent)': 'Purulent',
+  'فکال / روده‌ای (Enteric)': 'Feculent / Enteric',
+  // SOAP Focused Daily PE 5-row capsules
+  'هوشیار و Oriented (GCS=15)': 'Alert & Oriented (GCS 15)',
+  'همودینامیک پایدار': 'Hemodynamically Stable',
+  'بدون تب (Afebrile)': 'Afebrile',
+  'ظاهر Ill / Toxic': 'Ill / Toxic-Appearing',
+  'سمع ریه دوطرفه شفاف': 'Clear Bilateral Breath Sounds',
+  'کراکل / کاهش صدا در قاعده ریه': 'Basilar Crackles / Decreased Breath Sounds',
+  'سمع قلب نرمال (S1, S2 منظم)': 'Normal Heart Sounds (Regular S1, S2)',
+  'تاکیکاردی': 'Tachycardia',
+  'شکم نرم و بدون دیستانسیون': 'Abdomen Soft & Non-Distended',
+  'دیستانسیون شکمی': 'Abdominal Distension',
+  'صداهای روده‌ای برقرار (Normoactive BS)': 'Normoactive Bowel Sounds',
+  'کاهش/سکوت صداهای روده‌ای (Ileus)': 'Hypoactive / Absent Bowel Sounds (Ileus)',
+  'تندرنس خفیف محدود به محل برش عمل': 'Mild Tenderness Limited to Incision Site',
+  'ریباند یا گاردینگ': 'Rebound or Guarding',
+  'پانسمان تمیز و خشک (CDI)': 'Clean, Dry & Intact Dressing (CDI)',
+  'اریتم / ترشح زخم': 'Wound Erythema / Discharge',
+  'کشیدن کامل بخیه‌ها': 'Complete Suture Removal',
+  'کشیدن یک‌درمیان بخیه‌ها': 'Alternate Suture Removal',
+  'باز کردن بخیه جهت درناژ': 'Suture Opening for Wound Drainage',
+  'اندام‌ها گرم، بدون ادم و بدون تندرنس ساق (DVT منفی)': 'Extremities Warm, No Edema or Calf Tenderness (Negative DVT)',
+  'ادم یا تندرنس یک‌طرفه ساق پا': 'Unilateral Calf Edema or Tenderness',
+  // Legacy SOAP wound capsules
+  'پانسمان تمیز و خشک (Clean, Dry, Intact)': 'Clean, Dry & Intact Dressing (CDI)',
+  'ترشح سروزی خفیف': 'Mild Serous Drainage',
+  'اریتم و گرمی اطراف زخم': 'Peri-wound Erythema & Warmth',
+  'ترشح چرکی (SSI)': 'Purulent Discharge (SSI)',
+  'باز شدن سطحی/عمقی زخم (Dehiscence)': 'Wound Dehiscence',
+  'هماتوم / سروما': 'Hematoma / Seroma',
+  // SOAP Assessment & Plan pills
+  'پایدار و رو به بهبود': 'Stable & Improving',
+  'نیازمند پایش دقیق (Close Observation)': 'Requires Close Observation',
+  'بدحال / بحرانی (Critical)': 'Critically Ill',
+  'آماده ترخیص': 'Ready for Discharge',
+  'ادامه رژیم فعلی / NPO': 'Continue Current Diet / NPO',
+  'پیشرفت رژیم غذایی (Diet Advancement)': 'Advance Diet as Tolerated',
+  'تجویز سرم‌تراپی نگهدارنده': 'Continue Maintenance IV Fluids',
+  'ادامه آنتی‌بیوتیک و مسکن فعلی': 'Continue Current Antibiotics & Analgesics',
+  'تعویض پانسمان روزانه با سرم شستشو': 'Daily Sterile Saline Wound Dressing Change',
+  'پروفیلاکسی DVT و تشویق به راه رفتن': 'DVT Prophylaxis & Encourage Early Ambulation',
+  'کشیدن سوند فولی / درن جراحی': 'Discontinue Foley Catheter / Surgical Drain',
+  'درخواست آزمایش کنترل صبح فردا (CBC, Cr, Lytes)': 'Order Morning Labs (CBC, Cr, Electrolytes)',
+  'مشاوره داخلی / قلب / بیهوشی': 'Internal Medicine / Cardiology / Anesthesia Consult',
+  'ترخیص با آموزش علائم هشدار و نسخه': 'Discharge Home with Red-Flag Precautions & Prescriptions',
+
+  // ATLS Trauma Mode Capsules & Options (Bug 8 & Bug 9)
+  'آمبولانس اورژانس ۱۱۵ (EMS)': 'EMS Ambulance (115)',
+  'خودروی شخصی': 'Private Vehicle',
+  'انتقال از مرکز دیگر': 'Inter-facility Transfer',
+  'امداد هوایی': 'Air Ambulance / HEMS',
+  'تصادف خودرو (MVC)': 'Motor Vehicle Collision (MVC)',
+  'تصادف موتورسیکلت (MCC)': 'Motorcycle Collision (MCC)',
+  'عابر پیاده با خودرو': 'Pedestrian Struck by Vehicle',
+  'سقوط از ارتفاع (Fall)': 'Fall from Height',
+  'چاقو / جسم تیز (Stab Wound)': 'Penetrating Stab Wound',
+  'گلوله / سلاح گرم (GSW)': 'Gunshot Wound (GSW)',
+  'ترومای بلانت / ضرب‌وشتم': 'Blunt Assault / Trauma',
+  'سوختگی حرارتی / شیمیایی': 'Thermal / Chemical Burn',
+  'انفجار (Blast Injury)': 'Blast Injury',
+  'کولار گردنی و تخته پشتی': 'Cervical Collar & Long Backboard',
+  'اکسیژن‌تراپی': 'Supplemental Oxygen',
+  'رگ‌گیری و سرم‌تراپی': 'IV Access & Crystalloid Infusion',
+  'پانسمان فشاری / تورنیکت': 'Pressure Dressing / Tourniquet',
+  'لوله‌گذاری تراشه (Intubation)': 'Prehospital Endotracheal Intubation',
+  'اقدام خاصی نشده': 'No Prehospital Intervention',
+  'باز و پایدار — صحبت می‌کند (Patent, C-Spine Collar Fixed)': 'Patent & Stable Airway — Speaking Clearly (C-Spine Immobilized)',
+  'باز با مانور / ایروی دهانی — نیازمند ساکشن و پایش': 'Maintained with Airway Adjunct / Suctioning & Close Monitoring',
+  'استریدور، صدای خشن یا جسم خارجی در راه هوایی': 'Stridor, Hoarseness or Airway Foreign Body',
+  'تهدید راه هوایی / GCS ≤ 8 — اینتوباسیون اورژانس انجام شد': 'Compromised Airway / GCS ≤ 8 — Emergent Intubation Performed',
+  'سمع دوطرفه شفاف و قرینه، تراشه در خط وسط (Clear Bilateral)': 'Clear & Equal Bilateral Breath Sounds, Midline Trachea',
+  'کاهش صدای تنفسی یک‌طرفه (مشکوک به همو/پنوموتوراکس)': 'Unilateral Decreased Breath Sounds (Suspected Hemo/Pneumothorax)',
+  'پنوموتوراکس فشارنده — دکمپرسیون سوزنی و Chest Tube انجام شد': 'Tension Pneumothorax — Needle Decompression & Tube Thoracostomy Performed',
+  'آمفیزم زیرجلدی در جدار قفسه سینه / گردن': 'Subcutaneous Emphysema of Chest Wall / Neck',
+  'قفسه سینه شناور / تنفس پارادوکس (Flail Chest)': 'Flail Chest / Paradoxical Chest Wall Motion',
+  'همودینامیک پایدار، CRT < 2s و نبض‌های محیطی پر': 'Hemodynamically Stable, CRT < 2s & Full Peripheral Pulses',
+  'علائم شوک و بی‌ثباتی همودینامیک (تاکی‌کاردی، افت فشار خون)': 'Signs of Hemorrhagic Shock / Instability (Tachycardia, Hypotension)',
+  'خونریزی فعال خارجی — کنترل با فشار مستقیم / تورنیکت': 'Active External Hemorrhage — Controlled with Direct Pressure / Tourniquet',
+  'خونریزی فعال خارجی با فوران عروقی': 'Active Pulsatile Arterial Hemorrhage',
+  '۲ خط وریدی قطور (14–16G) + شروع احیای مایعات / خون': 'Two Large-Bore IVs (14–16G) + Warm Crystalloid / Blood Resuscitation Initiated',
+  'هوشیار و Oriented (GCS 15/15)، مردمک‌ها قرینه و راکتیو (PERRLA)': 'Alert & Oriented (GCS 15/15), Pupils Equal & Reactive (PERRLA)',
+  'کاهش سطح هوشیاری / آژیتاسیون پس از تروما': 'Altered Mental Status / Post-Traumatic Agitation',
+  'آنیزوکوریا / مردمک دیلاته یا غیرواکنشی': 'Anisocoria / Unilateral Dilated or Non-reactive Pupil',
+  'نقص فوکال عصبی یا پلژی اندام‌ها': 'Focal Neurologic Deficit or Extremity Plegia',
+  'بیمار کاملاً برهنه معاینه شد و با پتوی گرم پوشانده شد (Prevent Hypothermia)': 'Full Exposure Completed & Warmed Blankets Applied (Normothermia Maintained)',
+  'هیپوترمی بارز در بدو ورود — گرم‌سازی فعال شروع شد': 'Hypothermia on Arrival — Active Rewarming Initiated',
+  'فاقد حساسیت دارویی (NKDA)': 'No Known Drug Allergies (NKDA)',
+  'بدون مصرف دارو': 'No Regular Medications',
+  'بدون مصرف آنتی‌کوآگولانت': 'No Anticoagulant / Antiplatelet Use',
+  'فاقد بیماری زمینه‌ای': 'No Significant Past Medical History',
+  'بیش از ۶ ساعت قبل': '> 6 Hours Prior to Arrival',
+  'نرموسفال، بدون هماتوم یا شکستگی صورت، بدون Battle/Raccoon Sign': 'Normocephalic, No Scalp Hematoma, Facial Instability, Battle or Raccoon Signs',
+  'لاسراسیون / هماتوم اسکالپ یا صورت': 'Scalp or Facial Laceration / Hematoma',
+  'اتوره / رینوره یا ایکموز پری‌اوربیتال/ماستوئید (شکستگی قاعده جمجمه)': 'Otorrhea/Rhinorrhea or Raccoon Eyes/Battle Sign (Basilar Skull Fracture Signs)',
+  'بدون تندرنس خط وسط گردن، بدون JVD یا انحراف تراشه (کولار بسته)': 'No Midline C-Spine Tenderness, JVD or Tracheal Deviation (Collar Intact)',
+  'تندرنس مهره‌های گردنی (C-Spine Tenderness)': 'Midline Cervical Spine Tenderness',
+  'هماتوم گردنی یا آمفیزم زیرجلدی گردن': 'Cervical Hematoma or Subcutaneous Emphysema',
+  'جدار قفسه سینه پایدار، بدون تندرنس دنده‌ای یا کرپیتوس، قلب و ریه نرمال': 'Stable Chest Wall, No Rib Tenderness or Crepitus, Normal Cardiopulmonary Exam',
+  'تندرنس دنده‌ها / اکیموز کمربند ایمنی (Seatbelt Sign)': 'Rib Tenderness / Thoracic Seatbelt Sign',
+  'کرپیتوس دنده‌ای یا زخم قفسه سینه': 'Rib Crepitus or Thoracic Wound',
+  'شکم نرم، بدون تندرنس یا گاردینگ، لگن در معاینه پایدار (Pelvis Stable)': 'Abdomen Soft, Non-tender without Guarding; Pelvis Stable to Compression',
+  'تندرنس / گاردینگ شکمی یا Seatbelt Sign شکم': 'Abdominal Tenderness / Guarding or Abdominal Seatbelt Sign',
+  'ناپایداری یا درد حلقه لگنی (Pelvic Binder بسته شد)': 'Pelvic Ring Pain or Instability (Pelvic Binder Applied)',
+  'خون در مئاتوس ادراری / هماتوم پرینه': 'Blood at Urethral Meatus / Perineal Hematoma',
+  'Log-roll با حفظ محور ستون فقرات: بدون تندرنس مهره‌ای، Step-off یا زخم پشت، تون اسفنکتر نرمال': 'Inline Log-Roll: No Thoracolumbar Tenderness, Step-Off or Posterior Wounds; Normal Rectal Tone',
+  'تندرنس خط وسط توراکولومبار یا Step-off مهره‌ای': 'Midline Thoracolumbar Tenderness or Vertebral Step-Off',
+  'زخم یا اکیموز در ناحیه پشت / فلانک': 'Posterior / Flank Wound or Ecchymosis',
+  'اندام‌ها بدون دفورمیتی یا تورم، نبض‌های دیستال ۲+ قرینه، حس و حرکت سالم': 'Extremities without Deformity or Swelling, 2+ Symmetric Distal Pulses, Intact Sensorimotor Exam',
+  'دفورمیتی / تندرنس یا محدودیت حرکت مشکوک به شکستگی': 'Limb Deformity / Tenderness Suspected for Fracture',
+  'کاهش/فقدان نبض دیستال یا علائم سندرم کمپارتمان': 'Diminished/Absent Distal Pulse or Compartment Syndrome Signs',
+  'بریدگی / پارگی (Laceration)': 'Laceration',
+  'زخم نافذ چاقو (Stab Wound)': 'Stab Wound',
+  'مدخل/مخرج گلوله (GSW)': 'GSW Entry / Exit Wound',
+  'خراشیدگی / ساییدگی (Abrasion)': 'Abrasion',
+  'له‌شدگی / هماتوم (Contusion)': 'Contusion / Hematoma',
+  'آپوتاسیون / کنده‌شدگی (Avulsion)': 'Avulsion / Amputation',
+  'شکستگی باز (Open Fracture)': 'Open Fracture',
+  'تغییر شکل شکستگی بسته': 'Closed Fracture Deformity',
+  'سوختگی موضعی': 'Localized Burn',
+  'کنترل‌شده / بدون خونریزی فعال': 'Controlled / No Active Bleeding',
+  'خونریزی وریدی فعال': 'Active Venous Bleeding',
+  'خونریزی شریانی جهنده': 'Pulsatile Arterial Bleeding',
+  'هماتوم پیش‌رونده (Expanding)': 'Expanding Hematoma',
+  'سالم (نبض، حس و حرکت نرمال)': 'Intact (Normal Pulse, Motor & Sensation)',
+  'اختلال حسی دیستال': 'Distal Sensory Deficit',
+  'اختلال حرکتی / تاندونی': 'Motor / Tendon Deficit',
+  'کاهش یا فقدان نبض دیستال (ایسکمی)': 'Diminished or Absent Distal Pulse (Ischemia)',
+  'درجه ۱ (سطحی / اریتم)': '1st Degree (Superficial / Erythema)',
+  'درجه ۲ سطحی (تاول و دردناک)': 'Superficial 2nd Degree (Partial-Thickness / Blisters)',
+  'درجه ۲ عمقی': 'Deep 2nd Degree (Deep Partial-Thickness)',
+  'درجه ۳ (تمام ضخامت / چرمی بدون درد)': '3rd Degree (Full-Thickness / Leathery Eschar)',
+  'درجه ۴ (درگیری عضله/استخوان)': '4th Degree (Deep Muscle / Bone Involvement)',
+  'درجه ۴ (درگیری استخوان و عضله عمقی)': '4th Degree (Deep Muscle & Bone Involvement)',
+  'منفی (Negative — بدون مایع آزاد)': 'Negative (No Free Fluid or Pneumothorax)',
+  'مثبت (Positive — مایع آزاد / پنوموتوراکس)': 'Positive (Free Fluid / Pneumothorax Detected)',
+  'مبهم / نیازمند تکرار یا CT': 'Equivocal / Repeat eFAST or CT Indicated',
+  'انجام نشده': 'Not Performed',
+  'RUQ (فضای موریسون)': 'RUQ (Morison Pouch)',
+  'LUQ (اطراف طحال)': 'LUQ (Perisplenic / Splenorenal)',
+  'پریکارد (Subxiphoid)': 'Pericardial (Subxiphoid)',
+  'لگن (Suprapubic)': 'Pelvic (Suprapubic / Pouch of Douglas)',
+  'پلور راست (پنومو/هموتوراکس)': 'Right Pleural (Pneumo/Hemothorax)',
+  'پلور چپ (پنومو/هموتوراکس)': 'Left Pleural (Pneumo/Hemothorax)',
+  'پایش مداوم علائم حیاتی و مانیتورینگ قلبی': 'Continuous Vital Signs & Cardiac Monitoring',
+  'دو رگ قطور محیطی + احیا با کریستالوئید گرم': 'Two Large-Bore IVs + Warm Crystalloid Resuscitation',
+  'رزرو و کراس‌مچ خون (Packed RBC / FFP)': 'Type & Crossmatch Blood Products (pRBC / FFP)',
+  'تزریق واکسن کزاز (Td / Tetabulin) و آنتی‌بیوتیک پروفیلاکسی': 'Tetanus Prophylaxis (Td / TIG) & Prophylactic IV Antibiotics',
+  'شستشو، دبریدمان و سوچور اولیه زخم‌ها': 'Wound Irrigation, Debridement & Primary Closure',
+  'آتل‌گیری و بی‌حرکت‌سازی اندام (Splinting)': 'Extremity Splinting & Immobilization',
+  'تعبیه سوند فولی (پس از رد آسیب مجرا) و NGT': 'Foley Catheter (After Urethral Clearance) & NGT Placement',
+  'درخواست گرافی تروما (CXR, Pelvis) و CT Scan': 'Trauma Series Radiographs (CXR, Pelvis) & CT Scan',
+  'مشاوره جراحی اعصاب / ارتوپدی / عروق': 'Neurosurgery / Orthopedics / Vascular Surgery Consult',
+  'انتقال اورژانس به اتاق عمل (OR)': 'Emergent Transfer to Operating Room (OR)',
+
+  // Exact HTML data-val / data-plan / data-uo-status & default clinical strings
+  'بهبود کلی علائم نسبت به دیروز': 'Overall Clinical Improvement Compared to Yesterday',
+  'بدون تغییر بارز / وضعیت مشابه دیروز': 'Clinically Stationary / Unchanged Compared to Yesterday',
+  'بدتر شدن علائم یا شکایت جدید': 'Clinical Deterioration or New Symptom Onset',
+  'درد خفیف و کنترل‌شده با مسکن در محل عمل': 'Mild Incisional Pain Well Controlled with Analgesics',
+  'درد متوسط تا شدید نیازمند دوز اضافی آنالژزیک': 'Moderate-to-Severe Pain Requiring Breakthrough Analgesia',
+  'فاقد هرگونه درد و آرام (Pain-free)': 'Pain-Free and Comfortable',
+  'تحمل خوب مایعات صاف (Clear Liquids Tolerated)': 'Tolerating Clear Liquid Diet Well',
+  'NPO کامل و بدون تحمل خوراکی': 'Strict NPO',
+  'تحمل رژیم غذایی معمولی بدون تهوع (Regular Diet Tolerated)': 'Tolerating Regular Diet without Nausea',
+  'تغذیه از طریق لوله معده (NGT Feeding Tolerated)': 'Tolerating Enteral NGT Feeding',
+  'خارج شدن از تخت و راه رفتن در بخش (Out of Bed / Ambulating)': 'Out of Bed and Ambulating in Ward',
+  'نشستن لبه تخت (Dangling at bedside)': 'Sitting at Edge of Bed (Dangling)',
+  'استراحت مطلق در تخت (CBR / Bedridden)': 'Complete Bed Rest (CBR)',
+  'همودینامیک پایدار (Stable)': 'Hemodynamically Stable',
+  'ناپایدار / نیازمند وازوپرسور (Unstable)': 'Hemodynamically Unstable / Vasopressor-Dependent',
+  'دفع ادرار طبیعی و کافی (بدون فولی)': 'Adequate Spontaneous Voiding (No Foley)',
+  'سوند فولی برقرار — ادرار شفاف': 'Foley Catheter Patent — Clear Urine',
+  'الیگوری (کاهش برون‌ده ادراری < 400cc)': 'Oliguria (24h Urine Output < 400 mL)',
+  'آنوری / فاقد برون‌ده ادراری (Anuria / No Urine Output)': 'Anuria / Absent Urine Output',
+  'بیمار ESRD تحت همودیالیز (فاقد دیورز پایه)': 'Known ESRD on Maintenance Hemodialysis (Baseline Anuric)',
+  'در سیر بهبودی پایدار پس از عمل (Improving / Uneventful Recovery)': 'Improving on an Uneventful Post-Operative Recovery Course',
+  'وضعیت پایدار، نیازمند ادامه پایش و تکمیل ورکاپ (Stable / Ongoing Workup)': 'Clinically Stable, Ongoing Inpatient Monitoring & Workup',
+  'نیازمند بررسی از نظر بروز عارضه یا ناپایداری (Complicated / Guarded)': 'Guarded Clinical Status — Evaluation for Potential Complication Required',
+  'ادامه درمان، داروها و اقدامات طبق نظر و دستورات استاد / متخصص محترم بخش': 'Continue Management, Medications & Orders per Attending Surgeon',
+  'کشیدن درن / فولی / NGT طبق نظر رزیدنت/استاد محترم': 'Discontinue Drain / Foley / NGT per Surgical Team Order',
+  'پیگیری مشاوره‌ها و آزمایش‌های درخواست‌شده': 'Follow Up Pending Consultations & Laboratory Studies',
+  'ادامه NPO و سرم‌تراپی نگهدارنده': 'Maintain NPO & Maintenance IV Crystalloids',
+  'شروع رژیم مایعات صاف (Clear Liquid Diet)': 'Initiate Clear Liquid Diet',
+  'پیشرفت رژیم به نرم / معمولی (Advance Diet as Tolerated)': 'Advance Diet to Soft / Regular as Tolerated',
+  'کاهش یا قطع سرم (D/C IV Fluids / Heparin Lock)': 'Taper / Discontinue IV Fluids (Saline Lock)',
+  'تعویض پانسمان روزانه و شستشوی زخم': 'Daily Sterile Wound Dressing Change & Irrigation',
+  'خارج کردن سوند فولی (D/C Foley Catheter)': 'Discontinue Foley Catheter',
+  'خارج کردن لوله معده (D/C NGT)': 'Discontinue Nasogastric Tube (NGT)',
+  'خارج کردن درن جراحی (D/C Drain)': 'Remove Surgical Drain',
+  'ادامه پایش دقیق بیلان I/O و دبی درن': 'Continue Strict 24h I/O Balance & Drain Output Monitoring',
+  'ادامه آنتی‌بیوتیک‌تراپی فعلی': 'Continue Current IV Antibiotic Regimen',
+  'قطع آنتی‌بیوتیک پروفیلاکسی پس از عمل': 'Discontinue Post-Operative Prophylactic Antibiotics',
+  'کنترل درد با مسکن (Apotel / NSAID / Opioid PRN)': 'Multimodal Analgesia (IV Acetaminophen / NSAID / Opioid PRN)',
+  'ازسرگیری داروهای زمینه‌ای قلبی/فشارخون/دیابت بیمار': 'Resume Home Cardiovascular / Antihypertensive / Diabetic Medications',
+  'ادامه پروفیلاکسی ترومبوآمبولی (هپارین/انوکساپارین/جوراب واریس)': 'Continue VTE Prophylaxis (Heparin / Enoxaparin / Compression Stockings)',
+  'ادامه پروفیلاکسی زخم استرس (پنتوپرازول)': 'Continue Stress Ulcer Prophylaxis (Pantoprazole)',
+  'تشویق به راه رفتن زودهنگام در بخش (Early Ambulation) و فیزیوتراپی تنفسی': 'Encourage Early Ambulation & Incentive Spirometry',
+  'چک مجدد CBC و الکترولیت‌ها فردا صبح': 'Recheck Morning CBC & Serum Electrolytes',
+  'پیگیری جواب پاتولوژی، کشت و تصویربرداری': 'Follow Up Pending Pathology, Cultures & Imaging Reports',
+  'انجام مشاوره تخصصی': 'Request Specialty Consultation',
+  'ادامه بستری و مراقبت در بخش جراحی': 'Continue Inpatient Surgical Ward Care & Monitoring',
+  'آماده‌سازی جهت انتقال به اتاق عمل (Pre-Op Prep)': 'Pre-Operative Preparation for Transfer to OR',
+  'قابل ترخیص در صورت تداوم پایداری با آموزش علائم هشدار و نسخه سرپایی': 'Candidate for Discharge if Stable with Red-Flag Precautions & Outpatient Prescriptions',
+  'اورژانس ۱۱۵ (EMS)': 'EMS Ambulance (115)',
+  'مراجعه شخصی (Walk-in)': 'Walk-in / Private Vehicle',
+  'اعزام از مرکز دیگر (Inter-facility Transfer)': 'Inter-facility Transfer',
+  'چاقوخوردگی و جسم تیز (Stab Wound)': 'Penetrating Stab / Sharp Object Wound',
+  'اصابت گلوله یا ساچمه (GSW / Shotgun)': 'Gunshot / Shotgun Wound (GSW)',
+  'تصادف خودرو/موتور/عابر (MVA/MCA/Pedestrian)': 'Motor Vehicle / Motorcycle / Pedestrian Collision',
+  'سقوط از ارتفاع (Fall from Height)': 'Fall from Height',
+  'نزاع و ترومای بلانت (Assault / Blunt Trauma)': 'Assault / Blunt Trauma',
+  'سوختگی (حرارتی/شیمیایی/الکتریکی)': 'Burn Injury (Thermal / Chemical / Electrical)',
+  'فیکس گردن با کلار سخت (Hard Collar)': 'Rigid Cervical Collar Immobilization',
+  'اینتوباسیون پیش‌بیمارستانی (Pre-hospital Intubation)': 'Pre-hospital Endotracheal Intubation',
+  'پانسمان فشاری / کنترل خونریزی': 'Pressure Dressing / Hemorrhage Control',
+  'سرم‌تراپی (IV Access & Fluids)': 'Pre-hospital IV Access & Fluids',
+  'آتل‌بندی اندام (Splinting)': 'Extremity Splinting',
+  'راه هوایی باز و بیمار قادر به تکلم (Patent & Speaking)': 'Airway Patent & Patient Speaking Clearly',
+  'تنفس صدادار / استریدور / خون و ترشح در دهان (نیازمند ساکشن)': 'Noisy Breathing / Stridor / Oropharyngeal Blood or Secretions (Suction Required)',
+  'اینتوبه (ETT در محل، تهویه مکانیکی برقرار)': 'Endotracheally Intubated (ETT Secured, Mechanical Ventilation)',
+  'کلار گردنی سخت (Hard Collar) فیکس شده': 'Rigid Cervical Collar Secured in Place',
+  'حرکات قفسه سینه قرینه و سمع دوطرفه شفاف (Clear Bilateral BS)': 'Symmetric Chest Wall Expansion & Clear Bilateral Breath Sounds',
+  'کاهش یا عدم سمع صدا در همی‌توراکس راست': 'Decreased / Absent Breath Sounds over Right Hemithorax',
+  'کاهش یا عدم سمع صدا در همی‌توراکس چپ': 'Decreased / Absent Breath Sounds over Left Hemithorax',
+  'آمفیزم زیرجلدی (Subcutaneous Emphysema)': 'Subcutaneous Emphysema',
+  'انحراف تراشه (Tracheal Deviation)': 'Tracheal Deviation',
+  'دیسترس تنفسی و تاکی‌پنه': 'Respiratory Distress & Tachypnea',
+  'همودینامیک پایدار (Hemodynamically Stable)': 'Hemodynamically Stable',
+  'تاکیکاردی / افت فشار و شوک هموراژیک': 'Tachycardia / Hypotension & Hemorrhagic Shock',
+  'نبض‌های مرکزی و محیطی پر و قرینه': 'Full & Symmetric Central and Peripheral Pulses',
+  'خونریزی فعال خارجی (کنترل‌شده با پانسمان فشاری/تورنیکه)': 'Active External Hemorrhage (Controlled with Pressure Dressing / Tourniquet)',
+  'لگن در معاینه پایدار (Pelvic Ring Stable)': 'Pelvic Ring Stable on Compression',
+  'لگن ناپایدار — بستن Pelvic Binder انجام شد': 'Unstable Pelvic Ring — Pelvic Binder Applied',
+  'مردمک‌ها قرینه و راکتیو به نور (PERRLA)': 'Pupils Equal, Round & Reactive to Light (PERRLA)',
+  'آنیزوکوری (Anisocoria)': 'Anisocoria',
+  'بدون نقص عصبی فوکال (No Focal Deficit)': 'No Focal Neurologic Deficit',
+  'نقص عصبی فوکال یا پاراپلژی/کوادری‌پلژی': 'Focal Neurologic Deficit or Paraplegia / Quadriplegia',
+  'برهنه‌سازی کامل و بررسی پشت (Log-roll) انجام شد؛ بدون تندرنس ستون فقرات': 'Full Exposure & Inline Log-Roll Performed; No Spinal Tenderness',
+  'تندرنس یا Step-off در لمس ستون فقرات پشتی/کمری (+)': 'Thoracolumbar Midline Tenderness or Step-Off (+)',
+  'جلوگیری از هیپوترمی (پتو گرم و مایعات گرم)': 'Hypothermia Prevention (Warm Blankets & Warmed Fluids)',
+  'حساسیت دارویی یا غذایی شناخته‌شده‌ای ندارد (NKDA)': 'No Known Drug or Food Allergies (NKDA)',
+  'عدم مصرف داروی خاص یا ضدانعقاد': 'No Regular Medications or Anticoagulants',
+  'بدون سابقه بیماری زمینه‌ای یا جراحی قبلی': 'No Significant Past Medical or Surgical History',
+  'نیازمند بررسی و تزریق پروفیلاکسی کزاز (Tetanus Toxoid / TIG در صورت اندیکاسیون)': 'Evaluate & Administer Tetanus Prophylaxis (Td / TIG if Indicated)',
+  'درجه ۲ سطحی / عمقی (Partial Thickness - II)': '2nd Degree Superficial/Deep (Partial Thickness - II)',
+  'درجه ۱ (Superficial - I)': '1st Degree (Superficial - I)',
+  'درجه ۳ تمام‌ضخامت (Full Thickness - III)': '3rd Degree (Full Thickness - III)',
+  'ترکیبی درجه ۲ و ۳ (Mixed II & III)': 'Mixed 2nd & 3rd Degree Burn',
+  'eFAST منفی (فاقد مایع آزاد در پریکارد، موریسون، اسپلنورنال و لگن؛ بدون پنوموتوراکس)': 'Negative eFAST (No Pericardial, Morison, Splenorenal or Pelvic Free Fluid; No Pneumothorax)',
+  'eFAST مثبت از نظر مایع آزاد (Free Fluid +)': 'Positive eFAST for Intraperitoneal / Pericardial Free Fluid (+)',
+  'eFAST مثبت از نظر پنوموتوراکس / هموتوراکس': 'Positive Thoracic eFAST for Pneumothorax / Hemothorax (+)',
+  'تعبیه ۲ رگ محیطی مناسب و سرم‌تراپی ایزوتونیک (Ringer / NS)': 'Two Large-Bore Peripheral IVs & Isotonic Crystalloid Resuscitation (LR / NS)',
+  'تعبیه چست‌تیوب (Tube Thoracostomy)': 'Tube Thoracostomy (Chest Tube Placement)',
+  'لوله‌گذاری معده (NGT / OGT)': 'Gastric Decompression (NGT / OGT)',
+  'تعبیه سوند فولی و پایش برون‌ده ادراری': 'Foley Catheterization & Hourly Urine Output Monitoring',
+  'رزرو و تزریق خون (Packed RBC / FFP)': 'Type, Crossmatch & Transfuse Blood Products (pRBC / FFP)',
+  'شستشو، دبریدمان و سوچور اولیه زخم در اورژانس': 'Wound Irrigation, Debridement & Primary Suture Repair in ED',
+  'تزریق آنتی‌بیوتیک پروفیلاکسی و واکسن/ایمونوگلوبولین کزاز': 'Prophylactic IV Antibiotics & Tetanus Toxoid / Immunoglobulin',
+  'درخواست مشاوره‌های تخصصی (جراحی اعصاب، ارتوپدی، ارولوژی)': 'Specialty Trauma Consultations (Neurosurgery, Orthopedics, Urology)',
+  'انتقال فوری به اتاق عمل (Emergent Transfer to OR)': 'Emergent Transfer to Operating Room (OR)',
+  'بستری تحت نظر جهت پایش سریال معاینه و هموگلوبین (Serial Exam & Hb)': 'Inpatient Observation for Serial Abdominal Exams & Serial Hb',
+
+  // SOAP 5-Row Focused Daily PE Capsules (data-pe-val) & Drain / Legacy Defaults
+  'هوشیار و Oriented (GCS=15)': 'Alert & Oriented (GCS=15)',
+  'همودینامیک پایدار': 'Hemodynamically Stable',
+  'بدون تب (Afebrile)': 'Afebrile',
+  'ظاهر Ill / Toxic': 'Ill / Toxic Appearance',
+  'سمع ریه دوطرفه شفاف': 'Lungs Clear to Auscultation Bilaterally',
+  'کراکل / کاهش صدا در قاعده ریه': 'Basilar Crackles / Decreased Breath Sounds',
+  'سمع قلب نرمال (S1, S2 منظم)': 'Normal Heart Sounds (Regular S1, S2)',
+  'تاکیکاردی': 'Tachycardia',
+  'شکم نرم و بدون دیستانسیون': 'Abdomen Soft & Non-Distended',
+  'دیستانسیون شکمی': 'Abdominal Distension',
+  'صداهای روده‌ای برقرار (Normoactive BS)': 'Normoactive Bowel Sounds Present',
+  'کاهش/سکوت صداهای روده‌ای (Ileus)': 'Hypoactive / Absent Bowel Sounds (Ileus)',
+  'تندرنس خفیف محدود به محل برش عمل': 'Mild Tenderness Localized to Surgical Incision',
+  'ریباند یا گاردینگ': 'Rebound Tenderness or Guarding',
+  'پانسمان تمیز و خشک (CDI)': 'Clean, Dry & Intact Dressing (CDI)',
+  'اریتم / ترشح زخم': 'Wound Erythema / Discharge',
+  'کشیدن کامل بخیه‌ها': 'Complete Suture / Staple Removal Performed',
+  'کشیدن یک‌درمیان بخیه‌ها': 'Alternate Suture / Staple Removal Performed',
+  'باز کردن بخیه جهت درناژ': 'Incision Partially Opened for Bedside Drainage',
+  'اندام‌ها گرم، بدون ادم و بدون تندرنس ساق (DVT منفی)': 'Extremities Warm, No Edema or Calf Tenderness (DVT Negative)',
+  'ادم یا تندرنس یک‌طرفه ساق پا': 'Unilateral Calf Swelling / Tenderness (Suspected DVT)',
+  'سروزی (Serous)': 'Serous',
+  'سروزانگوئینو (Serosanguinous)': 'Serosanguinous',
+  'خونی (Bloody / Sanguinous)': 'Bloody / Sanguinous',
+  'صفراوی (Bilious)': 'Bilious',
+  'چرکی / کدر (Purulent / Turbid)': 'Purulent / Turbid',
+  'سروزی': 'Serous',
+  'سروزانگوئینو': 'Serosanguinous',
+  'خونی': 'Sanguinous',
+  'صفراوی': 'Bilious',
+  'چرکی': 'Purulent',
+  'جراحی': 'Surgical',
+  'هوشیار، بدون دیسترس حاد، سمع قلب و ریه شفاف': 'Alert, No Acute Distress, Lungs Clear & Heart Regular',
+  'شکم نرم، بدون دیستانسیون یا پریتونیت': 'Abdomen Soft, Non-Distended, No Peritoneal Signs',
+  'پانسمان تمیز و خشک (Clean, Dry & Intact)': 'Clean, Dry & Intact Dressing (CDI)',
+
+  // ATLS Head-to-Toe Secondary Survey Capsules (data-atls-sec-region) & eFAST Windows
+  'نرموسفال، بدون دفرمیتی یا شکستگی استخوانی': 'Normocephalic, Atraumatic, No Bony Step-Off',
+  'بدون اتوره، رینوره یا Battle/Raccoon Sign': 'No Otorrhea, Rhinorrhea, Battle or Raccoon Signs',
+  'لاسراسیون یا هماتوم اسکالپ و صورت': 'Scalp / Facial Laceration or Hematoma',
+  'علائم شکستگی قاعده جمجمه یا فک و صورت': 'Suspected Basilar Skull or Maxillofacial Fracture',
+  'تراشه در خط وسط، بدون JVD یا هماتوم در حال گسترش': 'Trachea Midline, No JVD or Expanding Hematoma',
+  'بدون تندرنس خط وسط گردن (تحت کلار گردنی)': 'No Midline C-Spine Tenderness (In Cervical Collar)',
+  'تندرنس خط وسط مهره‌های گردنی (+)': 'Midline Cervical Spine Tenderness (+)',
+  'هماتوم گردنی یا زخم نافذ Zone I-III': 'Cervical Hematoma or Penetrating Zone I-III Injury',
+  'سمع دوطرفه شفاف، بدون تندرنس یا کرپیتاسیون دنده‌ای': 'Clear Bilateral Breath Sounds, No Rib Tenderness or Crepitus',
+  'صداهای قلبی واضح و طبیعی (بدون مافل بودن)': 'Crisp Normal Heart Sounds (No Muffling)',
+  'تندرنس دنده‌ای / کرپیتاسیون / اکیموز جدار سینه': 'Rib Tenderness / Crepitus / Chest Wall Ecchymosis',
+  'حرکت متناقض قفسه سینه (Flail Chest)': 'Paradoxical Chest Wall Motion (Flail Segment)',
+  'شکم نرم، بدون دیستانسیون، بدون تندرنس و گاردینگ': 'Abdomen Soft, Non-Distended, Non-Tender, No Guarding',
+  'حلقه لگن پایدار و بدون تندرنس': 'Pelvic Ring Stable & Non-Tender',
+  'علامت کمربند ایمنی (Seatbelt Sign) یا اکیموز جدار شکم': 'Abdominal Seatbelt Sign / Abdominal Wall Ecchymosis',
+  'تندرنس شکمی / ریباند / گاردینگ (پریتونیت ترومایی)': 'Abdominal Tenderness / Rebound / Guarding (Traumatic Peritonitis)',
+  'بدون خون در مئاتوس، بدون هماتوم پرینه/اسکروتوم': 'No Blood at Urethral Meatus, No Perineal/Scrotal Hematoma',
+  'تون اسفنکتر مقعدی طبیعی و بدون خون روشن در DRE': 'Normal Anal Sphincter Tone, No Gross Blood on DRE',
+  'خون در مئاتوس ادراری یا هماتوم پرینه (ممنوعیت فولی)': 'Blood at Urethral Meatus / Perineal Hematoma (Foley Contraindicated)',
+  'کاهش تون اسفنکتر یا خون روشن در DRE': 'Decreased Sphincter Tone or Gross Blood on DRE',
+  'بدون دفرمیتی واضح اندام‌ها، کمپارتمان‌ها نرم': 'No Gross Limb Deformity, Soft Compartments',
+  'نبض‌های دیستال پر و قرینه، حس و حرکت دیستال برقرار (Intact Distal NV)': 'Full Symmetric Distal Pulses, Intact Distal Motor & Sensory Function',
+  'دفرمیتی، تورم یا شکستگی باز/بسته اندام': 'Limb Deformity, Swelling, or Open/Closed Fracture',
+  'کاهش/فقدان نبض دیستال یا شک به سندرم کمپارتمان': 'Diminished/Absent Distal Pulse or Suspected Compartment Syndrome',
+  "مایع آزاد در بن‌بست موریسون (RUQ / Morrison's Pouch +)": "Free Fluid in Morison's Pouch (RUQ +)",
+  'مایع آزاد در فضای اسپلنورنال (LUQ / Splenorenal +)': 'Free Fluid in Splenorenal Recess (LUQ +)',
+  'مایع آزاد در لگن / کلدوساک (Pelvic / Suprapubic +)': 'Free Fluid in Pelvis / Pouch of Douglas (Suprapubic +)',
+  'افیوژن پریکارد (Pericardial Effusion +)': 'Pericardial Effusion (+)',
+  'عدم لغزش پلور در قفسه سینه (Absent Lung Sliding)': 'Absent Pleural Lung Sliding (Pneumothorax +)'
 };
+
+function stripPersianResidual(text) {
+  if (!text || !/[\u0600-\u06FF]/.test(text)) return text;
+  let cleaned = text
+    .replace(/[\u0600-\u06FF\u200C]+/g, ' ')
+    .replace(/\s*[،؛]\s*/g, ', ')
+    .replace(/(?:\s*[-—–/:,+]\s*)+$/g, '')
+    .replace(/^(?:\s*[-—–/:,+]\s*)+/g, '')
+    .replace(/\(\s*[-—–/:,+]*\s*\)/g, '')
+    .replace(/\(\s*([-—–/:,+])\s*/g, '(')
+    .replace(/\s*([-—–/:,+])\s*\)/g, ')')
+    .replace(/,\s*,+/g, ',')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  cleaned = cleaned.replace(/^[,.\-—–/:\s]+|[,.\-—–/:\s]+$/g, '').trim();
+  return cleaned;
+}
+
+export function tBrands(rawBrands) {
+  const str = String(rawBrands || '').trim();
+  if (!str) return '';
+  if (getCurrentLang() !== 'en') return str;
+  if (!/[\u0600-\u06FF]/.test(str)) return str;
+  const parts = str.split(/[,،]/).map((p) => stripPersianResidual(p)).filter(Boolean);
+  return parts.join(', ');
+}
 
 export function tLabel(rawLabel, explicitEn = '') {
   const lang = getCurrentLang();
@@ -176,32 +902,67 @@ export function tLabel(rawLabel, explicitEn = '') {
     return DIRECT_FA_TO_EN_MAP[str];
   }
 
-  // If already predominantly English (no Persian letters \u0600-\u06FF), return as is!
+  // Already pure English/Latin (no Persian letters \u0600-\u06FF)
   if (!/[\u0600-\u06FF]/.test(str)) {
     return str;
   }
 
-  // Check if parentheses contain Latin/English text: e.g. "تب (Fever)" -> "Fever"
-  const parenMatch = str.match(/\(([^)]*[A-Za-z][^)]*)\)/);
-  if (parenMatch && parenMatch[1]) {
-    const candidate = parenMatch[1].trim();
-    return candidate;
+  // Case A: Starts with Latin/English before '(' — e.g. "Daily (روزانه)", "RUQ (فوقانی راست)", "Calcium (Ca - کلسیم سرم)"
+  const firstParenIdx = str.indexOf('(');
+  if (firstParenIdx > 0) {
+    const prefix = str.slice(0, firstParenIdx).trim();
+    if (/[A-Za-z]/.test(prefix) && !/[\u0600-\u06FF]/.test(prefix)) {
+      const rest = str.slice(firstParenIdx);
+      const innerMatch = rest.match(/^\(([^)]*)\)(.*)$/);
+      if (innerMatch) {
+        const cleanInner = stripPersianResidual(innerMatch[1]);
+        const cleanTail = stripPersianResidual(innerMatch[2]);
+        let out = prefix;
+        if (cleanInner && /[A-Za-z0-9]/.test(cleanInner)) {
+          out += ` (${cleanInner})`;
+        }
+        if (cleanTail && /[A-Za-z0-9]/.test(cleanTail)) {
+          out += ` ${cleanTail}`;
+        }
+        return out.trim();
+      }
+      return prefix;
+    }
   }
 
-  // Check if slash contains English: e.g. "بخش / Ward" -> "Ward"
+  // Case B: Parentheses contain Latin/English text — e.g. "تب (Fever)" -> "Fever", "تندرنس حین دق (Percussion Tenderness - نشانه پریتونیت)" -> "Percussion Tenderness"
+  const parenMatches = [...str.matchAll(/\(([^)]*[A-Za-z][^)]*)\)/g)];
+  if (parenMatches.length > 0) {
+    const cleanedCandidates = parenMatches
+      .map((m) => stripPersianResidual(m[1]))
+      .filter((c) => c && /[A-Za-z]/.test(c));
+    if (cleanedCandidates.length > 0) {
+      return cleanedCandidates.join(' / ');
+    }
+  }
+
+  // Case C: Slash-separated bilingual string — e.g. "بخش / Ward" -> "Ward"
   if (str.includes('/')) {
     const parts = str.split('/');
     for (const part of parts) {
-      if (/[A-Za-z]/.test(part)) {
+      if (/[A-Za-z]/.test(part) && !/[\u0600-\u06FF]/.test(part)) {
         return part.trim();
       }
     }
   }
 
-  // Check stripped of any Persian parentheses
-  const stripped = str.replace(/\([^)]+\)/g, '').trim();
+  // Case D: Stripped of any parentheses -> check map again
+  const stripped = str.replace(/\([^)]*\)/g, '').trim();
   if (DIRECT_FA_TO_EN_MAP[stripped]) {
     return DIRECT_FA_TO_EN_MAP[stripped];
+  }
+
+  // Case E: Mixed Persian + English without parentheses -> strip Persian residual if meaningful English remains
+  if (/[A-Za-z]{2,}/.test(str)) {
+    const cleaned = stripPersianResidual(str);
+    if (cleaned && /[A-Za-z]{2,}/.test(cleaned)) {
+      return cleaned;
+    }
   }
 
   return str;
@@ -212,35 +973,35 @@ export const CLINICAL_PRESENTATION_ARCHETYPES = [
     id: 'pain_archetype',
     labelFa: 'درد یا ناراحتی (شکم، قفسه سینه، سر و گردن، کمر و اندام)',
     labelEn: 'Pain or Discomfort (Abdominal, Thoracic, HEENT, Extremities)',
-    icon: '⚡',
+    icon: 'zap',
     badge: 'OLDCARTS'
   },
   {
     id: 'mass_lesion_archetype',
     labelFa: 'توده، کیست، تورم یا ضایعه (پستان، پوست سر، فک، تیروئید، فتق)',
     labelEn: 'Mass, Cyst, Swelling or Lesion (Breast, Scalp, Mandible, Thyroid, Hernia)',
-    icon: '🔘',
+    icon: 'circle-dot',
     badge: 'Mass & Lesion'
   },
   {
     id: 'trauma_burn_archetype',
     labelFa: 'تروما، جراحت نافذ (چاقو/گلوله)، تصادف و سوختگی',
     labelEn: 'Trauma, Penetrating Wound (Stab/GSW), MVA & Burns',
-    icon: '🚨',
+    icon: 'alert-triangle',
     badge: 'ATLS Trauma'
   },
   {
     id: 'functional_bleeding_archetype',
     labelFa: 'شکایات عملکردی، خونریزی گوارشی، زردی یا تنگی نفس',
     labelEn: 'Functional, Dyspnea, GI Bleed, Painless Jaundice, Obstipation',
-    icon: '🩸',
+    icon: 'droplet',
     badge: 'Functional & Bleeding'
   },
   {
     id: 'elective_asymptomatic_archetype',
     labelFa: 'بستری الکتیو بی‌علامت / جراحی برنامه‌ریزی‌شده',
     labelEn: 'Elective / Asymptomatic Referral for Planned Surgery',
-    icon: '📋',
+    icon: 'clipboard',
     badge: 'Elective Admission'
   }
 ];
@@ -530,7 +1291,7 @@ export const HPI_BASIC_SYMPTOMS = [
 export const HPI_UNLOCKABLE_MODULES = [
   {
     id: 'mod_cholestasis',
-    buttonLabel: '➕ باز کردن ماژول: علائم صفراوی و کلستاز (زردی، خارش، ادرار چای‌رنگ، مدفوع آکولیک)',
+    buttonLabel: 'باز کردن ماژول: علائم صفراوی و کلستاز (زردی، خارش، ادرار چای‌رنگ، مدفوع آکولیک)',
     title: 'علائم صفراوی و کلستاز (Hepatobiliary & Cholestasis)',
     chips: [
       { id: 'icterus_jaundice', label: 'زردی پوست و اسکلرا (Icterus / Jaundice)', detailHint: 'سیر پیشرونده یا نوسانی...' },
@@ -541,7 +1302,7 @@ export const HPI_UNLOCKABLE_MODULES = [
   },
   {
     id: 'mod_postop_drain',
-    buttonLabel: '➕ باز کردن ماژول: عوارض محل عمل جراحی اخیر و درن (درد/سفتی محل درن، ترشح، باز شدن بخیه)',
+    buttonLabel: 'باز کردن ماژول: عوارض محل عمل جراحی اخیر و درن (درد/سفتی محل درن، ترشح، باز شدن بخیه)',
     title: 'عوارض محل عمل جراحی اخیر و درن (Post-Op & Drain Site Complications)',
     chips: [
       { id: 'drain_site_pain_induration', label: 'درد و سفتی (Induration) در محل درن یا خط بخیه', detailHint: 'ناحیه درن و فاصله زمانی از عمل...' },
@@ -552,7 +1313,7 @@ export const HPI_UNLOCKABLE_MODULES = [
   },
   {
     id: 'mod_gi_bleeding',
-    buttonLabel: '➕ باز کردن ماژول: علائم خونریزی گوارشی و آنورکتال (هماتمز، ملنا، هماتوشزی، دیسفاژی)',
+    buttonLabel: 'باز کردن ماژول: علائم خونریزی گوارشی و آنورکتال (هماتمز، ملنا، هماتوشزی، دیسفاژی)',
     title: 'علائم خونریزی گوارشی و آنورکتال (GI Bleeding & Anorectal)',
     chips: [
       { id: 'hematemesis', label: 'هماتمز (استفراغ خونی یا Coffee-ground)', detailHint: 'حجم و دفعات...' },
@@ -564,7 +1325,7 @@ export const HPI_UNLOCKABLE_MODULES = [
   },
   {
     id: 'mod_mass_hernia',
-    buttonLabel: '➕ باز کردن ماژول: علائم توده، فتق، پستان و تیروئید (جا رفتن توده، تغییرات پوست، خشونت صدا)',
+    buttonLabel: 'باز کردن ماژول: علائم توده، فتق، پستان و تیروئید (جا رفتن توده، تغییرات پوست، خشونت صدا)',
     title: 'علائم توده، فتق، پستان و تیروئید (Mass, Hernia, Breast & Thyroid)',
     chips: [
       { id: 'reducible_mass', label: 'جا رفتن توده در حالت خوابیده یا با دست (Reducible)', detailHint: 'روش جااندازی...' },
@@ -577,7 +1338,7 @@ export const HPI_UNLOCKABLE_MODULES = [
   },
   {
     id: 'mod_urinary_pelvic',
-    buttonLabel: '➕ باز کردن ماژول: علائم ادراری و لگنی (دیزوری، هماچوری، احتباس/کاهش جریان ادرار)',
+    buttonLabel: 'باز کردن ماژول: علائم ادراری و لگنی (دیزوری، هماچوری، احتباس/کاهش جریان ادرار)',
     title: 'علائم دستگاه ادراری و لگنی (Urinary & Pelvic Symptoms)',
     chips: [
       { id: 'dysuria_frequency', label: 'سوزش یا تکرر ادرار (Dysuria / Frequency)', detailHint: 'تغییر رنگ ادرار...' },
@@ -1300,7 +2061,7 @@ export const PE_MANDATORY_PILLARS = [
 export const PE_UNLOCKABLE_MODULES = [
   {
     id: 'exam_dre',
-    buttonLabel: '➕ افزودن معاینه رکتال و آنورکتال (Digital Rectal Exam - TR / DRE)',
+    buttonLabel: 'افزودن معاینه رکتال و آنورکتال (Digital Rectal Exam - TR / DRE)',
     title: 'معاینه رکتال و آنورکتال (Digital Rectal Exam - TR / DRE)',
     items: [
       { id: 'pe_dre_normal', label: 'تون اسفنکتر نرمال، بدون توده، دستکش آغشته به مدفوع طبیعی', detailHint: '' },
@@ -1311,7 +2072,7 @@ export const PE_UNLOCKABLE_MODULES = [
   },
   {
     id: 'exam_breast',
-    buttonLabel: '➕ افزودن معاینه اختصاصی پستان و آگزیلا (Breast & Axillary Exam)',
+    buttonLabel: 'افزودن معاینه اختصاصی پستان و آگزیلا (Breast & Axillary Exam)',
     title: 'معاینه اختصاصی پستان و آگزیلا (Breast & Axillary Exam)',
     items: [
       { id: 'pe_breast_normal', label: 'معاینه پستان و آگزیلا دوطرفه طبیعی، بدون توده یا ترشح', detailHint: '' },
@@ -1322,7 +2083,7 @@ export const PE_UNLOCKABLE_MODULES = [
   },
   {
     id: 'exam_thyroid',
-    buttonLabel: '➕ افزودن معاینه اختصاصی تیروئید و لنفادنوپاتی گردن (Thyroid & Cervical Exam)',
+    buttonLabel: 'افزودن معاینه اختصاصی تیروئید و لنفادنوپاتی گردن (Thyroid & Cervical Exam)',
     title: 'معاینه اختصاصی تیروئید و لنفادنوپاتی گردن (Thyroid & Cervical Exam)',
     items: [
       { id: 'pe_thyroid_normal', label: 'تیروئید بدون بزرگی، بدون ندول لمس‌پذیر و متحرک با بلع', detailHint: '' },
@@ -1332,7 +2093,7 @@ export const PE_UNLOCKABLE_MODULES = [
   },
   {
     id: 'exam_hernia',
-    buttonLabel: '➕ افزودن معاینه اختصاصی کانال اینگوئینال و فتق‌ها (Hernia & Groin Exam)',
+    buttonLabel: 'افزودن معاینه اختصاصی کانال اینگوئینال و فتق‌ها (Hernia & Groin Exam)',
     title: 'معاینه اختصاصی کانال اینگوئینال و فتق‌ها (Hernia & Groin Exam)',
     items: [
       { id: 'pe_groin_no_hernia', label: 'کانال‌های اینگوئینال دوطرفه بدون بالج یا فتق لمس‌پذیر', detailHint: '' },
@@ -1343,7 +2104,7 @@ export const PE_UNLOCKABLE_MODULES = [
   },
   {
     id: 'exam_wound_drain',
-    buttonLabel: '➕ افزودن بررسی محل درن، زخم و پورت‌های جراحی (Post-Op Wound & Drain Inspection)',
+    buttonLabel: 'افزودن بررسی محل درن، زخم و پورت‌های جراحی (Post-Op Wound & Drain Inspection)',
     title: 'بررسی محل درن، زخم و پورت‌های جراحی (Post-Op Wound & Drain Inspection)',
     items: [
       { id: 'pe_wound_clean_intact', label: 'خط بخیه تمیز، خشک و بدون ترشح یا اریتم', detailHint: '' },
@@ -1715,7 +2476,53 @@ export const HIDDEN_EXTENDED_PMH_DATABASE = [
   { id: 'psh_tracheostomy', label: 'سابقه تراکئوستومی (Prior Tracheostomy)', category: 'سوابق جراحی و برداشت ارگان (PSH / Ectomies)', aliases: 'تراکئوستومی لوله گردن tracheostomy', hiddenInDefaultTree: true }
 ];
 
-export const PSH_SURGICAL_PROCEDURES_BANK = HIDDEN_EXTENDED_PMH_DATABASE.filter(item => item.id.startsWith('psh_'));
+// ==========================================================================
+// Master Surgical Procedures Bank for PSH Search (28 core surgical procedures)
+// ==========================================================================
+export const MASTER_PSH_SURGERIES_BANK = [
+  // جراحی عمومی (General Surgery)
+  { id: 'psh_appendectomy', label: 'آپاندکتومی (Appendectomy)', en: 'Appendectomy', category: 'General' },
+  { id: 'psh_cholecystectomy', label: 'کوله سیستکتومی (Cholecystectomy - Open/Lap)', en: 'Cholecystectomy', category: 'General' },
+  { id: 'psh_hernia_repair', label: 'ترمیم هرنی (Herniorrhaphy / Hernioplasty)', en: 'Hernia Repair', category: 'General' },
+  { id: 'psh_mastectomy', label: 'ماستکتومی / لامپکتومی پستان (Mastectomy / Lumpectomy)', en: 'Mastectomy', category: 'General' },
+  { id: 'psh_splenectomy', label: 'اسپلنکتومی (طحال‌برداری)', en: 'Splenectomy', category: 'General' },
+  { id: 'psh_thyroidectomy', label: 'تیروئیدکتومی (Thyroidectomy)', en: 'Thyroidectomy', category: 'General' },
+  { id: 'psh_hemorrhoidectomy', label: 'هموروئیدکتومی / فیشرکتومی', en: 'Hemorrhoidectomy', category: 'General' },
+  { id: 'psh_laparotomy', label: 'لاپاراتومی تجسسی (Exploratory Laparotomy)', en: 'Exploratory Laparotomy', category: 'General' },
+  { id: 'psh_bariatric', label: 'جراحی چاقی (اسلیو / بای‌پس معده)', en: 'Bariatric Surgery (Sleeve/Bypass)', category: 'General' },
+  
+  // ارتوپدی (Orthopedics)
+  { id: 'psh_tka', label: 'تعویض مفصل زانو (TKA)', en: 'Total Knee Arthroplasty', category: 'Ortho' },
+  { id: 'psh_tha', label: 'تعویض مفصل ران (THA)', en: 'Total Hip Arthroplasty', category: 'Ortho' },
+  { id: 'psh_orif', label: 'جااندازی باز و تثبیت شکستگی (ORIF)', en: 'Open Reduction Internal Fixation (ORIF)', category: 'Ortho' },
+  { id: 'psh_arthroscopy', label: 'آرتروسکوپی زانو / شانه (ترمیم مینیسک/ACL)', en: 'Arthroscopy (ACL/Meniscus)', category: 'Ortho' },
+  { id: 'psh_carpal_tunnel', label: 'آزادسازی تونل کارپ (CTS Release)', en: 'Carpal Tunnel Release', category: 'Ortho' },
+  
+  // ارولوژی (Urology)
+  { id: 'psh_turp', label: 'تراشیدن پروستات از راه مجرا (TURP)', en: 'Transurethral Resection of Prostate (TURP)', category: 'Urology' },
+  { id: 'psh_turt', label: 'رزکسیون تومور مثانه (TURB/TURT)', en: 'Transurethral Resection of Bladder Tumor', category: 'Urology' },
+  { id: 'psh_pcnl', label: 'سنگ‌شکنی کلیه (PCNL / TUL / ESWL)', en: 'PCNL / Ureteroscopy (TUL)', category: 'Urology' },
+  { id: 'psh_varicocele', label: 'واریکوسلکتومی (Varicocelectomy)', en: 'Varicocelectomy', category: 'Urology' },
+  { id: 'psh_nephrectomy', label: 'نفرکتومی (برداشتن کلیه)', en: 'Nephrectomy', category: 'Urology' },
+  
+  // گوش و حلق و بینی و سر و گردن (ENT & Head/Neck)
+  { id: 'psh_tonsillectomy', label: 'لوزه‌برداری (Tonsillectomy / Adenoidectomy)', en: 'Tonsillectomy', category: 'ENT' },
+  { id: 'psh_rhinoplasty', label: 'رینوپلاستی / سپتوپلاستی', en: 'Septorhinoplasty', category: 'ENT' },
+  { id: 'psh_tympanoplasty', label: 'تمپانوپلاستی / ماستوئیدکتومی', en: 'Tympanoplasty / Mastoidectomy', category: 'ENT' },
+  
+  // جراحی اعصاب و ستون فقرات (Neurosurgery & Spine)
+  { id: 'psh_discectomy', label: 'جراحی دیسک کمر / گردن (Discectomy / Laminectomy)', en: 'Lumbar/Cervical Discectomy', category: 'Neurosurgery' },
+  { id: 'psh_craniotomy', label: 'کرانیوتومی (تخلیه هماتوم یا تومور مغزی)', en: 'Craniotomy (Hematoma/Tumor)', category: 'Neurosurgery' },
+  
+  // زنان و زایمان (Gynecology & Obstetrics)
+  { id: 'psh_cesarean', label: 'سزارین (C-Section)', en: 'Cesarean Delivery (C-Section)', category: 'OB/GYN' },
+  { id: 'psh_hysterectomy', label: 'هیسترکتومی (رحم‌برداری - TAH/VH)', en: 'Hysterectomy (TAH/VH)', category: 'OB/GYN' },
+  { id: 'psh_oophorectomy', label: 'اووفورکتومی / کیست تخمدان', en: 'Oophorectomy / Ovarian Cystectomy', category: 'OB/GYN' },
+  { id: 'psh_dnc', label: 'کورتاژ تخلیه‌ای / تشخیصی (D&C)', en: 'Dilation & Curettage (D&C)', category: 'OB/GYN' },
+  { id: 'psh_tubal_ligation', label: 'بستن لوله‌ها (TL)', en: 'Tubal Ligation', category: 'OB/GYN' }
+];
+
+export const PSH_SURGICAL_PROCEDURES_BANK = MASTER_PSH_SURGERIES_BANK;
 
 // ==========================================================================
 // v0.8-Omnisearch: Family History Hereditary & Cancer Database (FH)
