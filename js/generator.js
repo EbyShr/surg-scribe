@@ -1384,6 +1384,25 @@ export function generateClinicalNote(state) {
     }
   });
 
+    const knownGroupItemIds = new Set(ROS_GROUPS_BILINGUAL.flatMap((g) => (g.items || []).map((i) => i.id)));
+    const extraPos = [];
+    const extraNeg = [];
+    Object.entries(state.ros?.items || {}).forEach(([rId, val]) => {
+      if (!knownGroupItemIds.has(rId)) {
+        const st = typeof val === 'object' && val !== null ? val.state : val;
+        const dt = typeof val === 'object' && val !== null && val.detail ? ` (${normalizePersianClinicalText(val.detail)})` : '';
+        const lb = typeof val === 'object' && val !== null && val.label ? val.label : rId;
+        if (st === 1 || st === '+1') extraPos.push(`${lb}${dt}`);
+        else if (st === -1 || st === '-1') extraNeg.push(lb);
+      }
+    });
+    if (extraPos.length > 0) {
+      lines.push(`- **سایر علائم سیستمیک مثبت:** ${extraPos.join('، ')}`);
+    }
+    if (extraNeg.length > 0) {
+      lines.push(`- **سایر علائم سیستمیک منفی:** ${extraNeg.join('، ')}`);
+    }
+
     if (state.ros?.systemGapNote) {
       lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
     }

@@ -2617,9 +2617,9 @@ export function renderPshCapsulesAndSelected(filterQuery = '') {
           const isSelected = clinicalState.psh.surgeries.some((s) => s.id === proc.id || s.label === proc.label);
           const chip = document.createElement('div');
           chip.className = `search-tray-item ${isSelected ? 'is-positive' : ''}`;
-          chip.style.cssText = 'display:inline-flex; align-items:center; gap:0.4rem; padding:0.25rem 0.65rem; background:var(--bg-surface); border:1px solid var(--border-strong); border-radius:9999px; cursor:pointer; font-size:0.82rem; user-select:none;';
+          chip.style.cssText = 'display:inline-flex; align-items:center; gap:0.55rem; padding:0.4rem 0.85rem; min-height:36px; background:var(--bg-surface); border:1.5px solid var(--border-strong); border-radius:9999px; cursor:pointer; font-size:0.86rem; user-select:none; touch-action:manipulation;';
           chip.innerHTML = `
-            <span style="font-weight:700; color:var(--primary); font-size:1.05rem; line-height:1;">+</span>
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(16,185,129,0.15); color:#10b981; font-weight:800; font-size:1.05rem; line-height:1;">+</span>
             <span style="font-weight:600; color:var(--text-primary);">${proc.label}</span>
           `;
           chip.addEventListener('click', () => {
@@ -3684,33 +3684,6 @@ function renderRosGroups() {
       updateLivePreview();
     });
     headerLeft.appendChild(toggleBtn);
-
-    const normalBtn = document.createElement('button');
-    normalBtn.type = 'button';
-    normalBtn.className = 'btn-set-section-normal';
-    normalBtn.innerHTML = `<span></span><span>معاینه کاملاً طبیعی</span>`;
-    normalBtn.title = 'ثبت معاینه کاملاً طبیعی این بخش بر اساس استانداردهای بالینی';
-    normalBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const baseline = PE_NORMAL_BASELINES[pillar.id];
-      if (baseline) {
-        pillar.items.forEach((item) => {
-          delete clinicalState.pe.findings[item.id];
-        });
-        (baseline.pos || []).forEach((posId) => {
-          const it = pillar.items.find((x) => x.id === posId);
-          clinicalState.pe.findings[posId] = { state: 1, detail: '', label: it ? it.label : posId };
-        });
-        (baseline.neg || []).forEach((negId) => {
-          const it = pillar.items.find((x) => x.id === negId);
-          clinicalState.pe.findings[negId] = { state: -1, detail: '', label: it ? it.label : negId };
-        });
-        renderPeMandatoryPillars();
-        saveCurrentCase();
-        updateLivePreview();
-      }
-    });
-    headerLeft.appendChild(normalBtn);
 
     const chevron = document.createElement('span');
     chevron.className = 'subsystem-chevron';
@@ -4815,12 +4788,19 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
   matches.forEach((item) => {
     let cur = null;
     if (sectionType === 'hpi') {
+      if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {} };
+      if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
       cur = clinicalState.hpi.symptoms?.[item.id];
     } else if (sectionType === 'pmh') {
+      if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
       cur = (item.catId && clinicalState.pmh.categories?.[item.catId]?.items?.[item.id]) || clinicalState.pmh.items?.[item.id];
     } else if (sectionType === 'ros') {
-      cur = clinicalState.ros.findings?.[item.id];
+      if (!clinicalState.ros) clinicalState.ros = { items: {} };
+      if (!clinicalState.ros.items) clinicalState.ros.items = {};
+      cur = clinicalState.ros.items?.[item.id];
     } else if (sectionType === 'pe') {
+      if (!clinicalState.pe) clinicalState.pe = { findings: {} };
+      if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
       cur = clinicalState.pe.findings?.[item.id];
     }
 
@@ -4866,6 +4846,7 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
     detailInp.addEventListener('input', (e) => {
       const val = e.target.value;
       if (sectionType === 'hpi') {
+        if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
         if (!clinicalState.hpi.symptoms[item.id]) clinicalState.hpi.symptoms[item.id] = { state: 1, label: item.label, detail: '' };
         clinicalState.hpi.symptoms[item.id].detail = val;
       } else if (sectionType === 'pmh') {
@@ -4873,11 +4854,17 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
         if (!clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id] = { state: 1, label: item.label, detail: '' };
         clinicalState.pmh.items[item.id].detail = val;
       } else if (sectionType === 'ros') {
-        if (!clinicalState.ros.findings[item.id]) clinicalState.ros.findings[item.id] = { state: 1, label: item.label, detail: '' };
-        clinicalState.ros.findings[item.id].detail = val;
+        if (!clinicalState.ros) clinicalState.ros = { items: {} };
+        if (!clinicalState.ros.items) clinicalState.ros.items = {};
+        if (!clinicalState.ros.items[item.id]) clinicalState.ros.items[item.id] = { state: 1, label: item.label, detail: '' };
+        clinicalState.ros.items[item.id].detail = val;
+        renderRosGroups();
       } else if (sectionType === 'pe') {
+        if (!clinicalState.pe) clinicalState.pe = { findings: {} };
+        if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
         if (!clinicalState.pe.findings[item.id]) clinicalState.pe.findings[item.id] = { state: 1, label: item.label, detail: '' };
         clinicalState.pe.findings[item.id].detail = val;
+        renderPeMandatoryPillars();
       }
       saveCurrentCase();
       updateLivePreview();
@@ -4887,9 +4874,12 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
 
     const applyState = (newState) => {
       if (sectionType === 'hpi') {
+        if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {} };
+        if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
         if (newState === 0) delete clinicalState.hpi.symptoms[item.id];
         else clinicalState.hpi.symptoms[item.id] = { state: newState, label: item.label, detail: detailInp.value };
       } else if (sectionType === 'pmh') {
+        if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
         if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
         if (item.catId) {
           if (!clinicalState.pmh.categories[item.catId]) clinicalState.pmh.categories[item.catId] = { status: 'neutral', items: {} };
@@ -4901,11 +4891,23 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
         else clinicalState.pmh.items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
         renderPmhCategories();
       } else if (sectionType === 'ros') {
-        if (newState === 0) delete clinicalState.ros.findings[item.id];
-        else clinicalState.ros.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+        if (!clinicalState.ros) clinicalState.ros = { items: {} };
+        if (!clinicalState.ros.items) clinicalState.ros.items = {};
+        if (newState === 0) {
+          delete clinicalState.ros.items[item.id];
+        } else {
+          clinicalState.ros.items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+        }
+        renderRosGroups();
       } else if (sectionType === 'pe') {
-        if (newState === 0) delete clinicalState.pe.findings[item.id];
-        else clinicalState.pe.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+        if (!clinicalState.pe) clinicalState.pe = { findings: {} };
+        if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
+        if (newState === 0) {
+          delete clinicalState.pe.findings[item.id];
+        } else {
+          clinicalState.pe.findings[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+        }
+        renderPeMandatoryPillars();
       }
 
       saveCurrentCase();
@@ -4945,15 +4947,24 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
   addBtn.addEventListener('click', () => {
     const customId = `custom_${Date.now()}`;
     if (sectionType === 'hpi') {
+      if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {} };
+      if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
       clinicalState.hpi.symptoms[customId] = { state: 1, label: query, detail: '' };
     } else if (sectionType === 'pmh') {
+      if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
       if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
       clinicalState.pmh.items[customId] = { state: 1, label: query, detail: '' };
       renderPmhCategories();
     } else if (sectionType === 'ros') {
-      clinicalState.ros.findings[customId] = { state: 1, label: query, detail: '' };
+      if (!clinicalState.ros) clinicalState.ros = { items: {} };
+      if (!clinicalState.ros.items) clinicalState.ros.items = {};
+      clinicalState.ros.items[customId] = { state: 1, label: query, detail: '' };
+      renderRosGroups();
     } else if (sectionType === 'pe') {
+      if (!clinicalState.pe) clinicalState.pe = { findings: {} };
+      if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
       clinicalState.pe.findings[customId] = { state: 1, label: query, detail: '' };
+      renderPeMandatoryPillars();
     }
     saveCurrentCase();
     updateLivePreview();
