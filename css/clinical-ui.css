@@ -5054,9 +5054,102 @@ body.dark-mode .soap-radio-label {
 
 .soap-linked-patient-wrapper {
   display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 310px;
+  max-width: 480px;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-surface-elevated, #f8fafc);
+  border: 1.5px solid var(--border-medium, #cbd5e1);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .soap-linked-patient-wrapper {
+  background: #161F30;
+  border-color: #334155;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.soap-linked-badge-row {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  min-width: 280px;
+  width: 100%;
+}
+
+.soap-linked-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.soap-linked-icon {
+  display: inline-flex;
+  align-items: center;
+  color: #0d9488;
+}
+
+body.dark-mode .soap-linked-icon {
+  color: #2dd4bf;
+}
+
+.soap-linked-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.soap-linked-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  transition: all 0.2s ease;
+}
+
+.soap-linked-active-pill.has-active {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, 0.3);
+}
+
+body.dark-mode .soap-linked-active-pill.has-active {
+  background: rgba(45, 212, 191, 0.16);
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+.soap-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.soap-linked-active-pill.has-active .soap-pulse-dot {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.soap-linked-select {
+  width: 100% !important;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
 }
 
 .soap-context-fields-grid {
@@ -7614,11 +7707,77 @@ body.dark-mode .soap-action-toolbar {
 .soap-history-tabs-container {
   display: flex !important;
   align-items: center !important;
-  gap: 0.45rem !important;
-  overflow-x: auto !important;
-  padding: 0.25rem 0 !important;
-  scrollbar-width: thin !important;
-  white-space: nowrap !important;
+  width: 100% !important;
+  padding: 0.35rem 0 !important;
+}
+
+.soap-history-dropdown-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: var(--bg-surface-elevated, #f8fafc);
+  border: 1.5px solid var(--border-medium, #e2e8f0);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  flex-wrap: wrap;
+}
+
+body.dark-mode .soap-history-dropdown-bar {
+  background: #161F30;
+  border-color: #334155;
+}
+
+.soap-history-select-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 280px;
+}
+
+.soap-history-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.soap-history-select {
+  flex: 1;
+  max-width: 520px;
+  font-size: 0.86rem !important;
+  font-weight: 600 !important;
+}
+
+.soap-history-active-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.soap-history-current-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+  border: 1px solid rgba(13, 148, 136, 0.28);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+body.dark-mode .soap-history-current-pill {
+  background: rgba(45, 212, 191, 0.16);
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.35);
 }
 
 .soap-history-tab {
@@ -8926,5 +9085,133 @@ body.theme-light .clinical-note-rendered h3 {
   color: var(--primary);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
+
+/* ==========================================================================
+   UNIVERSAL CLINICAL SELECT / DROPDOWN STYLING
+   Medical-grade, beautiful styling for all <select> elements across the app
+   ========================================================================== */
+
+select,
+.input-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  display: inline-block;
+  height: 38px;
+  min-height: 38px;
+  line-height: 1.4;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  padding-left: 2.35rem !important;
+  padding-right: 0.85rem !important;
+  font-family: var(--font-persian, inherit);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px !important;
+  cursor: pointer;
+  background-color: var(--bg-surface, #ffffff) !important;
+  border: 1.5px solid var(--border-medium, #cbd5e1) !important;
+  color: var(--text-primary, #0f172a) !important;
+  background-repeat: no-repeat !important;
+  background-position: left 0.85rem center !important;
+  background-size: 16px 16px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230D9488' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+/* LTR override for dropdown arrow */
+html[dir="ltr"] select,
+html[dir="ltr"] .input-select,
+[dir="ltr"] select,
+[dir="ltr"] .input-select,
+select.dir-ltr,
+.input-select.dir-ltr {
+  padding-right: 2.35rem !important;
+  padding-left: 0.85rem !important;
+  background-position: right 0.85rem center !important;
+}
+
+/* Hover and Focus States (Light Mode) */
+select:hover:not(:disabled),
+.input-select:hover:not(:disabled) {
+  border-color: #0D9488 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.08) !important;
+}
+
+select:focus,
+.input-select:focus {
+  border-color: #0D9488 !important;
+  background-color: #ffffff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2) !important;
+}
+
+/* Dark Mode Selects */
+body.dark-mode select,
+body.dark-mode .input-select {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  color: #F1F5F9 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232DD4BF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark-mode select:hover:not(:disabled),
+body.dark-mode .input-select:hover:not(:disabled) {
+  border-color: #2DD4BF !important;
+  background-color: #1E293B !important;
+  box-shadow: 0 2px 6px rgba(45, 212, 191, 0.12) !important;
+}
+
+body.dark-mode select:focus,
+body.dark-mode .input-select:focus {
+  border-color: #2DD4BF !important;
+  background-color: #1E293B !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.24) !important;
+}
+
+/* Option element styling */
+select option,
+.input-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+body.dark-mode select option,
+body.dark-mode .input-select option {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+}
+
+/* Compact and Specialized Selects */
+.dh-tray-sig-sel {
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 0.78rem !important;
+  padding-top: 0.2rem !important;
+  padding-bottom: 0.2rem !important;
+  padding-left: 1.85rem !important;
+  padding-right: 0.55rem !important;
+  background-position: left 0.55rem center !important;
+  background-size: 13px 13px !important;
+}
+
+.system-gap-select {
+  height: 36px !important;
+  min-height: 36px !important;
+  font-size: 0.83rem !important;
+  border-radius: 6px !important;
+}
+
+.drain-char {
+  font-size: 0.82rem !important;
+}
+
 
 

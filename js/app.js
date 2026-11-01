@@ -8928,63 +8928,158 @@ export function renderSoapDayTracker() {
     ? targetCase.soapHistory
     : (Array.isArray(targetCase?.progressNotes) ? targetCase.progressNotes : []);
 
+  const lang = getCurrentLanguage();
+  const isEn = lang === 'en';
+
   // Update counter badges
   const countBadge = document.getElementById('soapHistoryCountBadge');
   if (countBadge) {
     const count = historyList.length || 1;
-    countBadge.textContent = getCurrentLanguage() === 'en' ? `Documented Days: ${count}` : `تعداد نوت‌های ثبت‌شده: ${count}`;
+    countBadge.textContent = isEn ? `Documented Days: ${count}` : `تعداد نوت‌های ثبت‌شده: ${count}`;
   }
 
   const badge = document.getElementById('patientSoapNotesCountBadge');
   if (badge) badge.textContent = String(historyList.length);
 
+  // If no history exists yet, render single active day in dropdown format
   if (historyList.length === 0) {
-    const currentChip = document.createElement('span');
-    currentChip.className = 'soap-history-tab active';
-    currentChip.innerHTML = `${getIconSvg('file-text', { size: 13 })} <span>${getCurrentLanguage() === 'en' ? 'Active Day Note' : 'نوت فعال امروز'} (${soapState.dateStr || new Date().toLocaleDateString()} - HD#${soapState.context?.hdNumber || 1})</span>`;    container.appendChild(currentChip);
+    const bar = document.createElement('div');
+    bar.className = 'soap-history-dropdown-bar';
+
+    const group = document.createElement('div');
+    group.className = 'soap-history-select-group';
+
+    const label = document.createElement('label');
+    label.className = 'soap-history-select-label';
+    label.htmlFor = 'soapHistorySelect';
+    label.innerHTML = `${getIconSvg('calendar', { size: 15 })} <span>${isEn ? 'Daily Notes History:' : 'تاریخچه یادداشت‌های روزانه:'}</span>`;
+
+    const select = document.createElement('select');
+    select.id = 'soapHistorySelect';
+    select.className = 'input-select soap-history-select';
+
+    const opt = document.createElement('option');
+    opt.value = soapState.dayId || 'day_active';
+    const hd = soapState.context?.hdNumber || '1';
+    const pod = soapState.context?.podNumber || '';
+    const podType = soapState.context?.podType || 'POD';
+    const dStr = soapState.dateStr || (isEn ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR'));
+    opt.textContent = `🗓 ${dStr} — HD#${hd}${pod ? ` / ${podType}#${pod}` : ''} ★ [${isEn ? 'Active Day Note' : 'نوت فعال امروز'}]`;
+    opt.selected = true;
+    select.appendChild(opt);
+
+    group.appendChild(label);
+    group.appendChild(select);
+    bar.appendChild(group);
+
+    const meta = document.createElement('div');
+    meta.className = 'soap-history-active-meta';
+    meta.innerHTML = `<span class="soap-history-current-pill">${getIconSvg('check-circle', { size: 13 })} HD#${hd}${pod ? ` / ${podType}#${pod}` : ''}</span>`;
+    bar.appendChild(meta);
+
+    container.appendChild(bar);
     return;
   }
 
-  historyList.forEach((entry, idx) => {
+  // Sort historyList chronologically descending: from latest/newest note down to oldest
+  const sortedHistory = [...historyList].sort((a, b) => {
+    const getTimestamp = (item) => {
+      if (item.createdAt) {
+        const t = new Date(item.createdAt).getTime();
+        if (!isNaN(t) && t > 0) return t;
+      }
+      const dayId = item.dayId || item.id || '';
+      const match = dayId.match(/\d{10,}/);
+      if (match) return parseInt(match[0], 10);
+      return 0;
+    };
+    const tA = getTimestamp(a);
+    const tB = getTimestamp(b);
+    if (tB !== tA && tB > 0 && tA > 0) return tB - tA;
+
+    const hdA = Number(a.hdNumber || a.soapState?.context?.hdNumber || 0);
+    const hdB = Number(b.hdNumber || b.soapState?.context?.hdNumber || 0);
+    if (hdB !== hdA) return hdB - hdA;
+
+    return 0;
+  });
+
+  const bar = document.createElement('div');
+  bar.className = 'soap-history-dropdown-bar';
+
+  const group = document.createElement('div');
+  group.className = 'soap-history-select-group';
+
+  const label = document.createElement('label');
+  label.className = 'soap-history-select-label';
+  label.htmlFor = 'soapHistorySelect';
+  label.innerHTML = `${getIconSvg('calendar', { size: 15 })} <span>${isEn ? 'Daily Notes History:' : 'تاریخچه یادداشت‌های روزانه:'}</span>`;
+
+  const select = document.createElement('select');
+  select.id = 'soapHistorySelect';
+  select.className = 'input-select soap-history-select';
+
+  let currentActiveEntry = null;
+
+  sortedHistory.forEach((entry, idx) => {
     const entryId = entry.dayId || entry.id || `day_${idx}`;
     const isActive = soapState.dayId === entryId;
-    const hd = entry.hdNumber || entry.soapState?.context?.hdNumber || (idx + 1);
+    if (isActive) currentActiveEntry = entry;
+
+    const hd = entry.hdNumber || entry.soapState?.context?.hdNumber || (historyList.length - idx);
     const pod = entry.podNumber || entry.soapState?.context?.podNumber || '';
     const podType = entry.soapState?.context?.podType || 'POD';
     const dStr = entry.dateStr || entry.soapState?.dateStr || '';
 
-    const tabWrap = document.createElement('div');
-    tabWrap.className = 'soap-tab-pill-wrap';
-    tabWrap.style.cssText = 'display:inline-flex; align-items:center; gap:2px; margin-inline-end:6px;';
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `soap-history-tab ${isActive ? 'active' : ''}`;
-    btn.innerHTML = `${getIconSvg('file-text', { size: 13 })} <span>${dStr} — HD#${hd}${pod ? ` / ${podType}#${pod}` : ''}</span>`;    btn.addEventListener('click', () => {
-      if (entry.soapState) {
-        soapState = JSON.parse(JSON.stringify(entry.soapState));
-        soapState.dayId = entryId;
-        syncSoapInputsFromState();
-        renderSoapDayTracker();
-        updateLivePreview();
+    let timeStr = '';
+    if (entry.createdAt) {
+      try {
+        const dObj = new Date(entry.createdAt);
+        timeStr = dObj.toLocaleTimeString(isEn ? 'en-US' : 'fa-IR', { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        timeStr = '';
       }
-    });
+    }
 
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'soap-tab-del-btn';
-    delBtn.style.cssText = 'background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px;';
-    delBtn.title = getCurrentLanguage() === 'en' ? 'Delete this daily note' : 'حذف این نوت روزانه';
-    delBtn.innerHTML = '<span style="font-size:14px; font-weight:bold; line-height:1;">&times;</span>';
-    delBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteSoapDay(entryId);
-    });
-
-    tabWrap.appendChild(btn);
-    tabWrap.appendChild(delBtn);
-    container.appendChild(tabWrap);
+    const opt = document.createElement('option');
+    opt.value = entryId;
+    opt.textContent = `🗓 ${dStr} — HD#${hd}${pod ? ` / ${podType}#${pod}` : ''}${timeStr ? ` (${timeStr})` : ''}${isActive ? ` ★ [${isEn ? 'Active' : 'نوت فعال'}]` : ''}`;
+    if (isActive) {
+      opt.selected = true;
+    }
+    select.appendChild(opt);
   });
+
+  select.addEventListener('change', (e) => {
+    const chosenDayId = e.target.value;
+    const entry = historyList.find((h) => (h.dayId || h.id) === chosenDayId);
+    if (entry && entry.soapState) {
+      soapState = JSON.parse(JSON.stringify(entry.soapState));
+      soapState.dayId = chosenDayId;
+      syncSoapInputsFromState();
+      renderSoapDayTracker();
+      updateLivePreview();
+    }
+  });
+
+  group.appendChild(label);
+  group.appendChild(select);
+  bar.appendChild(group);
+
+  const activeHd = currentActiveEntry?.hdNumber || soapState.context?.hdNumber || '1';
+  const activePod = currentActiveEntry?.podNumber || soapState.context?.podNumber || '';
+  const activePodType = currentActiveEntry?.soapState?.context?.podType || soapState.context?.podType || 'POD';
+
+  const meta = document.createElement('div');
+  meta.className = 'soap-history-active-meta';
+  meta.innerHTML = `
+    <span class="soap-history-current-pill" title="${isEn ? 'Currently viewing this note' : 'در حال ویرایش این نوت'}">
+      ${getIconSvg('check-circle', { size: 13 })} HD#${activeHd}${activePod ? ` / ${activePodType}#${activePod}` : ''}
+    </span>
+  `;
+  bar.appendChild(meta);
+
+  container.appendChild(bar);
 }
 
 export function initFreshDayOneSoapNote() {
@@ -9066,38 +9161,95 @@ export function deleteSoapDay(dayId) {
   showToast(isEn ? 'Daily SOAP note deleted.' : 'یادداشت این روز با موفقیت حذف شد.', 'info');
 }
 
+export function updateSoapActivePatientStatusPill(selectedCase) {
+  const pill = document.getElementById('soapActivePatientStatusPill');
+  if (!pill) return;
+  const isEn = getCurrentLanguage() === 'en';
+
+  if (!selectedCase) {
+    pill.classList.remove('has-active');
+    pill.innerHTML = `
+      <span class="soap-pulse-dot"></span>
+      <span class="soap-pill-text">${isEn ? 'Not Connected' : 'انتخاب نشده'}</span>
+    `;
+    return;
+  }
+
+  pill.classList.add('has-active');
+  const demo = selectedCase.demographics || selectedCase.admission || selectedCase.context || {};
+  let labelText = '';
+  if (demo.fullName && String(demo.fullName).trim()) {
+    const loc = [demo.ward, demo.bed ? (isEn ? `Bed ${demo.bed}` : `تخت ${demo.bed}`) : ''].filter(Boolean).join(' - ');
+    labelText = loc ? `${String(demo.fullName).trim()} (${loc})` : String(demo.fullName).trim();
+  } else if (selectedCase.caseId) {
+    labelText = isEn ? `Case #${selectedCase.caseId}` : `پرونده #${selectedCase.caseId}`;
+  } else {
+    labelText = isEn ? 'Active Case' : 'پرونده متصل';
+  }
+
+  pill.innerHTML = `
+    <span class="soap-pulse-dot"></span>
+    <span class="soap-pill-text">${labelText}</span>
+  `;
+}
+
 function populateSoapPatientDropdown() {
   const select = document.getElementById('soapLinkedPatientSelect');
   if (!select) return;
 
   const cases = getAllAvailableCases();
   const lang = getCurrentLanguage();
-  select.innerHTML = `<option value="">${lang === 'en' ? '-- Select from Shift Cases --' : '-- انتخاب از پرونده‌های شیفت --'}</option>`;
+  const isEn = lang === 'en';
+  select.innerHTML = `<option value="">${isEn ? '-- Select from Shift Cases --' : '-- انتخاب از پرونده‌های شیفت --'}</option>`;
+
+  let activeCaseFound = null;
 
   cases.forEach((c) => {
     const demo = c.demographics || c.admission || c.context || {};
     const cc = c.cc || {};
-    const name = demo.fullName ? `${demo.fullName} (${demo.age || '—'} ${lang === 'en' ? 'yo' : 'ساله'})` : (c.caseId || (lang === 'en' ? 'Unnamed Patient' : 'پرونده بدون شناسه'));
-    const diag = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || (c.recordType === 'SOAP_PROGRESS' ? (c.context?.workingDiagnosis || (lang === 'en' ? 'Progress Note' : 'پراگرس روزانه')) : (lang === 'en' ? 'Admission' : 'جراحی'));
+    const ageStr = demo.age ? (isEn ? `${demo.age} yo` : `${demo.age} ساله`) : '';
+    const wardStr = demo.ward ? (isEn ? `Ward: ${demo.ward}` : `بخش ${demo.ward}`) : '';
+    const bedStr = demo.bed ? (isEn ? `Bed ${demo.bed}` : `تخت ${demo.bed}`) : '';
+    const details = [ageStr, wardStr, bedStr].filter(Boolean).join(' | ');
+
+    const diag = cc.establishedDiagnosis || cc.patientQuote || cc.ccPhrase || (c.recordType === 'SOAP_PROGRESS' ? (c.context?.workingDiagnosis || (isEn ? 'Progress Note' : 'پراگرس روزانه')) : (isEn ? 'Admission' : 'جراحی'));
+
+    let displayText = '';
+    // Priority: If the patient has a name, strictly display the patient's name first. Fallback to case title/ID only if no name.
+    if (demo.fullName && String(demo.fullName).trim()) {
+      displayText = `👤 ${String(demo.fullName).trim()}${details ? ` (${details})` : ''} — ${diag}`;
+    } else {
+      const caseTitle = c.title || (isEn ? `Case #${c.caseId}` : `پرونده #${c.caseId}`);
+      displayText = `📁 ${caseTitle}${details ? ` (${details})` : ''} — ${diag}`;
+    }
 
     const opt = document.createElement('option');
     opt.value = c.caseId;
-    opt.textContent = `${name} — ${diag} [${c.caseId}]`;
+    opt.textContent = displayText;
     select.appendChild(opt);
+
+    if (soapState.linkedCaseId && c.caseId === soapState.linkedCaseId) {
+      activeCaseFound = c;
+    }
   });
 
-  if (soapState.linkedCaseId && cases.some((c) => c.caseId === soapState.linkedCaseId)) {
+  if (activeCaseFound) {
     select.value = soapState.linkedCaseId;
   }
+  updateSoapActivePatientStatusPill(activeCaseFound);
 }
 
 function handleSoapPatientSelect(caseId) {
-  if (!caseId) return;
+  if (!caseId) {
+    updateSoapActivePatientStatusPill(null);
+    return;
+  }
   soapState.linkedCaseId = caseId;
   soapState.mode = 'linked';
 
   const cases = getAllAvailableCases();
   const selected = cases.find((c) => c.caseId === caseId);
+  updateSoapActivePatientStatusPill(selected || null);
   if (!selected) return;
 
   // If patient already has saved SOAP history, load the latest note or initialize from H&P
@@ -9603,6 +9755,7 @@ function initSoapEngine() {
       soapState.mode = 'standalone';
       soapState.linkedCaseId = null;
       if (linkedWrapper) linkedWrapper.style.display = 'none';
+      updateSoapActivePatientStatusPill(null);
       renderSoapDayTracker();
       updateLivePreview();
     }

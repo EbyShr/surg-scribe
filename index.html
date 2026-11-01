@@ -1677,8 +1677,19 @@
             </div>
             
             <div class="soap-linked-patient-wrapper" id="soapLinkedSelectWrapper">
-              <label for="soapLinkedPatientSelect" class="form-label-inline" data-fa="پرونده فعال:" data-en="Linked Case:">پرونده فعال:</label>
-              <select id="soapLinkedPatientSelect" class="input-select">
+              <div class="soap-linked-badge-row">
+                <div class="soap-linked-title-group">
+                  <span class="soap-linked-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                  </span>
+                  <label for="soapLinkedPatientSelect" class="soap-linked-label" data-fa="پرونده فعال بیمار:" data-en="Active Patient Case:">پرونده فعال بیمار:</label>
+                </div>
+                <span class="soap-linked-active-pill" id="soapActivePatientStatusPill" title="وضعیت پرونده فعال">
+                  <span class="soap-pulse-dot"></span>
+                  <span class="soap-pill-text" data-fa="انتخاب نشده" data-en="Not Connected">انتخاب نشده</span>
+                </span>
+              </div>
+              <select id="soapLinkedPatientSelect" class="input-select soap-linked-select">
                 <option value="" data-fa="-- انتخاب از پرونده‌های شیفت --" data-en="-- Select from Shift Cases --">-- انتخاب از پرونده‌های شیفت --</option>
               </select>
             </div>
