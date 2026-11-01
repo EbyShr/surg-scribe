@@ -6956,22 +6956,116 @@ function initExportAndCopy() {
   document.getElementById('btnExportJsonMobile')?.addEventListener('click', exportJson);
 
   document.getElementById('btnNewCase')?.addEventListener('click', () => {
-    if (confirm('آیا مایل به ثبت پرونده جدید هستید؟ پرونده فعلی در شیفت ذخیره می‌شود.')) {
+    const curName = clinicalState.demographics?.fullName || 'بیمار جاری';
+    if (confirm(`آیا مایل به ثبت پرونده جدید هستید؟ پرونده «${curName}» در شیفت ذخیره می‌شود.`)) {
       saveCaseToShiftVault(clinicalState);
       clinicalState = createDefaultClinicalState();
       saveCurrentCase();
       syncDomFromState();
       updateLivePreview();
+      updateShiftCasesCount();
+      populateHeaderCaseSwitcher();
       showToast('پرونده جدید با موفقیت ایجاد شد.', 'info');
     }
   });
 }
 
+export function extractCaseChiefComplaint(c, isEn = false) {
+  if (!c) return isEn ? 'Unspecified complaint' : 'شکایت ثبت‌نشده';
+  if (c.cc?.patientQuote && c.cc.patientQuote.trim()) {
+    return c.cc.patientQuote.trim();
+  }
+  if (c.cc?.ccPhrase && c.cc.ccPhrase.trim()) {
+    return c.cc.ccPhrase.trim();
+  }
+  if (c.cc?.establishedDiagnosis && c.cc.establishedDiagnosis.trim()) {
+    return c.cc.establishedDiagnosis.trim();
+  }
+  if (Array.isArray(c.hpi?.presentations) && c.hpi.presentations.length > 0) {
+    const p0 = c.hpi.presentations[0];
+    const pTitle = p0.title && !p0.title.startsWith('مواجهه') && !p0.title.startsWith('Focus') ? p0.title : '';
+    const pSite = p0.site || '';
+    if (pTitle && pSite) return `${pTitle} (${pSite})`;
+    if (pSite) return isEn ? `Pain at ${pSite}` : `درد در ناحیه ${pSite}`;
+    if (pTitle) return pTitle;
+  }
+  if (Array.isArray(c.hpi?.painList) && c.hpi.painList.length > 0) {
+    const p0 = c.hpi.painList[0];
+    if (p0.site) return isEn ? `Pain at ${p0.site}` : `درد در ناحیه ${p0.site}`;
+    if (p0.title) return p0.title;
+  }
+  return isEn ? 'Unspecified complaint' : 'شکایت ثبت‌نشده';
+}
+
+export function extractCaseAgeGender(c, isEn = false) {
+  if (!c || !c.demographics) return isEn ? 'Age/Gender Unset' : 'سن و جنسیت ثبت‌نشده';
+  const age = (c.demographics.age || '').toString().trim();
+  const gender = c.demographics.gender;
+  let gLabel = '';
+  if (gender === 'male') gLabel = isEn ? 'Male' : 'مرد';
+  else if (gender === 'female') gLabel = isEn ? 'Female' : 'زن';
+
+  if (age && gLabel) {
+    return isEn ? `${age} y/o (${gLabel})` : `${age} ساله (${gLabel})`;
+  } else if (age) {
+    return isEn ? `${age} y/o` : `${age} ساله`;
+  } else if (gLabel) {
+    return gLabel;
+  }
+  return isEn ? 'Age/Gender Unset' : 'سن و جنسیت ثبت‌نشده';
+}
+
+export function getDeduplicatedShiftCases() {
+  const casesMap = new Map();
+
+  // 1. Permanent Vault
+  if (typeof storageVault !== 'undefined') {
+    try {
+      const permCases = storageVault.getAllArchivedCasesSync();
+      if (Array.isArray(permCases)) {
+        permCases.forEach(c => {
+          if (c && c.caseId) casesMap.set(c.caseId, c);
+        });
+      }
+    } catch (_) {}
+  }
+
+  // 2. LocalStorage shift key
+  try {
+    const raw = localStorage.getItem(STORAGE_SHIFT_CASES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(c => {
+          if (c && c.caseId && !casesMap.has(c.caseId)) {
+            casesMap.set(c.caseId, c);
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
+  // 3. Current active state always present and up-to-date
+  if (clinicalState && clinicalState.caseId) {
+    casesMap.set(clinicalState.caseId, clinicalState);
+  }
+
+  return Array.from(casesMap.values());
+}
+
 function saveCaseToShiftVault(stateToSave) {
+  if (!stateToSave || !stateToSave.caseId) return;
   try {
     const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-    list.unshift(JSON.parse(JSON.stringify(stateToSave)));
+    const copy = JSON.parse(JSON.stringify(stateToSave));
+    const idx = list.findIndex(c => c && c.caseId === stateToSave.caseId);
+    if (idx >= 0) {
+      list[idx] = copy;
+    } else {
+      list.unshift(copy);
+    }
     localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 50)));
+
     if (typeof storageVault !== 'undefined') {
       storageVault.upsertCaseToArchive(stateToSave);
     }
@@ -6987,26 +7081,26 @@ async function populateHeaderCaseSwitcher() {
   if (!select) return;
 
   try {
-    const cases = typeof storageVault !== 'undefined'
-      ? await storageVault.getAllPermanentCases()
-      : JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-
+    const cases = getDeduplicatedShiftCases();
     select.innerHTML = '';
 
+    const curName = clinicalState.demographics?.fullName || 'بیمار بدون نام';
+    const curAgeGender = extractCaseAgeGender(clinicalState);
+    const curCc = extractCaseChiefComplaint(clinicalState);
     const currentOpt = document.createElement('option');
     currentOpt.value = clinicalState.caseId;
-    const curName = clinicalState.demographics?.fullName || 'بیمار بدون نام';
-    currentOpt.textContent = `پرونده فعال: ${curName} (${clinicalState.caseId})`;
+    currentOpt.textContent = `🟢 پرونده فعال: ${curName} (${curAgeGender}) - ${curCc} [${clinicalState.caseId}]`;
     currentOpt.selected = true;
     select.appendChild(currentOpt);
 
     cases.forEach(c => {
-      if (c.caseId === clinicalState.caseId) return;
+      if (!c || !c.caseId || c.caseId === clinicalState.caseId) return;
       const opt = document.createElement('option');
       opt.value = c.caseId;
       const patName = c.demographics?.fullName || 'بیمار بدون نام';
-      const timeStr = c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '';
-      opt.textContent = `${patName} (${c.caseId}) - ${timeStr}`;
+      const patAgeGender = extractCaseAgeGender(c);
+      const patCc = extractCaseChiefComplaint(c);
+      opt.textContent = `${patName} (${patAgeGender}) - ${patCc} [${c.caseId}]`;
       select.appendChild(opt);
     });
   } catch (e) {
@@ -7024,14 +7118,8 @@ function initHeaderCaseSwitcher() {
 
     if (confirm('آیا مایل به جابجایی به این پرونده ذخیره‌شده هستید؟ پرونده فعلی در حافظه دائمی حفظ می‌شود.')) {
       saveCaseToShiftVault(clinicalState);
-      let targetCase = null;
-      if (typeof storageVault !== 'undefined') {
-        targetCase = await storageVault.getPermanentCaseById(selectedId);
-      }
-      if (!targetCase) {
-        const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-        targetCase = list.find(c => c.caseId === selectedId);
-      }
+      const allCases = getDeduplicatedShiftCases();
+      const targetCase = allCases.find(c => c && c.caseId === selectedId);
 
       if (targetCase) {
         const defaults = createDefaultClinicalState();
@@ -7052,11 +7140,21 @@ function initHeaderCaseSwitcher() {
           ros: { ...defaults.ros, ...(targetCase.ros || {}) },
           pe: { ...defaults.pe, ...(targetCase.pe || {}) },
           paraclinics: { ...defaults.paraclinics, ...(targetCase.paraclinics || {}) },
-          reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) }
+          reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) },
+          atls: { ...defaults.atls, ...(targetCase.atls || {}) }
         };
+
+        if (Array.isArray(targetCase.hpi?.presentations) && targetCase.hpi.presentations.length > 0) {
+          clinicalState.hpi.presentations = targetCase.hpi.presentations;
+        }
+        if (Array.isArray(targetCase.hpi?.painList) && targetCase.hpi.painList.length > 0) {
+          clinicalState.hpi.painList = targetCase.hpi.painList;
+        }
+
         saveCurrentCase();
         syncDomFromState();
         updateLivePreview();
+        updateShiftCasesCount();
         populateHeaderCaseSwitcher();
         showToast('پرونده با موفقیت فراخوانی شد.', 'success');
       }
@@ -7068,9 +7166,9 @@ function initHeaderCaseSwitcher() {
 
 function updateShiftCasesCount() {
   try {
-    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    const allCases = getDeduplicatedShiftCases();
     const countEl = document.getElementById('shiftCasesCount');
-    if (countEl) countEl.textContent = list.length + 1;
+    if (countEl) countEl.textContent = allCases.length;
   } catch (e) {}
 }
 
@@ -7126,9 +7224,17 @@ function initShiftManager() {
         const parsed = JSON.parse(evt.target.result);
         const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
         if (Array.isArray(parsed)) {
-          parsed.forEach((item) => list.unshift(item));
-        } else if (parsed && typeof parsed === 'object') {
-          list.unshift(parsed);
+          parsed.forEach((item) => {
+            if (item && item.caseId) {
+              const idx = list.findIndex(c => c && c.caseId === item.caseId);
+              if (idx >= 0) list[idx] = item;
+              else list.unshift(item);
+            }
+          });
+        } else if (parsed && typeof parsed === 'object' && parsed.caseId) {
+          const idx = list.findIndex(c => c && c.caseId === parsed.caseId);
+          if (idx >= 0) list[idx] = parsed;
+          else list.unshift(parsed);
         }
         localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list.slice(0, 100)));
         updateShiftCasesCount();
@@ -7147,111 +7253,183 @@ function initShiftManager() {
     const confirmMsg = getCurrentLanguage() === 'en' ? 'Are you sure you want to clear all shift history?' : 'آیا از پاکسازی تمام تاریخچه شیفت اطمینان دارید؟';
     if (confirm(confirmMsg)) {
       localStorage.removeItem(STORAGE_SHIFT_CASES_KEY);
+      localStorage.removeItem('SURG_SCRIBE_PERMANENT_CASES_VAULT');
+      // Keep only current active case
+      saveCaseToShiftVault(clinicalState);
       updateShiftCasesCount();
       renderShiftCasesList();
       showToast(getCurrentLanguage() === 'en' ? 'Shift history cleared.' : 'تاریخچه شیفت با موفقیت پاکسازی شد.', 'info');
     }
   });
 
-  function renderShiftCasesList() {
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-    const lang = getCurrentLanguage();
-    const isEn = lang === 'en';
-    const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+  function createShiftCaseItemDom(c, isActive, isEn) {
+    const patientName = c.demographics?.fullName?.trim() || (isEn ? 'Unnamed Patient' : 'بیمار بدون نام');
+    const ageGenderStr = extractCaseAgeGender(c, isEn);
+    const chiefComplaintStr = extractCaseChiefComplaint(c, isEn);
 
-    // 1. Render Current Active Case at Top
-    const activeItem = document.createElement('div');
-    activeItem.className = 'shift-vault-item';
-    activeItem.style.border = '1.5px solid var(--primary)';
-    activeItem.innerHTML = `
-      <div class="shift-vault-info">
-        <div>
-          <span class="shift-active-tag">${isEn ? 'Active Case' : 'پرونده جاری'}</span>
-          <strong class="shift-vault-case-id">${clinicalState.caseId}</strong>
+    let wardBed = '';
+    if (c.demographics?.ward && c.demographics?.bed) {
+      wardBed = isEn ? `Ward: ${c.demographics.ward} | Bed: ${c.demographics.bed}` : `بخش: ${c.demographics.ward} | تخت: ${c.demographics.bed}`;
+    } else if (c.demographics?.ward) {
+      wardBed = isEn ? `Ward: ${c.demographics.ward}` : `بخش: ${c.demographics.ward}`;
+    } else if (c.demographics?.bed) {
+      wardBed = isEn ? `Bed: ${c.demographics.bed}` : `تخت: ${c.demographics.bed}`;
+    }
+
+    const timeFormatted = c.updatedAt
+      ? new Date(c.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+      : (c.createdAt ? new Date(c.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '—');
+
+    const item = document.createElement('div');
+    item.className = `shift-vault-item ${isActive ? 'is-active-case' : ''}`;
+    item.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      background: var(--bg-surface, #ffffff);
+      border: 1.5px solid ${isActive ? 'var(--primary, #0284c7)' : 'var(--border-subtle, #e2e8f0)'};
+      box-shadow: ${isActive ? '0 2px 8px rgba(2, 132, 199, 0.12)' : '0 1px 3px rgba(0,0,0,0.04)'};
+      transition: all 0.2s ease;
+    `;
+
+    item.innerHTML = `
+      <div class="shift-vault-info" style="flex: 1; padding-inline-end: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+          ${isActive ? `<span class="shift-active-tag" style="background:var(--primary, #0284c7); color:#fff; padding:0.15rem 0.5rem; border-radius:4px; font-size:0.72rem; font-weight:700;">🟢 پرونده جاری فعال</span>` : ''}
+          <strong class="shift-vault-case-id" style="font-size:0.85rem; color:var(--primary, #0284c7); font-family:var(--font-mono, monospace);">${c.caseId}</strong>
+          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary); margin-inline-start:0.25rem;">👤 ${patientName}</span>
+          <span style="background:rgba(2,132,199,0.1); color:var(--primary, #0284c7); padding:0.12rem 0.45rem; border-radius:4px; font-size:0.75rem; font-weight:600;">🎂 ${ageGenderStr}</span>
+          ${wardBed ? `<span style="font-size:0.75rem; color:var(--text-muted); background:var(--bg-surface-elevated, #f1f5f9); padding:0.1rem 0.45rem; border-radius:4px;">🏥 ${wardBed}</span>` : ''}
         </div>
-        <div class="shift-vault-cc">${clinicalState.demographics?.fullName || (isEn ? 'Unnamed Patient' : 'بیمار بدون نام')} - ${clinicalState.cc?.patientQuote || (isEn ? 'Active Surgical Complaint' : 'شکایت جراحی فعلی')}</div>
-        <div class="shift-vault-time">${new Date(clinicalState.createdAt || Date.now()).toLocaleTimeString()}</div>
+        <div class="shift-vault-cc" style="font-size:0.84rem; color:var(--text-secondary); margin-top:0.25rem; display:flex; align-items:flex-start; gap:0.4rem;">
+          <span style="font-weight:700; color:var(--text-primary); min-width:fit-content;">🩺 شکایت اصلی:</span>
+          <span style="color:var(--text-primary); font-weight:500;">${chiefComplaintStr}</span>
+        </div>
+        <div class="shift-vault-time" style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">
+          🕒 آخرین تغییر: ${timeFormatted}
+        </div>
       </div>
-      <div class="shift-vault-actions">
-        <span style="font-size:0.75rem; color:var(--primary); font-weight:700;">${isEn ? 'Editing' : 'در حال ثبت'}</span>
-        <button type="button" class="btn btn-secondary btn-sm btn-delete-active-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete Case' : 'حذف قطعی پرونده'}"></button>
+      <div class="shift-vault-actions" style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+        ${isActive
+          ? `<span style="font-size:0.75rem; color:var(--primary, #0284c7); font-weight:700; padding:0.3rem 0.6rem; background:rgba(2,132,199,0.1); border-radius:6px;">در حال تکمیل</span>`
+          : `<button type="button" class="btn btn-primary btn-sm btn-load-case" style="font-weight:600; padding:0.35rem 0.75rem; font-size:0.8rem; cursor:pointer;">📥 ${isEn ? 'Load Case' : 'بارگذاری پرونده'}</button>`
+        }
+        <button type="button" class="btn btn-secondary btn-sm ${isActive ? 'btn-delete-active-case' : 'btn-delete-case'}" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:0.35rem 0.55rem; cursor:pointer;" title="${isEn ? 'Permanently Delete' : 'حذف قطعی پرونده'}">🗑️</button>
       </div>
     `;
 
-    activeItem.querySelector('.btn-delete-active-case')?.addEventListener('click', async () => {
-      const confirmDel = isEn
-        ? `Permanently delete active case ${clinicalState.caseId}? This action cannot be undone.`
-        : `آیا از حذف دائمی و قطعی پرونده جاری (${clinicalState.caseId}) اطمینان دارید؟ این عمل غیرقابل بازگشت است.`;
-      if (confirm(confirmDel)) {
-        const nextState = await storageVault.permanentlyDeleteCase(clinicalState.caseId, createDefaultClinicalState);
-        clinicalState = nextState || createDefaultClinicalState();
-        saveCurrentCase();
-        syncDomFromState();
-        updateLivePreview();
-        updateShiftCasesCount();
-        renderShiftCasesList();
-        showToast(isEn ? 'Active case permanently deleted.' : 'پرونده جاری به طور قطعی حذف شد.', 'info');
-      }
-    });
-
-    listContainer.appendChild(activeItem);
-
-    if (list.length === 0) {
-      const emptyNote = document.createElement('div');
-      emptyNote.style.cssText = 'color:var(--text-muted); font-size:0.82rem; padding:1rem; text-align:center;';
-      emptyNote.textContent = isEn ? 'No other archived cases in this shift.' : 'پرونده بایگانی‌شده دیگری در این شیفت وجود ندارد.';
-      listContainer.appendChild(emptyNote);
-      return;
-    }
-
-    list.forEach((c, idx) => {
-      const item = document.createElement('div');
-      item.className = 'shift-vault-item';
-      item.innerHTML = `
-        <div class="shift-vault-info">
-          <div>
-            <strong class="shift-vault-case-id">${c.caseId}</strong>
-            <span style="font-size:0.8rem; color:var(--text-primary); margin-inline-start:0.4rem;">${c.demographics?.fullName || ''}</span>
-          </div>
-          <div class="shift-vault-cc">${c.cc?.patientQuote || (isEn ? 'Surgical Complaint' : 'شکایت جراحی')}</div>
-          <div class="shift-vault-time">${new Date(c.createdAt || Date.now()).toLocaleTimeString()}</div>
-        </div>
-        <div class="shift-vault-actions">
-          <button type="button" class="btn btn-secondary btn-sm btn-load-case">${isEn ? 'Load' : 'بارگذاری'}</button>
-          <button type="button" class="btn btn-secondary btn-sm btn-delete-case" style="color:#EF4444;" title="${isEn ? 'Permanently Delete' : 'حذف قطعی پرونده'}"></button>
-        </div>
-      `;
-
-      item.querySelector('.btn-load-case').addEventListener('click', () => {
-        const confirmLoad = isEn
-          ? `Load case ${c.caseId}? (Active unsaved work will be saved to shift vault)`
-          : `آیا مایل به بارگذاری پرونده ${c.caseId} هستید؟ (اطلاعات فعلی قبل از جابجایی در شیفت ثبت می‌شوند)`;
-        if (confirm(confirmLoad)) {
-          saveCaseToShiftVault(clinicalState);
-          clinicalState = Object.assign(createDefaultClinicalState(), c);
+    if (isActive) {
+      item.querySelector('.btn-delete-active-case')?.addEventListener('click', async () => {
+        const confirmDel = isEn
+          ? `Permanently delete active case ${clinicalState.caseId}? This action cannot be undone.`
+          : `آیا از حذف دائمی و قطعی پرونده جاری (${clinicalState.caseId}) اطمینان دارید؟ این عمل غیرقابل بازگشت است.`;
+        if (confirm(confirmDel)) {
+          const nextState = await storageVault.permanentlyDeleteCase(clinicalState.caseId, createDefaultClinicalState);
+          clinicalState = nextState || createDefaultClinicalState();
           saveCurrentCase();
           syncDomFromState();
           updateLivePreview();
+          updateShiftCasesCount();
+          renderShiftCasesList();
+          showToast(isEn ? 'Active case permanently deleted.' : 'پرونده جاری به طور قطعی حذف شد.', 'info');
+        }
+      });
+    } else {
+      item.querySelector('.btn-load-case')?.addEventListener('click', () => {
+        const confirmLoad = isEn
+          ? `Load case ${c.caseId}? (Current case will be saved to shift vault)`
+          : `آیا مایل به بارگذاری پرونده «${patientName} (${c.caseId})» هستید؟ (پرونده فعلی در شیفت ذخیره می‌شود)`;
+        if (confirm(confirmLoad)) {
+          saveCaseToShiftVault(clinicalState);
+          const defaults = createDefaultClinicalState();
+          clinicalState = {
+            ...defaults,
+            ...c,
+            admission: { ...defaults.admission, ...(c.admission || {}) },
+            demographics: { ...defaults.demographics, ...(c.demographics || {}) },
+            cc: { ...defaults.cc, ...(c.cc || {}) },
+            hpi: { ...defaults.hpi, ...(c.hpi || {}) },
+            obgyn: { ...defaults.obgyn, ...(c.obgyn || {}) },
+            pmh: { ...defaults.pmh, ...(c.pmh || {}) },
+            psh: { ...defaults.psh, ...(c.psh || {}) },
+            dh: { ...defaults.dh, ...(c.dh || {}) },
+            ah: { ...defaults.ah, ...(c.ah || {}) },
+            sh: { ...defaults.sh, ...(c.sh || {}) },
+            fh: { ...defaults.fh, ...(c.fh || {}) },
+            ros: { ...defaults.ros, ...(c.ros || {}) },
+            pe: { ...defaults.pe, ...(c.pe || {}) },
+            paraclinics: { ...defaults.paraclinics, ...(c.paraclinics || {}) },
+            reasoning: { ...defaults.reasoning, ...(c.reasoning || {}) },
+            atls: { ...defaults.atls, ...(c.atls || {}) }
+          };
+
+          if (Array.isArray(c.hpi?.presentations) && c.hpi.presentations.length > 0) {
+            clinicalState.hpi.presentations = c.hpi.presentations;
+          }
+          if (Array.isArray(c.hpi?.painList) && c.hpi.painList.length > 0) {
+            clinicalState.hpi.painList = c.hpi.painList;
+          }
+
+          saveCurrentCase();
+          syncDomFromState();
+          updateLivePreview();
+          updateShiftCasesCount();
+          populateHeaderCaseSwitcher();
           closeModal();
-          showToast(isEn ? `Case ${c.caseId} loaded.` : `پرونده ${c.caseId} بارگذاری گردید.`, 'info');
+          showToast(isEn ? `Case ${c.caseId} loaded.` : `پرونده «${patientName}» (${c.caseId}) با موفقیت بارگذاری شد.`, 'success');
         }
       });
 
-      item.querySelector('.btn-delete-case').addEventListener('click', async () => {
+      item.querySelector('.btn-delete-case')?.addEventListener('click', async () => {
         const confirmDel = isEn
           ? `Permanently delete case ${c.caseId}? This action cannot be undone.`
           : `آیا از حذف دائمی و قطعی پرونده ${c.caseId} از تمام حافظه‌ها اطمینان دارید؟ این عمل غیرقابل بازگشت است.`;
         if (confirm(confirmDel)) {
           await storageVault.permanentlyDeleteCase(c.caseId, createDefaultClinicalState);
-          list.splice(idx, 1);
-          localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(list));
+          const list = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+          const filtered = list.filter(item => item && item.caseId !== c.caseId);
+          localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(filtered));
           updateShiftCasesCount();
           renderShiftCasesList();
+          populateHeaderCaseSwitcher();
           showToast(isEn ? `Case ${c.caseId} permanently deleted.` : `پرونده ${c.caseId} به طور قطعی حذف گردید.`, 'info');
         }
       });
+    }
 
+    return item;
+  }
+
+  function renderShiftCasesList() {
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    const lang = getCurrentLanguage();
+    const isEn = lang === 'en';
+
+    const allCases = getDeduplicatedShiftCases();
+    const activeCase = (clinicalState && clinicalState.caseId) ? clinicalState : allCases[0];
+    const otherCases = allCases.filter(c => c && c.caseId && c.caseId !== activeCase?.caseId);
+
+    // 1. Render Current Active Case at Top
+    if (activeCase) {
+      const activeItem = createShiftCaseItemDom(activeCase, true, isEn);
+      listContainer.appendChild(activeItem);
+    }
+
+    // 2. Render Other Cases or Empty Note
+    if (otherCases.length === 0) {
+      const emptyNote = document.createElement('div');
+      emptyNote.style.cssText = 'color:var(--text-muted); font-size:0.82rem; padding:1.2rem; text-align:center; background:var(--bg-surface-elevated, #f8fafc); border-radius:6px; margin-top:0.5rem;';
+      emptyNote.textContent = isEn ? 'No other archived cases in this shift.' : 'پرونده بایگانی‌شده دیگری در این شیفت وجود ندارد (تنها پرونده فعال جاری ثبت است).';
+      listContainer.appendChild(emptyNote);
+      return;
+    }
+
+    otherCases.forEach((c) => {
+      const item = createShiftCaseItemDom(c, false, isEn);
       listContainer.appendChild(item);
     });
   }
