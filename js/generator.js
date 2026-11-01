@@ -5,6 +5,8 @@ import {
   MASTER_PE_BANK,
   SURGICAL_SCHEMA,
   LAB_PANELS,
+  SURGICAL_LAB_PANELS,
+  EXTENDED_LAB_DATABASE,
   ROS_GROUPS_BILINGUAL,
   PMH_CATEGORIES,
   DH_CATEGORIES,
@@ -234,6 +236,152 @@ function findPeItemLabel(itemId, fallbackLabel, lang = 'en') {
     if (it) return lang === 'en' ? (it.en || tLabel(it.label, it.en)) : (it.fa || it.label);
   }
   return lang === 'en' ? tLabel(fallbackLabel || itemId) : (fallbackLabel || itemId);
+}
+
+export function getRosFindingsBySystem(state, systemKey, lang = 'fa') {
+  const pos = [];
+  const neg = [];
+  const items = state.ros?.items || {};
+
+  Object.entries(items).forEach(([id, val]) => {
+    if (!val) return;
+    const st = typeof val === 'object' && val !== null ? val.state : val;
+    if (st !== 1 && st !== -1 && st !== '+1' && st !== '-1') return;
+
+    let itemSys = typeof val === 'object' && val !== null ? val.system : '';
+    const bankItem = MASTER_ROS_BANK.find((x) => x.id === id);
+    if (!itemSys && bankItem) itemSys = bankItem.system;
+
+    if (itemSys !== systemKey) return;
+
+    const lbFa = (typeof val === 'object' && val?.label) ? val.label : (bankItem?.fa || id);
+    const lbEn = (typeof val === 'object' && val?.en) ? val.en : (bankItem?.en || tLabel(lbFa));
+    const dt = (typeof val === 'object' && val?.detail) ? val.detail.trim() : '';
+
+    if (st === 1 || st === '+1') {
+      const textFa = dt ? `${lbFa} (${normalizePersianClinicalText(dt)})` : lbFa;
+      const textEn = dt ? `${lbEn} (${tLabel(dt)})` : lbEn;
+      pos.push({ id, label: lang === 'en' ? lbEn : lbFa, text: lang === 'en' ? textEn : textFa, detail: dt });
+    } else {
+      neg.push({ id, label: lang === 'en' ? lbEn : lbFa, text: lang === 'en' ? lbEn : lbFa });
+    }
+  });
+
+  return { pos, neg };
+}
+
+export function getPeFindingsBySystem(state, systemKey, lang = 'fa') {
+  const pos = [];
+  const neg = [];
+  const findings = state.pe?.findings || {};
+
+  Object.entries(findings).forEach(([id, val]) => {
+    if (!val) return;
+    const st = typeof val === 'object' && val !== null ? val.state : val;
+    if (st !== 1 && st !== -1 && st !== '+1' && st !== '-1') return;
+
+    let itemSys = typeof val === 'object' && val !== null ? val.system : '';
+    const bankItem = MASTER_PE_BANK.find((x) => x.id === id);
+    if (!itemSys && bankItem) itemSys = bankItem.system;
+
+    if (itemSys !== systemKey) return;
+
+    const lbFa = (typeof val === 'object' && val?.label) ? val.label : (bankItem?.fa || id);
+    const lbEn = (typeof val === 'object' && val?.en) ? val.en : (bankItem?.en || tLabel(lbFa));
+    const dt = (typeof val === 'object' && val?.detail) ? val.detail.trim() : '';
+
+    if (st === 1 || st === '+1') {
+      const textFa = dt ? `${lbFa} (${normalizePersianClinicalText(dt)})` : lbFa;
+      const textEn = dt ? `${lbEn} (${tLabel(dt)})` : lbEn;
+      pos.push({ id, label: lang === 'en' ? lbEn : lbFa, text: lang === 'en' ? textEn : textFa, detail: dt });
+    } else {
+      neg.push({ id, label: lang === 'en' ? lbEn : lbFa, text: lang === 'en' ? lbEn : lbFa });
+    }
+  });
+
+  return { pos, neg };
+}
+
+export function getPanelizedLabFindings(state, lang = 'fa') {
+  const isEn = lang === 'en';
+  const labs = state.paraclinics?.labs || {};
+  const addLabs = state.paraclinics?.additionalLabs || {};
+  const panelsResult = [];
+
+  const panels = Array.isArray(SURGICAL_LAB_PANELS) && SURGICAL_LAB_PANELS.length > 0 ? SURGICAL_LAB_PANELS : LAB_PANELS;
+
+  panels.forEach((panel) => {
+    const pId = panel.id;
+    const pTitle = isEn ? (panel.en || panel.title) : panel.title;
+    const formattedTests = [];
+    const processedIds = new Set();
+
+    // 1. Tests defined in panel.allTests or panel.tests
+    const defTests = panel.allTests || panel.tests || [];
+    defTests.forEach((def) => {
+      processedIds.add(def.id);
+      let val = labs[def.id];
+      if (val === undefined || val === '' || val === null) {
+        val = addLabs[def.id]?.value !== undefined ? addLabs[def.id].value : addLabs[def.id];
+      }
+      if (val !== undefined && val !== '' && val !== null) {
+        const valStr = String(val).trim();
+        if (!valStr) return;
+        const num = parseFloat(valStr);
+        let flag = '';
+        if (!isNaN(num) && def.min !== undefined && def.max !== undefined) {
+          if (num > def.max) flag = isEn ? ' ↑(H)' : ' ↑(H)';
+          else if (num < def.min) flag = isEn ? ' ↓(L)' : ' ↓(L)';
+        }
+        const unitStr = def.unit ? ` ${def.unit}` : '';
+        const testLabel = isEn ? (def.en || tLabel(def.label, def.en)) : def.label;
+        formattedTests.push(`${testLabel}: ${valStr}${unitStr}${flag}`);
+      }
+    });
+
+    // 2. Extended lab tests mapped to this panel
+    if (Array.isArray(EXTENDED_LAB_DATABASE)) {
+      EXTENDED_LAB_DATABASE.filter((x) => x.panel === pId).forEach((ext) => {
+        if (processedIds.has(ext.id)) return;
+        processedIds.add(ext.id);
+        let val = labs[ext.id];
+        if (val === undefined || val === '' || val === null) {
+          val = addLabs[ext.id]?.value !== undefined ? addLabs[ext.id].value : addLabs[ext.id];
+        }
+        if (val !== undefined && val !== '' && val !== null) {
+          const valStr = String(val).trim();
+          if (!valStr) return;
+          const unitStr = ext.unit ? ` ${ext.unit}` : '';
+          const testLabel = isEn ? tLabel(ext.label) : ext.label;
+          formattedTests.push(`${testLabel}: ${valStr}${unitStr}`);
+        }
+      });
+    }
+
+    // 3. Custom tests added to additionalLabs explicitly with this panel
+    Object.entries(addLabs).forEach(([k, v]) => {
+      if (processedIds.has(k)) return;
+      if (typeof v === 'object' && v !== null && v.panel === pId) {
+        processedIds.add(k);
+        const valStr = String(v.value || '').trim();
+        if (!valStr) return;
+        const unitStr = v.unit ? ` ${v.unit}` : '';
+        const name = isEn ? tLabel(v.name || k) : (v.name || k);
+        formattedTests.push(`${name}: ${valStr}${unitStr}`);
+      }
+    });
+
+    if (formattedTests.length > 0) {
+      panelsResult.push({
+        id: pId,
+        title: pTitle,
+        tests: formattedTests,
+        testsStr: formattedTests.join(isEn ? ' | ' : ' | ')
+      });
+    }
+  });
+
+  return panelsResult;
 }
 
 function findHpiSymptomLabel(symId, fallbackLabel, lang = 'en') {
@@ -696,13 +844,15 @@ export function generateEnglishClinicalNote(state) {
   }
 
   const pshPartsEn = [];
-  if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
+  if (state.psh?.noSurgeries) {
+    pshPartsEn.push('Denies any prior surgical procedures (No prior surgeries).');
+  } else if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
     const surgStr = state.psh.surgeries.map(s => {
       const name = s.en || tLabel(s.label || s.procedure || 'Surgery', s.en);
       const yearPart = s.year ? `Year: ${tLabel(s.year)}` : '';
       const notePart = (s.note || s.yearHospital) ? tLabel(s.note || s.yearHospital) : '';
-      const det = [yearPart, notePart].filter(Boolean).join(' | ');
-      return det ? `${name} (${det})` : name;
+      const det = [yearPart, notePart].filter(Boolean).join(' — ');
+      return det ? `${name} [${det}]` : name;
     }).join(', ');
     pshPartsEn.push(surgStr);
   }
@@ -862,21 +1012,40 @@ export function generateEnglishClinicalNote(state) {
   if (state.ros?.unobtainable) {
     lines.push(`- **Review of Systems Unobtainable:** Standard 11-point ROS could not be obtained due to altered level of consciousness, intubation, and acute critical trauma status. Clinical evaluation relies on physical examination, primary/secondary survey, and ATLS protocol.`);
   } else {
-    const rosItems = state.ros?.items || {};
-    const rosPos = [];
-    const rosNeg = [];
-    Object.entries(rosItems).forEach(([rId, val]) => {
-      const st = typeof val === 'object' && val !== null ? val.state : val;
-      const dt = typeof val === 'object' && val !== null && val.detail ? ` (${tLabel(val.detail)})` : '';
-      const enLb = findRosItemLabel(rId, typeof val === 'object' ? val?.label : rId);
-      if (st === 1 || st === '+1') rosPos.push(`${enLb}${dt}`);
-      else if (st === -1 || st === '-1') rosNeg.push(enLb);
+    const showAllGenders = state.ros?.showAllGenders || false;
+    const patientGender = demo.gender || 'male';
+
+    const activeGroups = (ROS_GROUPS_BILINGUAL || []).filter((grp) => {
+      if (showAllGenders) return true;
+      if (patientGender === 'male') {
+        if (grp.systemKey === 'female_reproductive_obgyn') return false;
+        if (grp.systemKey === 'breast' && !state.ros?.showMaleBreast) {
+          const findings = getRosFindingsBySystem(state, 'breast', 'en');
+          if (findings.pos.length === 0 && findings.neg.length === 0) return false;
+        }
+      } else if (patientGender === 'female') {
+        if (grp.systemKey === 'male_reproductive') return false;
+      }
+      return true;
     });
-    if (rosPos.length > 0) lines.push(`- **Positive System Review:** ${rosPos.join(', ')}`);
-    if (rosNeg.length > 0) lines.push(`- **Negative System Review:** Denies ${rosNeg.join(', ')}`);
-    if (rosPos.length === 0 && rosNeg.length === 0) lines.push(`- **System Review:** 11-point review of systems otherwise negative except as noted in HPI.`);
-    if (state.ros?.systemGapNote) {
-      lines.push(`- **Additional ROS Findings:** ${tLabel(state.ros.systemGapNote)}`);
+
+    const rosLinesEn = [];
+    activeGroups.forEach((grp) => {
+      const { pos, neg } = getRosFindingsBySystem(state, grp.systemKey, 'en');
+      const sysTitle = grp.en || grp.group;
+      if (pos.length > 0 && neg.length > 0) {
+        rosLinesEn.push(`  * **${sysTitle}:** **Positive:** ${pos.map((x) => x.text).join(', ')} | **Negative:** No ${neg.map((x) => x.text).join(', ')}`);
+      } else if (pos.length > 0) {
+        rosLinesEn.push(`  * **${sysTitle}:** **Positive:** ${pos.map((x) => x.text).join(', ')}`);
+      } else if (neg.length > 0) {
+        rosLinesEn.push(`  * **${sysTitle}:** Negative for ${neg.map((x) => x.text).join(', ')}`);
+      }
+    });
+
+    if (rosLinesEn.length > 0) {
+      lines.push(`- **Review of Systems (Systemic Breakdown):**\n${rosLinesEn.join('\n')}`);
+    } else {
+      lines.push(`- **System Review:** 14-point review of systems non-contributory and baseline negative except as noted in HPI.`);
     }
   }
 
@@ -889,26 +1058,14 @@ export function generateEnglishClinicalNote(state) {
   lines.push(`- **Comprehensive Physical Examination (12 Clinical Pillars):**`);
   PE_MANDATORY_PILLARS.forEach((pillar) => {
     const pTitleEn = pillar.en || tLabel(pillar.title);
-    const secPos = [];
-    const secNeg = [];
-    pillar.items.forEach((item) => {
-      const itemData = state.pe?.findings?.[item.id] || (state.pe?.abdomen && (state.pe.abdomen[pillar.id]?.[item.id] || state.pe.abdomen[item.id])) || state.pe?.[item.id];
-      const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
-      const detail = typeof itemData === 'object' && itemData !== null ? (itemData.detail || itemData.note || '') : '';
-      const itemEn = item.en || tLabel(item.label, item.en);
-      const dtEn = detail ? tLabel(detail) : '';
-      if (st === 1 || st === '+1') {
-        secPos.push(dtEn && dtEn.trim() ? `${itemEn} (${dtEn})` : itemEn);
-      } else if (st === -1 || st === '-1') {
-        secNeg.push(itemEn);
-      }
-    });
-    if (secPos.length > 0 && secNeg.length > 0) {
-      lines.push(`  * **${pTitleEn}:** **Positive:** ${secPos.join(', ')} | **Negative:** No ${secNeg.join(', ')}`);
-    } else if (secPos.length > 0) {
-      lines.push(`  * **${pTitleEn}:** **Positive:** ${secPos.join(', ')}`);
-    } else if (secNeg.length > 0) {
-      lines.push(`  * **${pTitleEn}:** Negative for ${secNeg.join(', ')}`);
+    const { pos, neg } = getPeFindingsBySystem(state, pillar.systemKey, 'en');
+
+    if (pos.length > 0 && neg.length > 0) {
+      lines.push(`  * **${pTitleEn}:** **Positive:** ${pos.map((x) => x.text).join(', ')} | **Negative:** No ${neg.map((x) => x.text).join(', ')}`);
+    } else if (pos.length > 0) {
+      lines.push(`  * **${pTitleEn}:** **Positive:** ${pos.map((x) => x.text).join(', ')}`);
+    } else if (neg.length > 0) {
+      lines.push(`  * **${pTitleEn}:** Negative for ${neg.map((x) => x.text).join(', ')}`);
     } else {
       lines.push(`  * **${pTitleEn}:** Unremarkable routine baseline examination`);
     }
@@ -985,44 +1142,10 @@ export function generateEnglishClinicalNote(state) {
 
   const labs = state.paraclinics?.labs || {};
   const panelLinesEn = [];
-  LAB_PANELS.forEach((panel) => {
-    const pTests = [];
-    panel.tests.forEach((def) => {
-      const val = labs[def.id];
-      if (val !== undefined && val !== '' && val !== null) {
-        const num = parseFloat(val);
-        let flag = '';
-        if (!isNaN(num)) {
-          if (num > def.max) flag = ' ↑(H)';
-          else if (num < def.min) flag = ' ↓(L)';
-        }
-        const unitStr = def.unit ? ` ${def.unit}` : '';
-        pTests.push(`${tLabel(def.label, def.en)}: ${val}${unitStr}${flag}`);
-      }
-    });
-    if (pTests.length > 0) {
-      panelLinesEn.push(`  * **${tLabel(panel.title, panel.en)}:** ${pTests.join(' | ')}`);
-    }
-  });
-
-  const addLabsEn = state.paraclinics?.additionalLabs || {};
-  const addEntriesEn = Object.entries(addLabsEn).filter(([k, v]) => {
-    if (!v) return false;
-    if (typeof v === 'object') return v.value && String(v.value).trim();
-    return String(v).trim();
-  });
-  if (addEntriesEn.length > 0) {
-    const addParts = addEntriesEn.map(([k, v]) => {
-      const val = typeof v === 'object' ? v.value : v;
-      const unit = typeof v === 'object' && v.unit ? ` ${v.unit}` : '';
-      const name = typeof v === 'object' && v.name ? tLabel(v.name) : tLabel(k);
-      return `${name}: ${val}${unit}`;
-    });
-    panelLinesEn.push(`  * **Specialized / Additional Labs:** ${addParts.join(' | ')}`);
-  }
-
-  if (panelLinesEn.length > 0) {
-    lines.push(`- **Laboratory Investigations:**\n${panelLinesEn.join('\n')}`);
+  const panelizedLabsEn = getPanelizedLabFindings(state, 'en');
+  if (panelizedLabsEn.length > 0) {
+    const linesEn = panelizedLabsEn.map((p) => `  * **${p.title}:** ${p.testsStr}`);
+    lines.push(`- **Laboratory Investigations:**\n${linesEn.join('\n')}`);
   } else {
     lines.push(`- **Laboratory Investigations:** Results pending at time of admission.`);
   }
@@ -1052,8 +1175,8 @@ export function generateEnglishClinicalNote(state) {
 /**
  * Complete Surgical Clinical Note Generator (v1.2-Bilingual-CleanUI)
  */
-export function generateClinicalNote(state) {
-  const lang = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa';
+export function generateClinicalNote(state, langOverride) {
+  const lang = langOverride || (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'fa');
   if (lang === 'en') {
     return generateEnglishClinicalNote(state);
   }
@@ -1111,13 +1234,15 @@ export function generateClinicalNote(state) {
 
   // PSH (با پشتیبانی از تگ‌های جراحی و اکتومی‌ها + یادداشت آزاد)
   const pshParts = [];
-  if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
+  if (state.psh?.noSurgeries) {
+    pshParts.push('عدم سابقه عمل جراحی قبلی (No Prior Surgeries)');
+  } else if (state.psh?.surgeries && Array.isArray(state.psh.surgeries) && state.psh.surgeries.length > 0) {
     const surgItems = state.psh.surgeries.map((s) => {
       const name = s.label || s.procedure || '';
       const yearPart = s.year ? `سال عمل: ${normalizePersianClinicalText(s.year)}` : '';
       const notePart = (s.note || s.yearHospital) ? normalizePersianClinicalText(s.note || s.yearHospital) : '';
-      const det = [yearPart, notePart].filter(Boolean).join(' | ');
-      return det ? `${name} (${det})` : name;
+      const det = [yearPart, notePart].filter(Boolean).join(' — ');
+      return det ? `${name} [${det}]` : name;
     }).filter(Boolean);
     if (surgItems.length > 0) {
       pshParts.push(surgItems.join('، '));
@@ -1342,71 +1467,39 @@ export function generateClinicalNote(state) {
     lines.push(`- **عدم امکان اخذ ROS:** ${reasonText}`);
   } else {
     const showAllGenders = state.ros?.showAllGenders || false;
-  const patientGender = demo.gender || 'male';
+    const patientGender = demo.gender || 'male';
 
-  ROS_GROUPS_BILINGUAL.forEach((group) => {
-    // اعمال فیلتر جنسیت برای آیتم‌ها
-    const filteredItems = group.items.filter((item) => {
-      if (showAllGenders || item.gender === 'all') return true;
-      if (patientGender === 'female' && item.gender === 'female') return true;
-      if (patientGender === 'male' && item.gender === 'male') return true;
-      if (patientGender === 'other') return true;
-      return false;
+    const activeGroups = (ROS_GROUPS_BILINGUAL || []).filter((grp) => {
+      if (showAllGenders) return true;
+      if (patientGender === 'male') {
+        if (grp.systemKey === 'female_reproductive_obgyn') return false;
+        if (grp.systemKey === 'breast' && !state.ros?.showMaleBreast) {
+          const findings = getRosFindingsBySystem(state, 'breast', 'fa');
+          if (findings.pos.length === 0 && findings.neg.length === 0) return false;
+        }
+      } else if (patientGender === 'female') {
+        if (grp.systemKey === 'male_reproductive') return false;
+      }
+      return true;
     });
 
-    if (filteredItems.length === 0) return;
+    const rosLinesFa = [];
+    activeGroups.forEach((group) => {
+      const { pos, neg } = getRosFindingsBySystem(state, group.systemKey, 'fa');
 
-    const groupPos = [];
-    const groupNeg = [];
-    const totalItems = filteredItems.length;
-
-    filteredItems.forEach((item) => {
-      const itemData = state.ros?.items?.[item.id];
-      const st = typeof itemData === 'object' ? itemData.state : itemData;
-      const detail = typeof itemData === 'object' ? itemData.detail : '';
-      if (st === 1 || st === '+1') {
-        groupPos.push(detail && detail.trim() ? `${item.label} (${normalizePersianClinicalText(detail)})` : item.label);
-      } else if (st === -1 || st === '-1') {
-        groupNeg.push(item.label);
+      if (pos.length > 0 && neg.length > 0) {
+        rosLinesFa.push(`- **${group.group}:** **مثبت:** ${pos.map((x) => x.text).join('، ')} | **منفی:** ${neg.map((x) => x.text).join('، ')}`);
+      } else if (pos.length > 0) {
+        rosLinesFa.push(`- **${group.group}:** **مثبت:** ${pos.map((x) => x.text).join('، ')}`);
+      } else if (neg.length > 0) {
+        rosLinesFa.push(`- **${group.group}:** منفی از نظر ${neg.map((x) => x.text).join('، ')}`);
       }
     });
 
-    if (groupPos.length > 0 && groupNeg.length > 0) {
-      lines.push(`- **${group.group}:** **مثبت:** ${groupPos.join('، ')} | **منفی:** ${groupNeg.join('، ')}`);
-    } else if (groupPos.length > 0) {
-      lines.push(`- **${group.group}:** **مثبت:** ${groupPos.join('، ')}`);
-    } else if (groupNeg.length > 0) {
-      if (groupNeg.length === totalItems) {
-        lines.push(`- **${group.group}:** بررسی کامل سیستم بدون نکته پاتولوژیک`);
-      } else {
-        lines.push(`- **${group.group}:** منفی از نظر ${groupNeg.join('، ')}`);
-      }
+    if (rosLinesFa.length > 0) {
+      lines.push(rosLinesFa.join('\n'));
     } else {
-      lines.push(`- **${group.group}:** بررسی اجمالی بدون نکته پاتولوژیک`);
-    }
-  });
-
-    const knownGroupItemIds = new Set(ROS_GROUPS_BILINGUAL.flatMap((g) => (g.items || []).map((i) => i.id)));
-    const extraPos = [];
-    const extraNeg = [];
-    Object.entries(state.ros?.items || {}).forEach(([rId, val]) => {
-      if (!knownGroupItemIds.has(rId)) {
-        const st = typeof val === 'object' && val !== null ? val.state : val;
-        const dt = typeof val === 'object' && val !== null && val.detail ? ` (${normalizePersianClinicalText(val.detail)})` : '';
-        const lb = typeof val === 'object' && val !== null && val.label ? val.label : rId;
-        if (st === 1 || st === '+1') extraPos.push(`${lb}${dt}`);
-        else if (st === -1 || st === '-1') extraNeg.push(lb);
-      }
-    });
-    if (extraPos.length > 0) {
-      lines.push(`- **سایر علائم سیستمیک مثبت:** ${extraPos.join('، ')}`);
-    }
-    if (extraNeg.length > 0) {
-      lines.push(`- **سایر علائم سیستمیک منفی:** ${extraNeg.join('، ')}`);
-    }
-
-    if (state.ros?.systemGapNote) {
-      lines.push(`- **موارد خارج از لیست ROS:** ${normalizePersianClinicalText(state.ros.systemGapNote)}`);
+      lines.push(`- **بررسی سیستم‌ها (ROS):** بررسی جامع ۱۴ گانه سیستم‌ها منفی و بدون نکته پاتولوژیک فعال می‌باشد.`);
     }
   }
 
@@ -1420,31 +1513,14 @@ export function generateClinicalNote(state) {
   // ستون‌های ۱۲ گانه جامع معاینه فیزیکی
   lines.push(`- **معاینه فیزیکی سیستمیک (۱۲ ستون بالینی):**`);
   PE_MANDATORY_PILLARS.forEach((pillar) => {
-    const secPos = [];
-    const secNeg = [];
+    const { pos, neg } = getPeFindingsBySystem(state, pillar.systemKey, 'fa');
 
-    pillar.items.forEach((item) => {
-      const itemData = state.pe?.findings?.[item.id] || (state.pe?.abdomen && (state.pe.abdomen[pillar.id]?.[item.id] || state.pe.abdomen[item.id])) || state.pe?.[item.id];
-      const st = typeof itemData === 'object' && itemData !== null ? itemData.state : itemData;
-      const detail = typeof itemData === 'object' && itemData !== null ? (itemData.detail || itemData.note || '') : '';
-      const itemTitle = item.fa || item.label;
-      if (st === 1 || st === '+1') {
-        secPos.push(detail && detail.trim() ? `${itemTitle} (${normalizePersianClinicalText(detail)})` : itemTitle);
-      } else if (st === -1 || st === '-1') {
-        secNeg.push(itemTitle);
-      }
-    });
-
-    if (secPos.length > 0 && secNeg.length > 0) {
-      lines.push(`  * **${pillar.title}:** **مثبت:** ${secPos.join('، ')} | **منفی (رد شده):** عدم وجود ${secNeg.join('، ')}`);
-    } else if (secPos.length > 0) {
-      lines.push(`  * **${pillar.title}:** **مثبت:** ${secPos.join('، ')}`);
-    } else if (secNeg.length > 0) {
-      if (secNeg.length === pillar.items.length) {
-        lines.push(`  * **${pillar.title}:** معاینه کامل بدون نکته پاتولوژیک`);
-      } else {
-        lines.push(`  * **${pillar.title}:** منفی از نظر ${secNeg.join('، ')}`);
-      }
+    if (pos.length > 0 && neg.length > 0) {
+      lines.push(`  * **${pillar.title}:** **مثبت:** ${pos.map((x) => x.text).join('، ')} | **منفی (رد شده):** عدم وجود ${neg.map((x) => x.text).join('، ')}`);
+    } else if (pos.length > 0) {
+      lines.push(`  * **${pillar.title}:** **مثبت:** ${pos.map((x) => x.text).join('، ')}`);
+    } else if (neg.length > 0) {
+      lines.push(`  * **${pillar.title}:** منفی از نظر ${neg.map((x) => x.text).join('، ')}`);
     } else {
       lines.push(`  * **${pillar.title}:** معاینه روتین بدون نکته پاتولوژیک`);
     }
@@ -1534,35 +1610,7 @@ export function generateClinicalNote(state) {
     }
   }
 
-  // سایر سیستم‌های جامع معاینه فیزیکی (فقط در صورت تایید نرمال، انتخاب تگ یا ثبت یافته درج می‌شوند)
-  const compSystemsFa = state.pe?.comprehensiveSystems || {};
-  const otherSystemsLines = [];
-  PE_COMPREHENSIVE_SYSTEMS.filter((s) => !s.isPrioritySurgical).forEach((sys) => {
-    const sysData = compSystemsFa[sys.id] || {};
-    const hasNormal = !!sysData.isNormal;
-    const hasExamined = !!sysData.examined;
-    const tags = Array.isArray(sysData.selectedTags) ? sysData.selectedTags : [];
-    const note = sysData.text ? normalizePersianClinicalText(sysData.text) : '';
-
-    if (hasNormal && tags.length === 0 && !note) {
-      otherSystemsLines.push(`  * **${sys.title}:** ${sys.normalBaseline || 'معاینه طبیعی و بدون نکته پاتولوژیک.'}`);
-    } else if (tags.length > 0 || note || (hasExamined && !hasNormal)) {
-      const parts = [];
-      if (tags.length > 0) parts.push(`یافته‌ها: ${tags.join('، ')}`);
-      if (note) parts.push(note);
-      if (hasNormal) parts.push('(سایر جهات نرمال)');
-      otherSystemsLines.push(`  * **${sys.title}:** ${parts.join(' — ')}`);
-    }
-  });
-  if (otherSystemsLines.length > 0) {
-    lines.push(`- **سایر سیستم‌های معاینه فیزیکی (Systemic Physical Exam):**`);
-    lines.push(otherSystemsLines.join('\n'));
-  }
-
-  if (state.pe?.note) lines.push(`- **توضیحات تکمیلی معاینه:** ${normalizePersianClinicalText(state.pe.note)}`);
-  if (state.pe?.systemGapNote) {
-    lines.push(`- **یافته‌های خارج از لیست معاینه فیزیکی:** ${normalizePersianClinicalText(state.pe.systemGapNote)}`);
-  }
+  if (state.pe?.note) lines.push(`- **توضیحات تکمیلی معاینه فیزیکی:** ${normalizePersianClinicalText(state.pe.note)}`);
 
   // ۷. پاراکلینیک، پنل‌های آزمایشگاهی ۶ گانه و گزارش‌های تصویربرداری
   lines.push(`\n### ۷. یافته‌های پاراکلینیک (آزمایشگاه و تصویربرداری)`);
@@ -1598,48 +1646,17 @@ export function generateClinicalNote(state) {
   }
 
   lines.push(`\n- **آزمایش‌های تشخیصی (Laboratory Panels):**`);
-  const labs = state.paraclinics?.labs || {};
-
-  LAB_PANELS.forEach((panel) => {
-    const panelTests = [];
-    panel.tests.forEach((def) => {
-      const val = labs[def.id];
-      if (val !== undefined && val !== '' && val !== null) {
-        const num = parseFloat(val);
-        let flag = '';
-        if (!isNaN(num)) {
-          if (num > def.max) flag = ' ↑(H)';
-          else if (num < def.min) flag = ' ↓(L)';
-        }
-        const unitStr = def.unit ? ` ${def.unit}` : '';
-        panelTests.push(`${def.label}: ${val}${unitStr}${flag}`);
-      }
+  const panelizedLabsFa = getPanelizedLabFindings(state, 'fa');
+  if (panelizedLabsFa.length > 0) {
+    panelizedLabsFa.forEach((p) => {
+      lines.push(`  * **${p.title}:** ${p.testsStr}`);
     });
-
-    if (panelTests.length > 0) {
-      lines.push(`  * **${panel.title}:** ${panelTests.join(' | ')}`);
-    }
-  });
-
-  // آزمایش‌های تکمیلی و تخصصی (EXTENDED_LAB_DATABASE)
-  const addLabsFa = state.paraclinics?.additionalLabs || {};
-  const addLabEntriesFa = Object.entries(addLabsFa).filter(([k, v]) => {
-    if (!v) return false;
-    if (typeof v === 'object') return v.value && String(v.value).trim();
-    return String(v).trim();
-  });
-  if (addLabEntriesFa.length > 0) {
-    const addParts = addLabEntriesFa.map(([k, v]) => {
-      const val = typeof v === 'object' ? v.value : v;
-      const unit = typeof v === 'object' && v.unit ? ` ${v.unit}` : '';
-      const name = typeof v === 'object' && v.name ? v.name : k;
-      return `${name}: ${val}${unit}`;
-    });
-    lines.push(`  * **سایر آزمایش‌های تکمیلی و تخصصی (Additional Labs):** ${addParts.join(' | ')}`);
+  } else {
+    lines.push(`  * نتایج آزمایش‌های درخواستی در زمان بستری در دست انجام می‌باشد.`);
   }
 
   if (state.paraclinics?.labNote) {
-    lines.push(`- **سایر آزمایش‌ها (ABG / U/A / کشت):** ${normalizePersianClinicalText(state.paraclinics.labNote)}`);
+    lines.push(`- **توضیحات تکمیلی آزمایشگاه و سیر تغییرات:** ${normalizePersianClinicalText(state.paraclinics.labNote)}`);
   }
 
   if (state.paraclinics?.systemGapNote) {

@@ -10,6 +10,7 @@ import {
 } from './fuzzy-search.js';
 import {
   HPI_QUALIFIERS_AND_SYMPTOMS,
+  HPI_ASSOCIATED_SYMPTOMS,
   MASTER_ROS_BANK,
   MASTER_PE_BANK,
   getItemDisplayTitle,
@@ -17,6 +18,7 @@ import {
   PE_SYSTEMS_CONFIG,
   SURGICAL_SCHEMA,
   LAB_PANELS,
+  SURGICAL_LAB_PANELS,
   ROS_GROUPS_BILINGUAL,
   PMH_CATEGORIES,
   DH_CATEGORIES,
@@ -90,6 +92,16 @@ const STORAGE_THEME_KEY = 'surg_theme_mode';
 let telemetry = new ClinicalTelemetryEngine();
 let gsheetSync = new GoogleSheetsSyncEngine();
 let activeSectionId = 'cc_admission';
+
+// Phase 3 Subsystem Accordions & State Registries
+window._rosExpandedMap = window._rosExpandedMap || new Set();
+window._peExpandedMap = window._peExpandedMap || new Set();
+window._labExpandedMap = window._labExpandedMap || new Set();
+window._rosShowAllMap = window._rosShowAllMap || new Set();
+window._peShowAllMap = window._peShowAllMap || new Set();
+window._labShowAllMap = window._labShowAllMap || new Set();
+window._activeLabTests = window._activeLabTests || new Set();
+window._rosBreastEnabledForMale = window._rosBreastEnabledForMale || false;
 
 function generateCaseId() {
   const now = new Date();
@@ -2879,22 +2891,33 @@ function renderHpiBasicSymptoms() {
   if (!container) return;
   container.innerHTML = '';
 
-  HPI_BASIC_SYMPTOMS.forEach((sym) => {
+  const coreList = (HPI_ASSOCIATED_SYMPTOMS || []).filter((x) => x.isCore === true && !x.isPainLocation);
+  const activeSymptomIds = Object.keys(clinicalState.hpi?.symptoms || {});
+  const extraActiveList = (HPI_ASSOCIATED_SYMPTOMS || []).filter(
+    (x) => activeSymptomIds.includes(x.id) && !coreList.some((c) => c.id === x.id)
+  );
+
+  const displayList = [...coreList, ...extraActiveList];
+
+  displayList.forEach((sym) => {
     const currentData = clinicalState.hpi.symptoms?.[sym.id];
     const chipWrap = renderInlineDetailTriStateChip({
       id: sym.id,
-      label: sym.label,
-      detailHint: sym.detailHint,
+      label: getItemDisplayTitle(sym) || sym.fa || sym.label || sym.en,
+      detailHint: sym.detailHint || (getCurrentLanguage() === 'en' ? 'Details...' : 'توضیحات تکمیلی...'),
+      modifiers: sym.modifiers || [],
       currentItemData: currentData,
       onStateChange: (newState, detailText) => {
+        if (!clinicalState.hpi) clinicalState.hpi = { symptoms: {} };
+        if (!clinicalState.hpi.symptoms) clinicalState.hpi.symptoms = {};
         if (newState === 0) {
           delete clinicalState.hpi.symptoms[sym.id];
         } else {
-          clinicalState.hpi.symptoms[sym.id] = { state: newState, detail: detailText, label: sym.label };
+          clinicalState.hpi.symptoms[sym.id] = { state: newState, detail: detailText, label: sym.fa || sym.label, en: sym.en || '' };
         }
       },
       onDetailChange: (detailText) => {
-        if (clinicalState.hpi.symptoms[sym.id]) {
+        if (clinicalState.hpi?.symptoms?.[sym.id]) {
           clinicalState.hpi.symptoms[sym.id].detail = detailText;
         }
       }
@@ -3112,8 +3135,15 @@ function renderPmhCategories() {
 }
 
 export function addPshSurgeryItem(procObj) {
-  if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '' };
+  if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '', noSurgeries: false };
   if (!Array.isArray(clinicalState.psh.surgeries)) clinicalState.psh.surgeries = [];
+  clinicalState.psh.noSurgeries = false;
+  const btnNoSurgeries = document.getElementById('btnPshNoPriorSurgeries');
+  if (btnNoSurgeries) {
+    btnNoSurgeries.classList.remove('is-confirmed');
+    const icon = document.getElementById('pshNoSurgeriesIcon');
+    if (icon) icon.textContent = '−';
+  }
 
   const exists = clinicalState.psh.surgeries.some(
     (s) => s.id === procObj.id || (s.label || s.procedure) === (procObj.label || procObj.name)
@@ -3137,7 +3167,7 @@ export function renderPshCapsulesAndSelected(filterQuery = '') {
   const capsulesBar = document.getElementById('pshCommonCapsulesBar');
   const selectedContainer = document.getElementById('pshSelectedSurgeriesContainer');
   const searchTray = document.querySelector('#cardPshHistory .search-results-tray');
-  if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '' };
+  if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '', noSurgeries: false };
   if (!Array.isArray(clinicalState.psh.surgeries)) clinicalState.psh.surgeries = [];
 
   if (capsulesBar) {
@@ -3148,8 +3178,8 @@ export function renderPshCapsulesAndSelected(filterQuery = '') {
   if (searchTray) {
     searchTray.innerHTML = '';
     if (q) {
-      const pool = Array.isArray(MASTER_PSH_SURGERIES_BANK) ? MASTER_PSH_SURGERIES_BANK : (Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : []);
-      const matches = smartClinicalSearch(q, pool, ['label', 'en'], 12);
+      const pool = Array.isArray(MASTER_PSH_SURGERIES_BANK) && MASTER_PSH_SURGERIES_BANK.length > 0 ? MASTER_PSH_SURGERIES_BANK : (Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : []);
+      const matches = smartClinicalSearch(q, pool, 15);
       if (matches.length > 0) {
         searchTray.style.display = 'flex';
         searchTray.style.flexWrap = 'wrap';
@@ -3230,6 +3260,27 @@ function initPshHandlers() {
     });
   }
 
+  const btnNoSurgeries = document.getElementById('btnPshNoPriorSurgeries');
+  if (btnNoSurgeries) {
+    const updateNoSurgeriesUi = () => {
+      const isNo = !!clinicalState.psh?.noSurgeries;
+      btnNoSurgeries.classList.toggle('is-confirmed', isNo);
+      const icon = document.getElementById('pshNoSurgeriesIcon');
+      if (icon) icon.textContent = isNo ? '✓' : '−';
+    };
+    btnNoSurgeries.onclick = () => {
+      if (!clinicalState.psh) clinicalState.psh = { surgeries: [], note: '', systemGapNote: '', noSurgeries: false };
+      clinicalState.psh.noSurgeries = !clinicalState.psh.noSurgeries;
+      if (clinicalState.psh.noSurgeries) {
+        showToast('عدم سابقه عمل جراحی قبلی ثبت شد.', 'info');
+      }
+      updateNoSurgeriesUi();
+      saveCurrentCase();
+      updateLivePreview();
+    };
+    updateNoSurgeriesUi();
+  }
+
   const pshSearchInp = document.getElementById('pshQuickSearchInput');
   if (pshSearchInp) {
     pshSearchInp.addEventListener('input', (e) => {
@@ -3240,8 +3291,8 @@ function initPshHandlers() {
         e.preventDefault();
         const q = pshSearchInp.value.trim();
         if (!q) return;
-        const pool = Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : [];
-        const matches = smartClinicalSearch(q, pool, ['label', 'en', 'keywords'], 5);
+        const pool = Array.isArray(MASTER_PSH_SURGERIES_BANK) && MASTER_PSH_SURGERIES_BANK.length > 0 ? MASTER_PSH_SURGERIES_BANK : (Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : []);
+        const matches = smartClinicalSearch(q, pool, 5);
         if (matches.length > 0) {
           addPshSurgeryItem(matches[0]);
         } else {
@@ -4131,12 +4182,14 @@ function renderRosGroups() {
   if (!container) return;
   container.innerHTML = '';
 
-  const patientGender = clinicalState.demographics.gender || '';
-  const showAllGenders = !!clinicalState.ros.showAllGenders;
+  const patientGender = clinicalState.demographics?.gender || '';
+  const showAllGenders = !!clinicalState.ros?.showAllGenders;
 
   if (genderToggle) {
-    document.getElementById('rosGenderFilterIcon').innerHTML = showAllGenders ? getIconSvg('unlock', { size: 13 }) : getIconSvg('lock', { size: 13 });
-    document.getElementById('rosGenderFilterText').textContent = showAllGenders ? 'نمایش همه آیتم‌ها' : 'فیلتر جنسیت فعال';
+    const iconEl = document.getElementById('rosGenderFilterIcon');
+    const textEl = document.getElementById('rosGenderFilterText');
+    if (iconEl) iconEl.innerHTML = showAllGenders ? getIconSvg('unlock', { size: 13 }) : getIconSvg('lock', { size: 13 });
+    if (textEl) textEl.textContent = showAllGenders ? 'نمایش همه آیتم‌ها' : 'فیلتر جنسیت فعال';
     genderToggle.onclick = () => {
       clinicalState.ros.showAllGenders = !clinicalState.ros.showAllGenders;
       renderRosGroups();
@@ -4145,7 +4198,52 @@ function renderRosGroups() {
     };
   }
 
-  ROS_GROUPS_BILINGUAL.forEach((grp) => {
+  // Global Toggle All ROS Accordions
+  const btnToggleAll = document.getElementById('btnToggleAllRos');
+  const activeGroups = ROS_GROUPS_BILINGUAL.filter(grp => {
+    const sysKey = grp.systemKey || grp.id;
+    if (!showAllGenders && patientGender === 'male' && sysKey === 'female_reproductive_obgyn') return false;
+    if (!showAllGenders && patientGender === 'female' && sysKey === 'male_reproductive') return false;
+    return true;
+  });
+  if (btnToggleAll) {
+    const isAllExpanded = activeGroups.length > 0 && activeGroups.every(g => window._rosExpandedMap.has(g.systemKey || g.id));
+    const textSpan = document.getElementById('btnToggleAllRosText');
+    if (textSpan) textSpan.textContent = isAllExpanded ? 'بستن همه سیستم‌ها' : 'باز کردن همه سیستم‌ها';
+    btnToggleAll.onclick = () => {
+      if (isAllExpanded) {
+        window._rosExpandedMap.clear();
+      } else {
+        activeGroups.forEach(g => window._rosExpandedMap.add(g.systemKey || g.id));
+      }
+      renderRosGroups();
+    };
+  }
+
+  activeGroups.forEach((grp) => {
+    const sysKey = grp.systemKey || grp.id;
+
+    // Male Breast Logic: If male and not showing all genders, hide breast by default unless enabled or has findings
+    if (!showAllGenders && patientGender === 'male' && sysKey === 'breast') {
+      const hasActiveBreast = grp.items.some(it => clinicalState.ros.items?.[it.id]) ||
+        Object.values(clinicalState.ros.items || {}).some(it => it && (it.system === 'breast' || it.system === 'ros_breast'));
+      if (!window._rosBreastEnabledForMale && !hasActiveBreast) {
+        const maleCard = document.createElement('div');
+        maleCard.className = 'male-breast-enable-card';
+        maleCard.innerHTML = `
+          <span>بررسی سیستم پستان برای بیمار آقا (ژنیکوماستی، توده، ترشح نوک پستان)</span>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnEnableMaleBreastRos">+ افزودن دستی بررسی پستان (ژنیکوماستی/توده) برای بیمار آقا</button>
+        `;
+        maleCard.querySelector('#btnEnableMaleBreastRos').addEventListener('click', () => {
+          window._rosBreastEnabledForMale = true;
+          window._rosExpandedMap.add('breast');
+          renderRosGroups();
+        });
+        container.appendChild(maleCard);
+        return;
+      }
+    }
+
     const filteredItems = grp.items.filter((item) => {
       if (showAllGenders || item.gender === 'all') return true;
       if (!patientGender) return true;
@@ -4157,6 +4255,7 @@ function renderRosGroups() {
 
     if (filteredItems.length === 0) return;
 
+    // Count findings for this system
     let posCount = 0;
     let negCount = 0;
     let neutralCount = 0;
@@ -4164,15 +4263,26 @@ function renderRosGroups() {
     filteredItems.forEach((item) => {
       const it = clinicalState.ros.items[item.id];
       const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (st === 1) posCount++;
-      else if (st === -1) negCount++;
+      if (st === 1 || st === '+1') posCount++;
+      else if (st === -1 || st === '-1') negCount++;
       else neutralCount++;
     });
 
+    // Also include custom gap items in this system
+    Object.entries(clinicalState.ros.items || {}).forEach(([k, it]) => {
+      if (k.startsWith('ros_gap_') && it && it.system === sysKey) {
+        if (it.state === 1 || it.state === '+1') posCount++;
+        else if (it.state === -1 || it.state === '-1') negCount++;
+      }
+    });
+
     const isResetState = neutralCount === 0 && negCount > 0;
+    const isExpanded = window._rosExpandedMap.has(sysKey);
+    const isShowingAll = window._rosShowAllMap.has(sysKey);
 
     const grpCard = document.createElement('div');
-    grpCard.className = 'subsystem-accordion';
+    grpCard.className = `subsystem-accordion ${isExpanded ? '' : 'is-collapsed'}`;
+    grpCard.id = `ros_grp_card_${sysKey}`;
     grpCard.style.marginTop = '0.75rem';
 
     const header = document.createElement('div');
@@ -4217,7 +4327,7 @@ function renderRosGroups() {
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '' };
+            clinicalState.ros.items[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '', system: sysKey };
           }
         } else {
           if (st === -1) {
@@ -4241,7 +4351,13 @@ function renderRosGroups() {
 
     header.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
-      grpCard.classList.toggle('is-collapsed');
+      if (window._rosExpandedMap.has(sysKey)) {
+        window._rosExpandedMap.delete(sysKey);
+        grpCard.classList.add('is-collapsed');
+      } else {
+        window._rosExpandedMap.add(sysKey);
+        grpCard.classList.remove('is-collapsed');
+      }
     });
 
     grpCard.appendChild(header);
@@ -4252,7 +4368,15 @@ function renderRosGroups() {
     const chipsContainer = document.createElement('div');
     chipsContainer.className = 'chips-container';
 
-    filteredItems.forEach((item) => {
+    // Core-only by default: show item if isShowingAll || isCore !== false || item has active state in ros.items
+    const visibleItems = filteredItems.filter((item) => {
+      if (isShowingAll) return true;
+      if (item.isCore !== false) return true;
+      if (clinicalState.ros.items && clinicalState.ros.items[item.id] !== undefined) return true;
+      return false;
+    });
+
+    visibleItems.forEach((item) => {
       const cur = clinicalState.ros.items[item.id];
       const chipWrap = renderInlineDetailTriStateChip({
         id: item.id,
@@ -4265,7 +4389,7 @@ function renderRosGroups() {
           if (newState === 0) {
             delete clinicalState.ros.items[item.id];
           } else {
-            clinicalState.ros.items[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '' };
+            clinicalState.ros.items[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '', system: sysKey };
           }
         },
         onDetailChange: (detailText) => {
@@ -4278,6 +4402,31 @@ function renderRosGroups() {
     });
 
     body.appendChild(chipsContainer);
+
+    // Toggle button for non-core items
+    const hiddenCount = filteredItems.length - visibleItems.length;
+    if (hiddenCount > 0 && !isShowingAll) {
+      const showBtn = document.createElement('button');
+      showBtn.type = 'button';
+      showBtn.className = 'btn-show-non-core';
+      showBtn.innerHTML = `<span>+</span> <span>نمایش تمام آیتم‌های فرعی این سیستم (${hiddenCount} مورد)</span>`;
+      showBtn.addEventListener('click', () => {
+        window._rosShowAllMap.add(sysKey);
+        renderRosGroups();
+      });
+      body.appendChild(showBtn);
+    } else if (isShowingAll && filteredItems.length > visibleItems.length) {
+      const hideBtn = document.createElement('button');
+      hideBtn.type = 'button';
+      hideBtn.className = 'btn-show-non-core';
+      hideBtn.innerHTML = `<span>−</span> <span>بستن آیتم‌های فرعی این سیستم</span>`;
+      hideBtn.addEventListener('click', () => {
+        window._rosShowAllMap.delete(sysKey);
+        renderRosGroups();
+      });
+      body.appendChild(hideBtn);
+    }
+
     grpCard.appendChild(body);
     container.appendChild(grpCard);
   });
@@ -4359,7 +4508,27 @@ function renderPeMandatoryPillars() {
   if (!container) return;
   container.innerHTML = '';
 
+  const isEn = getCurrentLanguage() === 'en';
+
+  // Global Toggle All PE Accordions
+  const btnToggleAll = document.getElementById('btnToggleAllPe');
+  if (btnToggleAll) {
+    const allPillars = PE_MANDATORY_PILLARS.map(p => p.systemKey || p.id).filter(Boolean);
+    const isAllExpanded = allPillars.length > 0 && allPillars.every(k => window._peExpandedMap.has(k));
+    const textSpan = document.getElementById('btnToggleAllPeText');
+    if (textSpan) textSpan.textContent = isAllExpanded ? (isEn ? 'Collapse All Pillars' : 'بستن همه ستون‌ها') : (isEn ? 'Expand All Pillars' : 'باز کردن همه ستون‌ها');
+    btnToggleAll.onclick = () => {
+      if (isAllExpanded) {
+        window._peExpandedMap.clear();
+      } else {
+        allPillars.forEach(k => window._peExpandedMap.add(k));
+      }
+      renderPeMandatoryPillars();
+    };
+  }
+
   PE_MANDATORY_PILLARS.forEach((pillar) => {
+    const pillarKey = pillar.systemKey || pillar.id;
     let posCount = 0;
     let negCount = 0;
     let neutralCount = 0;
@@ -4367,21 +4536,40 @@ function renderPeMandatoryPillars() {
     pillar.items.forEach((item) => {
       const it = clinicalState.pe.findings[item.id];
       const st = it ? (typeof it === 'object' ? it.state : it) : 0;
-      if (st === 1) posCount++;
-      else if (st === -1) negCount++;
+      if (st === 1 || st === '+1') posCount++;
+      else if (st === -1 || st === '-1') negCount++;
       else neutralCount++;
     });
 
-    const isResetState = neutralCount === 0 && negCount > 0;
-
-    const normalItems = pillar.items.filter((it) => it.isNormalBaseline === true);
-    const isAllNormal = normalItems.length > 0 && normalItems.every((it) => {
-      const f = clinicalState.pe.findings[it.id];
-      return f && (typeof f === 'object' ? f.state === 1 : f === 1);
+    // Also include custom gap items in this pillar
+    Object.entries(clinicalState.pe.findings || {}).forEach(([k, it]) => {
+      if (k.startsWith('pe_gap_') && it && it.system === pillarKey) {
+        if (it.state === 1 || it.state === '+1') posCount++;
+        else if (it.state === -1 || it.state === '-1') negCount++;
+      }
     });
 
+    const isResetState = neutralCount === 0 && negCount > 0;
+    const isExpanded = window._peExpandedMap.has(pillarKey);
+    const isShowingAll = window._peShowAllMap.has(pillarKey);
+
+    // Normal baseline items: normalState === 1 (positive baseline) & normalState === -1 with isCore (negative baseline)
+    const normalPositiveItems = pillar.items.filter((it) => it.normalState === 1 || it.isNormalBaseline === true);
+    const normalNegativeCoreItems = pillar.items.filter((it) => it.normalState === -1 && it.isCore !== false);
+
+    const isAllNormal = (normalPositiveItems.length > 0 || normalNegativeCoreItems.length > 0) &&
+      normalPositiveItems.every((it) => {
+        const f = clinicalState.pe.findings[it.id];
+        return f && (typeof f === 'object' ? (f.state === 1 || f.state === '+1') : (f === 1 || f === '+1'));
+      }) &&
+      normalNegativeCoreItems.every((it) => {
+        const f = clinicalState.pe.findings[it.id];
+        return f && (typeof f === 'object' ? (f.state === -1 || f.state === '-1') : (f === -1 || f === '-1'));
+      });
+
     const pillarCard = document.createElement('div');
-    pillarCard.className = 'subsystem-accordion';
+    pillarCard.className = `subsystem-accordion ${isExpanded ? '' : 'is-collapsed'}`;
+    pillarCard.id = `pe_pillar_card_${pillarKey}`;
     pillarCard.style.marginTop = '0.75rem';
 
     const header = document.createElement('div');
@@ -4392,44 +4580,56 @@ function renderPeMandatoryPillars() {
 
     const titleSpan = document.createElement('span');
     titleSpan.className = 'subsystem-title';
-    titleSpan.textContent = getCurrentLanguage() === 'en' ? (pillar.en || pillar.title) : pillar.title;
+    titleSpan.textContent = isEn ? (pillar.en || pillar.title) : pillar.title;
     headerRight.appendChild(titleSpan);
 
     if (posCount > 0) {
       const bPos = document.createElement('span');
       bPos.className = 'subsystem-badge-counter pos';
-      bPos.textContent = getCurrentLanguage() === 'en' ? `${posCount} Pos` : `${posCount} مثبت`;
+      bPos.textContent = isEn ? `${posCount} Pos` : `${posCount} مثبت`;
       headerRight.appendChild(bPos);
     }
     if (negCount > 0) {
       const bNeg = document.createElement('span');
       bNeg.className = 'subsystem-badge-counter neg';
-      bNeg.textContent = getCurrentLanguage() === 'en' ? `${negCount} Neg` : `${negCount} منفی`;
+      bNeg.textContent = isEn ? `${negCount} Neg` : `${negCount} منفی`;
       headerRight.appendChild(bNeg);
     }
 
     const headerLeft = document.createElement('div');
     headerLeft.className = 'subsystem-header-left';
 
-    // Normal baseline quick-confirm button
+    // Normal baseline quick-confirm button (Requirement 1.3)
     const btnNormal = document.createElement('button');
     btnNormal.type = 'button';
     btnNormal.className = `btn-system-normal-baseline ${isAllNormal ? 'is-all-normal' : ''}`;
-    btnNormal.title = getCurrentLanguage() === 'en' ? 'Record normal baseline findings for this system' : 'ثبت خودکار موارد نرمال و بیس‌لاین سالم این سیستم';
-    btnNormal.innerHTML = `<span>${getCurrentLanguage() === 'en' ? '✓ Mark System Normal' : '✓ ثبت معاینه نرمال این سیستم'}</span>`;
+    btnNormal.title = isEn ? 'Record normal baseline findings for this system' : 'ثبت خودکار موارد نرمال و بیس‌لاین سالم این سیستم';
+    btnNormal.innerHTML = `<span>${isEn ? '✓ Mark System Normal' : '✓ ثبت معاینه نرمال این سیستم'}</span>`;
 
     btnNormal.addEventListener('click', (e) => {
       e.stopPropagation();
       if (isAllNormal) {
-        normalItems.forEach((it) => {
-          delete clinicalState.pe.findings[it.id];
-        });
+        // Toggle off: clear baseline items
+        normalPositiveItems.forEach((it) => delete clinicalState.pe.findings[it.id]);
+        normalNegativeCoreItems.forEach((it) => delete clinicalState.pe.findings[it.id]);
       } else {
-        normalItems.forEach((it) => {
+        // Set normal positive to +1
+        normalPositiveItems.forEach((it) => {
           clinicalState.pe.findings[it.id] = {
             state: 1,
             label: it.fa || it.label,
             en: it.en || '',
+            system: pillarKey,
+            detail: ''
+          };
+        });
+        // Set core normal negative to -1
+        normalNegativeCoreItems.forEach((it) => {
+          clinicalState.pe.findings[it.id] = {
+            state: -1,
+            label: it.fa || it.label,
+            en: it.en || '',
+            system: pillarKey,
             detail: ''
           };
         });
@@ -4444,8 +4644,8 @@ function renderPeMandatoryPillars() {
     toggleBtn.type = 'button';
     toggleBtn.className = `btn-toggle-sub-negatives ${isResetState ? 'is-reset' : ''}`;
     toggleBtn.innerHTML = isResetState
-      ? `<span>${getCurrentLanguage() === 'en' ? '↺ Reset Negatives' : '↺ بازنشانی منفی‌ها'}</span>`
-      : `<span>${getCurrentLanguage() === 'en' ? '− Mark Rest Neg' : '− منفی کردن بقیه'}</span>`;
+      ? `<span>${isEn ? '↺ Reset Negatives' : '↺ بازنشانی منفی‌ها'}</span>`
+      : `<span>${isEn ? '− Mark Rest Neg' : '− منفی کردن بقیه'}</span>`;
 
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -4455,7 +4655,7 @@ function renderPeMandatoryPillars() {
         const st = it ? (typeof it === 'object' ? it.state : it) : 0;
         if (makeNeg) {
           if (st === 0) {
-            clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '' };
+            clinicalState.pe.findings[item.id] = { state: -1, detail: '', label: item.fa || item.label, en: item.en || '', system: pillarKey };
           }
         } else {
           if (st === -1) {
@@ -4479,7 +4679,13 @@ function renderPeMandatoryPillars() {
 
     header.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
-      pillarCard.classList.toggle('is-collapsed');
+      if (window._peExpandedMap.has(pillarKey)) {
+        window._peExpandedMap.delete(pillarKey);
+        pillarCard.classList.add('is-collapsed');
+      } else {
+        window._peExpandedMap.add(pillarKey);
+        pillarCard.classList.remove('is-collapsed');
+      }
     });
 
     pillarCard.appendChild(header);
@@ -4487,9 +4693,17 @@ function renderPeMandatoryPillars() {
     const body = document.createElement('div');
     body.className = 'subsystem-body';
 
-    // Group items by subGroup
+    // Core-only by default: show item if isShowingAll || isCore !== false || item has active state in pe.findings
+    const visibleItems = pillar.items.filter((item) => {
+      if (isShowingAll) return true;
+      if (item.isCore !== false) return true;
+      if (clinicalState.pe.findings && clinicalState.pe.findings[item.id] !== undefined) return true;
+      return false;
+    });
+
+    // Group visible items by subGroup
     const subGroupsMap = new Map();
-    pillar.items.forEach((item) => {
+    visibleItems.forEach((item) => {
       const sg = item.subGroup || 'general';
       if (!subGroupsMap.has(sg)) subGroupsMap.set(sg, []);
       subGroupsMap.get(sg).push(item);
@@ -4503,7 +4717,7 @@ function renderPeMandatoryPillars() {
 
       if (hasMultipleSubGroups) {
         const sgMeta = PE_SUBGROUP_TITLES[sgKey];
-        const sgTitle = sgMeta ? (getCurrentLanguage() === 'en' ? sgMeta.en : sgMeta.fa) : sgKey;
+        const sgTitle = sgMeta ? (isEn ? sgMeta.en : sgMeta.fa) : sgKey;
         const sgHeader = document.createElement('div');
         sgHeader.className = 'pe-subgroup-header';
         sgHeader.textContent = sgTitle;
@@ -4518,7 +4732,7 @@ function renderPeMandatoryPillars() {
         const chipWrap = renderInlineDetailTriStateChip({
           id: item.id,
           label: getItemDisplayTitle(item) || item.label || item.fa || item.en,
-          detailHint: item.detailHint || (getCurrentLanguage() === 'en' ? 'Additional details...' : 'توضیحات تکمیلی...'),
+          detailHint: item.detailHint || (isEn ? 'Additional details...' : 'توضیحات تکمیلی...'),
           modifiers: item.modifiers || [],
           subTypes: item.subTypes || [],
           currentItemData: cur,
@@ -4526,7 +4740,7 @@ function renderPeMandatoryPillars() {
             if (newState === 0) {
               delete clinicalState.pe.findings[item.id];
             } else {
-              clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '' };
+              clinicalState.pe.findings[item.id] = { state: newState, detail: detailText, label: item.fa || item.label, en: item.en || '', system: pillarKey };
             }
           },
           onDetailChange: (detailText) => {
@@ -4541,6 +4755,30 @@ function renderPeMandatoryPillars() {
       subGroupBlock.appendChild(chipsContainer);
       body.appendChild(subGroupBlock);
     });
+
+    // Toggle button for non-core items
+    const hiddenCount = pillar.items.length - visibleItems.length;
+    if (hiddenCount > 0 && !isShowingAll) {
+      const showBtn = document.createElement('button');
+      showBtn.type = 'button';
+      showBtn.className = 'btn-show-non-core';
+      showBtn.innerHTML = `<span>+</span> <span>نمایش تمام آیتم‌های فرعی این سیستم (${hiddenCount} مورد)</span>`;
+      showBtn.addEventListener('click', () => {
+        window._peShowAllMap.add(pillarKey);
+        renderPeMandatoryPillars();
+      });
+      body.appendChild(showBtn);
+    } else if (isShowingAll && pillar.items.length > visibleItems.length) {
+      const hideBtn = document.createElement('button');
+      hideBtn.type = 'button';
+      hideBtn.className = 'btn-show-non-core';
+      hideBtn.innerHTML = `<span>−</span> <span>بستن آیتم‌های فرعی این سیستم</span>`;
+      hideBtn.addEventListener('click', () => {
+        window._peShowAllMap.delete(pillarKey);
+        renderPeMandatoryPillars();
+      });
+      body.appendChild(hideBtn);
+    }
 
     pillarCard.appendChild(body);
     container.appendChild(pillarCard);
@@ -5514,18 +5752,24 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       } else if (sectionType === 'ros') {
         if (!clinicalState.ros) clinicalState.ros = { items: {} };
         if (!clinicalState.ros.items) clinicalState.ros.items = {};
+        const sysKey = item.system || item.group || item.groupKey || 'gastrointestinal_hepatobiliary';
         if (!clinicalState.ros.items[item.id]) {
-          clinicalState.ros.items[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '' };
+          clinicalState.ros.items[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '', system: sysKey };
         }
         clinicalState.ros.items[item.id].detail = val;
+        clinicalState.ros.items[item.id].system = sysKey;
+        window._rosExpandedMap.add(sysKey);
         renderRosGroups();
       } else if (sectionType === 'pe') {
         if (!clinicalState.pe) clinicalState.pe = { findings: {} };
         if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
+        const pillarKey = item.system || item.pillar || item.pillarKey || 'abdomen_4_pillars';
         if (!clinicalState.pe.findings[item.id]) {
-          clinicalState.pe.findings[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '' };
+          clinicalState.pe.findings[item.id] = { state: 1, label: item.fa || item.label, en: item.en || '', detail: '', system: pillarKey };
         }
         clinicalState.pe.findings[item.id].detail = val;
+        clinicalState.pe.findings[item.id].system = pillarKey;
+        window._peExpandedMap.add(pillarKey);
         renderPeMandatoryPillars();
       }
       saveCurrentCase();
@@ -5608,6 +5852,7 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       } else if (sectionType === 'ros') {
         if (!clinicalState.ros) clinicalState.ros = { items: {} };
         if (!clinicalState.ros.items) clinicalState.ros.items = {};
+        const sysKey = item.system || item.group || item.groupKey || 'gastrointestinal_hepatobiliary';
         if (newState === 0) {
           delete clinicalState.ros.items[item.id];
         } else {
@@ -5615,13 +5860,19 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
             state: newState,
             label: item.fa || item.label,
             en: item.en || '',
-            detail: detailInp.value
+            detail: detailInp.value,
+            system: sysKey
           };
+          window._rosExpandedMap.add(sysKey);
+          if (sysKey === 'breast' || item.id === 'ros_gynecomastia' || (item.label && item.label.includes('ژنیکوماستی'))) {
+            window._rosBreastEnabledForMale = true;
+          }
         }
         renderRosGroups();
       } else if (sectionType === 'pe') {
         if (!clinicalState.pe) clinicalState.pe = { findings: {} };
         if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
+        const pillarKey = item.system || item.pillar || item.pillarKey || 'abdomen_4_pillars';
         if (newState === 0) {
           delete clinicalState.pe.findings[item.id];
         } else {
@@ -5629,8 +5880,10 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
             state: newState,
             label: item.fa || item.label,
             en: item.en || '',
-            detail: detailInp.value
+            detail: detailInp.value,
+            system: pillarKey
           };
+          window._peExpandedMap.add(pillarKey);
         }
         renderPeMandatoryPillars();
       }
@@ -5926,7 +6179,7 @@ function renderLabSearchTray(query, tray, input) {
   header.className = 'search-tray-header';
   header.innerHTML = `
     <span>نتایج آزمایش‌های تکمیلی و تخصصی: <span class="search-tray-count">${matches.length} مورد</span></span>
-    <span>روی + کلیک کنید تا به جدول آزمایش‌ها اضافه شود</span>
+    <span>روی آزمایش کلیک کنید تا در پنل تخصصی‌اش قرار گیرد</span>
   `;
   tray.appendChild(header);
 
@@ -5934,7 +6187,8 @@ function renderLabSearchTray(query, tray, input) {
   list.className = 'search-tray-drugs-list';
 
   matches.forEach((test) => {
-    const isAdded = !!(clinicalState.paraclinics.additionalLabs && clinicalState.paraclinics.additionalLabs[test.id]);
+    const curVal = clinicalState.paraclinics?.labs?.[test.id];
+    const isAdded = curVal !== undefined && curVal !== null && String(curVal).trim() !== '';
     const card = document.createElement('div');
     card.className = `dh-tray-card ${isAdded ? 'is-active' : ''}`;
 
@@ -5953,17 +6207,27 @@ function renderLabSearchTray(query, tray, input) {
     const actionBtn = document.createElement('button');
     actionBtn.type = 'button';
     actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
-    actionBtn.innerHTML = isAdded ? 'در جدول موجود است' : '+ افزودن به جدول آزمایش‌ها';
+    actionBtn.innerHTML = isAdded ? 'در جدول موجود است' : '+ افزودن به پنل مربوطه';
 
     const handleAdd = (e) => {
       e?.stopPropagation();
-      addAdditionalLab(test);
-      actionBtn.classList.add('active');
-      actionBtn.innerHTML = 'اضافه شد';
-      card.classList.add('is-active');
-      // Highlight in table
-      const el = document.getElementById('additionalLabsSection');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const pId = test.panel || (SURGICAL_LAB_PANELS.find(p => p.allTests.some(t => t.id === test.id))?.id) || 'biochem_renal';
+      window._labExpandedMap.add(pId);
+      window._activeLabTests = window._activeLabTests || new Set();
+      window._activeLabTests.add(test.id);
+      renderParaclinicLabs();
+
+      setTimeout(() => {
+        const inp = document.getElementById('lab_inp_' + test.id);
+        if (inp) {
+          inp.focus();
+          inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 60);
+
+      tray.classList.remove('is-active');
+      input.value = '';
+      showToast(`آزمایش «${test.label}» در پنل تخصصی خود قرار گرفت.`, 'info');
     };
 
     actionBtn.addEventListener('click', handleAdd);
@@ -5976,18 +6240,33 @@ function renderLabSearchTray(query, tray, input) {
 
   tray.appendChild(list);
 
-  // Fallback box for arbitrary lab tests
+  // Fallback box for arbitrary custom lab test
   const fallbackBox = document.createElement('div');
   fallbackBox.className = 'search-tray-fallback-box';
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'search-tray-add-btn';
-  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به عنوان آزمایش تشخیصی جدید`;
+  addBtn.innerHTML = `افزودن مستقیم «<strong>${query}</strong>» به پنل آزمایش‌ها`;
   addBtn.addEventListener('click', () => {
-    addAdditionalLab({ id: 'ext_lab_' + Date.now(), label: query, name: query, unit: '', normalRange: '' });
-    addBtn.innerHTML = `آزمایش «${query}» به جدول اضافه شد`;
-    addBtn.style.borderColor = '#10b981';
-    addBtn.style.color = '#10b981';
+    const customId = 'lab_cust_' + Date.now();
+    const customTest = { id: customId, label: query, name: query, unit: '', min: 0, max: 9999, panel: 'biochem_renal' };
+    EXTENDED_LAB_DATABASE.push(customTest);
+    const p = SURGICAL_LAB_PANELS.find(x => x.id === 'biochem_renal');
+    if (p) p.allTests.push(customTest);
+    window._labExpandedMap.add('biochem_renal');
+    window._activeLabTests = window._activeLabTests || new Set();
+    window._activeLabTests.add(customId);
+    renderParaclinicLabs();
+    setTimeout(() => {
+      const inp = document.getElementById('lab_inp_' + customId);
+      if (inp) {
+        inp.focus();
+        inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 60);
+    tray.classList.remove('is-active');
+    input.value = '';
+    showToast(`آزمایش «${query}» به پنل آزمایش‌ها افزوده شد.`, 'info');
   });
   fallbackBox.appendChild(addBtn);
   tray.appendChild(fallbackBox);
@@ -6032,7 +6311,7 @@ function initSchemaOmnisearch() {
       } else if (targetSection === '#tab-pe') {
         renderTriStateSearchTray(query, tray, input, MASTER_PE_BANK, 'pe');
       } else {
-        renderTriStateSearchTray(query, tray, input, HPI_QUALIFIERS_AND_SYMPTOMS, 'hpi');
+        renderTriStateSearchTray(query, tray, input, HPI_ASSOCIATED_SYMPTOMS, 'hpi');
       }
     };
 
@@ -6131,37 +6410,122 @@ export function renderParaclinicLabs() {
   if (!container) return;
   container.innerHTML = '';
 
-  CORE_ROUTINE_LAB_GROUPS.forEach((panel) => {
-    const card = document.createElement('div');
-    card.className = 'lab-panel-card';
+  const isEn = getCurrentLanguage() === 'en';
+  const panels = Array.isArray(SURGICAL_LAB_PANELS) && SURGICAL_LAB_PANELS.length > 0 ? SURGICAL_LAB_PANELS : CORE_ROUTINE_LAB_GROUPS;
+
+  const btnToggleAll = document.getElementById('btnToggleAllLabs');
+  if (btnToggleAll) {
+    const isAllExpanded = panels.length > 0 && panels.every((p) => window._labExpandedMap.has(p.id));
+    const textSpan = document.getElementById('btnToggleAllLabsText');
+    if (textSpan) textSpan.textContent = isAllExpanded ? (isEn ? 'Collapse All Panels' : 'بستن همه پنل‌ها') : (isEn ? 'Expand All Panels' : 'باز کردن همه پنل‌ها');
+    btnToggleAll.onclick = () => {
+      if (isAllExpanded) {
+        window._labExpandedMap.clear();
+      } else {
+        panels.forEach((p) => window._labExpandedMap.add(p.id));
+      }
+      renderParaclinicLabs();
+    };
+  }
+
+  panels.forEach((panel) => {
+    const pId = panel.id;
+    const isExpanded = window._labExpandedMap.has(pId);
+    const isShowingAll = window._labShowAllMap.has(pId);
+    const defTests = panel.allTests || panel.tests || [];
+    const coreIds = panel.coreTestIds || defTests.filter((t) => t.isCore !== false).map((t) => t.id);
+
+    // Active count in this panel
+    let activeCount = 0;
+    defTests.forEach((t) => {
+      const v = clinicalState.paraclinics?.labs?.[t.id];
+      if (v !== undefined && v !== null && String(v).trim() !== '') activeCount++;
+    });
+    Object.entries(clinicalState.paraclinics?.additionalLabs || {}).forEach(([k, v]) => {
+      if (typeof v === 'object' && v !== null && v.panel === pId) {
+        if (v.value !== undefined && String(v.value).trim() !== '') activeCount++;
+      }
+    });
+
+    const panelCard = document.createElement('div');
+    panelCard.className = `subsystem-accordion ${isExpanded ? '' : 'is-collapsed'}`;
+    panelCard.id = `lab_panel_card_${pId}`;
+    panelCard.style.marginTop = '0.75rem';
 
     const header = document.createElement('div');
-    header.className = 'lab-panel-header';
-    header.innerHTML = `
-      <div class="lab-panel-title">
-        <span>${getIconSvg('test-tube', { size: 14 })}</span>
-        <span>${panel.title}</span>
-      </div>
-      <span class="lab-panel-badge">${panel.badge}</span>
-    `;
-    card.appendChild(header);
+    header.className = 'subsystem-header';
+
+    const headerRight = document.createElement('div');
+    headerRight.className = 'subsystem-header-right';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'subsystem-title';
+    titleSpan.textContent = isEn ? (panel.en || panel.title) : panel.title;
+    headerRight.appendChild(titleSpan);
+
+    if (activeCount > 0) {
+      const bCount = document.createElement('span');
+      bCount.className = 'subsystem-badge-counter lab-count';
+      bCount.textContent = isEn ? `${activeCount} Tests` : `${activeCount} آزمایش ثبت‌شده`;
+      headerRight.appendChild(bCount);
+    }
+
+    const headerLeft = document.createElement('div');
+    headerLeft.className = 'subsystem-header-left';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'subsystem-chevron';
+    chevron.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+    headerLeft.appendChild(chevron);
+
+    header.appendChild(headerRight);
+    header.appendChild(headerLeft);
+
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      if (window._labExpandedMap.has(pId)) {
+        window._labExpandedMap.delete(pId);
+        panelCard.classList.add('is-collapsed');
+      } else {
+        window._labExpandedMap.add(pId);
+        panelCard.classList.remove('is-collapsed');
+      }
+    });
+
+    panelCard.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'subsystem-body';
 
     const grid = document.createElement('div');
     grid.className = 'lab-tests-grid';
 
-    panel.tests.forEach((t) => {
-      const val = clinicalState.paraclinics.labs[t.id] || '';
+    // Filter tests: core tests + tests with values + tests in _activeLabTests + (all if isShowingAll)
+    const visibleTests = defTests.filter((t) => {
+      if (isShowingAll) return true;
+      if (coreIds.includes(t.id)) return true;
+      const v = clinicalState.paraclinics?.labs?.[t.id];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return true;
+      if (window._activeLabTests && window._activeLabTests.has(t.id)) return true;
+      return false;
+    });
+
+    visibleTests.forEach((t) => {
+      const val = clinicalState.paraclinics?.labs?.[t.id] !== undefined
+        ? clinicalState.paraclinics.labs[t.id]
+        : (clinicalState.paraclinics?.additionalLabs?.[t.id]?.value || '');
       const mini = document.createElement('div');
       mini.className = 'lab-mini-card';
       mini.dataset.id = t.id;
 
+      const rangePlaceholder = (t.min !== undefined && t.max !== undefined) ? `${t.min}-${t.max}` : (t.normalRange || '');
       mini.innerHTML = `
         <div class="lab-mini-header">
-          <span class="lab-mini-label">${t.label}</span>
-          <span class="lab-mini-unit">${t.unit}</span>
+          <span class="lab-mini-label">${isEn ? (t.en || t.label) : t.label}</span>
+          <span class="lab-mini-unit">${t.unit || ''}</span>
         </div>
         <div class="lab-mini-input-row">
-          <input type="text" class="lab-mini-input" placeholder="${t.min}-${t.max}" value="${val}">
+          <input type="text" class="lab-mini-input" id="lab_inp_${t.id}" placeholder="${rangePlaceholder}" value="${val}">
         </div>
       `;
 
@@ -6172,7 +6536,7 @@ export function renderParaclinicLabs() {
         const oldBadge = mini.querySelector('.lab-flag-badge');
         if (oldBadge) oldBadge.remove();
         const num = parseFloat(valStr);
-        if (!isNaN(num) && valStr.trim() !== '') {
+        if (!isNaN(num) && valStr.trim() !== '' && t.min !== undefined && t.max !== undefined) {
           const hdr = mini.querySelector('.lab-mini-header');
           if (num > t.max) {
             mini.classList.add('flag-high');
@@ -6197,6 +6561,7 @@ export function renderParaclinicLabs() {
 
       input.addEventListener('input', (e) => {
         const newVal = e.target.value;
+        if (!clinicalState.paraclinics.labs) clinicalState.paraclinics.labs = {};
         clinicalState.paraclinics.labs[t.id] = newVal;
         updateFlag(newVal);
         saveCurrentCase();
@@ -6206,31 +6571,46 @@ export function renderParaclinicLabs() {
       grid.appendChild(mini);
     });
 
-    card.appendChild(grid);
-    container.appendChild(card);
+    body.appendChild(grid);
+
+    // Toggle button for non-core tests
+    const hiddenCount = defTests.length - visibleTests.length;
+    if (hiddenCount > 0 && !isShowingAll) {
+      const showBtn = document.createElement('button');
+      showBtn.type = 'button';
+      showBtn.className = 'btn-show-non-core';
+      showBtn.innerHTML = `<span>+</span> <span>${isEn ? `Show all secondary tests in this panel (${hiddenCount} more)` : `نمایش تمام آزمایش‌های فرعی این پنل (${hiddenCount} مورد)`}</span>`;
+      showBtn.addEventListener('click', () => {
+        window._labShowAllMap.add(pId);
+        renderParaclinicLabs();
+      });
+      body.appendChild(showBtn);
+    } else if (isShowingAll && defTests.length > coreIds.length) {
+      const hideBtn = document.createElement('button');
+      hideBtn.type = 'button';
+      hideBtn.className = 'btn-show-non-core';
+      hideBtn.innerHTML = `<span>−</span> <span>${isEn ? 'Collapse secondary tests in this panel' : 'بستن آزمایش‌های فرعی این پنل'}</span>`;
+      hideBtn.addEventListener('click', () => {
+        window._labShowAllMap.delete(pId);
+        renderParaclinicLabs();
+      });
+      body.appendChild(hideBtn);
+    }
+
+    panelCard.appendChild(body);
+    container.appendChild(panelCard);
   });
 
-  document.getElementById('paraclinicLabNote')?.addEventListener('input', (e) => {
-    clinicalState.paraclinics.labNote = e.target.value;
-    saveCurrentCase();
-    updateLivePreview();
-  });
-
-  // Quick Panels Wiring (guarded against duplicate event listener registration)
+  // Quick Panels Wiring
   const btnVbg = document.getElementById('btnAddVbgPanel');
   if (btnVbg && !btnVbg.dataset.bound) {
     btnVbg.dataset.bound = 'true';
     btnVbg.addEventListener('click', () => {
-      const vbgTests = [
-        { id: 'lab_ph', name: 'pH (VBG / ABG)', label: 'pH (VBG / ABG)', unit: '', normalRange: '7.35 - 7.45' },
-        { id: 'lab_pco2', name: 'PCO2 (VBG)', label: 'PCO2 (VBG)', unit: 'mmHg', normalRange: '35 - 45' },
-        { id: 'lab_po2', name: 'PO2 (VBG)', label: 'PO2 (VBG)', unit: 'mmHg', normalRange: '30 - 50' },
-        { id: 'lab_hco3', name: 'HCO3', label: 'HCO3', unit: 'mEq/L', normalRange: '22 - 26' },
-        { id: 'lab_be', name: 'Base Excess (BE)', label: 'Base Excess (BE)', unit: 'mEq/L', normalRange: '-2 - +2' },
-        { id: 'lab_o2_sat_vbg', name: 'O2 Sat (VBG)', label: 'O2 Sat (VBG)', unit: '%', normalRange: '70 - 80' }
-      ];
-      vbgTests.forEach((t) => addAdditionalLab(t));
-      showToast('پنل گازهای خونی (VBG / ABG) به جدول اضافه شد.', 'info');
+      window._labExpandedMap.add('vbg_abg');
+      renderParaclinicLabs();
+      const el = document.getElementById('lab_panel_card_vbg_abg');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('پنل گازهای خونی (VBG / ABG) باز شد.', 'info');
     });
   }
 
@@ -6238,18 +6618,19 @@ export function renderParaclinicLabs() {
   if (btnUa && !btnUa.dataset.bound) {
     btnUa.dataset.bound = 'true';
     btnUa.addEventListener('click', () => {
-      const uaTests = [
-        { id: 'lab_ua_wbc', name: 'U/A WBC', label: 'U/A WBC (گلبول سفید ادرار)', unit: '/HPF', normalRange: '0 - 4' },
-        { id: 'lab_ua_rbc', name: 'U/A RBC', label: 'U/A RBC (گلبول قرمز ادرار)', unit: '/HPF', normalRange: '0 - 3' },
-        { id: 'lab_ua_bacteria_nitrite', name: 'U/A Bacteria & Nitrite', label: 'U/A Bacteria & Nitrite', unit: '', normalRange: 'Negative' },
-        { id: 'lab_uc', name: 'Urine Culture (U/C)', label: 'Urine Culture (کشت ادرار U/C)', unit: '', normalRange: 'No growth' }
-      ];
-      uaTests.forEach((t) => addAdditionalLab(t));
-      showToast('پنل آنالیز و کشت ادرار (U/A & U/C) به جدول اضافه شد.', 'info');
+      window._labExpandedMap.add('ua_uc');
+      renderParaclinicLabs();
+      const el = document.getElementById('lab_panel_card_ua_uc');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('پنل آنالیز و کشت ادرار (U/A & U/C) باز شد.', 'info');
     });
   }
 
-  renderAdditionalLabs();
+  document.getElementById('paraclinicLabNote')?.addEventListener('input', (e) => {
+    clinicalState.paraclinics.labNote = e.target.value;
+    saveCurrentCase();
+    updateLivePreview();
+  });
 }
 
 export function addAdditionalLab(testObj, initialVal = '') {
@@ -6541,6 +6922,56 @@ function initReasoningHandlers() {
   });
 }
 
+export function renderRosGapChips() {
+  const container = document.getElementById('rosCustomGapChips');
+  if (!container) return;
+  container.innerHTML = '';
+  const entries = Object.entries(clinicalState.ros?.items || {}).filter(([k, v]) => k.startsWith('ros_gap_'));
+  entries.forEach(([id, item]) => {
+    const isPos = item.state === 1 || item.state === '+1';
+    const chip = document.createElement('div');
+    chip.className = `gap-custom-chip ${isPos ? 'is-pos' : 'is-neg'}`;
+    chip.innerHTML = `
+      <span>${isPos ? '+' : '−'}</span>
+      <span>${item.label || id}</span>
+      <button type="button" class="gap-custom-chip-del" title="حذف">×</button>
+    `;
+    chip.querySelector('.gap-custom-chip-del').addEventListener('click', () => {
+      delete clinicalState.ros.items[id];
+      renderRosGapChips();
+      renderRosGroups();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    container.appendChild(chip);
+  });
+}
+
+export function renderPeGapChips() {
+  const container = document.getElementById('peCustomGapChips');
+  if (!container) return;
+  container.innerHTML = '';
+  const entries = Object.entries(clinicalState.pe?.findings || {}).filter(([k, v]) => k.startsWith('pe_gap_'));
+  entries.forEach(([id, item]) => {
+    const isPos = item.state === 1 || item.state === '+1';
+    const chip = document.createElement('div');
+    chip.className = `gap-custom-chip ${isPos ? 'is-pos' : 'is-neg'}`;
+    chip.innerHTML = `
+      <span>${isPos ? '+' : '−'}</span>
+      <span>${item.label || id}</span>
+      <button type="button" class="gap-custom-chip-del" title="حذف">×</button>
+    `;
+    chip.querySelector('.gap-custom-chip-del').addEventListener('click', () => {
+      delete clinicalState.pe.findings[id];
+      renderPeGapChips();
+      renderPeMandatoryPillars();
+      saveCurrentCase();
+      updateLivePreview();
+    });
+    container.appendChild(chip);
+  });
+}
+
 /* ==========================================================================
    System Gap Loggers & Clean Unified Note Inputs
    ========================================================================== */
@@ -6570,6 +7001,85 @@ function initSystemGapLoggers() {
       updateLivePreview();
     });
   });
+
+  // ROS Gap Logger with system dropdown and +/- buttons
+  const rosInp = document.getElementById('rosSystemGapInput');
+  const rosSel = document.getElementById('rosSystemGapSelect');
+  const btnRosPos = document.getElementById('btnRosGapAddPos');
+  const btnRosNeg = document.getElementById('btnRosGapAddNeg');
+
+  const addRosGap = (stateVal) => {
+    const text = (rosInp?.value || '').trim();
+    const selSys = rosSel?.value || 'gastrointestinal_hepatobiliary';
+    if (!text) return;
+    const id = 'ros_gap_' + Date.now();
+    if (!clinicalState.ros) clinicalState.ros = { items: {} };
+    if (!clinicalState.ros.items) clinicalState.ros.items = {};
+    clinicalState.ros.items[id] = {
+      state: stateVal,
+      label: text,
+      en: text,
+      system: selSys,
+      detail: ''
+    };
+    window._rosExpandedMap.add(selSys);
+    if (rosInp) rosInp.value = '';
+    renderRosGapChips();
+    renderRosGroups();
+    saveCurrentCase();
+    updateLivePreview();
+    showToast(`علامت «${text}» به سیستم مربوطه ثبت شد.`, 'info');
+  };
+
+  btnRosPos?.addEventListener('click', () => addRosGap(1));
+  btnRosNeg?.addEventListener('click', () => addRosGap(-1));
+  rosInp?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addRosGap(1);
+    }
+  });
+
+  // PE Gap Logger with system dropdown and +/- buttons
+  const peInp = document.getElementById('peSystemGapInput');
+  const peSel = document.getElementById('peSystemGapSelect');
+  const btnPePos = document.getElementById('btnPeGapAddPos');
+  const btnPeNeg = document.getElementById('btnPeGapAddNeg');
+
+  const addPeGap = (stateVal) => {
+    const text = (peInp?.value || '').trim();
+    const selSys = peSel?.value || 'abdomen_4_pillars';
+    if (!text) return;
+    const id = 'pe_gap_' + Date.now();
+    if (!clinicalState.pe) clinicalState.pe = { findings: {} };
+    if (!clinicalState.pe.findings) clinicalState.pe.findings = {};
+    clinicalState.pe.findings[id] = {
+      state: stateVal,
+      label: text,
+      en: text,
+      system: selSys,
+      detail: ''
+    };
+    window._peExpandedMap.add(selSys);
+    if (peInp) peInp.value = '';
+    renderPeGapChips();
+    renderPeMandatoryPillars();
+    saveCurrentCase();
+    updateLivePreview();
+    showToast(`یافته «${text}» به ستون مربوطه ثبت شد.`, 'info');
+  };
+
+  btnPePos?.addEventListener('click', () => addPeGap(1));
+  btnPeNeg?.addEventListener('click', () => addPeGap(-1));
+  peInp?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPeGap(1);
+    }
+  });
+
+  renderRosGapChips();
+  renderPeGapChips();
 
   // Single clean note fields (Tab 3 PSH & Tab 4 DH, AH, SH, FH)
   const singleNoteMap = [
@@ -6820,6 +7330,8 @@ function syncDomFromState() {
   // PMH / PSH / ObGyn
   renderPmhCategories();
   renderPshCapsulesAndSelected();
+  document.getElementById('btnPshNoPriorSurgeries')?.classList.toggle('is-confirmed', !!clinicalState.psh?.noSurgeries);
+  if (document.getElementById('pshNoSurgeriesIcon')) document.getElementById('pshNoSurgeriesIcon').textContent = clinicalState.psh?.noSurgeries ? '✓' : '−';
   if (document.getElementById('pshNote')) document.getElementById('pshNote').value = clinicalState.psh.note || '';
   if (document.getElementById('pshSystemGapInput')) document.getElementById('pshSystemGapInput').value = clinicalState.psh.systemGapNote || '';
   if (document.getElementById('pmhSystemGapInput')) document.getElementById('pmhSystemGapInput').value = clinicalState.pmh.systemGapNote || '';
@@ -6871,6 +7383,7 @@ function syncDomFromState() {
 
   // ROS
   renderRosGroups();
+  renderRosGapChips();
   if (document.getElementById('rosSystemGapInput')) document.getElementById('rosSystemGapInput').value = clinicalState.ros.systemGapNote || '';
 
   // PE & VITALS PERSISTENCE RESTORATION
@@ -6883,6 +7396,7 @@ function syncDomFromState() {
   if (document.getElementById('peVitalsNpo')) document.getElementById('peVitalsNpo').value = v.npo || '';
 
   renderPeMandatoryPillars();
+  renderPeGapChips();
   renderMassExamModule();
   renderAtlsExamModule();
   renderPeUnlockableModules();

@@ -584,9 +584,15 @@
             <span class="card-badge" data-fa="جستجوی اِکتومی‌ها و اعمال جراحی" data-en="Search Prior Surgeries &amp; Resections">جستجوی اِکتومی‌ها و اعمال جراحی</span>
           </div>
 
+          <!-- دکمه نفی تمام سوابق جراحی -->
+          <button type="button" class="pmh-master-routine-btn" id="btnPshNoPriorSurgeries" style="margin-bottom: 0.75rem;">
+            <span id="pshNoSurgeriesIcon">✓</span>
+            <span id="pshNoSurgeriesText" data-fa="عدم سابقه عمل جراحی قبلی (No Prior Surgeries)" data-en="No Prior Surgeries (Denies Surgeries)">عدم سابقه عمل جراحی قبلی (No Prior Surgeries)</span>
+          </button>
+
           <!-- نوار جستجوی سریع اعمال جراحی قبلی -->
           <div class="tag-quick-search-box" style="margin-bottom: 0.75rem;">
-            <input type="search" class="tag-quick-search-input" data-search-target="#cardPshHistory" id="pshQuickSearchInput" placeholder="جستجو و انتخاب اعمال جراحی قبلی یا فقدان ارگان (مثلاً نفروکتومی، تک‌کلیه، کوله‌سیستکتومی، آپاندکتومی، اسپلنکتومی، سزارین...)" data-fa-ph="جستجو و انتخاب اعمال جراحی قبلی یا فقدان ارگان (مثلاً نفروکتومی، تک‌کلیه، کوله‌سیستکتومی، آپاندکتومی، اسپلنکتومی، سزارین...)" data-en-ph="Search prior surgeries or organ resections (e.g. Cholecystectomy, Appendectomy, Nephrectomy, C-Section...)">
+            <input type="search" class="tag-quick-search-input" data-search-target="#cardPshHistory" id="pshQuickSearchInput" placeholder="🔍 جستجوی نام عمل جراحی قبلی (مثلاً: آپاندکتومی، سزارین، نفروکتومی، کیسه صفرا، اسلیو، فتق، پلاتین...)..." data-fa-ph="🔍 جستجوی نام عمل جراحی قبلی (مثلاً: آپاندکتومی، سزارین، نفروکتومی، کیسه صفرا، اسلیو، فتق، پلاتین...)..." data-en-ph="Search prior surgeries or organ resections (e.g. Cholecystectomy, Appendectomy, Nephrectomy, C-Section...)">
             <span class="tag-search-icon"></span>
             <div class="search-results-tray"></div>
           </div>
@@ -848,6 +854,9 @@
               <span data-fa="بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد" data-en="Review of Systems (ROS — Standardized Bilingual Terminology)">بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد</span>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAllRos" title="باز کردن یا بستن یکجای تمام سیستم‌ها">
+                <span id="btnToggleAllRosText">باز کردن همه سیستم‌ها</span>
+              </button>
               <button type="button" class="btn btn-secondary btn-sm" id="btnRosUnobtainableManual" title="ثبت عدم امکان اخذ ROS به علت شرایط حاد بالینی" data-fa-title="ثبت عدم امکان اخذ ROS به علت شرایط حاد بالینی" data-en-title="Document ROS as unobtainable due to acute clinical status">
                 <span data-fa="بیمار بدحال (فاقد ROS)" data-en="Unobtainable ROS">بیمار بدحال (فاقد ROS)</span>
               </button>
@@ -891,7 +900,30 @@
               <span class="system-gap-label" data-fa="افزودن علامت سیستمیک خارج از لیست ROS" data-en="Add Unlisted Systemic Symptom (ROS Gap)">افزودن علامت سیستمیک خارج از لیست ROS</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
-            <input type="text" class="system-gap-input" id="rosSystemGapInput" placeholder="هر علامتی که در بررسی سیستم‌های بالا وجود نداشت..." data-fa-ph="هر علامتی که در بررسی سیستم‌های بالا وجود نداشت..." data-en-ph="Any systemic symptom not listed above...">
+            <div class="system-gap-input-row" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+              <select class="input-select system-gap-select" id="rosSystemGapSelect" style="flex:0 0 210px; max-width:260px; font-size:0.83rem; height:36px;">
+                <option value="constitutional">۱. علائم عمومی (Constitutional)</option>
+                <option value="skin_hair_nails">۲. پوست و مو (Skin &amp; Nails)</option>
+                <option value="head_eyes_ent">۳. سر و گردن (HEENT)</option>
+                <option value="breast">۴. پستان و اگزیلا (Breast)</option>
+                <option value="respiratory">۵. تنفس و ریه (Respiratory)</option>
+                <option value="cardiovascular_vascular">۶. قلب و عروق (Cardiovascular)</option>
+                <option value="gastrointestinal_hepatobiliary" selected>۷. گوارش و کبد (GI &amp; Hepato)</option>
+                <option value="urinary_renal">۸. ادراری و کلیه (Urinary &amp; Renal)</option>
+                <option value="male_reproductive">۹. تناسلی مردان (Male GU)</option>
+                <option value="female_reproductive_obgyn">۱۰. تناسلی زنان و مامایی (Gynecology)</option>
+                <option value="musculoskeletal">۱۱. عضلانی-اسکلتی (Musculoskeletal)</option>
+                <option value="neurological">۱۲. اعصاب و شناخت (Neurological)</option>
+                <option value="endocrine_hematologic_allergic">۱۳. غدد، خون و ایمنی (Endo/Heme/Immune)</option>
+                <option value="psychiatric">۱۴. روان‌پزشکی و خلق (Psychiatric)</option>
+              </select>
+              <input type="text" class="system-gap-input" id="rosSystemGapInput" style="flex:1; min-width:180px; height:36px;" placeholder="نام علامت خارج از لیست..." data-fa-ph="نام علامت خارج از لیست..." data-en-ph="Unlisted symptom name...">
+              <div style="display:flex; gap:0.35rem;">
+                <button type="button" class="btn btn-sm btn-primary" id="btnRosGapAddPos" style="min-width:60px;" title="افزودن به عنوان علامت مثبت">+ مثبت</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnRosGapAddNeg" style="min-width:60px;" title="افزودن به عنوان علامت منفی">− منفی</button>
+              </div>
+            </div>
+            <div id="rosCustomGapChips" class="gap-chips-container" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;"></div>
           </div>
         </div>
 
@@ -946,10 +978,15 @@
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
               <span data-fa="معاینه فیزیکی جامع (۱۲ ستون بالینی و ارکان معاینه جراحی)" data-en="Comprehensive Physical Examination (12 Clinical Pillars &amp; Core Surgical Signs)">معاینه فیزیکی جامع (۱۲ ستون بالینی و ارکان معاینه جراحی)</span>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="btnPeMasterNegative">
-              <span id="peMasterIcon">−</span>
-              <span id="peMasterText" data-fa="منفی کردن تمام معاینات باقی‌مانده" data-en="Mark All Remaining Findings Negative">منفی کردن تمام معاینات باقی‌مانده</span>
-            </button>
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAllPe" title="باز کردن یا بستن یکجای تمام ستون‌های معاینه">
+                <span id="btnToggleAllPeText">باز کردن همه ستون‌ها</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnPeMasterNegative">
+                <span id="peMasterIcon">−</span>
+                <span id="peMasterText" data-fa="منفی کردن تمام معاینات باقی‌مانده" data-en="Mark All Remaining Findings Negative">منفی کردن تمام معاینات باقی‌مانده</span>
+              </button>
+            </div>
           </div>
 
           <!-- نوار جستجوی زنده معاینات -->
@@ -999,7 +1036,28 @@
               <span class="system-gap-label" data-fa="افزودن یافته معاینه فیزیکی خارج از لیست (PE Gap)" data-en="Add Unlisted Physical Examination Sign (PE Gap)">افزودن یافته معاینه فیزیکی خارج از لیست (PE Gap)</span>
               <span class="system-gap-badge">System Gap Logger</span>
             </div>
-            <input type="text" class="system-gap-input" id="peSystemGapInput" placeholder="هر یافته یا نشانه فیزیکی که در لیست نبود..." data-fa-ph="هر یافته یا نشانه فیزیکی که در لیست نبود..." data-en-ph="Any physical sign or finding not listed above...">
+            <div class="system-gap-input-row" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+              <select class="input-select system-gap-select" id="peSystemGapSelect" style="flex:0 0 210px; max-width:260px; font-size:0.83rem; height:36px;">
+                <option value="general_appearance">۱. ظاهر عمومی (General Appearance)</option>
+                <option value="skin_hair_nails">۲. پوست و مو (Skin &amp; Nails)</option>
+                <option value="heent_neck_thyroid">۳. سر، گردن و تیروئید (HEENT &amp; Neck)</option>
+                <option value="thorax_lungs">۴. قفسه سینه و ریه (Thorax &amp; Lungs)</option>
+                <option value="cardiovascular_peripheral_vascular">۵. قلب و عروق محیطی (Cardiovascular)</option>
+                <option value="abdomen_4_pillars" selected>۶. شکم و ۴ رکن معاینه (Abdomen 4 Pillars)</option>
+                <option value="breast_axilla">۷. پستان و اگزیلا (Breast &amp; Axilla)</option>
+                <option value="inguinal_hernia_genitourinary_dre">۸. اینگوینال، فتق و DRE (Hernia &amp; DRE)</option>
+                <option value="musculoskeletal_spine">۹. اسکلتی، عضلانی و ستون فقرات (MSK &amp; Spine)</option>
+                <option value="neurological">۱۰. عصبی و نورولوژی (Neurological)</option>
+                <option value="surgical_wound_drain_stoma">۱۱. زخم، درن و استوما (Wounds &amp; Drains)</option>
+                <option value="trauma_atls_signs">۱۲. نشانه‌های تروما و ATLS (Trauma Signs)</option>
+              </select>
+              <input type="text" class="system-gap-input" id="peSystemGapInput" style="flex:1; min-width:180px; height:36px;" placeholder="نام یافته یا نشانه فیزیکی..." data-fa-ph="نام یافته یا نشانه فیزیکی..." data-en-ph="Physical finding or sign...">
+              <div style="display:flex; gap:0.35rem;">
+                <button type="button" class="btn btn-sm btn-primary" id="btnPeGapAddPos" style="min-width:60px;" title="افزودن به عنوان یافته مثبت">+ مثبت</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnPeGapAddNeg" style="min-width:60px;" title="افزودن به عنوان یافته منفی">− منفی</button>
+              </div>
+            </div>
+            <div id="peCustomGapChips" class="gap-chips-container" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem;"></div>
           </div>
         </div>
 
@@ -1032,6 +1090,9 @@
             </button>
             <button type="button" class="btn-lab-quick-panel" id="btnAddUaPanel">
               <span data-fa="افزودن پنل کامل آنالیز ادرار (U/A &amp; U/C)" data-en="Add Urinalysis &amp; Culture Panel (U/A &amp; U/C)">افزودن پنل کامل آنالیز ادرار (U/A & U/C)</span>
+            </button>
+            <button type="button" class="btn-lab-quick-panel" id="btnToggleAllLabs">
+              <span id="btnToggleAllLabsText">باز کردن همه پنل‌ها</span>
             </button>
           </div>
 

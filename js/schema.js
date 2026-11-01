@@ -16,11 +16,11 @@
  * - Compact Paraclinic Modality Launcher with multi-instance imaging & MRI/MRCP
  */
 
-import { HPI_QUALIFIERS_AND_SYMPTOMS } from './data/hpi-lexicon.js';
+import { HPI_QUALIFIERS_AND_SYMPTOMS, HPI_PAIN_QUALIFIERS, HPI_ASSOCIATED_SYMPTOMS } from './data/hpi-lexicon.js';
 import { MASTER_ROS_BANK } from './data/ros-bank.js';
 import { MASTER_PE_BANK } from './data/pe-bank.js';
 
-export { HPI_QUALIFIERS_AND_SYMPTOMS, MASTER_ROS_BANK, MASTER_PE_BANK };
+export { HPI_QUALIFIERS_AND_SYMPTOMS, HPI_PAIN_QUALIFIERS, HPI_ASSOCIATED_SYMPTOMS, MASTER_ROS_BANK, MASTER_PE_BANK };
 
 let currentSchemaLang = 'fa';
 
@@ -2270,89 +2270,148 @@ export const SURGICAL_SCHEMA = {
   ]
 };
 
-export const LAB_PANELS = [
+export const SURGICAL_LAB_PANELS = [
   {
-    id: 'cbc_diff',
-    title: 'هماتولوژی روتین (CBC / Diff)',
+    id: 'cbc',
+    title: '۱. هماتولوژی و CBC (Hematology & Complete Blood Count)',
+    en: 'Hematology & CBC',
     badge: 'CBC / Diff',
-    tests: [
-      { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 11.0 },
-      { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9 },
-      { id: 'hb', label: 'Hb', unit: 'g/dL', min: 12.0, max: 17.5 },
-      { id: 'hct', label: 'Hct', unit: '%', min: 36.0, max: 52.0 },
-      { id: 'mcv', label: 'MCV', unit: 'fL', min: 80, max: 100 },
-      { id: 'plt', label: 'Plt', unit: '×10³/µL', min: 150, max: 450 },
-      { id: 'neut', label: 'Neutrophils', unit: '%', min: 40, max: 75 },
-      { id: 'lymph', label: 'Lymphocytes', unit: '%', min: 20, max: 45 }
-    ]
-  },
-  {
-    id: 'coag_inflam',
-    title: 'انعقادی و نشانگرهای التهابی',
-    badge: 'Coag / Inflam',
-    tests: [
-      { id: 'pt', label: 'PT', unit: 'sec', min: 11.0, max: 13.5 },
-      { id: 'ptt', label: 'PTT', unit: 'sec', min: 25, max: 35 },
-      { id: 'inr', label: 'INR', unit: '', min: 0.8, max: 1.2 },
-      { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20 },
-      { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6 },
-      { id: 'ddimer', label: 'D-Dimer', unit: 'ng/mL', min: 0, max: 500 }
+    coreTestIds: ['wbc', 'rbc', 'hb', 'hct', 'plt'],
+    allTests: [
+      { id: 'wbc', label: 'WBC', unit: '×10³/µL', min: 4.0, max: 10.0, aliases: 'گلبول سفید wbc' },
+      { id: 'rbc', label: 'RBC', unit: '×10⁶/µL', min: 4.2, max: 5.9, aliases: 'گلبول قرمز rbc' },
+      { id: 'hb', label: 'Hb', unit: 'g/dL', min: 12.0, max: 16.0, aliases: 'هموگلوبین hb' },
+      { id: 'hct', label: 'Hct', unit: '%', min: 36.0, max: 52.0, aliases: 'هماتوکریت غلظت خون hct' },
+      { id: 'mcv', label: 'MCV', unit: 'fL', min: 80, max: 100, aliases: 'ام سی وی حجم متوسط گلبول قرمز mcv' },
+      { id: 'mch', label: 'MCH', unit: 'pg', min: 27, max: 33, aliases: 'ام سی اچ mch' },
+      { id: 'mchc', label: 'MCHC', unit: 'g/dL', min: 32, max: 36, aliases: 'ام سی اچ سی mchc' },
+      { id: 'rdw', label: 'RDW', unit: '%', min: 11.5, max: 14.5, aliases: 'پراکندگی گلبول قرمز rdw' },
+      { id: 'plt', label: 'Plt', unit: '×10³/µL', min: 150, max: 450, aliases: 'پلاکت خون plt' },
+      { id: 'neut', label: 'Neutrophils (%)', unit: '%', min: 40, max: 75, aliases: 'نوتروفیل درصد شیفت به چپ neut' },
+      { id: 'lymph', label: 'Lymphocytes (%)', unit: '%', min: 20, max: 45, aliases: 'لنفوسیت درصد lymph' },
+      { id: 'mono', label: 'Monocytes (%)', unit: '%', min: 2, max: 8, aliases: 'مونوسیت mono' },
+      { id: 'eos', label: 'Eosinophils (%)', unit: '%', min: 1, max: 4, aliases: 'ائوزینوفیل حساسیت انگل eos' },
+      { id: 'retic', label: 'Reticulocyte (%)', unit: '%', min: 0.5, max: 2.5, aliases: 'رتیک رتیکولوسیت مغز استخوان retic' }
     ]
   },
   {
     id: 'biochem_renal',
-    title: 'بیوشیمی، کلیوی و الکترولیت‌ها',
+    title: '۲. بیوشیمی، قند و الکترولیت‌ها (Biochemistry, Glucose & Renal/Lytes)',
+    en: 'Biochemistry & Renal',
     badge: 'Biochem / Lytes',
-    tests: [
-      { id: 'bs', label: 'BS', unit: 'mg/dL', min: 70, max: 140 },
-      { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20 },
-      { id: 'cr', label: 'Cr', unit: 'mg/dL', min: 0.6, max: 1.3 },
-      { id: 'na', label: 'Na', unit: 'mEq/L', min: 135, max: 145 },
-      { id: 'k', label: 'K', unit: 'mEq/L', min: 3.5, max: 5.1 },
-      { id: 'ca', label: 'Ca', unit: 'mg/dL', min: 8.5, max: 10.5 },
-      { id: 'mg', label: 'Mg', unit: 'mg/dL', min: 1.7, max: 2.2 },
-      { id: 'albumin', label: 'Albumin', unit: 'g/dL', min: 3.5, max: 5.2 }
+    coreTestIds: ['bs', 'bun', 'cr', 'na', 'k'],
+    allTests: [
+      { id: 'bs', label: 'BS (قند خون)', unit: 'mg/dL', min: 70, max: 140, aliases: 'قند خون ناشتا fbs bs' },
+      { id: 'hba1c', label: 'HbA1c', unit: '%', min: 4.0, max: 5.7, aliases: 'هموگلوبین ای وان سی قند سه ماهه hba1c a1c' },
+      { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20, aliases: 'بی یو ان اوره خون bun' },
+      { id: 'cr', label: 'Cr (کراتینین)', unit: 'mg/dL', min: 0.6, max: 1.2, aliases: 'کراتینین کلیه نارسایی cr creatinine' },
+      { id: 'na', label: 'Na (سدیم)', unit: 'mEq/L', min: 135, max: 145, aliases: 'سدیم نمک الکترولیت na sodium' },
+      { id: 'k', label: 'K (پتاسیم)', unit: 'mEq/L', min: 3.5, max: 5.0, aliases: 'پتاسیم الکترولیت k potassium' },
+      { id: 'ca', label: 'Calcium (Ca)', unit: 'mg/dL', min: 8.5, max: 10.5, aliases: 'کلسیم سرم پاراتیروئید ca calcium' },
+      { id: 'mg', label: 'Magnesium (Mg)', unit: 'mg/dL', min: 1.7, max: 2.4, aliases: 'منیزیم سرم mg magnesium' },
+      { id: 'phosphorus', label: 'Phosphorus (P)', unit: 'mg/dL', min: 2.5, max: 4.5, aliases: 'فسفر سرم p phosphorus' },
+      { id: 'uric_acid', label: 'Uric Acid', unit: 'mg/dL', min: 3.5, max: 7.2, aliases: 'اسید اوریک نقرس uric acid' },
+      { id: 'albumin', label: 'Albumin', unit: 'g/dL', min: 3.5, max: 5.2, aliases: 'البومین سرم سوءتغذیه کبد albumin' },
+      { id: 'total_protein', label: 'Total Protein', unit: 'g/dL', min: 6.4, max: 8.3, aliases: 'پروتئین کل total protein' },
+      { id: 'ldh', label: 'LDH', unit: 'U/L', min: 140, max: 280, aliases: 'ال دی اچ تخریب بافتی ایسکمی روده ldh' },
+      { id: 'cpk', label: 'CPK / CK', unit: 'U/L', min: 30, max: 200, aliases: 'سی پی کی کراتین کیناز رابدومیولیز cpk ck' }
     ]
   },
   {
-    id: 'hepato_biliary',
-    title: 'کبدی، صفراوی و آنزیم‌های پانکراس',
+    id: 'liver_pancreas',
+    title: '۳. کبد، صفرا و پانکراس (Hepato-Biliary & Pancreatic Profile)',
+    en: 'Liver & Pancreas',
     badge: 'LFT / Pancreas',
-    tests: [
-      { id: 'ast', label: 'AST (SGOT)', unit: 'U/L', min: 5, max: 40 },
-      { id: 'alt', label: 'ALT (SGPT)', unit: 'U/L', min: 5, max: 40 },
-      { id: 'alp', label: 'ALP', unit: 'U/L', min: 40, max: 130 },
-      { id: 'bili_t', label: 'Bilirubin Total', unit: 'mg/dL', min: 0.1, max: 1.2 },
-      { id: 'bili_d', label: 'Bilirubin Direct', unit: 'mg/dL', min: 0.0, max: 0.3 },
-      { id: 'amylase', label: 'Amylase', unit: 'U/L', min: 30, max: 110 },
-      { id: 'lipase', label: 'Lipase', unit: 'U/L', min: 10, max: 140 }
+    coreTestIds: ['ast', 'alt', 'alp', 'bili_t', 'bili_d', 'amylase', 'lipase'],
+    allTests: [
+      { id: 'ast', label: 'AST (SGOT)', unit: 'U/L', min: 10, max: 40, aliases: 'انزیم کبدی ast sgot' },
+      { id: 'alt', label: 'ALT (SGPT)', unit: 'U/L', min: 7, max: 56, aliases: 'انزیم کبدی alt sgpt' },
+      { id: 'alp', label: 'ALP (آلکالن فسفاتاز)', unit: 'U/L', min: 44, max: 147, aliases: 'الکالن فسفاتاز انسداد مجاری صفرا alp' },
+      { id: 'bili_t', label: 'Bilirubin Total', unit: 'mg/dL', min: 0.2, max: 1.2, aliases: 'بیلی روبین توتال زردی یرقان bili total' },
+      { id: 'bili_d', label: 'Bilirubin Direct', unit: 'mg/dL', min: 0.0, max: 0.3, aliases: 'بیلی روبین مستقیم دایرکت bili direct' },
+      { id: 'amylase', label: 'Amylase', unit: 'U/L', min: 28, max: 100, aliases: 'امیلاز انزیم پانکراس پانکراتیت amylase' },
+      { id: 'lipase', label: 'Lipase', unit: 'U/L', min: 10, max: 60, aliases: 'لیپاز پانکراس پانکراتیت حاد lipase' },
+      { id: 'ggt', label: 'GGT', unit: 'U/L', min: 9, max: 48, aliases: 'گاما گلوتامیل ترانسپپتیداز ggt' },
+      { id: 'ammonia', label: 'Ammonia', unit: 'µmol/L', min: 15, max: 45, aliases: 'امونیاک کبد انسفالوپاتی سیروز ammonia' }
     ]
   },
   {
-    id: 'blood_gases',
-    title: 'گازهای خونی (VBG / ABG)',
+    id: 'coag_inflam',
+    title: '۴. انعقادی و مارکرهای التهابی/سپسیس (Coagulation & Inflammatory/Sepsis)',
+    en: 'Coagulation & Inflammatory',
+    badge: 'Coag / Inflam',
+    coreTestIds: ['pt', 'ptt', 'inr', 'esr', 'crp'],
+    allTests: [
+      { id: 'pt', label: 'PT', unit: 'sec', min: 11.0, max: 13.5, aliases: 'پی تی زمان پروترومبین انعقاد pt' },
+      { id: 'ptt', label: 'PTT', unit: 'sec', min: 25.0, max: 35.0, aliases: 'پی تی تی ترومبوپلاستین ptt' },
+      { id: 'inr', label: 'INR', unit: '', min: 0.9, max: 1.15, aliases: 'ای ان ار وارفارین انعقاد inr' },
+      { id: 'fibrinogen', label: 'Fibrinogen', unit: 'mg/dL', min: 200, max: 400, aliases: 'فیبرینوژن انعقاد خون dic fibrinogen' },
+      { id: 'ddimer', label: 'D-Dimer', unit: 'µg/mL FEU', min: 0, max: 0.5, aliases: 'دی دایمر دیدایمر لخته امبولی ریه dvt pte d dimer' },
+      { id: 'esr', label: 'ESR', unit: 'mm/hr', min: 0, max: 20, aliases: 'ای اس ار رسوب گلبول قرمز esr' },
+      { id: 'crp', label: 'CRP', unit: 'mg/L', min: 0, max: 6, aliases: 'سی ار پی پروتئین واکنشی c crp' },
+      { id: 'procalcitonin', label: 'Procalcitonin (PCT)', unit: 'ng/mL', min: 0, max: 0.1, aliases: 'پروکلسیتونین سپسیس عفونت شدید pct procalcitonin' },
+      { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.0, aliases: 'لاکتات اسید لاکتیک ایسکمی مزانتر lactate' }
+    ]
+  },
+  {
+    id: 'cardiac_endo_tumor',
+    title: '۵. قلبی، غدد و تومورمارکرها (Cardiac, Endocrine & Tumor Markers)',
+    en: 'Cardiac, Endocrine & Tumor',
+    badge: 'Cardio / Endo / Tumor',
+    coreTestIds: ['troponin', 'tsh', 'bhcg', 'cea', 'ca19_9'],
+    allTests: [
+      { id: 'troponin', label: 'Troponin I / hs-TnI', unit: 'ng/mL', min: 0, max: 0.04, aliases: 'تروپونین سکته قلبی میوکاردیت troponin' },
+      { id: 'ck_mb', label: 'CK-MB', unit: 'ng/mL', min: 0, max: 5.0, aliases: 'سی کی ام بی انزیم قلبی ck mb' },
+      { id: 'bnp', label: 'NT-proBNP / BNP', unit: 'pg/mL', min: 0, max: 125, aliases: 'بی ان پی نارسایی قلبی bnp ntp robnp' },
+      { id: 'tsh', label: 'TSH', unit: 'µIU/mL', min: 0.4, max: 4.5, aliases: 'تی اس اچ تیروئید کم کاری پرکاری tsh' },
+      { id: 'free_t4', label: 'Free T4', unit: 'ng/dL', min: 0.8, max: 1.8, aliases: 'اف تی فور تی ۴ آزاد free t4' },
+      { id: 'free_t3', label: 'Free T3', unit: 'pg/mL', min: 2.3, max: 4.2, aliases: 'اف تی تری تی ۳ آزاد free t3' },
+      { id: 'bhcg', label: 'β-hCG (تست بارداری)', unit: 'mIU/mL', min: 0, max: 5.0, aliases: 'بتا بارداری حاملگی خارج رحمی bhcg beta hcg' },
+      { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 3.0, aliases: 'سی ای ای مارکر کانسر روده بزرگ کولورکتال معده cea' },
+      { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37, aliases: 'سی ای ۱۹ ۹ مارکر پانکراس لوزالمعده مجاری صفرا ca19 9' },
+      { id: 'afp', label: 'AFP', unit: 'ng/mL', min: 0, max: 10, aliases: 'الفا فتوپروتئین سرطان کبد hcc بیضه afp' },
+      { id: 'ca125', label: 'CA-125', unit: 'U/mL', min: 0, max: 35, aliases: 'سی ای ۱۲۵ سرطان تخمدان پریتونئوم ca 125' },
+      { id: 'psa', label: 'PSA Total', unit: 'ng/mL', min: 0, max: 4.0, aliases: 'پی اس ای پروستات psa total' },
+      { id: 'ferritin', label: 'Ferritin', unit: 'ng/mL', min: 30, max: 300, aliases: 'فریتین اهن فقر اهن ferritin' },
+      { id: 'vitamin_d3', label: '25-OH Vitamin D3', unit: 'ng/mL', min: 30, max: 100, aliases: 'ویتامین دی ۳ پوکی استخوان vit d3' }
+    ]
+  },
+  {
+    id: 'vbg_abg',
+    title: '۶. گازهای خونی VBG / ABG (Blood Gas Analysis)',
+    en: 'Blood Gas (VBG/ABG)',
     badge: 'VBG / ABG',
-    tests: [
-      { id: 'ph', label: 'pH', unit: '', min: 7.35, max: 7.45 },
-      { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45 },
-      { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26 },
-      { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2 },
-      { id: 'po2', label: 'PO2', unit: 'mmHg', min: 40, max: 100 },
-      { id: 'lactate', label: 'Lactate', unit: 'mmol/L', min: 0.5, max: 2.2 }
+    coreTestIds: ['ph', 'pco2', 'po2', 'hco3', 'be', 'o2sat'],
+    allTests: [
+      { id: 'ph', label: 'pH', unit: '', min: 7.35, max: 7.45, aliases: 'پی اچ اسیدوز الکالوز گاز خون ph' },
+      { id: 'pco2', label: 'PCO2', unit: 'mmHg', min: 35, max: 45, aliases: 'پی سی او دو تهویه تنفسی pco2' },
+      { id: 'po2', label: 'PO2', unit: 'mmHg', min: 80, max: 100, aliases: 'پی او دو اکسیژناسیون po2' },
+      { id: 'hco3', label: 'HCO3', unit: 'mEq/L', min: 22, max: 26, aliases: 'بیکربنات باز قلیا اسیدوز متابولیک hco3' },
+      { id: 'be', label: 'Base Excess (BE)', unit: 'mEq/L', min: -2, max: 2, aliases: 'بیس اکسس بیس دفیسیت base excess be' },
+      { id: 'o2sat', label: 'O2 Saturation', unit: '%', min: 95, max: 100, aliases: 'اشباع اکسیژن گاز خون o2 sat' }
     ]
   },
   {
-    id: 'endocrine_tumor',
-    title: 'هورمونی و تومورمارکرها',
-    badge: 'Tumor / Endo',
-    tests: [
-      { id: 'tsh', label: 'TSH', unit: 'mIU/L', min: 0.4, max: 4.5 },
-      { id: 'bhcg', label: 'β-hCG', unit: 'mIU/mL', min: 0, max: 5 },
-      { id: 'cea', label: 'CEA', unit: 'ng/mL', min: 0, max: 5.0 },
-      { id: 'ca19_9', label: 'CA 19-9', unit: 'U/mL', min: 0, max: 37 }
+    id: 'ua_uc',
+    title: '۷. آنالیز و کشت ادرار (U/A & U/C Urinalysis & Culture)',
+    en: 'Urinalysis & Culture (U/A & U/C)',
+    badge: 'U/A & U/C',
+    coreTestIds: ['ua_wbc', 'ua_rbc', 'ua_bacteria', 'ua_nitrite', 'ua_protein', 'ua_glucose', 'ua_ketone', 'ua_sg', 'uc'],
+    allTests: [
+      { id: 'ua_wbc', label: 'U/A WBC (گلبول سفید ادرار)', unit: '/HPF', min: 0, max: 4, aliases: 'دبلیو بی سی ادرار پیوری ua wbc' },
+      { id: 'ua_rbc', label: 'U/A RBC (گلبول قرمز ادرار)', unit: '/HPF', min: 0, max: 3, aliases: 'ار بی سی ادرار هماچوری ua rbc' },
+      { id: 'ua_bacteria', label: 'U/A Bacteria', unit: '', min: 0, max: 0, isQualitative: true, normalText: 'Negative / Few', aliases: 'باکتری ادرار عفونت ادراری ua bacteria' },
+      { id: 'ua_nitrite', label: 'U/A Nitrite', unit: '', min: 0, max: 0, isQualitative: true, normalText: 'Negative', aliases: 'نیتریت ادرار عفونت باکتریایی ua nitrite' },
+      { id: 'ua_protein', label: 'U/A Protein', unit: '', min: 0, max: 0, isQualitative: true, normalText: 'Negative / Trace', aliases: 'پروتئین ادرار دفع پروتئین ua protein' },
+      { id: 'ua_glucose', label: 'U/A Glucose', unit: '', min: 0, max: 0, isQualitative: true, normalText: 'Negative', aliases: 'قند ادرار گلوکزوری دیابت ua glucose' },
+      { id: 'ua_ketone', label: 'U/A Ketone', unit: '', min: 0, max: 0, isQualitative: true, normalText: 'Negative', aliases: 'کتون ادرار کتواسیدوز گرسنگی ua ketone' },
+      { id: 'ua_sg', label: 'Specific Gravity (SG)', unit: '', min: 1.005, max: 1.030, aliases: 'وزن مخصوص ادرار غلظت ادرار sg specific gravity' },
+      { id: 'uc', label: 'Urine Culture (U/C - کشت ادرار)', unit: 'CFU/mL', min: 0, max: 10000, isQualitative: true, normalText: 'No growth', aliases: 'کشت ادرار انتی بیوگرام یو سی uc urine culture' }
     ]
   }
 ];
+
+export const LAB_PANELS = SURGICAL_LAB_PANELS;
 
 // ==========================================================================
 // v0.8-Omnisearch: Hidden Extended PMH Database (80+ Conditions for Fuzzy Search)
@@ -2465,45 +2524,58 @@ export const HIDDEN_EXTENDED_PMH_DATABASE = [
 // ==========================================================================
 export const MASTER_PSH_SURGERIES_BANK = [
   // جراحی عمومی (General Surgery)
-  { id: 'psh_appendectomy', label: 'آپاندکتومی (Appendectomy)', en: 'Appendectomy', category: 'General' },
-  { id: 'psh_cholecystectomy', label: 'کوله سیستکتومی (Cholecystectomy - Open/Lap)', en: 'Cholecystectomy', category: 'General' },
-  { id: 'psh_hernia_repair', label: 'ترمیم هرنی (Herniorrhaphy / Hernioplasty)', en: 'Hernia Repair', category: 'General' },
-  { id: 'psh_mastectomy', label: 'ماستکتومی / لامپکتومی پستان (Mastectomy / Lumpectomy)', en: 'Mastectomy', category: 'General' },
-  { id: 'psh_splenectomy', label: 'اسپلنکتومی (طحال‌برداری)', en: 'Splenectomy', category: 'General' },
-  { id: 'psh_thyroidectomy', label: 'تیروئیدکتومی (Thyroidectomy)', en: 'Thyroidectomy', category: 'General' },
-  { id: 'psh_hemorrhoidectomy', label: 'هموروئیدکتومی / فیشرکتومی', en: 'Hemorrhoidectomy', category: 'General' },
-  { id: 'psh_laparotomy', label: 'لاپاراتومی تجسسی (Exploratory Laparotomy)', en: 'Exploratory Laparotomy', category: 'General' },
-  { id: 'psh_bariatric', label: 'جراحی چاقی (اسلیو / بای‌پس معده)', en: 'Bariatric Surgery (Sleeve/Bypass)', category: 'General' },
-  
+  { id: 'psh_appendectomy', label: 'آپاندکتومی (Appendectomy)', en: 'Appendectomy', category: 'General', aliases: 'آپاندیس اپاندیس عمل اپاندیسیت آپاندکتومی لاپاروسکوپیک appendectomy appy' },
+  { id: 'psh_cholecystectomy', label: 'کوله‌سیستکتومی (Cholecystectomy - Open/Lap)', en: 'Cholecystectomy', category: 'General', aliases: 'کیسه صفرا کله سیستکتومی کوله سیستکتومی سنگ صفرا لاپاراسکوپی cholecystectomy lap chole' },
+  { id: 'psh_hernia_repair', label: 'ترمیم هرنی / فتق (Hernia Repair - Inguinal/Ventral/Umbilical)', en: 'Hernia Repair', category: 'General', aliases: 'فتق هرنی باد فتق اینگوینال شکمی نافی مش هرنیوپلاستی hernia repair herniorrhaphy' },
+  { id: 'psh_mastectomy', label: 'ماستکتومی / لامپکتومی پستان (Mastectomy / Lumpectomy)', en: 'Mastectomy / Lumpectomy', category: 'General', aliases: 'توده سینه سرطان پستان تخلیه سینه غده پستان mastectomy lumpectomy' },
+  { id: 'psh_splenectomy', label: 'اسپلنکتومی (طحال‌برداری)', en: 'Splenectomy', category: 'General', aliases: 'برداشتن طحال تروما تصادف پاره شدن طحال splenectomy' },
+  { id: 'psh_thyroidectomy', label: 'تیروئیدکتومی / پاراتیروئیدکتومی (Thyroidectomy)', en: 'Thyroidectomy', category: 'General', aliases: 'جراحی تیروئید گواتر توده گردن پاراتیروئید thyroidectomy parathyroid' },
+  { id: 'psh_hemorrhoidectomy', label: 'هموروئیدکتومی / فیشرکتومی / فیستولکتومی', en: 'Hemorrhoidectomy / Anorectal Surgery', category: 'General', aliases: 'بواسیر هموروئید فیشر شقاق مقعد فیستول سینوس پیلونیدال کیست مویی hemorrhoidectomy' },
+  { id: 'psh_laparotomy', label: 'لاپاراتومی تجسسی (Exploratory Laparotomy)', en: 'Exploratory Laparotomy', category: 'General', aliases: 'عمل باز شکم انسداد روده چسبندگی لاپاراتومی laparotomy ex-lap' },
+  { id: 'psh_bariatric', label: 'جراحی چاقی (اسلیو / بای‌پس معده)', en: 'Bariatric Surgery (Sleeve / Gastric Bypass)', category: 'General', aliases: 'اسلیو معده بای پس کوچک کردن معده چاقی لاغری sleeve bypass bariatric' },
+  { id: 'psh_colectomy', label: 'کالکتومی / رزکسیون روده (Colectomy / Bowel Resection)', en: 'Colectomy / Bowel Resection', category: 'General', aliases: 'برداشتن روده روده بزرگ کولورکتال همیکالکتومی colectomy' },
+  { id: 'psh_stoma', label: 'تعبیه یا بستن استومی (Colostomy / Ileostomy)', en: 'Stoma Creation / Closure', category: 'General', aliases: 'کیسه استومی کلستومی ایلئوستومی بستن استومی colostomy ileostomy stoma' },
+  { id: 'psh_gastrectomy', label: 'گاسترکتومی (برداشتن تمام یا قسمتی از معده)', en: 'Gastrectomy (Total / Subtotal)', category: 'General', aliases: 'معده برداری تومور معده گاسترکتومی زخم سوراخ شده gastrectomy' },
+
+  // قلب و عروق و توراکس (Cardiothoracic & Vascular)
+  { id: 'psh_cabg', label: 'پیوند عروق کرونر / عمل قلب باز (CABG)', en: 'Coronary Artery Bypass Graft (CABG)', category: 'Cardiothoracic', aliases: 'عمل قلب باز پیوند عروق کرونری قلب رگ پا بای پس قلب cabg open heart' },
+  { id: 'psh_pci_stent', label: 'آنژیوپلاستی و تعبیه استنت قلبی (PCI / Stent)', en: 'Percutaneous Coronary Intervention (PCI / Stent)', category: 'Cardiothoracic', aliases: 'فنر قلب استنت آنژیوگرافی بالون رگ قلب pci stent' },
+  { id: 'psh_valve_surgery', label: 'تعویض یا ترمیم دریچه قلب (Valve Replacement / Repair)', en: 'Heart Valve Replacement / Repair', category: 'Cardiothoracic', aliases: 'دریچه قلب میترال آئورت مکانیکی بیولوژیک valve replacement avr mvr' },
+  { id: 'psh_pacemaker', label: 'تعبیه ضربان‌ساز / باتری قلب (Pacemaker / ICD)', en: 'Permanent Pacemaker / ICD Placement', category: 'Cardiothoracic', aliases: 'باتری قلب ضربان ساز پیس میکر دفیبریلاتور pacemaker icd' },
+  { id: 'psh_thoracotomy', label: 'توراکوتومی / جراحی قفسه سینه (Thoracotomy / VATS)', en: 'Thoracotomy / VATS', category: 'Cardiothoracic', aliases: 'عمل قفسه سینه لوبکتومی ریه دکورتیکاسیون واتس thoracotomy vats' },
+  { id: 'psh_av_fistula', label: 'تعبیه فیستول شریانی-وریدی دیالیز (AV Fistula)', en: 'Arteriovenous (AV) Fistula Creation', category: 'Vascular', aliases: 'فیستول دست دیالیز رگ دیالیزی avf fistula' },
+
   // ارتوپدی (Orthopedics)
-  { id: 'psh_tka', label: 'تعویض مفصل زانو (TKA)', en: 'Total Knee Arthroplasty', category: 'Ortho' },
-  { id: 'psh_tha', label: 'تعویض مفصل ران (THA)', en: 'Total Hip Arthroplasty', category: 'Ortho' },
-  { id: 'psh_orif', label: 'جااندازی باز و تثبیت شکستگی (ORIF)', en: 'Open Reduction Internal Fixation (ORIF)', category: 'Ortho' },
-  { id: 'psh_arthroscopy', label: 'آرتروسکوپی زانو / شانه (ترمیم مینیسک/ACL)', en: 'Arthroscopy (ACL/Meniscus)', category: 'Ortho' },
-  { id: 'psh_carpal_tunnel', label: 'آزادسازی تونل کارپ (CTS Release)', en: 'Carpal Tunnel Release', category: 'Ortho' },
-  
-  // ارولوژی (Urology)
-  { id: 'psh_turp', label: 'تراشیدن پروستات از راه مجرا (TURP)', en: 'Transurethral Resection of Prostate (TURP)', category: 'Urology' },
-  { id: 'psh_turt', label: 'رزکسیون تومور مثانه (TURB/TURT)', en: 'Transurethral Resection of Bladder Tumor', category: 'Urology' },
-  { id: 'psh_pcnl', label: 'سنگ‌شکنی کلیه (PCNL / TUL / ESWL)', en: 'PCNL / Ureteroscopy (TUL)', category: 'Urology' },
-  { id: 'psh_varicocele', label: 'واریکوسلکتومی (Varicocelectomy)', en: 'Varicocelectomy', category: 'Urology' },
-  { id: 'psh_nephrectomy', label: 'نفرکتومی (برداشتن کلیه)', en: 'Nephrectomy', category: 'Urology' },
-  
+  { id: 'psh_tka', label: 'تعویض مفصل زانو (Total Knee Arthroplasty - TKA)', en: 'Total Knee Arthroplasty (TKA)', category: 'Ortho', aliases: 'پروتز زانو مفصل زانو ارتروپلاستی tka knee replacement' },
+  { id: 'psh_tha', label: 'تعویض مفصل ران / لگن (Total Hip Arthroplasty - THA)', en: 'Total Hip Arthroplasty (THA)', category: 'Ortho', aliases: 'پروتز لگن مفصل ران ارتروپلاستی شکستگی لگن tha hip replacement' },
+  { id: 'psh_orif', label: 'جااندازی باز و تثبیت شکستگی با پیچ و پلاک / پلاتین (ORIF)', en: 'Open Reduction & Internal Fixation (ORIF)', category: 'Ortho', aliases: 'پلاتین پیچ پلاک شکستگی دست پا ساق ران بازو orif plate screw' },
+  { id: 'psh_arthroscopy', label: 'آرتروسکوپی زانو / شانه (ترمیم مینیسک / رباط صلیبی ACL)', en: 'Arthroscopy (ACL Reconstruction / Meniscectomy)', category: 'Ortho', aliases: 'رباط صلیبی مینیسک ارتروسکوپی زانو شانه acl meniscus arthroscopy' },
+  { id: 'psh_carpal_tunnel', label: 'آزادسازی تونل کارپ (CTS Release)', en: 'Carpal Tunnel Release', category: 'Ortho', aliases: 'عصب مچ دست سی تی اس گزگز انگشتان cts carpal tunnel' },
+  { id: 'psh_amputation', label: 'آمپوتاسیون اندام / قطع عضو (Amputation)', en: 'Limb Amputation (AKA / BKA / Toe)', category: 'Ortho', aliases: 'قطع پا انگشت دیابتی زیر زانو بالای زانو amputation bka aka' },
+
+  // اورولوژی (Urology)
+  { id: 'psh_turp', label: 'تراشیدن پروستات از مجرا (TURP)', en: 'Transurethral Resection of Prostate (TURP)', category: 'Urology', aliases: 'پروستات لیزر پروستات عمل بسته پروستات turp prostate' },
+  { id: 'psh_turt', label: 'رزکسیون تومور مثانه از مجرا (TURBT / TURT)', en: 'Transurethral Resection of Bladder Tumor (TURBT)', category: 'Urology', aliases: 'تومور مثانه گوشت اضافه مثانه خونریزی ادرار turbt turt' },
+  { id: 'psh_tul_pcnl', label: 'سنگ‌شکنی و خارج‌سازی سنگ کلیه و حالب (TUL / PCNL / ESWL)', en: 'Endourologic Stone Surgery (TUL / PCNL / ESWL)', category: 'Urology', aliases: 'سنگ کلیه سنگ حالب تی یو ال پلاتین سوند دبل جی tul pcnl eswl dj stent' },
+  { id: 'psh_varicocele', label: 'واریکوسلکتومی (Varicocelectomy)', en: 'Varicocelectomy', category: 'Urology', aliases: 'واریکوسل رگ بیضه ناباروری varicocele' },
+  { id: 'psh_nephrectomy', label: 'نفرکتومی (برداشتن کلیه - تک‌کلیه)', en: 'Nephrectomy (Total / Partial)', category: 'Urology', aliases: 'برداشتن کلیه تک کلیه تومور کلیه اهدای کلیه nephrectomy solitary kidney' },
+
   // گوش و حلق و بینی و سر و گردن (ENT & Head/Neck)
-  { id: 'psh_tonsillectomy', label: 'لوزه‌برداری (Tonsillectomy / Adenoidectomy)', en: 'Tonsillectomy', category: 'ENT' },
-  { id: 'psh_rhinoplasty', label: 'رینوپلاستی / سپتوپلاستی', en: 'Septorhinoplasty', category: 'ENT' },
-  { id: 'psh_tympanoplasty', label: 'تمپانوپلاستی / ماستوئیدکتومی', en: 'Tympanoplasty / Mastoidectomy', category: 'ENT' },
-  
+  { id: 'psh_tonsillectomy', label: 'لوزه‌برداری (Tonsillectomy / Adenoidectomy)', en: 'Tonsillectomy / Adenoidectomy', category: 'ENT', aliases: 'لوزه سوم عمل لوزه گوش حلق بینی tonsillectomy' },
+  { id: 'psh_rhinoplasty', label: 'رینوپلاستی / سپتوپلاستی (جراحی زیبایی/انحراف بینی)', en: 'Septorhinoplasty', category: 'ENT', aliases: 'عمل بینی انحراف تیغه پولیپ بینی رینو rhinoplasty septoplasty' },
+  { id: 'psh_tympanoplasty', label: 'تمپانوپلاستی / ماستوئیدکتومی (جراحی گوش)', en: 'Tympanoplasty / Mastoidectomy', category: 'ENT', aliases: 'پرده گوش عفونت گوش جراحی گوش tympanoplasty mastoidectomy' },
+
   // جراحی اعصاب و ستون فقرات (Neurosurgery & Spine)
-  { id: 'psh_discectomy', label: 'جراحی دیسک کمر / گردن (Discectomy / Laminectomy)', en: 'Lumbar/Cervical Discectomy', category: 'Neurosurgery' },
-  { id: 'psh_craniotomy', label: 'کرانیوتومی (تخلیه هماتوم یا تومور مغزی)', en: 'Craniotomy (Hematoma/Tumor)', category: 'Neurosurgery' },
-  
+  { id: 'psh_discectomy', label: 'جراحی دیسک کمر / گردن (Discectomy / Laminectomy / Fusion)', en: 'Lumbar/Cervical Spine Surgery', category: 'Neurosurgery', aliases: 'دیسک کمر لامینکتومی پلاتین ستون فقرات گردن فیوژن discectomy laminectomy fusion' },
+  { id: 'psh_craniotomy', label: 'کرانیوتومی (تخلیه هماتوم یا تومور مغزی)', en: 'Craniotomy (Hematoma / Tumor Excision)', category: 'Neurosurgery', aliases: 'عمل مغز لخته مغزی تومور جمجمه کرانیوتومی craniotomy hematoma' },
+  { id: 'psh_vp_shunt', label: 'تعبیه شنت مغزی (Ventriculoperitoneal Shunt)', en: 'VP Shunt Placement', category: 'Neurosurgery', aliases: 'شنت سر هیدروسفالی اب اوردن مغز vp shunt hydrocephalus' },
+
   // زنان و زایمان (Gynecology & Obstetrics)
-  { id: 'psh_cesarean', label: 'سزارین (C-Section)', en: 'Cesarean Delivery (C-Section)', category: 'OB/GYN' },
-  { id: 'psh_hysterectomy', label: 'هیسترکتومی (رحم‌برداری - TAH/VH)', en: 'Hysterectomy (TAH/VH)', category: 'OB/GYN' },
-  { id: 'psh_oophorectomy', label: 'اووفورکتومی / کیست تخمدان', en: 'Oophorectomy / Ovarian Cystectomy', category: 'OB/GYN' },
-  { id: 'psh_dnc', label: 'کورتاژ تخلیه‌ای / تشخیصی (D&C)', en: 'Dilation & Curettage (D&C)', category: 'OB/GYN' },
-  { id: 'psh_tubal_ligation', label: 'بستن لوله‌ها (TL)', en: 'Tubal Ligation', category: 'OB/GYN' }
+  { id: 'psh_cesarean', label: 'سزارین (C-Section)', en: 'Cesarean Delivery (C-Section)', category: 'OB/GYN', aliases: 'سزارین زایمان سزارین برش سزارین c-section cesarean' },
+  { id: 'psh_hysterectomy', label: 'هیسترکتومی (رحم‌برداری - TAH / VH)', en: 'Hysterectomy (TAH / VH)', category: 'OB/GYN', aliases: 'درآوردن رحم فیبروم رحم برداری تخلیه رحم hysterectomy tah vh' },
+  { id: 'psh_oophorectomy', label: 'اووفورکتومی / کیست تخمدان (Oophorectomy / Cystectomy)', en: 'Oophorectomy / Ovarian Cystectomy', category: 'OB/GYN', aliases: 'کیست تخمدان درآوردن تخمدان لاپاراسکوپی تخمدان oophorectomy ovarian cyst' },
+  { id: 'psh_dnc', label: 'کورتاژ تخلیه‌ای / تشخیصی (D&C)', en: 'Dilation & Curettage (D&C)', category: 'OB/GYN', aliases: 'کورتاژ سقط جنین خونریزی رحم نمونه برداری d&c curettage' },
+  { id: 'psh_tubal_ligation', label: 'بستن لوله‌های رحمی (Tubal Ligation - TL)', en: 'Tubal Ligation (TL)', category: 'OB/GYN', aliases: 'بستن لوله عقیم سازی تی ال tl tubal ligation' }
 ];
 
 export const PSH_SURGICAL_PROCEDURES_BANK = MASTER_PSH_SURGERIES_BANK;
@@ -2538,85 +2610,89 @@ export const FH_CANCER_HEREDITARY_DATABASE = [
 // v0.8-Omnisearch: Extended Labs Database (Over 60 Supplementary Labs)
 // ==========================================================================
 export const EXTENDED_LAB_DATABASE = [
-  // هماتولوژی تکمیلی
-  { id: 'lab_hct', label: 'Hct (Hematocrit)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '40 - 52', aliases: 'هماتوکریت غلظت خون hct' },
-  { id: 'lab_mcv', label: 'MCV (Mean Corpuscular Volume)', category: 'هماتولوژی تکمیلی', unit: 'fL', normalRange: '80 - 100', aliases: 'ام سی وی حجم متوسط گلبول قرمز mcv' },
-  { id: 'lab_mch', label: 'MCH', category: 'هماتولوژی تکمیلی', unit: 'pg', normalRange: '27 - 33', aliases: 'ام سی اچ mch' },
-  { id: 'lab_mchc', label: 'MCHC', category: 'هماتولوژی تکمیلی', unit: 'g/dL', normalRange: '32 - 36', aliases: 'ام سی اچ سی mchc' },
-  { id: 'lab_rdw', label: 'RDW (Red Cell Distribution Width)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '11.5 - 14.5', aliases: 'پراکندگی گلبول قرمز rdw' },
-  { id: 'lab_neutrophils_pct', label: 'Neutrophils (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '50 - 70', aliases: 'نوتروفیل درصد شیفت به چپ neut' },
-  { id: 'lab_lymphocytes_pct', label: 'Lymphocytes (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '20 - 40', aliases: 'لنفوسیت درصد lymph' },
-  { id: 'lab_eosinophils_pct', label: 'Eosinophils (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '1 - 4', aliases: 'ائوزینوفیل حساسیت انگل eos' },
-  { id: 'lab_retic', label: 'Reticulocyte Count (%)', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '0.5 - 2.5', aliases: 'رتیک رتیکولوسیت مغز استخوان retic' },
+  // هماتولوژی تکمیلی (CBC)
+  { id: 'lab_hct', label: 'Hct (Hematocrit)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '40 - 52', aliases: 'هماتوکریت غلظت خون hct' },
+  { id: 'lab_mcv', label: 'MCV (Mean Corpuscular Volume)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: 'fL', normalRange: '80 - 100', aliases: 'ام سی وی حجم متوسط گلبول قرمز mcv' },
+  { id: 'lab_mch', label: 'MCH', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: 'pg', normalRange: '27 - 33', aliases: 'ام سی اچ mch' },
+  { id: 'lab_mchc', label: 'MCHC', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: 'g/dL', normalRange: '32 - 36', aliases: 'ام سی اچ سی mchc' },
+  { id: 'lab_rdw', label: 'RDW (Red Cell Distribution Width)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '11.5 - 14.5', aliases: 'پراکندگی گلبول قرمز rdw' },
+  { id: 'lab_neutrophils_pct', label: 'Neutrophils (%)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '50 - 70', aliases: 'نوتروفیل درصد شیفت به چپ neut' },
+  { id: 'lab_lymphocytes_pct', label: 'Lymphocytes (%)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '20 - 40', aliases: 'لنفوسیت درصد lymph' },
+  { id: 'lab_monocytes_pct', label: 'Monocytes (%)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '2 - 8', aliases: 'مونوسیت درصد mono' },
+  { id: 'lab_eosinophils_pct', label: 'Eosinophils (%)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '1 - 4', aliases: 'ائوزینوفیل حساسیت انگل eos' },
+  { id: 'lab_retic', label: 'Reticulocyte Count (%)', panel: 'cbc', category: 'هماتولوژی تکمیلی', unit: '%', normalRange: '0.5 - 2.5', aliases: 'رتیک رتیکولوسیت مغز استخوان retic' },
 
-  // بیوشیمی و الکترولیت تکمیلی
-  { id: 'lab_calcium', label: 'Calcium (Ca - کلسیم سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '8.5 - 10.5', aliases: 'کلسیم سرم پاراتیروئید ca calcium' },
-  { id: 'lab_magnesium', label: 'Magnesium (Mg - منیزیم سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '1.7 - 2.4', aliases: 'منیزیم سرم mg magnesium' },
-  { id: 'lab_phosphorus', label: 'Phosphorus (P - فسفر سرم)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '2.5 - 4.5', aliases: 'فسفر سرم p phosphorus' },
-  { id: 'lab_uric_acid', label: 'Uric Acid (اسید اوریک)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '3.5 - 7.2', aliases: 'اسید اوریک نقرس uric acid' },
-  { id: 'lab_albumin', label: 'Albumin (آلبومین سرم)', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '3.5 - 5.2', aliases: 'البومین سرم سوءتغذیه کبد albumin' },
-  { id: 'lab_total_protein', label: 'Total Protein (پروتئین توتال)', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '6.4 - 8.3', aliases: 'پروتئین کل total protein' },
-  { id: 'lab_ldh', label: 'LDH (Lactate Dehydrogenase)', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '140 - 280', aliases: 'ال دی اچ تخریب بافتی ایسکمی روده ldh' },
-  { id: 'lab_cpk', label: 'CPK / CK (Creatine Kinase)', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '30 - 200', aliases: 'سی پی کی کراتین کیناز رابدومیولیز عضلانی cpk ck' },
-  { id: 'lab_cholesterol', label: 'Total Cholesterol (کلسترول کل)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 200', aliases: 'کلسترول چربی cholesterol' },
-  { id: 'lab_triglycerides', label: 'Triglycerides (TG - تری‌گلیسرید)', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 150', aliases: 'تری گلیسیرید تی جی tg پانکراتیت' },
-  { id: 'lab_hdl', label: 'HDL Cholesterol', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '> 40', aliases: 'چربی خوب hdl' },
-  { id: 'lab_ldl', label: 'LDL Cholesterol', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 100', aliases: 'چربی بد ldl' },
-  { id: 'lab_ammonia', label: 'Ammonia (آمونیاک سرم)', category: 'بیوشیمی و الکترولیت', unit: 'µmol/L', normalRange: '15 - 45', aliases: 'امونیاک کبد انسفالوپاتی سیروز ammonia' },
+  // بیوشیمی و الکترولیت تکمیلی (Biochem / Renal)
+  { id: 'lab_calcium', label: 'Calcium (Ca - کلسیم سرم)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '8.5 - 10.5', aliases: 'کلسیم سرم پاراتیروئید ca calcium' },
+  { id: 'lab_magnesium', label: 'Magnesium (Mg - منیزیم سرم)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '1.7 - 2.4', aliases: 'منیزیم سرم mg magnesium' },
+  { id: 'lab_phosphorus', label: 'Phosphorus (P - فسفر سرم)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '2.5 - 4.5', aliases: 'فسفر سرم p phosphorus' },
+  { id: 'lab_uric_acid', label: 'Uric Acid (اسید اوریک)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '3.5 - 7.2', aliases: 'اسید اوریک نقرس uric acid' },
+  { id: 'lab_albumin', label: 'Albumin (آلبومین سرم)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '3.5 - 5.2', aliases: 'البومین سرم سوءتغذیه کبد albumin' },
+  { id: 'lab_total_protein', label: 'Total Protein (پروتئین توتال)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'g/dL', normalRange: '6.4 - 8.3', aliases: 'پروتئین کل total protein' },
+  { id: 'lab_ldh', label: 'LDH (Lactate Dehydrogenase)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '140 - 280', aliases: 'ال دی اچ تخریب بافتی ایسکمی روده ldh' },
+  { id: 'lab_cpk', label: 'CPK / CK (Creatine Kinase)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'U/L', normalRange: '30 - 200', aliases: 'سی پی کی کراتین کیناز رابدومیولیز عضلانی cpk ck' },
+  { id: 'lab_cholesterol', label: 'Total Cholesterol (کلسترول کل)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 200', aliases: 'کلسترول چربی cholesterol' },
+  { id: 'lab_triglycerides', label: 'Triglycerides (TG - تری‌گلیسرید)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 150', aliases: 'تری گلیسیرید تی جی tg پانکراتیت' },
+  { id: 'lab_hdl', label: 'HDL Cholesterol', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '> 40', aliases: 'چربی خوب hdl' },
+  { id: 'lab_ldl', label: 'LDL Cholesterol', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: 'mg/dL', normalRange: '< 100', aliases: 'چربی بد ldl' },
+  { id: 'lab_hba1c', label: 'HbA1c (هموگلوبین گلیکوزیله)', panel: 'biochem_renal', category: 'بیوشیمی و الکترولیت', unit: '%', normalRange: '< 5.7', aliases: 'هموگلوبین ای وان سی قند سه ماهه hba1c a1c' },
 
-  // قلبی، ترومبوز و سپسیس
-  { id: 'lab_troponin_i', label: 'Troponin I / hs-Troponin (تروپونین)', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.04', aliases: 'تروپونین ای سکته قلبی میوکاردیت troponin' },
-  { id: 'lab_ck_mb', label: 'CK-MB', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 5', aliases: 'سی کی ام بی انزیم قلبی ck mb' },
-  { id: 'lab_bnp', label: 'NT-proBNP / BNP', category: 'قلبی و ترومبوز', unit: 'pg/mL', normalRange: '< 125', aliases: 'بی ان پی نارسایی قلبی bnp ntp robnp' },
-  { id: 'lab_d_dimer', label: 'D-Dimer (دی‌دایمر)', category: 'قلبی و ترومبوز', unit: 'µg/mL FEU', normalRange: '< 0.5', aliases: 'دیدایمر دی دایمر لخته امبولی ریه dvt pte d dimer' },
-  { id: 'lab_procalcitonin', label: 'Procalcitonin (پروکلسیتونین - PCT)', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.1', aliases: 'پروکلسیتونین سپسیس عفونت شدید pct procalcitonin' },
-  { id: 'lab_lactate', label: 'Lactate (اسید لاکتیک / لاکتات)', category: 'قلبی و ترومبوز', unit: 'mmol/L', normalRange: '0.5 - 2.0', aliases: 'لاکتات اسیدوز لاکتیک پرفیوژن ایسکمی مزانتر lactate' },
-  { id: 'lab_fibrinogen', label: 'Fibrinogen (فیبرینوژن)', category: 'قلبی و ترومبوز', unit: 'mg/dL', normalRange: '200 - 400', aliases: 'فیبرینوژن انعقاد خون dic fibrinogen' },
+  // کبد، صفرا و پانکراس (Liver & Pancreas)
+  { id: 'lab_ammonia', label: 'Ammonia (آمونیاک سرم)', panel: 'liver_pancreas', category: 'کبد و صفرا', unit: 'µmol/L', normalRange: '15 - 45', aliases: 'امونیاک کبد انسفالوپاتی سیروز ammonia' },
+  { id: 'lab_ggt', label: 'GGT (گاما گلوتامیل ترانسپپتیداز)', panel: 'liver_pancreas', category: 'کبد و صفرا', unit: 'U/L', normalRange: '9 - 48', aliases: 'گاما گلوتامیل ggt صفرا الکل' },
+
+  // انعقادی و مارکرهای التهابی/سپسیس (Coagulation & Inflammatory)
+  { id: 'lab_d_dimer', label: 'D-Dimer (دی‌دایمر)', panel: 'coag_inflam', category: 'قلبی و ترومبوز', unit: 'µg/mL FEU', normalRange: '< 0.5', aliases: 'دیدایمر دی دایمر لخته امبولی ریه dvt pte d dimer' },
+  { id: 'lab_procalcitonin', label: 'Procalcitonin (پروکلسیتونین - PCT)', panel: 'coag_inflam', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.1', aliases: 'پروکلسیتونین سپسیس عفونت شدید pct procalcitonin' },
+  { id: 'lab_lactate', label: 'Lactate (اسید لاکتیک / لاکتات)', panel: 'coag_inflam', category: 'قلبی و ترومبوز', unit: 'mmol/L', normalRange: '0.5 - 2.0', aliases: 'لاکتات اسیدوز لاکتیک پرفیوژن ایسکمی مزانتر lactate' },
+  { id: 'lab_fibrinogen', label: 'Fibrinogen (فیبرینوژن)', panel: 'coag_inflam', category: 'قلبی و ترومبوز', unit: 'mg/dL', normalRange: '200 - 400', aliases: 'فیبرینوژن انعقاد خون dic fibrinogen' },
+  { id: 'lab_hbs_ag', label: 'HBsAg (آنتی‌ژن سطحی هپاتیت B)', panel: 'coag_inflam', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت بی اچ بی اس hbsag hbv' },
+  { id: 'lab_hcv_ab', label: 'HCV Ab (آنتی‌بادی هپاتیت C)', panel: 'coag_inflam', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت سی hcv ab' },
+  { id: 'lab_hiv_ab', label: 'HIV 1/2 Ab & p24 Ag (ایدز)', panel: 'coag_inflam', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'ایدز اچ ای وی hiv' },
+  { id: 'lab_wright', label: 'Wright & 2ME (تست رایت تب مالت)', panel: 'coag_inflam', category: 'ویروسی و عفونی', unit: 'Titer', normalRange: 'Negative / < 1:80', aliases: 'رایت رایت کومبس تب مالت بروسلوز wright 2me' },
+  { id: 'lab_blood_culture', label: 'Blood Culture (کشت خون دو بستر)', panel: 'coag_inflam', category: 'ویروسی و عفونی', unit: '', normalRange: 'No growth', aliases: 'کشت خون باکتری سپسیس بستر blood culture' },
 
   // گازهای خونی شریانی و وریدی (VBG / ABG)
-  { id: 'lab_vbg_ph', label: 'pH (VBG / ABG)', category: 'گازهای خونی (VBG/ABG)', unit: '', normalRange: '7.35 - 7.45', aliases: 'پی اچ اسیدوز الکالوز گاز خون ph' },
-  { id: 'lab_vbg_pco2', label: 'PCO2 (فشار دی‌اکسید کربن)', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '35 - 45', aliases: 'پی سی او دو تهویه تنفسی pco2' },
-  { id: 'lab_vbg_po2', label: 'PO2 (فشار اکسیژن)', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '80 - 100', aliases: 'پی او دو اکسیژناسیون po2' },
-  { id: 'lab_vbg_hco3', label: 'HCO3 (بی‌کربنات)', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '22 - 26', aliases: 'بیکربنات باز قلیا اسیدوز متابولیک hco3' },
-  { id: 'lab_vbg_be', label: 'Base Excess (BE - باز اضافی)', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '-2 to +2', aliases: 'بیس اکسس بیس دفیسیت base excess be' },
-  { id: 'lab_vbg_o2sat', label: 'O2 Saturation (اشباع اکسیژن گاز خون)', category: 'گازهای خونی (VBG/ABG)', unit: '%', normalRange: '95 - 100', aliases: 'اشباع اکسیژن وریدی شریانی o2 sat' },
+  { id: 'lab_vbg_ph', label: 'pH (VBG / ABG)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: '', normalRange: '7.35 - 7.45', aliases: 'پی اچ اسیدوز الکالوز گاز خون ph' },
+  { id: 'lab_vbg_pco2', label: 'PCO2 (فشار دی‌اکسید کربن)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '35 - 45', aliases: 'پی سی او دو تهویه تنفسی pco2' },
+  { id: 'lab_vbg_po2', label: 'PO2 (فشار اکسیژن)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: 'mmHg', normalRange: '80 - 100', aliases: 'پی او دو اکسیژناسیون po2' },
+  { id: 'lab_vbg_hco3', label: 'HCO3 (بی‌کربنات)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '22 - 26', aliases: 'بیکربنات باز قلیا اسیدوز متابولیک hco3' },
+  { id: 'lab_vbg_be', label: 'Base Excess (BE - باز اضافی)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: 'mEq/L', normalRange: '-2 to +2', aliases: 'بیس اکسس بیس دفیسیت base excess be' },
+  { id: 'lab_vbg_o2sat', label: 'O2 Saturation (اشباع اکسیژن گاز خون)', panel: 'vbg_abg', category: 'گازهای خونی (VBG/ABG)', unit: '%', normalRange: '95 - 100', aliases: 'اشباع اکسیژن وریدی شریانی o2 sat' },
 
-  // غدد، آهن و ویتامین‌ها
-  { id: 'lab_tsh', label: 'TSH (تیروئید تروپین)', category: 'غدد و ویتامین‌ها', unit: 'µIU/mL', normalRange: '0.4 - 4.5', aliases: 'تی اس اچ تیروئید کم کاری پرکاری tsh' },
-  { id: 'lab_free_t4', label: 'Free T4 (تیروکسین آزاد)', category: 'غدد و ویتامین‌ها', unit: 'ng/dL', normalRange: '0.8 - 1.8', aliases: 'اف تی فور تی ۴ آزاد free t4' },
-  { id: 'lab_free_t3', label: 'Free T3 (تری‌یدوتیرونین آزاد)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '2.3 - 4.2', aliases: 'اف تی تری تی ۳ آزاد free t3' },
-  { id: 'lab_hba1c', label: 'HbA1c (هموگلوبین گلیکوزیله)', category: 'غدد و ویتامین‌ها', unit: '%', normalRange: '< 5.7', aliases: 'هموگلوبین ای وان سی قند سه ماهه hba1c a1c' },
-  { id: 'lab_bhcg', label: 'β-hCG (تست بارداری بتا تیتر)', category: 'غدد و ویتامین‌ها', unit: 'mIU/mL', normalRange: '< 5 (Negative)', aliases: 'بتا بارداری حاملگی خارج رحمی حامله bhcg beta hcg' },
-  { id: 'lab_ferritin', label: 'Ferritin (فریتین ذخیره آهن)', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 300', aliases: 'فریتین اهن فقر اهن ferritin' },
-  { id: 'lab_serum_iron', label: 'Serum Iron (آهن سرم)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '60 - 170', aliases: 'اهن سرم iron' },
-  { id: 'lab_tibc', label: 'TIBC (ظرفیت تام اتصال آهن)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '250 - 450', aliases: 'تی ای بی سی ظرفیت اهن tibc' },
-  { id: 'lab_vitamin_d3', label: '25-OH Vitamin D3', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 100', aliases: 'ویتامین دی ۳ پوکی استخوان vit d3' },
-  { id: 'lab_vitamin_b12', label: 'Vitamin B12 (کوبالامین)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '200 - 900', aliases: 'ویتامین ب ۱۲ ب۱۲ کم خونی b12' },
-  { id: 'lab_cortisol', label: 'Serum Cortisol (کورتیزول ساعت ۸ صبح)', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '6 - 23', aliases: 'کورتیزول ادرنال کوشینگ ادیسون cortisol' },
-  { id: 'lab_pth', label: 'PTH (هورمون پاراتیروئید)', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '15 - 65', aliases: 'پی تی اچ پاراتورمون کلسیم pth' },
-
-  // تومورمارکرها و پاتولوژی سرولوژی
-  { id: 'lab_cea', label: 'CEA (Carcinoembryonic Antigen)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 3.0 (< 5 in smokers)', aliases: 'سی ای ای مارکر کانسر روده بزرگ کولورکتال معده cea' },
-  { id: 'lab_ca19_9', label: 'CA 19-9 (مارکر پانکراس و صفرا)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 37', aliases: 'سی ای ۱۹ ۹ کانسر پانکراس لوزالمعده مجاری صفرا ca19 9' },
-  { id: 'lab_afp', label: 'AFP (Alpha-Fetoprotein - آلفافتوپروتئین)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 10', aliases: 'الفا فتوپروتئین سرطان کبد hcc بیضه afp' },
-  { id: 'lab_ca125', label: 'CA-125 (مارکر تخمدان و پریتونئوم)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 35', aliases: 'سی ای ۱۲۵ سرطان تخمدان ca 125' },
-  { id: 'lab_ca15_3', label: 'CA 15-3 (مارکر پستان)', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 30', aliases: 'سی ای ۱۵ ۳ سرطان سینه پستان ca15 3' },
-  { id: 'lab_psa', label: 'PSA Total (آنتی‌ژن اختصاصی پروستات)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 4.0', aliases: 'پی اس ای پروستات psa total' },
-  { id: 'lab_calcitonin', label: 'Calcitonin (کلسی‌تونین)', category: 'تومورمارکرها', unit: 'pg/mL', normalRange: '< 10', aliases: 'کلسیتونین سرطان مدولاری تیروئید calcitonin mtc' },
-  { id: 'lab_thyroglobulin', label: 'Thyroglobulin (TG تیروگلوبولین)', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '1.4 - 78', aliases: 'تیروگلوبولین مارکر تیروئید پاپیلاری thyroglobulin tg' },
-
-  // ویروسی و عفونی قبل عمل
-  { id: 'lab_hbs_ag', label: 'HBsAg (آنتی‌ژن سطحی هپاتیت B)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت بی اچ بی اس hbsag hbv' },
-  { id: 'lab_hcv_ab', label: 'HCV Ab (آنتی‌بادی هپاتیت C)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'هپاتیت سی hcv ab' },
-  { id: 'lab_hiv_ab', label: 'HIV 1/2 Ab & p24 Ag (ایدز)', category: 'ویروسی و عفونی', unit: '', normalRange: 'Negative', aliases: 'ایدز اچ ای وی hiv' },
-  { id: 'lab_wright', label: 'Wright & 2ME (تست رایت تب مالت)', category: 'ویروسی و عفونی', unit: 'Titer', normalRange: 'Negative / < 1:80', aliases: 'رایت رایت کومبس تب مالت بروسلوز wright 2me' },
-  { id: 'lab_blood_culture', label: 'Blood Culture (کشت خون دو بستر)', category: 'ویروسی و عفونی', unit: '', normalRange: 'No growth', aliases: 'کشت خون باکتری سپسیس بستر blood culture' },
+  // قلبی، غدد و تومورمارکرها (Cardiac, Endocrine & Tumor)
+  { id: 'lab_troponin_i', label: 'Troponin I / hs-Troponin (تروپونین)', panel: 'cardiac_endo_tumor', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 0.04', aliases: 'تروپونین ای سکته قلبی میوکاردیت troponin' },
+  { id: 'lab_ck_mb', label: 'CK-MB', panel: 'cardiac_endo_tumor', category: 'قلبی و ترومبوز', unit: 'ng/mL', normalRange: '< 5', aliases: 'سی کی ام بی انزیم قلبی ck mb' },
+  { id: 'lab_bnp', label: 'NT-proBNP / BNP', panel: 'cardiac_endo_tumor', category: 'قلبی و ترومبوز', unit: 'pg/mL', normalRange: '< 125', aliases: 'بی ان پی نارسایی قلبی bnp ntp robnp' },
+  { id: 'lab_tsh', label: 'TSH (تیروئید تروپین)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'µIU/mL', normalRange: '0.4 - 4.5', aliases: 'تی اس اچ تیروئید کم کاری پرکاری tsh' },
+  { id: 'lab_free_t4', label: 'Free T4 (تیروکسین آزاد)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'ng/dL', normalRange: '0.8 - 1.8', aliases: 'اف تی فور تی ۴ آزاد free t4' },
+  { id: 'lab_free_t3', label: 'Free T3 (تری‌یدوتیرونین آزاد)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '2.3 - 4.2', aliases: 'اف تی تری تی ۳ آزاد free t3' },
+  { id: 'lab_bhcg', label: 'β-hCG (تست بارداری بتا تیتر)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'mIU/mL', normalRange: '< 5 (Negative)', aliases: 'بتا بارداری حاملگی خارج رحمی حامله bhcg beta hcg' },
+  { id: 'lab_ferritin', label: 'Ferritin (فریتین ذخیره آهن)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 300', aliases: 'فریتین اهن فقر اهن ferritin' },
+  { id: 'lab_serum_iron', label: 'Serum Iron (آهن سرم)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '60 - 170', aliases: 'اهن سرم iron' },
+  { id: 'lab_tibc', label: 'TIBC (ظرفیت تام اتصال آهن)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '250 - 450', aliases: 'تی ای بی سی ظرفیت اهن tibc' },
+  { id: 'lab_vitamin_d3', label: '25-OH Vitamin D3', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'ng/mL', normalRange: '30 - 100', aliases: 'ویتامین دی ۳ پوکی استخوان vit d3' },
+  { id: 'lab_vitamin_b12', label: 'Vitamin B12 (کوبالامین)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '200 - 900', aliases: 'ویتامین ب ۱۲ ب۱۲ کم خونی b12' },
+  { id: 'lab_cortisol', label: 'Serum Cortisol (کورتیزول ساعت ۸ صبح)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'µg/dL', normalRange: '6 - 23', aliases: 'کورتیزول ادرنال کوشینگ ادیسون cortisol' },
+  { id: 'lab_pth', label: 'PTH (هورمون پاراتیروئید)', panel: 'cardiac_endo_tumor', category: 'غدد و ویتامین‌ها', unit: 'pg/mL', normalRange: '15 - 65', aliases: 'پی تی اچ پاراتورمون کلسیم pth' },
+  { id: 'lab_cea', label: 'CEA (Carcinoembryonic Antigen)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 3.0 (< 5 in smokers)', aliases: 'سی ای ای مارکر کانسر روده بزرگ کولورکتال معده cea' },
+  { id: 'lab_ca19_9', label: 'CA 19-9 (مارکر پانکراس و صفرا)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 37', aliases: 'سی ای ۱۹ ۹ کانسر پانکراس لوزالمعده مجاری صفرا ca19 9' },
+  { id: 'lab_afp', label: 'AFP (Alpha-Fetoprotein - آلفافتوپروتئین)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 10', aliases: 'الفا فتوپروتئین سرطان کبد hcc بیضه afp' },
+  { id: 'lab_ca125', label: 'CA-125 (مارکر تخمدان و پریتونئوم)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 35', aliases: 'سی ای ۱۲۵ سرطان تخمدان ca 125' },
+  { id: 'lab_ca15_3', label: 'CA 15-3 (مارکر پستان)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'U/mL', normalRange: '< 30', aliases: 'سی ای ۱۵ ۳ سرطان سینه پستان ca15 3' },
+  { id: 'lab_psa', label: 'PSA Total (آنتی‌ژن اختصاصی پروستات)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '< 4.0', aliases: 'پی اس ای پروستات psa total' },
+  { id: 'lab_calcitonin', label: 'Calcitonin (کلسی‌تونین)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'pg/mL', normalRange: '< 10', aliases: 'کلسیتونین سرطان مدولاری تیروئید calcitonin mtc' },
+  { id: 'lab_thyroglobulin', label: 'Thyroglobulin (TG تیروگلوبولین)', panel: 'cardiac_endo_tumor', category: 'تومورمارکرها', unit: 'ng/mL', normalRange: '1.4 - 78', aliases: 'تیروگلوبولین مارکر تیروئید پاپیلاری thyroglobulin tg' },
 
   // آنالیز و کشت ادرار (U/A & U/C)
-  { id: 'lab_ua_wbc', label: 'U/A WBC (گلبول سفید ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 4', aliases: 'دبلیو بی سی ادرار پیوری عفونت ادراری ua wbc' },
-  { id: 'lab_ua_rbc', label: 'U/A RBC (گلبول قرمز ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 3', aliases: 'ار بی سی ادرار هماچوری میکروسکوپی ua rbc' },
-  { id: 'lab_ua_bacteria_nitrite', label: 'U/A Bacteria & Nitrite', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative', aliases: 'باکتری ادرار نیتریت عفونت مثبت ua nitrite' },
-  { id: 'lab_urine_culture', label: 'Urine Culture (U/C - کشت ادرار)', category: 'آنالیز ادرار (U/A & U/C)', unit: 'CFU/mL', normalRange: 'No growth / < 10,000', aliases: 'کشت ادرار انتی بیوگرام یو سی uc urine culture' }
+  { id: 'lab_ua_wbc', label: 'U/A WBC (گلبول سفید ادرار)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 4', aliases: 'دبلیو بی سی ادرار پیوری عفونت ادراری ua wbc' },
+  { id: 'lab_ua_rbc', label: 'U/A RBC (گلبول قرمز ادرار)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '/HPF', normalRange: '0 - 3', aliases: 'ار بی سی ادرار هماچوری میکروسکوپی ua rbc' },
+  { id: 'lab_ua_bacteria_nitrite', label: 'U/A Bacteria & Nitrite', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative', aliases: 'باکتری ادرار نیتریت عفونت مثبت ua nitrite' },
+  { id: 'lab_ua_protein', label: 'U/A Protein', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative / Trace', aliases: 'پروتئین ادرار دفع پروتئین ua protein' },
+  { id: 'lab_ua_glucose', label: 'U/A Glucose', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative', aliases: 'قند ادرار گلوکزوری ua glucose' },
+  { id: 'lab_ua_ketone', label: 'U/A Ketone', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: 'Negative', aliases: 'کتون ادرار کتواسیدوز ua ketone' },
+  { id: 'lab_ua_sg', label: 'Specific Gravity (SG)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: '1.005 - 1.030', aliases: 'وزن مخصوص ادرار غلظت ua sg' },
+  { id: 'lab_urine_culture', label: 'Urine Culture (U/C - کشت ادرار)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: 'CFU/mL', normalRange: 'No growth / < 10,000', aliases: 'کشت ادرار انتی بیوگرام یو سی uc urine culture' }
 ];
 
 // Combine all PMH items for schema search
