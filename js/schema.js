@@ -2056,6 +2056,57 @@ export const PE_UNLOCKABLE_MODULES = [
   }
 ];
 
+export const RADIATION_SITES_V2 = [
+  { id: 'rad_shoulder', label: 'شانه (Shoulder)', en: 'Shoulder', hasLaterality: true, modifiers: ['راست (Right)', 'چپ (Left)', 'دوطرفه (Bilateral)'] },
+  { id: 'rad_scapula', label: 'کتف / اسکاپولا (Scapula / Interscapular)', en: 'Scapular region', hasLaterality: true, modifiers: ['راست (Right)', 'چپ (Left)', 'بین دو کتف (Interscapular)'] },
+  { id: 'rad_arm', label: 'بازو، ساعد یا انگشتان دست (Upper Extremity / Arm)', en: 'Upper extremity / Arm', hasLaterality: true, modifiers: ['چپ (Left)', 'راست (Right)', 'دوطرفه (Bilateral)', 'مسیر اولنار/داخلی'] },
+  { id: 'rad_neck', label: 'گردن (Neck / Anterior Cervical)', en: 'Neck', hasLaterality: true, modifiers: ['قدام گردن (Anterior)', 'سمت چپ (Left)', 'سمت راست (Right)'] },
+  { id: 'rad_jaw_face', label: 'فک تحتانی یا صورت (Mandible / Jaw / Face)', en: 'Jaw / Mandible', hasLaterality: true, modifiers: ['چپ (Left)', 'راست (Right)', 'دوطرفه (Bilateral)'] },
+  { id: 'rad_back_lumbar', label: 'پشت و کمر (Back / Thoracolumbar)', en: 'Back', hasLaterality: true, modifiers: ['کمربندی به پشت (Band-like to back)', 'خط وسط پشت (Mid-back)', 'کمر (Lumbar)'] },
+  { id: 'rad_flank', label: 'پهلو (Flank / Costovertebral)', en: 'Flank', hasLaterality: true, modifiers: ['راست (Right)', 'چپ (Left)', 'دوطرفه (Bilateral)'] },
+  { id: 'rad_groin', label: 'کشاله ران (Inguinal / Groin)', en: 'Groin / Inguinal region', hasLaterality: true, modifiers: ['راست (Right)', 'چپ (Left)', 'دوطرفه (Bilateral)'] },
+  { id: 'rad_genitalia', label: 'ناحیه تناسلی، بیضه، لابیا یا پرینه (Genitalia / Perineum)', en: 'Genitalia / Perineum', hasLaterality: true, modifiers: ['بیضه/اسکروتوم راست', 'بیضه/اسکروتوم چپ', 'لابیا/واژن', 'پرینه و مقعد'] },
+  { id: 'rad_lower_limb', label: 'باسن، ران یا ساق پا (Lower Extremity / Sciatic path)', en: 'Lower extremity', hasLaterality: true, modifiers: ['راست (Right)', 'چپ (Left)', 'دوطرفه (Bilateral)', 'خلف ران و ساق'] },
+  { id: 'rad_chest_epigastrium', label: 'قفسه سینه یا اپی‌گاستر (Chest / Retrosternal / Epigastrium)', en: 'Chest / Epigastrium', hasLaterality: true, modifiers: ['رتروواسترنال (Retrosternal)', 'سمت چپ سینه', 'سمت راست سینه', 'اپی‌گاستر'] }
+];
+
+export function formatRadiationItem(site, modifier) {
+  let faLabel = site.label;
+  let enLabel = site.en;
+
+  if (modifier) {
+    const cleanMod = modifier.split('(')[0].trim();
+    const cleanModEn = modifier.includes('(') ? modifier.split('(')[1].replace(')', '').trim() : modifier;
+
+    if (modifier.includes('راست') || modifier.includes('Right')) {
+      const baseFa = site.label.split('(')[0].replace(/[\/،].*$/, '').trim();
+      faLabel = `${baseFa} راست`;
+      enLabel = `Right ${site.en}`;
+    } else if (modifier.includes('چپ') || modifier.includes('Left')) {
+      const baseFa = site.label.split('(')[0].replace(/[\/،].*$/, '').trim();
+      faLabel = `${baseFa} چپ`;
+      enLabel = `Left ${site.en}`;
+    } else if (modifier.includes('دوطرفه') || modifier.includes('Bilateral')) {
+      const baseFa = site.label.split('(')[0].replace(/[\/،].*$/, '').trim();
+      faLabel = `${baseFa} دوطرفه`;
+      enLabel = `Bilateral ${site.en}`;
+    } else {
+      faLabel = `${site.label.split('(')[0].trim()} (${cleanMod})`;
+      enLabel = `${site.en} (${cleanModEn})`;
+    }
+  }
+
+  return {
+    id: site.id,
+    label: site.label,
+    en: site.en,
+    detail: modifier || '',
+    fullLabel: modifier ? `${faLabel} (${enLabel})` : site.label,
+    faDisplay: faLabel,
+    enDisplay: enLabel
+  };
+}
+
 export const SURGICAL_SCHEMA = {
   admissionPathways: [
     { id: 'emergency_symptom', label: 'مراجعه با علامت حاد / اورژانس' },
@@ -2083,15 +2134,7 @@ export const SURGICAL_SCHEMA = {
     { id: 'llq', label: 'LLQ (تحتانی چپ)', code: 'LLQ', fa: 'تحتانی چپ' }
   ],
 
-  radiationSites: [
-    { id: 'rad_none', label: 'بدون انتشار (No Radiation)' },
-    { id: 'rad_scapula', label: 'کتف و شانه (Scapula / Shoulder)', detailHint: 'راست / چپ...' },
-    { id: 'rad_back', label: 'پشت و کمر (Back / Lumbar)', detailHint: 'کمربندی / مهره‌ای...' },
-    { id: 'rad_groin', label: 'کشاله ران (Inguinal / Groin)', detailHint: 'راست / چپ...' },
-    { id: 'rad_flank', label: 'پهلو (Flank)', detailHint: 'راست / چپ...' },
-    { id: 'rad_chest_neck_arm', label: 'قفسه سینه، گردن یا بازو (Chest / Neck / Arm)', detailHint: 'محل دقیق...' },
-    { id: 'rad_genitalia_perineum', label: 'ناحیه تناسلی یا پرینه (Genitalia / Perineum)', detailHint: 'جزئیات...' }
-  ],
+  radiationSites: RADIATION_SITES_V2,
 
   familyRelations: ['مادر', 'پدر', 'برادر', 'خواهر', 'درجه ۲'],
 

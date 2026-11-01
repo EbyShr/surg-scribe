@@ -1,6 +1,9 @@
 import { getIconSvg, injectDomIcons, ICONS } from './icons.js';
 import {
-  storageVault
+  storageVault,
+  PERMANENT_CASES_KEY,
+  PERMANENT_ACTIVE_DRAFT_KEY,
+  PERMANENT_ACTIVE_TAB_KEY
 } from './storage-vault.js';
 import {
   smartClinicalSearch
@@ -33,6 +36,8 @@ import {
   PE_UNLOCKABLE_MODULES,
   CLINICAL_PRESENTATION_ARCHETYPES,
   PAIN_BODY_REGIONS,
+  RADIATION_SITES_V2,
+  formatRadiationItem,
   MASS_GROWTH_PATTERNS,
   MASS_PAIN_STATUSES,
   MASS_ASSOCIATED_SIGNS,
@@ -95,25 +100,30 @@ function generateCaseId() {
   return `SURG-${year}${month}${day}-${rand}`;
 }
 
-export function createDefaultPainEpisode(id = 1, title = 'کانون درد اول / شکایت محوری') {
+export function createDefaultPainEpisode(id = 1, title = '') {
+  const uid = typeof id === 'string' && id.startsWith('pain_') ? id : ('pain_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
   return {
     id,
-    title,
-    duration: '۱۲ ساعت',
-    onset: 'شروع ناگهانی (Sudden)',
-    spatialPattern: 'localized',
-    selectedRegions: ['rlq'],
-    initialRegions: [],
-    currentRegions: [],
+    uid,
+    title: title || (typeof id === 'number' ? `کانون درد #${id}` : 'کانون درد'),
+    archetype: 'pain_archetype',
+    bodyRegion: '',          // پیش‌فرض خالی باشد تا کاربر خودش انتخاب کند
+    bodyRegionGroup: '',     // پیش‌فرض خالی
+    spatialPattern: '',      // پیش‌فرض خالی
+    selectedRegions: [],     // پیش‌فرض خالی
+    initialRegions: [],      // پیش‌فرض خالی
+    currentRegions: [],      // پیش‌فرض خالی
     localizationDelay: '',
-    character: 'تیز و خنجری (Sharp)',
-    course: 'پیشرونده و رو به تشدید (Progressive)',
-    severity: 6,
-    timing: 'دائمی و پیوسته (Continuous)',
-    radiationList: [], // array of { id, label, detail }
-    noRadiation: true,
-    aggravating: ['حرکت، سرفه و دم عمیق'],
-    relieving: ['استراحت و بی‌حرکتی']
+    onset: '',               // پیش‌فرض خالی
+    duration: '',            // پیش‌فرض خالی
+    character: '',           // پیش‌فرض خالی
+    course: '',              // پیش‌فرض خالی
+    timing: '',              // پیش‌فرض خالی
+    severity: null,          // بسیار مهم: پیش‌فرض null (ثبت‌نشده) باشد، نه عدد 5!
+    radiationList: [],
+    noRadiation: false,
+    aggravating: [],
+    relieving: []
   };
 }
 
@@ -122,6 +132,7 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
   if (archetype === 'mass_lesion_archetype') {
     return {
       id,
+      uid,
       archetype: 'mass_lesion_archetype',
       title: `توده / ضایعه #${id}`,
       location: '',
@@ -137,6 +148,7 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
   if (archetype === 'trauma_burn_archetype') {
     return {
       id,
+      uid,
       archetype: 'trauma_burn_archetype',
       title: `تروما و آسیب #${id}`,
       mechanism: 'ترومای بلانت - تصادف خودرو/موتورسیکلت/عابر (MVA / MCA / Pedestrian)',
@@ -152,6 +164,7 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
   if (archetype === 'functional_bleeding_archetype') {
     return {
       id,
+      uid,
       archetype: 'functional_bleeding_archetype',
       title: `شکایت عملکردی #${id}`,
       symptomTitle: 'تنگی نفس حاد یا پیشرونده (Dyspnea)',
@@ -167,6 +180,7 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
   if (archetype === 'elective_asymptomatic_archetype') {
     return {
       id,
+      uid,
       archetype: 'elective_asymptomatic_archetype',
       title: `بستری الکتیو #${id}`,
       isProcedureOnly: false,
@@ -180,10 +194,11 @@ export function createDefaultPresentation(archetype = 'pain_archetype', id = 1) 
     };
   }
 
-  // default: pain_archetype
+  // default: pain_archetype (all fields 100% unset)
   const basePain = createDefaultPainEpisode(id, `کانون درد #${id}`);
   basePain.archetype = 'pain_archetype';
-  basePain.bodyRegionGroup = 'abdomen_pelvis';
+  basePain.bodyRegion = '';
+  basePain.bodyRegionGroup = '';
   return basePain;
 }
 
@@ -399,7 +414,32 @@ export function createDefaultClinicalState() {
   };
 }
 
-export let clinicalState = createDefaultClinicalState();
+function getInitialClinicalState() {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const rawDraft = localStorage.getItem('SURG_SCRIBE_ACTIVE_DRAFT_STATE');
+      if (rawDraft) {
+        const parsed = JSON.parse(rawDraft);
+        if (parsed && parsed.caseId) {
+          return parsed;
+        }
+      }
+      const fallbackRaw = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
+      if (fallbackRaw) {
+        const parsedFallback = JSON.parse(fallbackRaw);
+        if (parsedFallback && parsedFallback.caseId) {
+          return parsedFallback;
+        }
+      }
+    } catch (_) {}
+  }
+  return createDefaultClinicalState();
+}
+
+export let clinicalState = getInitialClinicalState();
+if (typeof window !== 'undefined') {
+  window.currentAppState = clinicalState;
+}
 
 /* ==========================================================================
    v1.1-ATLS-MultiSOAP: Global State & Helper Singletons
@@ -699,20 +739,65 @@ function renderInlineDetailTriStateChip(options) {
 }
 
 /* ==========================================================================
-   Persistence: LocalStorage Auto-Save & Sync
+   Persistence: LocalStorage Auto-Save & Sync (Immortal Draft & Vault)
    ========================================================================== */
-function saveCurrentCase() {
+export function persistCurrentStateNow() {
+  if (!clinicalState || !clinicalState.caseId) return;
+  clinicalState.updatedAt = new Date().toISOString();
+  if (typeof window !== 'undefined') {
+    window.currentAppState = clinicalState;
+  }
+
   try {
-    clinicalState.updatedAt = new Date().toISOString();
-    // 1. LocalStorage fallback
-    localStorage.setItem(STORAGE_CURRENT_CASE_KEY, JSON.stringify(clinicalState));
-    // 2. Immortal Vault (IndexedDB + Active Draft)
+    const serialized = JSON.stringify(clinicalState);
+
+    // 1. ذخیره فوری state در SURG_SCRIBE_ACTIVE_DRAFT_STATE
+    localStorage.setItem('SURG_SCRIBE_ACTIVE_DRAFT_STATE', serialized);
+    localStorage.setItem(STORAGE_CURRENT_CASE_KEY, serialized);
+
+    // 2. آپدیت فوری همان پرونده (بر اساس state.caseId) در آرایه آرشیو شیفت (SURG_SCRIBE_PERMANENT_CASES_VAULT)
+    let vaultCases = [];
+    try {
+      const rawVault = localStorage.getItem('SURG_SCRIBE_PERMANENT_CASES_VAULT');
+      if (rawVault) vaultCases = JSON.parse(rawVault);
+    } catch (_) {}
+    if (!Array.isArray(vaultCases)) vaultCases = [];
+
+    const vIdx = vaultCases.findIndex((c) => c && c.caseId === clinicalState.caseId);
+    if (vIdx >= 0) {
+      vaultCases[vIdx] = JSON.parse(serialized);
+    } else {
+      vaultCases.unshift(JSON.parse(serialized));
+    }
+    localStorage.setItem('SURG_SCRIBE_PERMANENT_CASES_VAULT', JSON.stringify(vaultCases));
+
+    // Also update legacy shift key
+    let shiftList = [];
+    try {
+      const rawShift = localStorage.getItem(STORAGE_SHIFT_CASES_KEY);
+      if (rawShift) shiftList = JSON.parse(rawShift);
+    } catch (_) {}
+    if (!Array.isArray(shiftList)) shiftList = [];
+    const sIdx = shiftList.findIndex((c) => c && c.caseId === clinicalState.caseId);
+    if (sIdx >= 0) {
+      shiftList[sIdx] = JSON.parse(serialized);
+    } else {
+      shiftList.unshift(JSON.parse(serialized));
+    }
+    localStorage.setItem(STORAGE_SHIFT_CASES_KEY, JSON.stringify(shiftList.slice(0, 50)));
+
+    // 3. StorageVault sync
     if (typeof storageVault !== 'undefined') {
       storageVault.saveActiveDraft(clinicalState, activeSectionId);
+      storageVault.upsertCaseInArchive(clinicalState);
     }
   } catch (e) {
-    console.warn('Failed to save state to localStorage:', e);
+    console.warn('Failed to persist current state:', e);
   }
+}
+
+function saveCurrentCase() {
+  persistCurrentStateNow();
 }
 
 async function loadSavedState() {
@@ -720,22 +805,41 @@ async function loadSavedState() {
     let loadedState = null;
     let savedTab = null;
 
-    if (typeof storageVault !== 'undefined') {
+    // 1. First priority: Check SURG_SCRIBE_ACTIVE_DRAFT_STATE directly
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const rawDraft = localStorage.getItem('SURG_SCRIBE_ACTIVE_DRAFT_STATE');
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft);
+          if (parsed && parsed.caseId) {
+            loadedState = parsed;
+            savedTab = localStorage.getItem('SURG_SCRIBE_ACTIVE_UI_TAB');
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. StorageVault check if not loaded from localStorage
+    if (!loadedState && typeof storageVault !== 'undefined') {
       const restored = await storageVault.loadActiveDraft(createDefaultClinicalState);
-      if (restored && restored.state) {
+      if (restored && restored.state && restored.restored) {
         loadedState = restored.state;
         savedTab = restored.activeTab;
       }
     }
 
-    if (!loadedState) {
+    // 3. Fallback to legacy key
+    if (!loadedState && typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_CURRENT_CASE_KEY);
       if (saved) {
-        loadedState = JSON.parse(saved);
+        try {
+          loadedState = JSON.parse(saved);
+        } catch (_) {}
       }
     }
 
-    if (loadedState) {
+    if (loadedState && loadedState.caseId) {
+      // DO NOT call createNewCase / resetState!
       const defaults = createDefaultClinicalState();
       clinicalState = {
         ...defaults,
@@ -775,16 +879,34 @@ async function loadSavedState() {
       if (!clinicalState.pe.atlsExam) {
         clinicalState.pe.atlsExam = defaults.pe.atlsExam;
       }
-      if (!clinicalState.hpi.presentations || !Array.isArray(clinicalState.hpi.presentations)) {
+      if (Array.isArray(loadedState.hpi?.presentations) && loadedState.hpi.presentations.length > 0) {
+        clinicalState.hpi.presentations = loadedState.hpi.presentations;
+      } else if (!clinicalState.hpi.presentations || !Array.isArray(clinicalState.hpi.presentations)) {
         clinicalState.hpi.presentations = [];
       }
-      if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList)) {
+      if (Array.isArray(loadedState.hpi?.painList) && loadedState.hpi.painList.length > 0) {
+        clinicalState.hpi.painList = loadedState.hpi.painList;
+      } else if (!clinicalState.hpi.painList || !Array.isArray(clinicalState.hpi.painList)) {
         clinicalState.hpi.painList = [];
       }
+
+      if (typeof window !== 'undefined') {
+        window.currentAppState = clinicalState;
+      }
+
+      persistCurrentStateNow();
 
       if (savedTab && document.querySelector(`.tab-btn[data-tab="${savedTab}"]`)) {
         document.querySelector(`.tab-btn[data-tab="${savedTab}"]`).click();
       }
+    } else {
+      if (!clinicalState || !clinicalState.caseId) {
+        clinicalState = createDefaultClinicalState();
+      }
+      if (typeof window !== 'undefined') {
+        window.currentAppState = clinicalState;
+      }
+      persistCurrentStateNow();
     }
   } catch (e) {
     console.warn('Failed to load saved state:', e);
@@ -1926,54 +2048,309 @@ function renderPainArchetypeBody(card, pain, index) {
   // Character
   const charGroup = document.createElement('div');
   charGroup.className = 'form-group';
-  charGroup.innerHTML = `<label class="form-label">ماهیت علامت (Character)</label>`;
+  charGroup.innerHTML = `<label class="form-label">ماهیت و کیفیت علامت (Character)</label>`;
+
   const charSelect = document.createElement('select');
   charSelect.className = 'input-select';
   charSelect.innerHTML = `
-    <option value="">-- انتخاب ماهیت --</option>
+    <option value="">-- انتخاب ماهیت درد --</option>
     <option value="تیز و خنجری (Sharp)">تیز و خنجری (Sharp)</option>
     <option value="مبهم و فشاری (Dull/Crampy)">مبهم و فشاری (Dull/Crampy)</option>
     <option value="سوزشی (Burning)">سوزشی (Burning)</option>
     <option value="ضربان‌دار (Throbbing)">ضربان‌دار (Throbbing)</option>
+    <option value="کولیکی و متناوب (Colicky)">کولیکی و متناوب (Colicky)</option>
+    <option value="فشاری و حس سنگینی (Pressure/Crushing)">فشاری و حس سنگینی (Pressure/Crushing)</option>
+    <option value="پاره‌کننده (Tearing)">پاره‌کننده (Tearing)</option>
+    <option value="برق‌آسا و تیرکشنده (Electric/Shooting)">برق‌آسا و تیرکشنده (Electric/Shooting)</option>
+    <option value="پلورتیک با تنفس (Pleuritic)">پلورتیک با تنفس (Pleuritic)</option>
+    <option value="مبهم و عمقی (Deep-seated)">مبهم و عمقی (Deep-seated)</option>
   `;
   charSelect.value = pain.character || '';
+
+  // Colloquial search box for character
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'pain-character-search-container';
+  searchWrap.style.cssText = 'position:relative; margin-top:0.4rem;';
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'input-text';
+  searchInput.style.cssText = 'width:100%; font-size:0.8rem; padding:0.35rem 0.6rem; border:1px solid var(--border-subtle, #cbd5e1); border-radius:6px;';
+  searchInput.placeholder = '🔍 جستجوی توصیف بیمار از درد: مثلاً خنجری، قولنجی، فیل رو سینه‌ام نشسته، تیر کشیدن، سوزشی...';
+  searchInput.autocomplete = 'off';
+
+  const resultsDropdown = document.createElement('div');
+  resultsDropdown.className = 'pain-character-search-dropdown';
+  resultsDropdown.style.cssText = 'display:none; position:absolute; top:100%; left:0; right:0; max-height:220px; overflow-y:auto; background:var(--bg-surface-elevated, #ffffff); border:1.5px solid var(--border-focus, #0284c7); border-radius:6px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:100; margin-top:2px; padding:0.25rem 0;';
+
+  const activeCharBadge = document.createElement('div');
+  activeCharBadge.className = 'active-character-badge';
+  activeCharBadge.style.cssText = 'margin-top:0.35rem; font-size:0.78rem; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;';
+
+  const renderActiveBadge = () => {
+    if (pain.character) {
+      activeCharBadge.innerHTML = `
+        <span style="color:var(--text-muted); font-size:0.75rem;">ماهیت ثبت‌شده:</span>
+        <span style="background:rgba(2,132,199,0.1); color:var(--primary, #0284c7); font-weight:600; padding:0.15rem 0.5rem; border-radius:4px; border:1px solid rgba(2,132,199,0.25); display:inline-flex; align-items:center; gap:0.35rem;">
+          ${pain.character}
+          <button type="button" class="btn-clear-char" style="background:none; border:none; color:inherit; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0; line-height:1;">✕</button>
+        </span>
+      `;
+      activeCharBadge.querySelector('.btn-clear-char')?.addEventListener('click', () => {
+        pain.character = '';
+        charSelect.value = '';
+        renderActiveBadge();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+    } else {
+      activeCharBadge.innerHTML = '';
+    }
+  };
+
+  renderActiveBadge();
+
+  const normalizeSearchStr = (q) => {
+    return (q || '').toLowerCase()
+      .replace(/[يی]/g, 'ی')
+      .replace(/[كک]/g, 'ک')
+      .replace(/[\u064B-\u065F]/g, '')
+      .trim();
+  };
+
+  const performCharSearch = (query) => {
+    const norm = normalizeSearchStr(query);
+    if (!norm) {
+      resultsDropdown.style.display = 'none';
+      resultsDropdown.innerHTML = '';
+      return;
+    }
+
+    const characterQualifiers = (HPI_QUALIFIERS_AND_SYMPTOMS || []).filter(
+      (it) => it.type === 'pain_qualifier' && it.category === 'character'
+    );
+
+    const matches = characterQualifiers.filter((it) => {
+      const faMatch = normalizeSearchStr(it.fa).includes(norm);
+      const enMatch = normalizeSearchStr(it.en).includes(norm);
+      const colMatch = normalizeSearchStr(it.colloquial_fa).includes(norm);
+      const modMatch = Array.isArray(it.modifiers) && it.modifiers.some((m) => normalizeSearchStr(m).includes(norm));
+      return faMatch || enMatch || colMatch || modMatch;
+    });
+
+    resultsDropdown.innerHTML = '';
+
+    if (matches.length === 0) {
+      const noRes = document.createElement('div');
+      noRes.style.cssText = 'padding:0.5rem 0.75rem; font-size:0.78rem; color:var(--text-muted); text-align:center;';
+      noRes.textContent = 'موردی با این توصیف عامیانه یافت نشد. می‌توانید از لیست بالا یا تایپ دستی استفاده کنید.';
+      resultsDropdown.appendChild(noRes);
+      resultsDropdown.style.display = 'block';
+      return;
+    }
+
+    matches.forEach((item) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'char-search-item';
+      itemEl.style.cssText = 'padding:0.4rem 0.75rem; cursor:pointer; border-bottom:1px solid var(--border-subtle, #f1f5f9); font-size:0.8rem; transition:background 0.15s;';
+      itemEl.innerHTML = `
+        <div style="font-weight:600; color:var(--text-primary, #0f172a); display:flex; justify-content:space-between;">
+          <span>${item.fa}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${item.en}</span>
+        </div>
+        ${item.colloquial_fa ? `<div style="font-size:0.73rem; color:var(--primary, #0284c7); margin-top:2px;">🗣️ تشبیه بیمار: ${item.colloquial_fa}</div>` : ''}
+      `;
+      itemEl.addEventListener('mouseenter', () => {
+        itemEl.style.background = 'rgba(2,132,199,0.06)';
+      });
+      itemEl.addEventListener('mouseleave', () => {
+        itemEl.style.background = 'transparent';
+      });
+      itemEl.addEventListener('click', () => {
+        pain.character = `${item.fa} (${item.en})`;
+        let foundOpt = false;
+        for (let i = 0; i < charSelect.options.length; i++) {
+          if (charSelect.options[i].value === pain.character || charSelect.options[i].text.includes(item.fa)) {
+            charSelect.selectedIndex = i;
+            foundOpt = true;
+            break;
+          }
+        }
+        if (!foundOpt) {
+          const opt = document.createElement('option');
+          opt.value = pain.character;
+          opt.textContent = pain.character;
+          opt.selected = true;
+          charSelect.appendChild(opt);
+        }
+        searchInput.value = '';
+        resultsDropdown.style.display = 'none';
+        renderActiveBadge();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+      resultsDropdown.appendChild(itemEl);
+    });
+
+    resultsDropdown.style.display = 'block';
+  };
+
+  searchInput.addEventListener('input', (e) => {
+    performCharSearch(e.target.value);
+  });
+
+  searchInput.addEventListener('focus', () => {
+    if (searchInput.value.trim()) {
+      performCharSearch(searchInput.value);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!searchWrap.contains(e.target)) {
+      resultsDropdown.style.display = 'none';
+    }
+  });
+
   charSelect.addEventListener('change', (e) => {
     pain.character = e.target.value;
+    renderActiveBadge();
     saveCurrentCase();
     updateLivePreview();
   });
+
+  searchWrap.appendChild(searchInput);
+  searchWrap.appendChild(resultsDropdown);
   charGroup.appendChild(charSelect);
+  charGroup.appendChild(searchWrap);
+  charGroup.appendChild(activeCharBadge);
   grid2.appendChild(charGroup);
 
-  // Severity Slider (0-10)
+  // Severity NRS 1-10 Buttons Bar (Default: null / Unset)
   const sevGroup = document.createElement('div');
-  sevGroup.className = 'form-group';
-  sevGroup.innerHTML = `
-    <div class="form-label">
-      <span>شدت درد (NRS 0-10)</span>
-      <span class="mono-num sev-val-label">${pain.severity || 5} / 10</span>
-    </div>
+  sevGroup.className = 'form-group severity-nrs-group';
+
+  const hasSeverity = pain.severity !== null && pain.severity !== undefined && pain.severity !== '';
+  const currentSevVal = hasSeverity ? Number(pain.severity) : null;
+
+  const sevHeader = document.createElement('div');
+  sevHeader.className = 'form-label';
+  sevHeader.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+  sevHeader.innerHTML = `
+    <span>شدت درد (NRS 1–10)</span>
+    <span class="mono-num sev-val-label font-bold" style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.85rem; ${
+      hasSeverity ? 'background:rgba(239,68,68,0.12); color:#dc2626;' : 'background:var(--bg-surface-elevated); color:var(--text-muted);'
+    }">
+      ${hasSeverity ? `${currentSevVal} از ۱۰` : 'ثبت نشده (Unset)'}
+    </span>
   `;
-  const sliderWrap = document.createElement('div');
-  sliderWrap.className = 'severity-slider-container';
-  sliderWrap.innerHTML = `
-    <span class="mono-num">0</span>
-    <input type="range" class="severity-slider" min="0" max="10" value="${pain.severity || 5}">
-    <span class="mono-num">10</span>
-    <div class="severity-value-badge dir-ltr">${pain.severity || 5} / 10</div>
+  sevGroup.appendChild(sevHeader);
+
+  const nrsBar = document.createElement('div');
+  nrsBar.className = 'nrs-buttons-bar';
+  nrsBar.style.cssText = 'display:flex; gap:0.25rem; flex-wrap:wrap; align-items:center; margin-top:0.35rem;';
+
+  const unsetBtn = document.createElement('button');
+  unsetBtn.type = 'button';
+  unsetBtn.className = `btn-nrs-item btn-nrs-unset ${!hasSeverity ? 'active' : ''}`;
+  unsetBtn.style.cssText = `
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1.5px solid ${!hasSeverity ? 'var(--primary, #0284c7)' : 'var(--border-subtle, #cbd5e1)'};
+    background: ${!hasSeverity ? 'var(--primary, #0284c7)' : 'var(--bg-surface, #ffffff)'};
+    color: ${!hasSeverity ? '#ffffff' : 'var(--text-secondary, #64748b)'};
+    cursor: pointer;
+    font-weight: ${!hasSeverity ? '700' : '500'};
+    transition: all 0.15s ease;
   `;
-  const rangeInput = sliderWrap.querySelector('input[type="range"]');
-  const badgeEl = sliderWrap.querySelector('.severity-value-badge');
-  const labelEl = sevGroup.querySelector('.sev-val-label');
-  rangeInput.addEventListener('input', (e) => {
-    const val = e.target.value;
-    pain.severity = val;
-    badgeEl.textContent = `${val} / 10`;
-    labelEl.textContent = `${val} / 10`;
+  unsetBtn.textContent = 'ثبت نشده';
+
+  const numericBtns = [];
+
+  const updateNrsUI = (newVal) => {
+    pain.severity = newVal;
+    const isValSet = newVal !== null && newVal !== undefined && newVal !== '';
+    const num = isValSet ? Number(newVal) : null;
+
+    const labelSpan = sevHeader.querySelector('.sev-val-label');
+    if (labelSpan) {
+      labelSpan.textContent = isValSet ? `${num} از ۱۰` : 'ثبت نشده (Unset)';
+      labelSpan.style.background = isValSet ? 'rgba(239,68,68,0.12)' : 'var(--bg-surface-elevated)';
+      labelSpan.style.color = isValSet ? '#dc2626' : 'var(--text-muted)';
+    }
+
+    if (!isValSet) {
+      unsetBtn.style.border = '1.5px solid var(--primary, #0284c7)';
+      unsetBtn.style.background = 'var(--primary, #0284c7)';
+      unsetBtn.style.color = '#ffffff';
+      unsetBtn.style.fontWeight = '700';
+    } else {
+      unsetBtn.style.border = '1.5px solid var(--border-subtle, #cbd5e1)';
+      unsetBtn.style.background = 'var(--bg-surface, #ffffff)';
+      unsetBtn.style.color = 'var(--text-secondary, #64748b)';
+      unsetBtn.style.fontWeight = '500';
+    }
+
+    numericBtns.forEach(({ btn, val }) => {
+      const isThisActive = isValSet && num === val;
+      let activeBg = val <= 3 ? '#16a34a' : (val <= 6 ? '#d97706' : '#dc2626');
+
+      if (isThisActive) {
+        btn.style.background = activeBg;
+        btn.style.borderColor = activeBg;
+        btn.style.color = '#ffffff';
+        btn.style.fontWeight = '700';
+        btn.style.transform = 'scale(1.08)';
+      } else {
+        btn.style.background = 'var(--bg-surface, #ffffff)';
+        btn.style.borderColor = 'var(--border-subtle, #cbd5e1)';
+        btn.style.color = 'var(--text-primary, #1e293b)';
+        btn.style.fontWeight = '600';
+        btn.style.transform = 'scale(1)';
+      }
+    });
+
     saveCurrentCase();
     updateLivePreview();
+  };
+
+  unsetBtn.addEventListener('click', () => {
+    updateNrsUI(null);
   });
-  sevGroup.appendChild(sliderWrap);
+  nrsBar.appendChild(unsetBtn);
+
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn-nrs-item btn-nrs-num ${currentSevVal === i ? 'active' : ''}`;
+    const isThisActive = currentSevVal === i;
+    let activeBg = i <= 3 ? '#16a34a' : (i <= 6 ? '#d97706' : '#dc2626');
+
+    btn.style.cssText = `
+      flex: 1;
+      min-width: 28px;
+      height: 32px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: 1.5px solid ${isThisActive ? activeBg : 'var(--border-subtle, #cbd5e1)'};
+      background: ${isThisActive ? activeBg : 'var(--bg-surface, #ffffff)'};
+      color: ${isThisActive ? '#ffffff' : 'var(--text-primary, #1e293b)'};
+      cursor: pointer;
+      font-weight: ${isThisActive ? '700' : '600'};
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    btn.textContent = String(i);
+    btn.addEventListener('click', () => {
+      updateNrsUI(i);
+    });
+    nrsBar.appendChild(btn);
+    numericBtns.push({ btn, val: i });
+  }
+
+  sevGroup.appendChild(nrsBar);
   grid2.appendChild(sevGroup);
 
   card.appendChild(grid2);
@@ -1987,16 +2364,35 @@ function renderPainArchetypeBody(card, pain, index) {
   const groupPillsWrap = document.createElement('div');
   groupPillsWrap.className = 'spatial-patterns-grid';
 
-  const curGroup = pain.bodyRegionGroup || 'abdomen_pelvis';
+  const curGroup = pain.bodyRegionGroup || pain.bodyRegion || '';
   PAIN_BODY_REGIONS.forEach((reg) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `pattern-pill-btn ${curGroup === reg.id ? 'active' : ''}`;
+    btn.className = `pattern-pill-btn ${(curGroup === reg.id) ? 'active' : ''}`;
     btn.textContent = reg.labelFa;
     btn.addEventListener('click', () => {
+      const isSwitching = (pain.bodyRegionGroup !== reg.id);
+      pain.bodyRegion = reg.id;
       pain.bodyRegionGroup = reg.id;
+
+      if (isSwitching) {
+        pain.selectedRegions = [];
+        pain.site = '';
+      }
+
       groupPillsWrap.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
+
+      if (reg.id === 'abdomen_pelvis') {
+        spatGroup.style.display = 'block';
+      } else {
+        spatGroup.style.display = 'none';
+        pain.spatialPattern = '';
+        pain.initialRegions = [];
+        pain.currentRegions = [];
+        pain.localizationDelay = '';
+      }
+
       renderPainRegionsForEpisode(card, pain);
       saveCurrentCase();
       updateLivePreview();
@@ -2010,7 +2406,7 @@ function renderPainArchetypeBody(card, pain, index) {
   const spatGroup = document.createElement('div');
   spatGroup.className = 'form-group spatial-pattern-box';
   spatGroup.style.marginTop = '0.6rem';
-  spatGroup.style.display = curGroup === 'abdomen_pelvis' ? 'block' : 'none';
+  spatGroup.style.display = (curGroup === 'abdomen_pelvis') ? 'block' : 'none';
   spatGroup.innerHTML = `<label class="form-label">الگوی فضایی-زمانی درد شکم</label>`;
   const spatGrid = document.createElement('div');
   spatGrid.className = 'spatial-patterns-grid';
@@ -2021,9 +2417,14 @@ function renderPainArchetypeBody(card, pain, index) {
     pattBtn.className = `pattern-pill-btn ${pain.spatialPattern === patt.id ? 'active' : ''}`;
     pattBtn.textContent = patt.label;
     pattBtn.addEventListener('click', () => {
-      spatGrid.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
-      pattBtn.classList.add('active');
-      pain.spatialPattern = patt.id;
+      if (pain.spatialPattern === patt.id) {
+        pain.spatialPattern = '';
+        pattBtn.classList.remove('active');
+      } else {
+        spatGrid.querySelectorAll('.pattern-pill-btn').forEach((b) => b.classList.remove('active'));
+        pattBtn.classList.add('active');
+        pain.spatialPattern = patt.id;
+      }
       renderPainRegionsForEpisode(card, pain);
       saveCurrentCase();
       updateLivePreview();
@@ -2069,71 +2470,148 @@ function renderPainArchetypeBody(card, pain, index) {
   timingGroup.appendChild(timingGrid);
   card.appendChild(timingGroup);
 
-  // Radiation Sites with Inline Input
+  // Smart 2-Stage Directional Radiation Capsules (11 Clean Anatomical Capsules)
   const radGroup = document.createElement('div');
-  radGroup.className = 'form-group';
+  radGroup.className = 'form-group radiation-v2-container';
   radGroup.style.marginTop = '0.6rem';
-  radGroup.innerHTML = `<label class="form-label">محل انتشار درد (Radiation)</label>`;
-  const radList = document.createElement('div');
-  radList.className = 'radiation-capsules-list';
 
-  SURGICAL_SCHEMA.radiationSites.forEach((site) => {
-    const isNone = site.id === 'rad_none';
-    const existing = (pain.radiationList || []).find((r) => r.id === site.id);
-    const isSelected = isNone ? pain.noRadiation : !!existing;
+  const radHeader = document.createElement('div');
+  radHeader.className = 'form-label';
+  radHeader.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+  radHeader.innerHTML = `
+    <span>محل انتشار درد (Radiation) - کپسول‌های جهت‌دار</span>
+    <span class="rad-summary-badge" style="font-size:0.75rem; color:var(--text-muted);">
+      ${pain.radiationList && pain.radiationList.length > 0 ? `${pain.radiationList.length} موضع انتخاب‌شده` : 'بدون انتشار (پیش‌فرض)'}
+    </span>
+  `;
+  radGroup.appendChild(radHeader);
 
-    const radItem = document.createElement('div');
-    radItem.className = `radiation-capsule-item ${isSelected ? 'active' : ''}`;
+  const radGrid = document.createElement('div');
+  radGrid.className = 'radiation-capsules-v2-grid';
+  radGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:0.4rem; margin-top:0.35rem;';
 
-    const radLabel = document.createElement('span');
-    radLabel.className = 'radiation-capsule-label';
-    radLabel.innerHTML = `<span>${isSelected ? '' : ''}</span> <span>${site.label}</span>`;
+  if (!Array.isArray(pain.radiationList)) {
+    pain.radiationList = [];
+  }
 
-    radItem.appendChild(radLabel);
+  RADIATION_SITES_V2.forEach((site) => {
+    const existing = pain.radiationList.find((r) => r.id === site.id);
+    const isSelected = !!existing;
 
-    let inlineInput = null;
-    if (!isNone) {
-      inlineInput = document.createElement('input');
-      inlineInput.type = 'text';
-      inlineInput.className = 'radiation-inline-input';
-      inlineInput.placeholder = site.detailHint || 'جزئیات (راست/چپ)...';
-      inlineInput.value = existing ? existing.detail || '' : '';
-      inlineInput.style.display = isSelected ? 'inline-block' : 'none';
+    const capsuleCard = document.createElement('div');
+    capsuleCard.className = `radiation-card-v2 ${isSelected ? 'active' : ''}`;
+    capsuleCard.style.cssText = `
+      background: ${isSelected ? 'rgba(2, 132, 199, 0.08)' : 'var(--bg-surface, #ffffff)'};
+      border: 1.5px solid ${isSelected ? 'var(--primary, #0284c7)' : 'var(--border-subtle, #cbd5e1)'};
+      border-radius: 8px;
+      padding: 0.4rem 0.6rem;
+      transition: all 0.2s ease;
+    `;
 
-      inlineInput.addEventListener('input', (e) => {
-        if (existing) {
-          existing.detail = e.target.value;
-          saveCurrentCase();
-          updateLivePreview();
-        }
+    const headRow = document.createElement('div');
+    headRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none;';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.style.cssText = 'font-size:0.8rem; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:0.3rem;';
+    titleSpan.innerHTML = `<span>${isSelected ? '📍' : '▫️'}</span> <span>${site.label}</span>`;
+
+    const statusBadge = document.createElement('span');
+    statusBadge.style.cssText = 'font-size:0.73rem;';
+    if (isSelected) {
+      statusBadge.innerHTML = `
+        <span style="background:var(--primary, #0284c7); color:#fff; padding:0.1rem 0.4rem; border-radius:4px; font-weight:600;">
+          ${existing.detail || 'انتخاب‌شده'}
+        </span>
+        <button type="button" class="btn-remove-rad" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; padding:0 0 0 0.3rem;">✕</button>
+      `;
+      statusBadge.querySelector('.btn-remove-rad')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pain.radiationList = pain.radiationList.filter((r) => r.id !== site.id);
+        renderHpiPresentations();
+        saveCurrentCase();
+        updateLivePreview();
       });
-      radItem.appendChild(inlineInput);
+    } else {
+      statusBadge.innerHTML = `<span style="color:var(--text-muted); font-size:0.75rem;">+ جهت</span>`;
     }
 
-    radLabel.addEventListener('click', () => {
-      if (isNone) {
-        pain.noRadiation = !pain.noRadiation;
-        if (pain.noRadiation) {
-          pain.radiationList = [];
-        }
-      } else {
-        pain.noRadiation = false;
-        if (!pain.radiationList) pain.radiationList = [];
-        const idx = pain.radiationList.findIndex((r) => r.id === site.id);
-        if (idx >= 0) {
-          pain.radiationList.splice(idx, 1);
+    headRow.appendChild(titleSpan);
+    headRow.appendChild(statusBadge);
+    capsuleCard.appendChild(headRow);
+
+    const modRow = document.createElement('div');
+    modRow.className = 'radiation-modifiers-row';
+    const isExpanded = isSelected || capsuleCard.classList.contains('expanded');
+    modRow.style.cssText = `
+      display: ${isExpanded ? 'flex' : 'none'};
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      margin-top: 0.4rem;
+      padding-top: 0.35rem;
+      border-top: 1px dashed ${isSelected ? 'rgba(2, 132, 199, 0.3)' : 'var(--border-subtle, #e2e8f0)'};
+    `;
+
+    site.modifiers.forEach((mod) => {
+      const isModActive = isSelected && existing.detail === mod;
+      const modBtn = document.createElement('button');
+      modBtn.type = 'button';
+      modBtn.className = `btn-rad-modifier ${isModActive ? 'active' : ''}`;
+      modBtn.style.cssText = `
+        padding: 0.2rem 0.45rem;
+        font-size: 0.73rem;
+        border-radius: 4px;
+        border: 1px solid ${isModActive ? 'var(--primary, #0284c7)' : 'var(--border-subtle, #cbd5e1)'};
+        background: ${isModActive ? 'var(--primary, #0284c7)' : 'var(--bg-surface-elevated, #f8fafc)'};
+        color: ${isModActive ? '#ffffff' : 'var(--text-secondary, #475569)'};
+        cursor: pointer;
+        font-weight: ${isModActive ? '700' : '500'};
+        transition: all 0.15s ease;
+      `;
+      modBtn.textContent = mod;
+
+      modBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isModActive) {
+          pain.radiationList = pain.radiationList.filter((r) => r.id !== site.id);
         } else {
-          pain.radiationList.push({ id: site.id, label: site.label, detail: inlineInput ? inlineInput.value : '' });
+          pain.radiationList = pain.radiationList.filter((r) => r.id !== site.id);
+          pain.radiationList.push(formatRadiationItem(site, mod));
         }
-      }
-      renderHpiPresentations();
-      saveCurrentCase();
-      updateLivePreview();
+        renderHpiPresentations();
+        saveCurrentCase();
+        updateLivePreview();
+      });
+
+      modRow.appendChild(modBtn);
     });
 
-    radList.appendChild(radItem);
+    capsuleCard.appendChild(modRow);
+
+    headRow.addEventListener('click', () => {
+      const currentlyHidden = modRow.style.display === 'none';
+      modRow.style.display = currentlyHidden ? 'flex' : 'none';
+      if (currentlyHidden) {
+        capsuleCard.classList.add('expanded');
+      } else {
+        capsuleCard.classList.remove('expanded');
+      }
+    });
+
+    radGrid.appendChild(capsuleCard);
   });
-  radGroup.appendChild(radList);
+
+  radGroup.appendChild(radGrid);
+
+  const radHint = document.createElement('div');
+  radHint.style.cssText = 'margin-top:0.4rem; font-size:0.75rem; color:var(--text-muted); font-style:italic;';
+  if (!pain.radiationList || pain.radiationList.length === 0) {
+    radHint.innerHTML = 'ℹ️ هیچ محل انتشاری انتخاب نشده است؛ در شرح‌حال نوشته خواهد شد: <strong>«درد به جایی انتشار ندارد.»</strong>';
+  } else {
+    const listLabels = pain.radiationList.map((r) => r.fullLabel || `${r.label}: ${r.detail}`).join('، ');
+    radHint.innerHTML = `✅ انتشار ثبت‌شده: <strong>${listLabels}</strong>`;
+  }
+  radGroup.appendChild(radHint);
+
   card.appendChild(radGroup);
 
   // Aggravating Factors (Multi-select)
@@ -2202,7 +2680,16 @@ function renderPainRegionsForEpisode(cardElement, pain) {
   if (!container) return;
   container.innerHTML = '';
 
-  const group = pain.bodyRegionGroup || 'abdomen_pelvis';
+  const group = pain.bodyRegionGroup || pain.bodyRegion || '';
+
+  // If no body region selected yet
+  if (!group) {
+    const promptDiv = document.createElement('div');
+    promptDiv.style.cssText = 'padding:0.65rem 0.75rem; border:1.5px dashed var(--border-subtle, #cbd5e1); border-radius:6px; color:var(--text-muted); font-size:0.8rem; text-align:center; background:var(--bg-surface-elevated, #f8fafc);';
+    promptDiv.innerHTML = '👈 برای مشخص کردن محل دقیق درد، لطفاً ابتدا یکی از <strong>۴ منطقه اصلی آناتومیک</strong> بالا را انتخاب کنید.';
+    container.appendChild(promptDiv);
+    return;
+  }
 
   // If non-abdominal, render that region's subregions
   if (group !== 'abdomen_pelvis') {
@@ -9442,6 +9929,27 @@ export async function initApp() {
 }
 
 if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (window.currentAppState) {
+      localStorage.setItem('SURG_SCRIBE_ACTIVE_DRAFT_STATE', JSON.stringify(window.currentAppState));
+    }
+  });
+
+  // Central continuous persistence on every input, change, and click across the entire app
+  document.addEventListener('input', () => {
+    persistCurrentStateNow();
+  }, { passive: true });
+
+  document.addEventListener('change', () => {
+    persistCurrentStateNow();
+  }, { passive: true });
+
+  document.addEventListener('click', () => {
+    setTimeout(() => {
+      persistCurrentStateNow();
+    }, 0);
+  }, { passive: true });
+
   window.addEventListener('surg:language-changed', (e) => {
     const lang = e.detail?.lang || getCurrentLanguage();
     renderArchetypeSelectorBar();

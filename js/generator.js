@@ -136,20 +136,21 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
 
   let locSentence = '';
   const regNames = (item.selectedRegions || []).map(getRegionLabel).join(' و ');
-  if (item.bodyRegionGroup && item.bodyRegionGroup !== 'abdomen_pelvis' && regNames) {
+  const isAbdomen = (item.bodyRegionGroup === 'abdomen_pelvis' || item.bodyRegion === 'abdomen_pelvis');
+  if (!isAbdomen && regNames) {
     locSentence = `در ناحیه ${regNames} متمرکز بوده`;
-  } else if (item.spatialPattern === 'localized' && regNames) {
+  } else if (isAbdomen && item.spatialPattern === 'localized' && regNames) {
     locSentence = `در ناحیه ${regNames} لوکالیزه بوده`;
-  } else if (item.spatialPattern === 'generalized_predominant' && regNames) {
+  } else if (isAbdomen && item.spatialPattern === 'generalized_predominant' && regNames) {
     locSentence = `در کل موضع با ارجحیت و حداکثر شدت در ناحیه ${regNames} احساس شده`;
-  } else if (item.spatialPattern === 'localized_to_generalized') {
+  } else if (isAbdomen && item.spatialPattern === 'localized_to_generalized') {
     const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
     locSentence = `ابتدا در ناحیه ${initNames || 'نقطه اولیه'} شروع شده و سپس به سایر نواحی گسترش یافته`;
-  } else if (item.spatialPattern === 'generalized_to_localized') {
+  } else if (isAbdomen && item.spatialPattern === 'generalized_to_localized') {
     const curNames = (item.currentRegions || []).map(getRegionLabel).join(' و ');
     const delayPhrase = item.localizationDelay ? ` (${normalizePersianClinicalText(item.localizationDelay)})` : '';
     locSentence = `در ابتدا به صورت منتشر و ژنرالیزه در کل شکم شروع شده و سپس${delayPhrase} در ناحیه ${curNames || 'موضع خاص'} لوکالیزه و متمرکز گردیده`;
-  } else if (item.spatialPattern === 'migratory_shifting') {
+  } else if (isAbdomen && item.spatialPattern === 'migratory_shifting') {
     const initNames = (item.initialRegions || []).map(getRegionLabel).join(' و ');
     const curNames = (item.currentRegions || []).map(getRegionLabel).join(' و ');
     locSentence = `الگوی مهاجر (Shifting) داشته و از ناحیه ${initNames || 'محل اولیه'} به ناحیه ${curNames || 'محل ثانویه'} تغییر مکان داده`;
@@ -176,27 +177,37 @@ export function renderArchetypeNarrative(item, index = 0, totalCount = 1) {
 
   const modSentences = [];
   if (item.radiationList && item.radiationList.length > 0) {
-    const radStr = item.radiationList.map((r) => (r.detail ? `${r.label || r} (${normalizePersianClinicalText(r.detail)})` : (r.label || r))).join(' و ');
-    modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
+    const radStrs = item.radiationList.map((r) => {
+      if (r.faDisplay) return r.faDisplay;
+      if (r.fullLabel) return r.fullLabel;
+      if (r.detail) return `${r.label || r} (${normalizePersianClinicalText(r.detail)})`;
+      return r.label || r;
+    });
+    modSentences.push(`درد مذکور به ${radStrs.join(' و ')} انتشار دارد.`);
   } else if (item.radiation && Array.isArray(item.radiation) && item.radiation.length > 0) {
     const radStr = item.radiation.map((r) => (typeof r === 'object' ? `${r.label || r.id} (${r.detail || ''})` : r)).join(' و ');
-    modSentences.push(`درد مذکور به ${radStr} انتشار دارد`);
+    modSentences.push(`درد مذکور به ${radStr} انتشار دارد.`);
   } else if (typeof item.radiation === 'string' && item.radiation.trim()) {
-    modSentences.push(`درد مذکور به ${normalizePersianClinicalText(item.radiation)} انتشار دارد`);
-  } else if (item.noRadiation) {
-    modSentences.push(`درد به جایی انتشار ندارد`);
+    modSentences.push(`درد مذکور به ${normalizePersianClinicalText(item.radiation)} انتشار دارد.`);
+  } else {
+    modSentences.push(`درد به جایی انتشار ندارد.`);
   }
 
-  if (item.aggravating) {
-    const aggText = Array.isArray(item.aggravating) ? item.aggravating.join('، ') : String(item.aggravating).trim();
-    if (aggText) modSentences.push(`با ${aggText} تشدید می‌شود`);
+  const aggArr = Array.isArray(item.aggravating) ? item.aggravating.filter(Boolean) : (item.aggravating ? [String(item.aggravating).trim()].filter(Boolean) : []);
+  const relArr = Array.isArray(item.relieving) ? item.relieving.filter(Boolean) : (item.relieving ? [String(item.relieving).trim()].filter(Boolean) : []);
+
+  if (aggArr.length === 0 && relArr.length === 0) {
+    modSentences.push(`درد مذکور با عامل مشخصی تشدید یا تسکین پیدا نمی‌کند.`);
+  } else if (aggArr.length > 0 && relArr.length === 0) {
+    modSentences.push(`این درد با ${aggArr.join('، ')} تشدید می‌شود، اما عامل تسکین‌دهنده مشخصی ندارد.`);
+  } else if (relArr.length > 0 && aggArr.length === 0) {
+    modSentences.push(`این درد با ${relArr.join('، ')} بهبود نسبی می‌یابد و عامل تشدیدکننده خاصی ذکر نمی‌شود.`);
+  } else {
+    modSentences.push(`این درد با ${aggArr.join('، ')} تشدید شده و با ${relArr.join('، ')} بهبود نسبی می‌یابد.`);
   }
-  if (item.relieving) {
-    const relText = Array.isArray(item.relieving) ? item.relieving.join('، ') : String(item.relieving).trim();
-    if (relText) modSentences.push(`با ${relText} بهبود نسبی می‌یابد`);
-  }
+
   if (modSentences.length > 0) {
-    painParagraph += ' ' + modSentences.join(' و ') + '.';
+    painParagraph += ' ' + modSentences.join(' ');
   }
 
   return painParagraph;
@@ -303,20 +314,30 @@ export function renderArchetypeNarrativeEn(item, index = 0, totalCount = 1) {
   if (item.severity !== undefined && item.severity !== null && item.severity !== '') pSentence += `, severity rated ${item.severity}/10 on NRS`;
   pSentence += '.';
   if (item.radiationList && item.radiationList.length > 0) {
-    pSentence += ` Radiation: ${item.radiationList.map((r) => tLabel(r.label || r)).join(', ')}.`;
-  } else if (item.radiation) {
-    const rList = Array.isArray(item.radiation) ? item.radiation.map((r) => tLabel(r.label || r)).join(', ') : tLabel(item.radiation);
-    if (rList) pSentence += ` Radiation: ${rList}.`;
-  } else if (item.noRadiation) {
-    pSentence += ` No radiation.`;
+    const radStrsEn = item.radiationList.map((r) => {
+      if (r.enDisplay) return r.enDisplay;
+      if (r.en && r.detail) return `${r.detail.includes('Right') || r.detail.includes('راست') ? 'Right ' : (r.detail.includes('Left') || r.detail.includes('چپ') ? 'Left ' : '')}${r.en}`;
+      return tLabel(r.label || r);
+    });
+    pSentence += ` Radiation: ${radStrsEn.join(', ')}.`;
+  } else if (item.radiation && Array.isArray(item.radiation) && item.radiation.length > 0) {
+    const rList = item.radiation.map((r) => (typeof r === 'object' ? `${r.en || tLabel(r.label || r.id)} (${r.detail || ''})` : tLabel(r))).join(', ');
+    pSentence += ` Radiation: ${rList}.`;
+  } else if (typeof item.radiation === 'string' && item.radiation.trim()) {
+    pSentence += ` Radiation: ${tLabel(item.radiation)}.`;
+  } else {
+    pSentence += ` The pain does not radiate.`;
   }
-  const aggList = Array.isArray(item.aggravating) ? item.aggravating : (item.aggravating ? [item.aggravating] : []);
-  const relList = Array.isArray(item.relieving) ? item.relieving : (item.relieving ? [item.relieving] : []);
-  if (aggList.length > 0) {
-    pSentence += ` Aggravated by: ${aggList.map((x) => tLabel(x)).join(', ')}.`;
-  }
-  if (relList.length > 0) {
-    pSentence += ` Relieved by: ${relList.map((x) => tLabel(x)).join(', ')}.`;
+  const aggList = Array.isArray(item.aggravating) ? item.aggravating.filter(Boolean) : (item.aggravating ? [String(item.aggravating).trim()].filter(Boolean) : []);
+  const relList = Array.isArray(item.relieving) ? item.relieving.filter(Boolean) : (item.relieving ? [String(item.relieving).trim()].filter(Boolean) : []);
+  if (aggList.length === 0 && relList.length === 0) {
+    pSentence += ` There are no specific aggravating or relieving factors.`;
+  } else if (aggList.length > 0 && relList.length === 0) {
+    pSentence += ` This pain is aggravated by ${aggList.map((x) => tLabel(x)).join(', ')}, but has no specific relieving factors.`;
+  } else if (relList.length > 0 && aggList.length === 0) {
+    pSentence += ` This pain is partially relieved by ${relList.map((x) => tLabel(x)).join(', ')}, with no specific aggravating factors reported.`;
+  } else {
+    pSentence += ` Aggravated by ${aggList.map((x) => tLabel(x)).join(', ')} and partially relieved by ${relList.map((x) => tLabel(x)).join(', ')}.`;
   }
   return pSentence;
 }

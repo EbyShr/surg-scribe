@@ -5,10 +5,10 @@
  * هیچ پرونده ذخیره‌شده یا فرم نیمه‌کاره‌ای (Active Draft) هرگز پاک نشود.
  */
 
-const PERMANENT_CASES_KEY = 'SURG_SCRIBE_PERMANENT_CASES_VAULT';
-const PERMANENT_ACTIVE_DRAFT_KEY = 'SURG_SCRIBE_ACTIVE_DRAFT_STATE';
-const PERMANENT_ACTIVE_TAB_KEY = 'SURG_SCRIBE_ACTIVE_UI_TAB';
-const PERMANENT_DELETED_IDS_KEY = 'SURG_SCRIBE_DELETED_CASE_IDS';
+export const PERMANENT_CASES_KEY = 'SURG_SCRIBE_PERMANENT_CASES_VAULT';
+export const PERMANENT_ACTIVE_DRAFT_KEY = 'SURG_SCRIBE_ACTIVE_DRAFT_STATE';
+export const PERMANENT_ACTIVE_TAB_KEY = 'SURG_SCRIBE_ACTIVE_UI_TAB';
+export const PERMANENT_DELETED_IDS_KEY = 'SURG_SCRIBE_DELETED_CASE_IDS';
 const IDB_NAME = 'ClinicalScribeImmortalDB';
 const IDB_STORE = 'vault_store';
 
@@ -192,7 +192,25 @@ export class ImmortalStorageVault {
     return { state: mergedState, activeTab: savedTab, restored: true };
   }
 
+  getActiveDraftSync() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(PERMANENT_ACTIVE_DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  hasActiveDraftSync() {
+    const draft = this.getActiveDraftSync();
+    return !!(draft && draft.caseId);
+  }
+
   _deepMergeWithDefaults(targetDefault, sourceSaved) {
+    if (sourceSaved === null) {
+      return null;
+    }
     if (typeof targetDefault !== 'object' || targetDefault === null) {
       return sourceSaved !== undefined ? sourceSaved : targetDefault;
     }
@@ -202,7 +220,9 @@ export class ImmortalStorageVault {
     const output = { ...targetDefault };
     if (typeof sourceSaved === 'object' && sourceSaved !== null) {
       Object.keys(sourceSaved).forEach((key) => {
-        if (key in targetDefault) {
+        if (sourceSaved[key] === null) {
+          output[key] = null;
+        } else if (key in targetDefault) {
           output[key] = this._deepMergeWithDefaults(targetDefault[key], sourceSaved[key]);
         } else {
           output[key] = sourceSaved[key];
