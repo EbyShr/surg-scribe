@@ -2757,12 +2757,29 @@ export const MASTER_ALL_LAB_TESTS = (() => {
   return Array.from(map.values());
 })();
 
+export function inferPmhCatId(item) {
+  if (item && item.catId) return item.catId;
+  const text = `${(item && item.category) || ''} ${(item && item.id) || ''} ${(item && item.label) || ''} ${(item && item.en) || ''} ${(item && item.fa) || ''}`.toLowerCase();
+
+  if (/cardio|heart|htn|pressure|ihd|cad|angina|valve|arrhythm|afib|قلب|فشار|ایسکمی|سکته قلبی/.test(text)) return 'pmh_cat_cardio';
+  if (/endo|diabet|dm|t1dm|t2dm|thyroid|gland|adrenal|cushing|addison|lipid|dlp|غدد|دیابت|تیروئید|چربی خون|متابولیک/.test(text)) return 'pmh_cat_endo';
+  if (/gi|gastro|liver|cirrho|hepat|gall|pancrea|bowel|ibd|crohn|colitis|ulcer|gerd|celiac|stomach|کبد|گوارش|معده|روده|سیروز|هپاتیت|کیسه صفرا|پانکراس/.test(text)) return 'pmh_cat_gi_liver';
+  if (/pulm|resp|lung|copd|asthma|bronch|pneumo|osa|tb|ریه|تنفسی|آسم|برونشیت|سل/.test(text)) return 'pmh_cat_resp';
+  if (/renal|kidney|nephro|ckd|esrd|dialysis|stone|uro|bph|prostat|کلیه|اورولوژی|سنگ کلیه|پروستات|دیالیز/.test(text)) return 'pmh_cat_renal_uro';
+  if (/neuro|psych|stroke|tia|cva|seizure|epilep|depress|anxiety|bipolar|parkinson|اعصاب|مغز|صرع|تشنج|روان|افسردگی|پارکینسون/.test(text)) return 'pmh_cat_neuro_psych';
+  if (/heme|onco|cancer|malig|tumor|lymph|leuk|anemia|rheum|sle|lupus|ra|خون|انکولوژی|سرطان|روماتولوژی|لکوپنی|آنمی|کم‌خونی|لوپوس/.test(text)) return 'pmh_cat_heme_onc_rheum';
+  return 'pmh_cat_cardio';
+}
+
 // Combine all PMH items for schema search
 export const ALL_MASTER_PMH_ITEMS = [
   ...MASTER_PMH_CATEGORIES.flatMap(cat => 
     (cat.items || []).map(it => ({ ...it, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
   ),
-  ...HIDDEN_EXTENDED_PMH_DATABASE
+  ...HIDDEN_EXTENDED_PMH_DATABASE.map(it => ({
+    ...it,
+    catId: it.catId || inferPmhCatId(it)
+  }))
 ];
 
 // ==========================================================================

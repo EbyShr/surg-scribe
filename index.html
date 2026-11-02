@@ -2668,107 +2668,170 @@
 
   <!-- 🔐 Secret URL Admin Vault Modal (Accessed exclusively via #admin-vault or ?admin=1) -->
   <div class="modal-backdrop" id="adminVaultModalBackdrop" style="display:none; z-index:9999;">
-    <div class="modal-box admin-vault-modal-box">
-      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+    <div class="modal-box admin-vault-modal-box" style="max-width: 1350px !important; width: 96vw !important; height: 94vh !important; max-height: 94vh !important;">
+      <!-- Modal Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
         <div class="modal-title" style="display: flex; align-items: center; gap: 0.65rem; font-size: 1.05rem; font-weight: 700; color: #fff;">
-          <span style="font-size: 1.3rem;">🔐</span>
-          <span>پنل مدیریت مرکزی پرونده‌ها (Master Clinical Vault — Admin Only)</span>
-          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid rgba(52, 211, 153, 0.4);">v2.1-Audit-Core</span>
+          <span style="font-size: 1.35rem;">🔐</span>
+          <span>مرکز مانیتورینگ زنده اکسل مرکزی (Google Sheets Live Cloud Monitor)</span>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid rgba(52, 211, 153, 0.4);">Live Cloud v2.1</span>
         </div>
         <div style="display:flex; align-items:center; gap:0.6rem;">
-          <button type="button" class="btn btn-secondary" id="btnAdminExportDatabase" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: #059669; color: #fff; border: none; display: flex; align-items: center; gap: 0.4rem; border-radius:6px; cursor:pointer;">
+          <button type="button" class="btn btn-secondary" id="btnAdminExportCsv" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: #059669; color: #fff; border: none; display: flex; align-items: center; gap: 0.4rem; border-radius:6px; cursor:pointer;" title="خروجی شیت فعال به صورت فایل CSV استاندارد با پشتیبانی کامل از کاراکترهای فارسی">
             <span>📊</span>
-            <span>دانلود کل دیتابیس (JSON/CSV)</span>
+            <span>خروجی اکسل CSV شیت فعال</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnAdminExportJson" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: #3b82f6; color: #fff; border: none; display: flex; align-items: center; gap: 0.4rem; border-radius:6px; cursor:pointer;" title="دانلود نسخه کامل پشتیبان از تمام داده‌های ابری دریافت شده">
+            <span>📦</span>
+            <span>بک‌آپ کل دیتابیس (JSON)</span>
           </button>
           <button type="button" class="btn btn-secondary" id="btnAdminExitVault" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); border-radius:6px; cursor:pointer;">
-            <span>خروج از حالت ادمین ✕</span>
+            <span>خروج ✕</span>
           </button>
         </div>
       </div>
 
-      <!-- Admin Auth / Password prompt bar if not unlocked -->
-      <div id="adminAuthSection" style="padding: 3rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-        <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">ورود به مخزن مرکزی پرونده‌های بالینی</h3>
-        <p style="color: var(--text-muted); max-width: 480px; margin-bottom: 1.5rem; font-size: 0.88rem; line-height: 1.6;">جهت دسترسی به تمام پرونده‌های ثبت‌شده و دریافت فایل تجمیعی جهت تحلیل آماری، رمز عبور ادمین را وارد نمایید.</p>
-        <div style="display: flex; gap: 0.5rem; max-width: 380px; width: 100%;">
-          <input type="password" id="adminPasswordInput" class="input-text" placeholder="رمز عبور ادمین (پیش‌فرض: SURG2026)" value="SURG2026" style="flex: 1; text-align: center; font-size: 0.95rem; letter-spacing: 2px;" />
-          <button type="button" class="btn btn-primary" id="btnAdminUnlock" style="padding: 0.5rem 1.25rem; font-weight:700;">ورود</button>
+      <!-- Cloud Connection Bar (Always Accessible) -->
+      <div class="admin-cloud-conn-bar" style="background: var(--bg-elevated); padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; flex-shrink: 0;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; flex: 1; min-width: 320px;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1.5; min-width: 250px;">
+            <label style="font-size: 0.78rem; font-weight: 600; white-space: nowrap; color: var(--text-muted);">آدرس وب‌اپ مرکزی گوگل:</label>
+            <input type="text" id="adminScriptUrlInput" class="input-text" placeholder="https://script.google.com/macros/s/.../exec" style="flex: 1; font-family: monospace; font-size: 0.76rem; direction: ltr; padding: 0.35rem 0.6rem;" />
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem; min-width: 170px;">
+            <label style="font-size: 0.78rem; font-weight: 600; white-space: nowrap; color: var(--text-muted);">رمز عبور:</label>
+            <input type="password" id="adminPasswordInput" class="input-text" placeholder="SURG2026" value="SURG2026" style="width: 110px; font-size: 0.82rem; text-align: center; letter-spacing: 1px; padding: 0.35rem 0.5rem;" />
+          </div>
+          <button type="button" class="btn btn-primary" id="btnAdminFetchCloud" style="padding: 0.4rem 0.95rem; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔄</span>
+            <span>واکشی زنده اطلاعات از اکسل مرکزی</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnAdminOpenGoogleSheet" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; background: #065f46; color: #fff; border: 1px solid #059669;" title="مشاهده و ویرایش مستقیم فایل شیت اصلی در تب جدید گوگل">
+            <span>📗</span>
+            <span>باز کردن مستقیم Google Sheet</span>
+          </button>
         </div>
-        <div id="adminAuthError" style="color: #ef4444; font-size: 0.84rem; margin-top: 0.75rem; display: none;">رمز عبور نادرست است.</div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span id="adminCloudStatusBadge" class="badge" style="background: rgba(148, 163, 184, 0.15); color: var(--text-muted); font-size: 0.78rem; padding: 0.35rem 0.7rem; border-radius: 6px; border: 1px solid var(--border-medium);">آماده اتصال و واکشی اطلاعات</span>
+        </div>
       </div>
 
-      <!-- Admin Dashboard Content (visible after authentication) -->
-      <div id="adminVaultMainContent" style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
-        <!-- Filters Bar -->
-        <div class="admin-vault-filters" style="padding: 0.65rem 1rem; background: var(--bg-elevated); border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between;">
-          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; flex: 1; min-width: 280px;">
-            <input type="text" id="adminFilterSearch" class="input-text" placeholder="🔍 جستجو در متن، تشخیص، بیمار..." style="max-width: 240px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
-            <select id="adminFilterType" class="input-text input-select" style="max-width: 170px; padding: 0.35rem 0.65rem; font-size: 0.82rem;">
-              <option value="all">همه پرونده‌ها</option>
-              <option value="ADMISSION_HP">شرح‌حال H&amp;P</option>
-              <option value="SOAP_PROGRESS">پراگرس روزانه SOAP</option>
-              <option value="ATLS_TRAUMA">ترومای اورژانس ATLS</option>
-            </select>
-            <input type="text" id="adminFilterCollector" class="input-text" placeholder="نام ثبت‌کننده..." style="max-width: 150px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
-            <input type="date" id="adminFilterDate" class="input-text" style="max-width: 145px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
+      <!-- Main Cloud Monitor Container -->
+      <div id="adminVaultMainContent" style="display: flex; flex: 1; flex-direction: column; overflow: hidden;">
+        <!-- Telemetry Cards & Collector Filters -->
+        <div style="background: var(--bg-surface); padding: 0.75rem 1.25rem 0.5rem; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin-bottom: 0.65rem;">
+            <!-- KPI 1 -->
+            <div class="kpi-card" style="background: var(--bg-elevated); padding: 0.65rem 0.9rem; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.75rem;">
+              <div style="font-size: 1.8rem;">🗂️</div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">کل پرونده‌های ثبت‌شده در سرور</div>
+                <div id="kpiTotalCases" style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">۰</div>
+              </div>
+            </div>
+            <!-- KPI 2 -->
+            <div class="kpi-card" style="background: var(--bg-elevated); padding: 0.65rem 0.9rem; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.75rem;">
+              <div style="font-size: 1.8rem;">📋</div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">شرح‌حال‌های بستری (Admission H&amp;P)</div>
+                <div id="kpiHpCount" style="font-size: 1.25rem; font-weight: 800; color: #10b981;">۰</div>
+              </div>
+            </div>
+            <!-- KPI 3 -->
+            <div class="kpi-card" style="background: var(--bg-elevated); padding: 0.65rem 0.9rem; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.75rem;">
+              <div style="font-size: 1.8rem;">📈</div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">پراگرس روزانه (SOAP Notes)</div>
+                <div id="kpiSoapCount" style="font-size: 1.25rem; font-weight: 800; color: #3b82f6;">۰</div>
+              </div>
+            </div>
+            <!-- KPI 4 -->
+            <div class="kpi-card" style="background: var(--bg-elevated); padding: 0.65rem 0.9rem; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 0.75rem;">
+              <div style="font-size: 1.8rem;">🚑</div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">ترومای اورژانس (ATLS Trauma)</div>
+                <div id="kpiAtlsCount" style="font-size: 1.25rem; font-weight: 800; color: #ef4444;">۰</div>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <span id="adminCaseCountBadge" class="badge" style="background: var(--bg-surface); border: 1px solid var(--border-medium); font-size: 0.78rem; padding: 0.35rem 0.65rem;">تعداد پرونده: ۰</span>
-            <button type="button" class="btn btn-secondary" id="btnAdminRefresh" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;">🔄 بروزرسانی</button>
+
+          <!-- Collector Filter Chips -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">فیلتر دانشجویان/ثبت‌کنندگان:</span>
+            <div id="adminCollectorsChipsContainer" style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="badge active" data-collector="all" style="cursor: pointer; padding: 0.25rem 0.6rem; border: 1px solid var(--primary); background: var(--primary); color: #fff;">همه ثبت‌کنندگان</button>
+            </div>
           </div>
         </div>
 
-        <!-- Split View: Table list (right in RTL) + Case Details Preview (left in RTL) -->
-        <div style="display: flex; flex: 1; overflow: hidden;">
-          <!-- Table List -->
-          <div style="flex: 1.2; overflow-y: auto; border-left: 1px solid var(--border-subtle); padding: 0.5rem;">
-            <table class="clinical-table admin-vault-table" id="adminCasesTable" style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="background: var(--bg-elevated); position: sticky; top: 0; z-index: 2;">
-                  <th style="width: 35px; text-align: center;">#</th>
-                  <th>شناسه</th>
-                  <th>نوع</th>
-                  <th>شکایت / تشخیص</th>
-                  <th>ثبت‌کننده</th>
-                  <th>تاریخ</th>
-                </tr>
-              </thead>
-              <tbody id="adminCasesTableBody">
-                <!-- Populated dynamically -->
-              </tbody>
-            </table>
+        <!-- Sheet Explorer Navigation Tabs & Live Search -->
+        <div style="background: var(--bg-elevated); padding: 0.5rem 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+          <!-- 4 Sheet Tabs -->
+          <div class="segmented-control-pills" id="adminSheetNavTabs" style="display: flex; gap: 0.35rem; margin: 0;">
+            <button type="button" class="elective-seg-pill active" id="tabBtnCloudCases" data-tab="cases">
+              <span>🗂️ نمای یکپارچه پرونده‌ها (Master Cases Vault)</span>
+            </button>
+            <button type="button" class="elective-seg-pill" id="tabBtnSheetHp" data-tab="hp">
+              <span>📋 شیت Admission_HP</span>
+            </button>
+            <button type="button" class="elective-seg-pill" id="tabBtnSheetSoap" data-tab="soap">
+              <span>📈 شیت SOAP_Progress</span>
+            </button>
+            <button type="button" class="elective-seg-pill" id="tabBtnSheetAtls" data-tab="atls">
+              <span>🚑 شیت ATLS_Trauma</span>
+            </button>
           </div>
 
-          <!-- Case Inspector Preview Pane -->
-          <div id="adminCaseInspector" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-surface); padding: 0.85rem;">
-            <div id="adminInspectorEmpty" style="color: var(--text-muted); text-align: center; margin-top: 5rem;">
-              <span>یک پرونده را از جدول انتخاب کنید تا جزئیات و متن رندرشده نمایش داده شود.</span>
+          <!-- Live Search Bar -->
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex: 1; max-width: 420px;">
+            <input type="text" id="adminCloudSearchInput" class="input-text" placeholder="🔍 فیلتر زنده (کد پرونده، نام بیمار، ثبت‌کننده، کلمات کلیدی...)" style="flex: 1; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
+            <span id="adminActiveRowsCount" class="badge" style="background: var(--bg-surface); border: 1px solid var(--border-medium); font-size: 0.75rem; white-space: nowrap; padding: 0.35rem 0.6rem;">۰ ردیف</span>
+          </div>
+        </div>
+
+        <!-- Live Table Viewport Area -->
+        <div id="adminCloudTableContainer" style="flex: 1; overflow: auto; position: relative; background: var(--bg-surface); padding: 0.5rem;">
+          <div id="adminTableEmptyPrompt" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); padding: 3rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.6;">☁️</div>
+            <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">هنوز داده‌ای واکشی نشده است</div>
+            <div style="font-size: 0.84rem; max-width: 460px; text-align: center; line-height: 1.6;">جهت اتصال به دیتابیس مرکزی و مشاهده زنده آخرین پرونده‌های ثبت‌شده توسط دانشجویان، روی دکمه «واکشی زنده اطلاعات از اکسل مرکزی» در بالا کلیک کنید.</div>
+          </div>
+          <table class="clinical-table admin-vault-table" id="adminCloudDataTable" style="width: 100%; border-collapse: collapse; display: none;">
+            <thead id="adminCloudTableHead"></thead>
+            <tbody id="adminCloudTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Case Inspector Drawer / Full Note Preview Overlay -->
+      <div id="adminCloudInspectorDrawer" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center; padding: 1.5rem;">
+        <div style="background: var(--bg-surface); border-radius: 12px; width: 92%; max-width: 950px; height: 90%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid var(--border-medium);">
+          <!-- Drawer Header -->
+          <div style="background: var(--bg-elevated); padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 id="cloudInspectorCaseTitle" style="margin: 0; font-size: 1.05rem; color: var(--primary);"></h3>
+              <div id="cloudInspectorCaseMeta" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;"></div>
             </div>
-            <div id="adminInspectorContent" style="display: none; flex-direction: column; gap: 0.65rem; height: 100%;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-                <div>
-                  <h4 id="inspectorCaseTitle" style="margin: 0; color: var(--primary); font-size: 0.95rem;"></h4>
-                  <span id="inspectorCaseMeta" style="font-size: 0.76rem; color: var(--text-muted);"></span>
-                </div>
-                <button type="button" class="btn btn-primary" id="btnAdminLoadCaseToEditor" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight:700;">
-                  <span>📥</span>
-                  <span>بارگذاری این پرونده در محیط ویرایشگر برنامه</span>
-                </button>
-              </div>
-              
-              <!-- Tabs for inspecting H&P, SOAP, ATLS notes -->
-              <div class="segmented-control-pills" style="margin-top: 0.15rem;">
-                <button type="button" class="elective-seg-pill active" id="btnInspectHp">H&amp;P Note</button>
-                <button type="button" class="elective-seg-pill" id="btnInspectSoap">SOAP (All Days)</button>
-                <button type="button" class="elective-seg-pill" id="btnInspectAtls">ATLS Trauma</button>
-                <button type="button" class="elective-seg-pill" id="btnInspectRaw">Raw JSON</button>
-              </div>
-              
-              <div style="flex: 1; min-height: 220px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem; overflow-y: auto;">
-                <pre id="inspectorNoteText" style="white-space: pre-wrap; font-family: inherit; font-size: 0.8rem; margin: 0; line-height: 1.6;"></pre>
-              </div>
-            </div>
+            <button type="button" class="btn btn-secondary" id="btnAdminCloseInspector" style="padding: 0.35rem 0.7rem; font-size: 0.85rem; border-radius: 6px;">✕ بستن</button>
+          </div>
+          <!-- Drawer Actions -->
+          <div style="background: var(--bg-surface); padding: 0.5rem 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-primary" id="btnAdminImportCaseToEditor" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📥</span>
+              <span>بارگذاری این پرونده در محیط ویرایشگر برنامه</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btnAdminCopyInspectorNote" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📋</span>
+              <span>کپی متن شرح‌حال</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btnAdminDownloadCaseJson" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>📄</span>
+              <span>دانلود فایل JSON این پرونده</span>
+            </button>
+          </div>
+          <!-- Drawer Body / Note Viewport -->
+          <div style="flex: 1; padding: 1rem 1.25rem; overflow-y: auto; background: var(--bg-elevated);">
+            <pre id="cloudInspectorNotePre" style="margin: 0; white-space: pre-wrap; font-family: inherit; font-size: 0.88rem; line-height: 1.7; color: var(--text-base);"></pre>
           </div>
         </div>
       </div>

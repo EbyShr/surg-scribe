@@ -59,7 +59,8 @@ import {
   FH_CANCER_HEREDITARY_DATABASE,
   EXTENDED_LAB_DATABASE,
   MASTER_ALL_LAB_TESTS,
-  PE_COMPREHENSIVE_SYSTEMS
+  PE_COMPREHENSIVE_SYSTEMS,
+  inferPmhCatId
 } from './schema.js';
 import { ClinicalCaseAnalytics, ClinicalTelemetryEngine } from './telemetry.js';
 import {
@@ -3080,11 +3081,45 @@ function renderPmhCategories() {
     body.className = 'pmh-category-body';
     body.style.display = catData.status === 'has_positive' ? 'flex' : 'none';
 
-    // Split-action chips for items inside this category
+    // Split-action chips for items inside this category (core + dynamic from search/database)
     const chipsContainer = document.createElement('div');
     chipsContainer.className = 'chips-container';
 
-    cat.items.forEach((item) => {
+    const allCatItemsMap = new Map();
+    (cat.items || []).forEach((item) => {
+      allCatItemsMap.set(item.id, { ...item });
+    });
+
+    if (catData.items) {
+      Object.entries(catData.items).forEach(([k, v]) => {
+        if (!allCatItemsMap.has(k) && v) {
+          allCatItemsMap.set(k, {
+            id: k,
+            label: v.label || v.fa || k,
+            detailHint: v.detailHint || 'توضیحات تکمیلی / سال تشخیص...',
+            en: v.en || ''
+          });
+        }
+      });
+    }
+
+    if (clinicalState.pmh?.items) {
+      Object.entries(clinicalState.pmh.items).forEach(([k, v]) => {
+        if (!allCatItemsMap.has(k) && v) {
+          const inferred = v.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId({ id: k, ...v }) : null);
+          if (inferred === cat.id) {
+            allCatItemsMap.set(k, {
+              id: k,
+              label: v.label || v.fa || k,
+              detailHint: v.detailHint || 'توضیحات تکمیلی / سال تشخیص...',
+              en: v.en || ''
+            });
+          }
+        }
+      });
+    }
+
+    allCatItemsMap.forEach((item) => {
       const cur = catData.items?.[item.id] || clinicalState.pmh.items?.[item.id];
       const chipWrap = renderInlineDetailTriStateChip({
         id: item.id,
@@ -3096,13 +3131,17 @@ function renderPmhCategories() {
             delete catData.items[item.id];
             delete clinicalState.pmh.items[item.id];
           } else {
-            catData.items[item.id] = { state: newState, detail: detailText, label: item.label };
+            catData.items[item.id] = { state: newState, detail: detailText, label: item.label, catId: cat.id, en: item.en || '' };
             clinicalState.pmh.items[item.id] = catData.items[item.id];
           }
+          saveCurrentCase();
+          updateLivePreview();
         },
         onDetailChange: (detailText) => {
           if (catData.items[item.id]) catData.items[item.id].detail = detailText;
           if (clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id].detail = detailText;
+          saveCurrentCase();
+          updateLivePreview();
         }
       });
       chipsContainer.appendChild(chipWrap);
@@ -3135,6 +3174,9 @@ function renderPmhCategories() {
         catData.status = 'neutral';
       } else {
         catData.status = 'negated';
+        Object.keys(catData.items || {}).forEach((k) => {
+          if (clinicalState.pmh.items) delete clinicalState.pmh.items[k];
+        });
         catData.items = {};
       }
       renderPmhCategories();
@@ -5662,7 +5704,8 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       cur = clinicalState.hpi.symptoms?.[item.id];
     } else if (sectionType === 'pmh') {
       if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
-      cur = (item.catId && clinicalState.pmh.categories?.[item.catId]?.items?.[item.id]) || clinicalState.pmh.items?.[item.id];
+      const targetCatId = item.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId(item) : null);
+      cur = (targetCatId && clinicalState.pmh.categories?.[targetCatId]?.items?.[item.id]) || clinicalState.pmh.items?.[item.id];
     } else if (sectionType === 'ros') {
       if (!clinicalState.ros) clinicalState.ros = { items: {} };
       if (!clinicalState.ros.items) clinicalState.ros.items = {};
@@ -5767,8 +5810,20 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       } else if (sectionType === 'pmh') {
         if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
         if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
-        if (!clinicalState.pmh.items[item.id]) clinicalState.pmh.items[item.id] = { state: 1, label: item.label, detail: '' };
+        if (!clinicalState.pmh.categories) clinicalState.pmh.categories = {};
+        const targetCatId = item.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId(item) : 'pmh_cat_cardio');
+        if (!clinicalState.pmh.items[item.id]) {
+          clinicalState.pmh.items[item.id] = { state: 1, label: item.label || item.fa || item.en, en: item.en || '', detail: '', catId: targetCatId };
+        }
         clinicalState.pmh.items[item.id].detail = val;
+        if (!clinicalState.pmh.categories[targetCatId]) {
+          clinicalState.pmh.categories[targetCatId] = { status: 'has_positive', items: {} };
+        }
+        if (!clinicalState.pmh.categories[targetCatId].items[item.id]) {
+          clinicalState.pmh.categories[targetCatId].items[item.id] = { state: 1, label: item.label || item.fa || item.en, en: item.en || '', detail: '', catId: targetCatId };
+        }
+        clinicalState.pmh.categories[targetCatId].items[item.id].detail = val;
+        renderPmhCategories();
       } else if (sectionType === 'ros') {
         if (!clinicalState.ros) clinicalState.ros = { items: {} };
         if (!clinicalState.ros.items) clinicalState.ros.items = {};
@@ -5860,14 +5915,37 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
       } else if (sectionType === 'pmh') {
         if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
         if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
-        if (item.catId) {
-          if (!clinicalState.pmh.categories[item.catId]) clinicalState.pmh.categories[item.catId] = { status: 'neutral', items: {} };
-          if (newState === 0) delete clinicalState.pmh.categories[item.catId].items[item.id];
-          else clinicalState.pmh.categories[item.catId].items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
-          if (newState === 1) clinicalState.pmh.categories[item.catId].status = 'has_positive';
+        if (!clinicalState.pmh.categories) clinicalState.pmh.categories = {};
+
+        const targetCatId = item.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId(item) : 'pmh_cat_cardio');
+        const itemObj = {
+          state: newState,
+          label: item.label || item.fa || item.en,
+          en: item.en || '',
+          detail: detailInp.value,
+          catId: targetCatId
+        };
+
+        if (targetCatId) {
+          if (!clinicalState.pmh.categories[targetCatId]) {
+            clinicalState.pmh.categories[targetCatId] = { status: 'neutral', items: {} };
+          }
+          if (newState === 0) {
+            delete clinicalState.pmh.categories[targetCatId].items[item.id];
+          } else {
+            clinicalState.pmh.categories[targetCatId].items[item.id] = itemObj;
+            if (newState === 1) {
+              clinicalState.pmh.categories[targetCatId].status = 'has_positive';
+            }
+          }
         }
-        if (newState === 0) delete clinicalState.pmh.items[item.id];
-        else clinicalState.pmh.items[item.id] = { state: newState, label: item.label, detail: detailInp.value };
+
+        if (newState === 0) {
+          delete clinicalState.pmh.items[item.id];
+        } else {
+          clinicalState.pmh.items[item.id] = itemObj;
+        }
+
         renderPmhCategories();
       } else if (sectionType === 'ros') {
         if (!clinicalState.ros) clinicalState.ros = { items: {} };
@@ -5954,8 +6032,18 @@ function renderTriStateSearchTray(query, tray, input, itemsPool, sectionType) {
     } else if (sectionType === 'pmh') {
       if (!clinicalState.pmh) clinicalState.pmh = { categories: {}, items: {} };
       if (!clinicalState.pmh.items) clinicalState.pmh.items = {};
-      clinicalState.pmh.items[customId] = { state: 1, label: query, detail: '' };
+      if (!clinicalState.pmh.categories) clinicalState.pmh.categories = {};
+      const targetCatId = (typeof inferPmhCatId === 'function' ? inferPmhCatId({ id: customId, label: query }) : 'pmh_cat_cardio');
+      const itemObj = { state: 1, label: query, detail: '', catId: targetCatId };
+      clinicalState.pmh.items[customId] = itemObj;
+      if (!clinicalState.pmh.categories[targetCatId]) {
+        clinicalState.pmh.categories[targetCatId] = { status: 'has_positive', items: {} };
+      }
+      clinicalState.pmh.categories[targetCatId].items[customId] = itemObj;
+      clinicalState.pmh.categories[targetCatId].status = 'has_positive';
       renderPmhCategories();
+      saveCurrentCase();
+      updateLivePreview();
     } else if (sectionType === 'ros') {
       if (!clinicalState.ros) clinicalState.ros = { items: {} };
       if (!clinicalState.ros.items) clinicalState.ros.items = {};
@@ -11102,12 +11190,35 @@ function initManualThemeToggle() {
 }
 
 /* ==========================================================================
-   Secret Admin Vault Dashboard (URL Hash / Query Driven: #admin-vault)
+   Secret Admin Vault Dashboard: Google Sheets Live Cloud Monitor (#admin-vault)
+   Direct 100% cloud telemetry, live sheet explorer, and central monitoring.
+   Zero local offline storage dependency.
    ========================================================================== */
-let adminVaultUnlocked = false;
-let adminVaultCasesList = [];
-let adminSelectedCase = null;
-let adminActiveInspectTab = 'hp';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWKN6I80lNriVfPFr7XzZZm9wGdJckmms9led7xn7ieQJnbXz6oumHtWQ85uUHV0Q8/exec';
+
+let cloudAdminData = null;
+let cloudActiveTab = 'cases'; // 'cases' | 'hp' | 'soap' | 'atls'
+let cloudSelectedCollector = 'all';
+let cloudSearchQuery = '';
+let cloudSelectedInspectorCase = null;
+let cloudIsFetching = false;
+
+/**
+ * Direct Live Cloud Fetch from Google Apps Script WebApp
+ * Follows HTTP 302 redirects cleanly to avoid CORS redirect drops
+ */
+export async function fetchCloudExcelData(scriptUrl, passkey) {
+  const cleanUrl = (scriptUrl && scriptUrl.trim().length > 0) ? scriptUrl.trim() : DEFAULT_SCRIPT_URL;
+  const targetUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}key=${encodeURIComponent(passkey || 'SURG2026')}&_t=${Date.now()}`;
+  const response = await fetch(targetUrl, {
+    method: 'GET',
+    redirect: 'follow'
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  const data = await response.json();
+  if (data.status !== 'success') throw new Error(data.message || 'خطا در احراز هویت ادمین یا سرور ابری');
+  return data;
+}
 
 export function checkSecretAdminRoute() {
   if (typeof window === 'undefined') return;
@@ -11120,277 +11231,671 @@ export function checkSecretAdminRoute() {
 
   if (isAdminRoute) {
     backdrop.style.display = 'flex';
-    const authSec = document.getElementById('adminAuthSection');
-    const mainContent = document.getElementById('adminVaultMainContent');
-    if (adminVaultUnlocked && mainContent) {
-      if (authSec) authSec.style.display = 'none';
-      mainContent.style.display = 'flex';
-      loadAdminVaultCases();
-    } else {
-      if (authSec) authSec.style.display = 'flex';
-      if (mainContent) mainContent.style.display = 'none';
-      const pwdInput = document.getElementById('adminPasswordInput');
-      if (pwdInput) {
-        pwdInput.focus();
-        pwdInput.select();
-      }
+    const scriptInp = document.getElementById('adminScriptUrlInput');
+    if (scriptInp && !scriptInp.value) {
+      scriptInp.value = (gsheetSync && gsheetSync.config && gsheetSync.config.scriptUrl) ? gsheetSync.config.scriptUrl : DEFAULT_SCRIPT_URL;
+    }
+    const pwdInput = document.getElementById('adminPasswordInput');
+    if (pwdInput && !pwdInput.value) {
+      pwdInput.value = 'SURG2026';
+    }
+
+    if (!cloudAdminData && !cloudIsFetching) {
+      doAdminCloudFetch(false);
     }
   } else {
     backdrop.style.display = 'none';
   }
 }
 
-function updateAdminInspectorView() {
-  const pre = document.getElementById('inspectorNoteText');
-  if (!pre) return;
+async function doAdminCloudFetch(showUserToast = true) {
+  if (cloudIsFetching) return;
+  cloudIsFetching = true;
 
-  if (!adminSelectedCase) {
-    pre.textContent = 'هیچ پرونده‌ای انتخاب نشده است.';
-    return;
+  const scriptInp = document.getElementById('adminScriptUrlInput');
+  const pwdInp = document.getElementById('adminPasswordInput');
+  const statusBadge = document.getElementById('adminCloudStatusBadge');
+  const btnFetch = document.getElementById('btnAdminFetchCloud');
+
+  const scriptUrl = (scriptInp?.value || '').trim() || (gsheetSync?.config?.scriptUrl) || DEFAULT_SCRIPT_URL;
+  const passkey = (pwdInp?.value || '').trim() || 'SURG2026';
+
+  if (statusBadge) {
+    statusBadge.textContent = '⏳ در حال اتصال و واکشی زنده از Google Sheets...';
+    statusBadge.style.color = '#38bdf8';
+    statusBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+    statusBadge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+  }
+  if (btnFetch) {
+    btnFetch.disabled = true;
+    btnFetch.classList.add('loading');
   }
 
-  // Update tabs active state
-  const tabs = {
-    hp: document.getElementById('btnInspectHp'),
-    soap: document.getElementById('btnInspectSoap'),
-    atls: document.getElementById('btnInspectAtls'),
-    raw: document.getElementById('btnInspectRaw')
-  };
+  try {
+    const data = await fetchCloudExcelData(scriptUrl, passkey);
+    cloudAdminData = data;
 
-  Object.entries(tabs).forEach(([k, btn]) => {
-    if (btn) btn.classList.toggle('active', k === adminActiveInspectTab);
-  });
+    // Save active scriptUrl in gsheetSync config if updated
+    if (gsheetSync && scriptUrl) {
+      gsheetSync.saveConfig({ scriptUrl, collectorName: gsheetSync.config.collectorName });
+    }
 
-  if (adminActiveInspectTab === 'hp') {
-    pre.textContent = generateClinicalNote(adminSelectedCase);
-  } else if (adminActiveInspectTab === 'soap') {
-    if (Array.isArray(adminSelectedCase.soapHistory) && adminSelectedCase.soapHistory.length > 0) {
-      const allText = adminSelectedCase.soapHistory.map((day, idx) => {
-        const header = `=== روز ${day.context?.hdNumber || idx + 1} (${day.dateStr || ''}) ===\n`;
-        return header + (day.renderedText || generateSOAPProgressNote(day, adminSelectedCase));
-      }).join('\n\n----------------------------------------\n\n');
-      pre.textContent = allText;
-    } else if (adminSelectedCase.mode === 'soap' || adminSelectedCase.subjective) {
-      pre.textContent = generateSOAPProgressNote(adminSelectedCase, adminSelectedCase);
-    } else {
-      pre.textContent = 'هیچ یادداشت روزانه SOAP برای این پرونده ثبت نشده است.';
+    const timeStr = new Date().toLocaleTimeString('fa-IR');
+    if (statusBadge) {
+      statusBadge.textContent = `✅ متصل به ابر مرکزی (واکشی در ساعت ${timeStr})`;
+      statusBadge.style.color = '#34d399';
+      statusBadge.style.background = 'rgba(52, 211, 153, 0.15)';
+      statusBadge.style.borderColor = 'rgba(52, 211, 153, 0.4)';
     }
-  } else if (adminActiveInspectTab === 'atls') {
-    if (adminSelectedCase.atls && (adminSelectedCase.atls.primarySurvey || adminSelectedCase.atls.moi)) {
-      pre.textContent = generateATLSNote(adminSelectedCase.atls, adminSelectedCase);
-    } else {
-      pre.textContent = 'هیچ فرم ترومای اورژانس (ATLS) برای این پرونده ثبت نشده است.';
+
+    renderCloudTelemetry(data);
+    renderCloudDataTable();
+
+    if (showUserToast) {
+      showToast('اطلاعات با موفقیت به صورت زنده از اکسل مرکزی واکشی شد.', 'success');
     }
-  } else if (adminActiveInspectTab === 'raw') {
-    pre.textContent = JSON.stringify(adminSelectedCase, null, 2);
+  } catch (err) {
+    console.error('[AdminCloud] Fetch error:', err);
+    if (statusBadge) {
+      statusBadge.textContent = `❌ خطا در واکشی: ${err.message || 'عدم دسترسی'}`;
+      statusBadge.style.color = '#f87171';
+      statusBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+      statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+    }
+    if (showUserToast) {
+      showToast(`خطا در اتصال به اکسل مرکزی: ${err.message}`, 'warning');
+    }
+  } finally {
+    cloudIsFetching = false;
+    if (btnFetch) {
+      btnFetch.disabled = false;
+      btnFetch.classList.remove('loading');
+    }
   }
 }
 
-function inspectAdminCase(c) {
-  adminSelectedCase = c;
-  const emptyPrompt = document.getElementById('adminInspectorEmpty');
-  const content = document.getElementById('adminInspectorContent');
-  const title = document.getElementById('inspectorCaseTitle');
-  const meta = document.getElementById('inspectorCaseMeta');
+function renderCloudTelemetry(data) {
+  if (!data) return;
 
-  if (emptyPrompt) emptyPrompt.style.display = 'none';
-  if (content) content.style.display = 'flex';
+  const stats = data.stats || {};
+  const cases = Array.isArray(data.cloudCases) ? data.cloudCases : (Array.isArray(data.cases) ? data.cases : []);
+  const sheets = data.sheetsData || data.sheets || {};
 
-  const cid = c.caseId || c.metadata?.caseId || '—';
-  const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || 'بیمار ناشناس';
-  const age = c.demographics?.age || c.context?.age || '';
-  const gender = c.demographics?.gender === 'female' ? 'خانم' : c.demographics?.gender === 'male' ? 'آقا' : '';
-  const collector = c.metadata?.collectorId || c.collectorName || '—';
-  const dateStr = (c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '—').split('T')[0];
+  const totalCases = stats.totalUniqueCases !== undefined ? stats.totalUniqueCases : cases.length;
+  const hpCount = stats.totalHPCount !== undefined ? stats.totalHPCount : (sheets.Admission_HP?.length || cases.filter((c) => (c.recordType || c.record_type || '').includes('HP')).length);
+  const soapCount = stats.totalSOAPCount !== undefined ? stats.totalSOAPCount : (sheets.SOAP_Progress?.length || cases.filter((c) => (c.recordType || c.record_type || '').includes('SOAP')).length);
+  const atlsCount = stats.totalATLSCount !== undefined ? stats.totalATLSCount : (sheets.ATLS_Trauma?.length || cases.filter((c) => (c.recordType || c.record_type || '').includes('ATLS')).length);
 
-  if (title) title.textContent = `${ptName} (${age} ساله ${gender}) — ${cid}`;
-  if (meta) meta.textContent = `ثبت‌کننده: ${collector} | تاریخ: ${dateStr}`;
+  const kpiTotal = document.getElementById('kpiTotalCases');
+  const kpiHp = document.getElementById('kpiHpCount');
+  const kpiSoap = document.getElementById('kpiSoapCount');
+  const kpiAtls = document.getElementById('kpiAtlsCount');
 
-  updateAdminInspectorView();
+  if (kpiTotal) kpiTotal.textContent = Number(totalCases).toLocaleString('fa-IR');
+  if (kpiHp) kpiHp.textContent = Number(hpCount).toLocaleString('fa-IR');
+  if (kpiSoap) kpiSoap.textContent = Number(soapCount).toLocaleString('fa-IR');
+  if (kpiAtls) kpiAtls.textContent = Number(atlsCount).toLocaleString('fa-IR');
+
+  // Render Collector filter tags
+  const chipsContainer = document.getElementById('adminCollectorsChipsContainer');
+  if (chipsContainer) {
+    chipsContainer.innerHTML = '';
+
+    // "All" button
+    const btnAll = document.createElement('button');
+    btnAll.type = 'button';
+    btnAll.className = `badge ${cloudSelectedCollector === 'all' ? 'active' : ''}`;
+    btnAll.textContent = 'همه ثبت‌کنندگان';
+    btnAll.style.cursor = 'pointer';
+    btnAll.style.padding = '0.25rem 0.65rem';
+    btnAll.style.border = '1px solid var(--primary)';
+    btnAll.style.background = cloudSelectedCollector === 'all' ? 'var(--primary)' : 'var(--bg-elevated)';
+    btnAll.style.color = cloudSelectedCollector === 'all' ? '#fff' : 'var(--text-base)';
+    btnAll.onclick = () => {
+      cloudSelectedCollector = 'all';
+      renderCloudTelemetry(data);
+      renderCloudDataTable();
+    };
+    chipsContainer.appendChild(btnAll);
+
+    // Collect collectors list
+    let collectors = [];
+    if (Array.isArray(stats.uniqueCollectors) && stats.uniqueCollectors.length > 0) {
+      collectors = stats.uniqueCollectors;
+    } else {
+      const set = new Set();
+      cases.forEach((c) => {
+        const col = c.collector || c.collectorName || c.collector_name || c.metadata?.collectorId;
+        if (col && col !== '—' && col !== 'نامشخص') set.add(col);
+      });
+      collectors = Array.from(set);
+    }
+
+    collectors.forEach((colName) => {
+      const colStr = typeof colName === 'object' && colName !== null ? (colName.name || colName.collector || JSON.stringify(colName)) : String(colName);
+      if (!colStr) return;
+
+      const colCount = cases.filter((c) => {
+        const cCol = c.collector || c.collectorName || c.collector_name || c.metadata?.collectorId || '';
+        return String(cCol).toLowerCase() === colStr.toLowerCase();
+      }).length;
+
+      const btnCol = document.createElement('button');
+      btnCol.type = 'button';
+      const isSelected = cloudSelectedCollector.toLowerCase() === colStr.toLowerCase();
+      btnCol.className = `badge ${isSelected ? 'active' : ''}`;
+      btnCol.textContent = colCount > 0 ? `${colStr} (${colCount.toLocaleString('fa-IR')})` : colStr;
+      btnCol.style.cursor = 'pointer';
+      btnCol.style.padding = '0.25rem 0.65rem';
+      btnCol.style.border = '1px solid var(--border-medium)';
+      btnCol.style.background = isSelected ? 'var(--primary)' : 'var(--bg-elevated)';
+      btnCol.style.color = isSelected ? '#fff' : 'var(--text-base)';
+      btnCol.onclick = () => {
+        cloudSelectedCollector = isSelected ? 'all' : colStr;
+        renderCloudTelemetry(data);
+        renderCloudDataTable();
+      };
+      chipsContainer.appendChild(btnCol);
+    });
+  }
 }
 
-function renderAdminVaultTable() {
-  const tbody = document.getElementById('adminCasesTableBody');
-  const countBadge = document.getElementById('adminCaseCountBadge');
-  if (!tbody) return;
+function getFilteredCloudCases() {
+  if (!cloudAdminData) return [];
+  const rawList = Array.isArray(cloudAdminData.cloudCases) ? cloudAdminData.cloudCases : (Array.isArray(cloudAdminData.cases) ? cloudAdminData.cases : []);
 
-  const searchVal = (document.getElementById('adminFilterSearch')?.value || '').trim().toLowerCase();
-  const typeFilter = document.getElementById('adminFilterType')?.value || 'all';
-  const collectorFilter = (document.getElementById('adminFilterCollector')?.value || '').trim().toLowerCase();
-  const dateFilter = document.getElementById('adminFilterDate')?.value || '';
+  const q = (cloudSearchQuery || '').trim().toLowerCase();
+  const targetCol = cloudSelectedCollector === 'all' ? null : cloudSelectedCollector.toLowerCase();
 
-  const filtered = adminVaultCasesList.filter((c) => {
-    // Type filter
-    const isTrauma = !!c.atls?.isTrauma || !!c.atls?.moi;
-    const hasSoap = (Array.isArray(c.soapHistory) && c.soapHistory.length > 0) || c.mode === 'soap';
-    const cType = isTrauma ? 'ATLS_TRAUMA' : (hasSoap ? 'SOAP_PROGRESS' : 'ADMISSION_HP');
-    if (typeFilter !== 'all' && cType !== typeFilter) return false;
-
+  return rawList.filter((c) => {
     // Collector filter
-    const collector = (c.metadata?.collectorId || c.collectorName || '').toLowerCase();
-    if (collectorFilter && !collector.includes(collectorFilter)) return false;
+    if (targetCol) {
+      const cCol = (c.collector || c.collectorName || c.collector_name || c.metadata?.collectorId || '').toLowerCase();
+      if (!cCol.includes(targetCol)) return false;
+    }
 
-    // Date filter
-    const cDate = c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '';
-    if (dateFilter && !cDate.includes(dateFilter)) return false;
-
-    // Text search
-    if (searchVal) {
-      const ptName = (c.demographics?.fullName || c.demographics?.name || c.context?.fullName || '').toLowerCase();
-      const cc = (typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || c.context?.workingDiagnosis || '')).toLowerCase();
-      const cid = (c.caseId || c.metadata?.caseId || '').toLowerCase();
-      if (!ptName.includes(searchVal) && !cc.includes(searchVal) && !cid.includes(searchVal)) {
+    // Search query filter
+    if (q) {
+      const cid = (c.caseId || c.case_id || '').toLowerCase();
+      const col = (c.collector || c.collectorName || c.collector_name || '').toLowerCase();
+      const pt = (c.patient || c.patientName || c.fullName || c.name || '').toLowerCase();
+      const cc = (c.chiefComplaint || c.cc || c.workingDiagnosis || '').toLowerCase();
+      const note = (c.fullClinicalNote || c.clinical_note || c.note || '').toLowerCase();
+      if (!cid.includes(q) && !col.includes(q) && !pt.includes(q) && !cc.includes(q) && !note.includes(q)) {
         return false;
       }
     }
 
     return true;
   });
+}
 
-  if (countBadge) {
-    countBadge.textContent = `تعداد پرونده: ${filtered.length}`;
-  }
+function renderCloudDataTable() {
+  const table = document.getElementById('adminCloudDataTable');
+  const thead = document.getElementById('adminCloudTableHead');
+  const tbody = document.getElementById('adminCloudTableBody');
+  const emptyPrompt = document.getElementById('adminTableEmptyPrompt');
+  const countBadge = document.getElementById('adminActiveRowsCount');
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">هیچ پرونده‌ای با این مشخصات یافت نشد.</td></tr>';
+  if (!table || !thead || !tbody) return;
+
+  if (!cloudAdminData) {
+    if (emptyPrompt) emptyPrompt.style.display = 'flex';
+    table.style.display = 'none';
+    if (countBadge) countBadge.textContent = '۰ ردیف';
     return;
   }
 
-  tbody.innerHTML = filtered.map((c, idx) => {
-    const cid = c.caseId || c.metadata?.caseId || `CASE-${idx + 1}`;
-    const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || 'بدون نام';
-    const age = c.demographics?.age || c.context?.age || '—';
-    const gender = c.demographics?.gender === 'female' ? 'زن' : c.demographics?.gender === 'male' ? 'مرد' : '';
-    const cc = typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || c.context?.workingDiagnosis || 'بدون شکایت');
-    const collector = c.metadata?.collectorId || c.collectorName || 'نامشخص';
-    const cDate = (c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '—').split('T')[0];
-    const isTrauma = !!c.atls?.isTrauma || !!c.atls?.moi;
-    const hasSoap = (Array.isArray(c.soapHistory) && c.soapHistory.length > 0) || c.mode === 'soap';
-    const badgeType = isTrauma ? '<span class="badge" style="background:#dc2626;color:#fff;font-size:0.7rem;">ATLS</span>'
-      : (hasSoap ? '<span class="badge" style="background:#2563eb;color:#fff;font-size:0.7rem;">SOAP</span>'
-      : '<span class="badge" style="background:#059669;color:#fff;font-size:0.7rem;">H&P</span>');
+  if (emptyPrompt) emptyPrompt.style.display = 'none';
+  table.style.display = 'table';
 
-    const isSelected = adminSelectedCase && ((adminSelectedCase.caseId && adminSelectedCase.caseId === cid) || (adminSelectedCase.metadata?.caseId && adminSelectedCase.metadata.caseId === cid));
+  if (cloudActiveTab === 'cases') {
+    // 🗂️ Master Cases Vault View
+    const cases = getFilteredCloudCases();
+    if (countBadge) countBadge.textContent = `${cases.length.toLocaleString('fa-IR')} ردیف`;
 
-    return `
-      <tr class="admin-vault-case-row ${isSelected ? 'selected' : ''}" data-case-id="${cid}" style="cursor:pointer; border-bottom:1px solid var(--border-subtle); ${isSelected ? 'background:rgba(37,99,235,0.12); font-weight:700;' : ''}">
-        <td style="text-align:center; color:var(--text-muted); font-size:0.78rem;">${idx + 1}</td>
-        <td style="font-family:monospace; font-size:0.8rem; direction:ltr;">${cid}</td>
-        <td>${badgeType}</td>
-        <td>
-          <div style="font-size:0.84rem; font-weight:600;">${ptName} (${age} ${gender})</div>
-          <div style="font-size:0.76rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:220px;">${cc}</div>
-        </td>
-        <td style="font-size:0.78rem;">${collector}</td>
-        <td style="font-size:0.76rem; color:var(--text-muted); direction:ltr;">${cDate}</td>
+    thead.innerHTML = `
+      <tr style="background: var(--bg-elevated); position: sticky; top: 0; z-index: 2;">
+        <th style="width: 40px; text-align: center;">ردیف</th>
+        <th style="width: 130px; direction: ltr; text-align: left;">کد پرونده (Case ID)</th>
+        <th style="width: 100px; text-align: center;">نوع رکورد</th>
+        <th style="width: 130px;">ثبت‌کننده (دانشجو)</th>
+        <th style="width: 120px; direction: ltr; text-align: left;">تاریخ و زمان</th>
+        <th style="min-width: 220px;">خلاصه بیمار و شکایت</th>
+        <th style="width: 230px; text-align: center;">عملیات زنده</th>
       </tr>
     `;
-  }).join('');
 
-  tbody.querySelectorAll('.admin-vault-case-row').forEach((row) => {
-    row.addEventListener('click', () => {
-      const cid = row.getAttribute('data-case-id');
-      const found = adminVaultCasesList.find((c) => (c.caseId === cid || c.metadata?.caseId === cid));
-      if (found) {
-        inspectAdminCase(found);
-        renderAdminVaultTable();
+    if (cases.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">هیچ پرونده‌ای با فیلترهای انتخابی یافت نشد.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = cases.map((c, idx) => {
+      const rowIdx = c.row || c.rowIndex || (idx + 1);
+      const cid = c.caseId || c.case_id || `CASE-${idx + 1}`;
+      const recType = (c.recordType || c.record_type || c.mode || 'ADMISSION_HP').toUpperCase();
+      const collector = c.collector || c.collectorName || c.collector_name || '—';
+      const timeRaw = c.timestamp || c.date || c.timestampFormatted || '—';
+      const timeStr = timeRaw.includes('T') ? timeRaw.replace('T', ' ').substring(0, 16) : timeRaw;
+      const ptName = c.patient || c.patientName || c.fullName || c.name || 'بیمار';
+      const ageGender = [c.age ? `${c.age} ساله` : '', c.gender || ''].filter(Boolean).join(' ');
+      const cc = c.chiefComplaint || c.cc || c.workingDiagnosis || 'بدون شکایت مشخص';
+
+      let typeBadge = '<span class="badge" style="background:#059669; color:#fff; font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:4px;">H&amp;P</span>';
+      if (recType.includes('SOAP')) {
+        typeBadge = '<span class="badge" style="background:#2563eb; color:#fff; font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:4px;">SOAP</span>';
+      } else if (recType.includes('ATLS') || recType.includes('TRAUMA')) {
+        typeBadge = '<span class="badge" style="background:#dc2626; color:#fff; font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:4px;">ATLS</span>';
       }
+
+      return `
+        <tr class="cloud-case-row" data-case-index="${idx}" style="cursor: pointer; border-bottom: 1px solid var(--border-subtle);">
+          <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem;">${rowIdx}</td>
+          <td style="font-family: monospace; font-size: 0.8rem; font-weight: 700; color: var(--primary); direction: ltr; text-align: left;">${cid}</td>
+          <td style="text-align: center;">${typeBadge}</td>
+          <td style="font-size: 0.82rem; font-weight: 600;">${collector}</td>
+          <td style="font-size: 0.76rem; color: var(--text-muted); direction: ltr; text-align: left;">${timeStr}</td>
+          <td>
+            <div style="font-size: 0.84rem; font-weight: 600;">${ptName} ${ageGender ? `(${ageGender})` : ''}</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;">${cc}</div>
+          </td>
+          <td style="text-align: center; white-space: nowrap;">
+            <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+              <button type="button" class="btn btn-secondary btn-cloud-view" data-case-index="${idx}" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; background: var(--bg-elevated); border: 1px solid var(--border-medium);" title="مشاهده متن کامل شرح‌حال">
+                <span>👁️</span> <span>متن</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-cloud-import" data-case-index="${idx}" style="font-size: 0.75rem; padding: 0.25rem 0.55rem; font-weight: 700;" title="بارگذاری مستقیم در محیط ویرایشگر برنامه">
+                <span>📥</span> <span>ادیتور</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-cloud-json" data-case-index="${idx}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: var(--bg-elevated); border: 1px solid var(--border-medium);" title="دانلود داده خام پرونده (JSON)">
+                <span>📄</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Attach listeners
+    tbody.querySelectorAll('.btn-cloud-view').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cIdx = parseInt(btn.getAttribute('data-case-index'), 10);
+        const target = cases[cIdx];
+        if (target) openCloudCaseInspector(target);
+      });
     });
-  });
+
+    tbody.querySelectorAll('.btn-cloud-import').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cIdx = parseInt(btn.getAttribute('data-case-index'), 10);
+        const target = cases[cIdx];
+        if (target) importCloudCaseToEditor(target);
+      });
+    });
+
+    tbody.querySelectorAll('.btn-cloud-json').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cIdx = parseInt(btn.getAttribute('data-case-index'), 10);
+        const target = cases[cIdx];
+        if (target) downloadSingleCaseJson(target);
+      });
+    });
+
+    tbody.querySelectorAll('.cloud-case-row').forEach((row) => {
+      row.addEventListener('click', () => {
+        const cIdx = parseInt(row.getAttribute('data-case-index'), 10);
+        const target = cases[cIdx];
+        if (target) openCloudCaseInspector(target);
+      });
+    });
+  } else {
+    // Direct Sheet View (Admission_HP, SOAP_Progress, ATLS_Trauma)
+    const sheetKeyMap = {
+      hp: 'Admission_HP',
+      soap: 'SOAP_Progress',
+      atls: 'ATLS_Trauma'
+    };
+    const sheetName = sheetKeyMap[cloudActiveTab] || 'Admission_HP';
+    const rawSheet = cloudAdminData.sheetsData?.[sheetName] || [];
+
+    let headers = [];
+    let rows = [];
+
+    if (Array.isArray(rawSheet) && rawSheet.length > 0) {
+      if (Array.isArray(rawSheet[0])) {
+        headers = rawSheet[0];
+        rows = rawSheet.slice(1);
+      } else if (typeof rawSheet[0] === 'object') {
+        headers = Object.keys(rawSheet[0]);
+        rows = rawSheet.map((obj) => headers.map((h) => (obj[h] !== undefined ? obj[h] : '')));
+      }
+    }
+
+    // Filter rows by search and collector
+    const q = (cloudSearchQuery || '').trim().toLowerCase();
+    const targetCol = cloudSelectedCollector === 'all' ? null : cloudSelectedCollector.toLowerCase();
+
+    const filteredRows = rows.filter((r) => {
+      const rowStr = (Array.isArray(r) ? r.join(' ') : JSON.stringify(r)).toLowerCase();
+      if (targetCol && !rowStr.includes(targetCol)) return false;
+      if (q && !rowStr.includes(q)) return false;
+      return true;
+    });
+
+    if (countBadge) countBadge.textContent = `${filteredRows.length.toLocaleString('fa-IR')} ردیف`;
+
+    if (headers.length === 0) {
+      thead.innerHTML = `<tr><th>داده‌ای در این شیت وجود ندارد</th></tr>`;
+      tbody.innerHTML = `<tr><td style="text-align: center; padding: 2rem; color: var(--text-muted);">این شیت هنوز در اکسل مرکزی دارای سطری نیست یا ستون‌های آن تعریف نشده است.</td></tr>`;
+      return;
+    }
+
+    thead.innerHTML = `
+      <tr style="background: var(--bg-elevated); position: sticky; top: 0; z-index: 2;">
+        <th style="width: 40px; text-align: center;">#</th>
+        ${headers.map((h) => `<th style="white-space: nowrap; padding: 0.55rem 0.75rem; text-align: right;">${h}</th>`).join('')}
+      </tr>
+    `;
+
+    if (filteredRows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 2rem; color: var(--text-muted);">هیچ سطری با فیلترهای انتخابی یافت نشد.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filteredRows.map((r, rIdx) => {
+      const cells = Array.isArray(r) ? r : headers.map((h) => r[h]);
+      return `
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td style="text-align: center; color: var(--text-muted); font-size: 0.78rem;">${rIdx + 1}</td>
+          ${cells.map((cell) => {
+            const valStr = cell === null || cell === undefined ? '' : String(cell);
+            const isLong = valStr.length > 50;
+            return `<td style="font-size: 0.8rem; max-width: 320px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${valStr.replace(/"/g, '&quot;')}">${valStr}</td>`;
+          }).join('')}
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
-async function loadAdminVaultCases() {
-  const tbody = document.getElementById('adminCasesTableBody');
-  if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">در حال فراخوانی پرونده‌ها...</td></tr>';
-  }
+function openCloudCaseInspector(c) {
+  cloudSelectedInspectorCase = c;
+  const drawer = document.getElementById('adminCloudInspectorDrawer');
+  const titleEl = document.getElementById('cloudInspectorCaseTitle');
+  const metaEl = document.getElementById('cloudInspectorCaseMeta');
+  const preEl = document.getElementById('cloudInspectorNotePre');
 
-  const casesMap = new Map();
+  if (!drawer || !preEl) return;
 
-  // 1. Permanent storage vault archived cases
-  if (typeof storageVault !== 'undefined') {
+  const cid = c.caseId || c.case_id || 'بدون شناسه';
+  const ptName = c.patient || c.patientName || c.fullName || c.name || 'بیمار';
+  const ageGender = [c.age ? `${c.age} ساله` : '', c.gender || ''].filter(Boolean).join(' ');
+  const collector = c.collector || c.collectorName || c.collector_name || 'نامشخص';
+  const timeRaw = c.timestamp || c.date || c.timestampFormatted || '—';
+  const recType = (c.recordType || c.record_type || c.mode || 'ADMISSION_HP').toUpperCase();
+
+  if (titleEl) titleEl.textContent = `${cid} — ${ptName} ${ageGender ? `(${ageGender})` : ''}`;
+  if (metaEl) metaEl.textContent = `ثبت‌کننده: ${collector} | نوع: ${recType} | تاریخ ثبت: ${timeRaw}`;
+
+  // Resolve note text
+  let noteText = '';
+  if (c.fullClinicalNote) noteText = c.fullClinicalNote;
+  else if (c.clinical_note) noteText = c.clinical_note;
+  else if (c.note) noteText = c.note;
+  else if (c.clinicalState && typeof c.clinicalState === 'object') {
+    noteText = generateClinicalNote(c.clinicalState);
+  } else if (c.rawStateJSON) {
     try {
-      const archived = storageVault.getAllArchivedCasesSync();
-      if (Array.isArray(archived)) {
-        archived.forEach((c) => {
-          if (c && (c.caseId || c.metadata?.caseId)) {
-            const cid = c.caseId || c.metadata.caseId;
-            casesMap.set(cid, c);
-          }
-        });
-      }
+      const parsed = JSON.parse(c.rawStateJSON);
+      noteText = generateClinicalNote(parsed);
     } catch (e) {
-      console.warn('[AdminVault] Archived cases read error:', e);
+      noteText = c.rawStateJSON;
     }
+  } else if (c.rawJsonString) {
+    try {
+      const parsed = JSON.parse(c.rawJsonString);
+      noteText = generateClinicalNote(parsed);
+    } catch (e) {
+      noteText = c.rawJsonString;
+    }
+  } else {
+    noteText = JSON.stringify(c, null, 2);
   }
 
-  // 2. Local shift cases
+  preEl.textContent = noteText;
+  drawer.style.display = 'flex';
+}
+
+function importCloudCaseToEditor(caseItem) {
+  if (!caseItem) return;
   try {
-    const shiftCases = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-    if (Array.isArray(shiftCases)) {
-      shiftCases.forEach((c) => {
-        if (c && (c.caseId || c.metadata?.caseId)) {
-          const cid = c.caseId || c.metadata.caseId;
-          if (!casesMap.has(cid)) {
-            casesMap.set(cid, c);
-          }
-        }
-      });
+    let sourceState = null;
+    if (caseItem.clinicalState && typeof caseItem.clinicalState === 'object') {
+      sourceState = caseItem.clinicalState;
+    } else if (caseItem.record_json && typeof caseItem.record_json === 'object') {
+      sourceState = caseItem.record_json;
+    } else if (caseItem.record && typeof caseItem.record === 'object') {
+      sourceState = caseItem.record;
+    } else if (caseItem.rawJsonString) {
+      try { sourceState = JSON.parse(caseItem.rawJsonString); } catch (e) {}
+    } else if (caseItem.rawStateJSON) {
+      try { sourceState = JSON.parse(caseItem.rawStateJSON); } catch (e) {}
     }
-  } catch (e) {
-    console.warn('[AdminVault] Shift cases read error:', e);
+
+    const defaults = createDefaultClinicalState();
+    if (!sourceState) {
+      sourceState = {
+        ...defaults,
+        caseId: caseItem.caseId || caseItem.case_id || `IMPORT-${Date.now()}`,
+        demographics: {
+          ...defaults.demographics,
+          fullName: caseItem.patient || caseItem.patientName || caseItem.name || '',
+          age: caseItem.age || '',
+          gender: caseItem.gender === 'زن' ? 'female' : (caseItem.gender === 'مرد' ? 'male' : (caseItem.gender || 'male'))
+        },
+        cc: {
+          ...defaults.cc,
+          patientQuote: caseItem.chiefComplaint || caseItem.cc || ''
+        }
+      };
+    }
+
+    clinicalState = {
+      ...defaults,
+      ...sourceState,
+      demographics: { ...defaults.demographics, ...(sourceState.demographics || {}) },
+      admission: { ...defaults.admission, ...(sourceState.admission || {}) },
+      cc: sourceState.cc || defaults.cc,
+      hpi: { ...defaults.hpi, ...(sourceState.hpi || {}) },
+      pmh: { ...defaults.pmh, ...(sourceState.pmh || {}) },
+      psh: sourceState.psh || defaults.psh,
+      dh: sourceState.dh || defaults.dh,
+      allergies: sourceState.allergies || defaults.allergies,
+      fh: { ...defaults.fh, ...(sourceState.fh || {}) },
+      sh: { ...defaults.sh, ...(sourceState.sh || {}) },
+      ros: { ...defaults.ros, ...(sourceState.ros || {}) },
+      pe: { ...defaults.pe, ...(sourceState.pe || {}) },
+      paraclinics: { ...defaults.paraclinics, ...(sourceState.paraclinics || sourceState.paraclinic || {}) },
+      assessment: { ...defaults.assessment, ...(sourceState.assessment || {}) },
+      plan: { ...defaults.plan, ...(sourceState.plan || {}) },
+      reasoning: { ...defaults.reasoning, ...(sourceState.reasoning || {}) },
+      atls: { ...defaults.atls, ...(sourceState.atls || {}) }
+    };
+
+    if (Array.isArray(sourceState.hpi?.presentations) && sourceState.hpi.presentations.length > 0) {
+      clinicalState.hpi.presentations = sourceState.hpi.presentations;
+    }
+    if (Array.isArray(sourceState.hpi?.painList) && sourceState.hpi.painList.length > 0) {
+      clinicalState.hpi.painList = sourceState.hpi.painList;
+    }
+
+    if (Array.isArray(sourceState.soapHistory) && sourceState.soapHistory.length > 0) {
+      soapState = JSON.parse(JSON.stringify(sourceState.soapHistory[0]));
+      syncSoapInputsFromState();
+      renderSoapDayTracker();
+    }
+
+    saveCurrentCase();
+    syncDomFromState();
+    updateLivePreview();
+    updateShiftCasesCount();
+    populateHeaderCaseSwitcher();
+
+    // Close admin modal & inspector drawer
+    const drawer = document.getElementById('adminCloudInspectorDrawer');
+    if (drawer) drawer.style.display = 'none';
+    const backdrop = document.getElementById('adminVaultModalBackdrop');
+    if (backdrop) backdrop.style.display = 'none';
+
+    if (typeof window !== 'undefined' && window.history) {
+      const cleanUrl = window.location.pathname + window.location.search.replace(/[\?&]admin=1/, '');
+      window.history.pushState('', document.title, cleanUrl || '/');
+    }
+
+    const cId = clinicalState.caseId || caseItem.caseId || 'پرونده';
+    showToast(`پرونده «${cId}» با موفقیت در محیط ویرایشگر برنامه بارگذاری شد.`, 'success');
+  } catch (err) {
+    console.error('[AdminCloud] Error importing case:', err);
+    showToast('خطا در بارگذاری پرونده در ادیتور.', 'warning');
+  }
+}
+
+function downloadSingleCaseJson(c) {
+  if (!c) return;
+  const jsonStr = JSON.stringify(c, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const cid = c.caseId || c.case_id || 'Case';
+  a.download = `SurgCase_${cid}_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`فایل JSON پرونده ${cid} دانلود شد.`, 'info');
+}
+
+function exportCurrentSheetToCsv() {
+  if (!cloudAdminData) {
+    showToast('ابتدا داده‌های ابری را با کلیک بر روی دکمه واکشی دریافت نمایید.', 'warning');
+    return;
   }
 
-  // 3. Current active case
-  if (clinicalState && (clinicalState.caseId || clinicalState.demographics?.fullName || clinicalState.demographics?.name)) {
-    const cid = clinicalState.caseId || 'CURRENT_ACTIVE';
-    casesMap.set(cid, clinicalState);
+  let headers = [];
+  let rows = [];
+
+  if (cloudActiveTab === 'cases') {
+    const cases = getFilteredCloudCases();
+    headers = ['ردیف اکسل', 'کد پرونده', 'نوع رکورد', 'ثبت‌کننده', 'تاریخ و زمان', 'بیمار', 'سن و جنسیت', 'شکایت اصلی / تشخیص', 'خلاصه یافته‌ها'];
+    rows = cases.map((c, idx) => [
+      c.row || c.rowIndex || (idx + 1),
+      c.caseId || c.case_id || '',
+      c.recordType || c.record_type || c.mode || 'ADMISSION_HP',
+      c.collector || c.collectorName || c.collector_name || '',
+      c.timestamp || c.date || c.timestampFormatted || '',
+      c.patient || c.patientName || c.fullName || c.name || '',
+      `${c.age || ''} ${c.gender || ''}`.trim(),
+      c.chiefComplaint || c.cc || c.workingDiagnosis || '',
+      c.detailedFindingsSummary || c.summaryText || c.summary || ''
+    ]);
+  } else {
+    const sheetKeyMap = {
+      hp: 'Admission_HP',
+      soap: 'SOAP_Progress',
+      atls: 'ATLS_Trauma'
+    };
+    const sheetName = sheetKeyMap[cloudActiveTab] || 'Admission_HP';
+    const rawSheet = cloudAdminData.sheetsData?.[sheetName] || [];
+
+    if (Array.isArray(rawSheet) && rawSheet.length > 0) {
+      if (Array.isArray(rawSheet[0])) {
+        headers = rawSheet[0];
+        rows = rawSheet.slice(1);
+      } else if (typeof rawSheet[0] === 'object') {
+        headers = Object.keys(rawSheet[0]);
+        rows = rawSheet.map((obj) => headers.map((h) => (obj[h] !== undefined ? obj[h] : '')));
+      }
+    }
   }
 
-  adminVaultCasesList = Array.from(casesMap.values());
-
-  renderAdminVaultTable();
-  if (adminVaultCasesList.length > 0 && !adminSelectedCase) {
-    inspectAdminCase(adminVaultCasesList[0]);
+  if (rows.length === 0) {
+    showToast('هیچ سطری در شیت فعال برای خروجی یافت نشد.', 'warning');
+    return;
   }
+
+  const csvRows = [headers, ...rows].map((row) =>
+    row.map((val) => {
+      const str = val === null || val === undefined ? '' : String(val);
+      return `"${str.replace(/"/g, '""')}"`;
+    }).join(',')
+  );
+
+  // Prefix with \uFEFF UTF-8 Byte Order Mark for Excel on Windows
+  const csvContent = '\uFEFF' + csvRows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SurgMasterSheet_${cloudActiveTab}_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`خروجی اکسل CSV از شیت «${cloudActiveTab}» با موفقیت دانلود شد.`, 'success');
+}
+
+function exportCloudDatabaseJson() {
+  if (!cloudAdminData) {
+    showToast('ابتدا داده‌های ابری را با کلیک بر روی دکمه واکشی دریافت نمایید.', 'warning');
+    return;
+  }
+
+  const jsonStr = JSON.stringify(cloudAdminData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SurgCloud_Master_Backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('کل پایگاه داده ابری به صورت JSON با موفقیت دانلود شد.', 'success');
 }
 
 export function initSecretAdminVault() {
-  const pwdInput = document.getElementById('adminPasswordInput');
-  const btnUnlock = document.getElementById('btnAdminUnlock');
-  const authErr = document.getElementById('adminAuthError');
-  const authSec = document.getElementById('adminAuthSection');
-  const mainContent = document.getElementById('adminVaultMainContent');
+  const btnFetch = document.getElementById('btnAdminFetchCloud');
+  const btnOpenSheet = document.getElementById('btnAdminOpenGoogleSheet');
   const btnExit = document.getElementById('btnAdminExitVault');
-  const btnRefresh = document.getElementById('btnAdminRefresh');
-  const btnExport = document.getElementById('btnAdminExportDatabase');
-  const btnLoadToEditor = document.getElementById('btnAdminLoadCaseToEditor');
+  const btnExportCsv = document.getElementById('btnAdminExportCsv');
+  const btnExportJson = document.getElementById('btnAdminExportJson');
+  const searchInp = document.getElementById('adminCloudSearchInput');
 
-  const unlockVault = () => {
-    const val = (pwdInput?.value || '').trim();
-    if (val === 'SURG2026') {
-      adminVaultUnlocked = true;
-      if (authErr) authErr.style.display = 'none';
-      if (authSec) authSec.style.display = 'none';
-      if (mainContent) mainContent.style.display = 'flex';
-      loadAdminVaultCases();
-      showToast('خوش‌آمدید. دسترسی به مخزن مرکزی پرونده‌ها فعال شد.', 'success');
-    } else {
-      if (authErr) authErr.style.display = 'block';
-      if (pwdInput) {
-        pwdInput.classList.remove('input-focus-pulse');
-        void pwdInput.offsetWidth;
-        pwdInput.classList.add('input-focus-pulse');
-        pwdInput.select();
-      }
-    }
-  };
+  // Connection triggers
+  btnFetch?.addEventListener('click', () => {
+    doAdminCloudFetch(true);
+  });
 
-  btnUnlock?.addEventListener('click', unlockVault);
-  pwdInput?.addEventListener('keydown', (e) => {
+  document.getElementById('adminPasswordInput')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      unlockVault();
+      doAdminCloudFetch(true);
+    }
+  });
+
+  btnOpenSheet?.addEventListener('click', () => {
+    const sheetUrl = cloudAdminData?.spreadsheetUrl || cloudAdminData?.sheetUrl;
+    if (sheetUrl && sheetUrl.startsWith('http')) {
+      window.open(sheetUrl, '_blank');
+    } else {
+      showToast('آدرس مستقیم شیت در پاسخ سرور یافت نشد. لطفاً دکمه واکشی را بزنید.', 'info');
     }
   });
 
@@ -11401,162 +11906,64 @@ export function initSecretAdminVault() {
       const cleanUrl = window.location.pathname + window.location.search.replace(/[\?&]admin=1/, '');
       window.history.pushState('', document.title, cleanUrl || '/');
     }
-    showToast('از پنل ادمین خارج شدید.', 'info');
+    showToast('از پنل مدیریت مرکزی خارج شدید.', 'info');
   });
 
-  btnRefresh?.addEventListener('click', () => {
-    loadAdminVaultCases();
-    showToast('لیست پرونده‌ها بروزرسانی شد.', 'info');
+  // Central Exports
+  btnExportCsv?.addEventListener('click', exportCurrentSheetToCsv);
+  btnExportJson?.addEventListener('click', exportCloudDatabaseJson);
+
+  // Live Search
+  searchInp?.addEventListener('input', (e) => {
+    cloudSearchQuery = e.target.value;
+    renderCloudDataTable();
   });
 
-  // Filters
-  document.getElementById('adminFilterSearch')?.addEventListener('input', renderAdminVaultTable);
-  document.getElementById('adminFilterType')?.addEventListener('change', renderAdminVaultTable);
-  document.getElementById('adminFilterCollector')?.addEventListener('input', renderAdminVaultTable);
-  document.getElementById('adminFilterDate')?.addEventListener('change', renderAdminVaultTable);
+  // Sheet Tabs Navigation
+  const tabBtns = [
+    { id: 'tabBtnCloudCases', key: 'cases' },
+    { id: 'tabBtnSheetHp', key: 'hp' },
+    { id: 'tabBtnSheetSoap', key: 'soap' },
+    { id: 'tabBtnSheetAtls', key: 'atls' }
+  ];
 
-  // Inspector Tabs
-  document.getElementById('btnInspectHp')?.addEventListener('click', () => {
-    adminActiveInspectTab = 'hp';
-    updateAdminInspectorView();
-  });
-  document.getElementById('btnInspectSoap')?.addEventListener('click', () => {
-    adminActiveInspectTab = 'soap';
-    updateAdminInspectorView();
-  });
-  document.getElementById('btnInspectAtls')?.addEventListener('click', () => {
-    adminActiveInspectTab = 'atls';
-    updateAdminInspectorView();
-  });
-  document.getElementById('btnInspectRaw')?.addEventListener('click', () => {
-    adminActiveInspectTab = 'raw';
-    updateAdminInspectorView();
-  });
-
-  // Load into Editor
-  btnLoadToEditor?.addEventListener('click', () => {
-    if (!adminSelectedCase) {
-      showToast('لطفاً ابتدا یک پرونده را از جدول انتخاب نمایید.', 'warning');
-      return;
-    }
-
-    try {
-      const targetCase = JSON.parse(JSON.stringify(adminSelectedCase));
-      const defaults = createDefaultClinicalState();
-
-      clinicalState = {
-        ...defaults,
-        ...targetCase,
-        demographics: { ...defaults.demographics, ...(targetCase.demographics || {}) },
-        admission: { ...defaults.admission, ...(targetCase.admission || {}) },
-        cc: targetCase.cc || defaults.cc,
-        hpi: { ...defaults.hpi, ...(targetCase.hpi || {}) },
-        pmh: { ...defaults.pmh, ...(targetCase.pmh || {}) },
-        psh: Array.isArray(targetCase.psh) ? targetCase.psh : defaults.psh,
-        dh: Array.isArray(targetCase.dh) ? targetCase.dh : defaults.dh,
-        allergies: Array.isArray(targetCase.allergies) ? targetCase.allergies : defaults.allergies,
-        fh: { ...defaults.fh, ...(targetCase.fh || {}) },
-        sh: { ...defaults.sh, ...(targetCase.sh || {}) },
-        ros: { ...defaults.ros, ...(targetCase.ros || {}) },
-        pe: { ...defaults.pe, ...(targetCase.pe || {}) },
-        paraclinics: { ...defaults.paraclinics, ...(targetCase.paraclinics || targetCase.paraclinic || {}) },
-        assessment: { ...defaults.assessment, ...(targetCase.assessment || {}) },
-        plan: { ...defaults.plan, ...(targetCase.plan || {}) },
-        reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) },
-        atls: { ...defaults.atls, ...(targetCase.atls || {}) }
-      };
-
-      if (Array.isArray(targetCase.hpi?.presentations) && targetCase.hpi.presentations.length > 0) {
-        clinicalState.hpi.presentations = targetCase.hpi.presentations;
-      }
-      if (Array.isArray(targetCase.hpi?.painList) && targetCase.hpi.painList.length > 0) {
-        clinicalState.hpi.painList = targetCase.hpi.painList;
-      }
-
-      saveCurrentCase();
-      syncDomFromState();
-      updateLivePreview();
-      updateShiftCasesCount();
-      populateHeaderCaseSwitcher();
-
-      // If case has SOAP data or is SOAP mode, sync SOAP state as well
-      if (Array.isArray(targetCase.soapHistory) && targetCase.soapHistory.length > 0) {
-        soapState = JSON.parse(JSON.stringify(targetCase.soapHistory[0]));
-        syncSoapInputsFromState();
-        renderSoapDayTracker();
-      }
-
-      // Close admin modal & clear hash
-      const backdrop = document.getElementById('adminVaultModalBackdrop');
-      if (backdrop) backdrop.style.display = 'none';
-      if (typeof window !== 'undefined' && window.history) {
-        const cleanUrl = window.location.pathname + window.location.search.replace(/[\?&]admin=1/, '');
-        window.history.pushState('', document.title, cleanUrl || '/');
-      }
-
-      const caseName = clinicalState.demographics?.fullName || clinicalState.demographics?.name || clinicalState.caseId;
-      showToast(`پرونده «${caseName}» با موفقیت در ویراستار اصلی بارگذاری شد.`, 'success');
-    } catch (err) {
-      console.error('[AdminVault] Load into editor error:', err);
-      showToast('خطا در بارگذاری پرونده در ویراستار.', 'warning');
-    }
-  });
-
-  // Export full database JSON and CSV
-  btnExport?.addEventListener('click', () => {
-    if (!adminVaultCasesList || adminVaultCasesList.length === 0) {
-      showToast('دیتابیس خالی است و پرونده‌ای برای خروجی وجود ندارد.', 'warning');
-      return;
-    }
-
-    try {
-      // 1. JSON Export
-      const jsonStr = JSON.stringify(adminVaultCasesList, null, 2);
-      const jsonBlob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
-      const jsonUrl = URL.createObjectURL(jsonBlob);
-      const aJson = document.createElement('a');
-      aJson.href = jsonUrl;
-      aJson.download = `Surgical_Clinical_Vault_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(aJson);
-      aJson.click();
-      document.body.removeChild(aJson);
-      URL.revokeObjectURL(jsonUrl);
-
-      // 2. CSV Export
-      const csvHeaders = ['CaseID', 'PatientName', 'Age', 'Gender', 'Ward', 'Bed', 'Date', 'Collector', 'ChiefComplaint', 'WorkingDiagnosis', 'H&P_Note_Length', 'SOAP_Days_Count', 'IsTrauma'];
-      const csvRows = adminVaultCasesList.map((c) => {
-        const cid = `"${(c.caseId || c.metadata?.caseId || '').replace(/"/g, '""')}"`;
-        const pName = `"${(c.demographics?.fullName || c.demographics?.name || c.context?.fullName || '').replace(/"/g, '""')}"`;
-        const age = `"${c.demographics?.age || c.context?.age || ''}"`;
-        const gender = `"${c.demographics?.gender || c.context?.gender || ''}"`;
-        const ward = `"${(c.demographics?.ward || c.context?.ward || '').replace(/"/g, '""')}"`;
-        const bed = `"${(c.demographics?.bed || c.context?.bed || '').replace(/"/g, '""')}"`;
-        const cDate = `"${(c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '').replace(/"/g, '""')}"`;
-        const collector = `"${(c.metadata?.collectorId || c.collectorName || '').replace(/"/g, '""')}"`;
-        const cc = `"${(typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || '')).replace(/"/g, '""')}"`;
-        const dx = `"${(c.context?.workingDiagnosis || c.assessment?.diagnosis || '').replace(/"/g, '""')}"`;
-        const hpLen = (generateClinicalNote(c) || '').length;
-        const soapCount = Array.isArray(c.soapHistory) ? c.soapHistory.length : (c.dayId ? 1 : 0);
-        const isTrauma = (c.atls?.isTrauma || c.atls?.moi) ? 'Yes' : 'No';
-
-        return [cid, pName, age, gender, ward, bed, cDate, collector, cc, dx, hpLen, soapCount, isTrauma].join(',');
+  tabBtns.forEach(({ id, key }) => {
+    const btn = document.getElementById(id);
+    btn?.addEventListener('click', () => {
+      cloudActiveTab = key;
+      tabBtns.forEach((b) => {
+        document.getElementById(b.id)?.classList.toggle('active', b.key === key);
       });
+      renderCloudDataTable();
+    });
+  });
 
-      const csvContent = '\uFEFF' + [csvHeaders.join(','), ...csvRows].join('\r\n');
-      const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-      const csvUrl = URL.createObjectURL(csvBlob);
-      const aCsv = document.createElement('a');
-      aCsv.href = csvUrl;
-      aCsv.download = `Surgical_Clinical_Vault_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(aCsv);
-      aCsv.click();
-      document.body.removeChild(aCsv);
-      URL.revokeObjectURL(csvUrl);
+  // Inspector Drawer Actions
+  document.getElementById('btnAdminCloseInspector')?.addEventListener('click', () => {
+    const drawer = document.getElementById('adminCloudInspectorDrawer');
+    if (drawer) drawer.style.display = 'none';
+  });
 
-      showToast('کل دیتابیس به صورت JSON و CSV دانلود شد.', 'success');
-    } catch (exportErr) {
-      console.error('[AdminVault] Export error:', exportErr);
-      showToast('خطا در دانلود دیتابیس.', 'warning');
+  document.getElementById('btnAdminCopyInspectorNote')?.addEventListener('click', () => {
+    const pre = document.getElementById('cloudInspectorNotePre');
+    if (pre && pre.textContent) {
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        showToast('متن شرح‌حال با موفقیت در کلیپ‌بورد کپی شد.', 'success');
+      }).catch(() => {
+        showToast('خطا در دسترسی به کلیپ‌بورد.', 'warning');
+      });
+    }
+  });
+
+  document.getElementById('btnAdminImportCaseToEditor')?.addEventListener('click', () => {
+    if (cloudSelectedInspectorCase) {
+      importCloudCaseToEditor(cloudSelectedInspectorCase);
+    }
+  });
+
+  document.getElementById('btnAdminDownloadCaseJson')?.addEventListener('click', () => {
+    if (cloudSelectedInspectorCase) {
+      downloadSingleCaseJson(cloudSelectedInspectorCase);
     }
   });
 }

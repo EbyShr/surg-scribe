@@ -19,7 +19,8 @@ import {
   MASS_EXAM_SCHEMA,
   ATLS_EXAM_SCHEMA,
   tLabel,
-  DIRECT_FA_TO_EN_MAP
+  DIRECT_FA_TO_EN_MAP,
+  inferPmhCatId
 } from './schema.js';
 
 export function normalizePersianClinicalText(text) {
@@ -819,28 +820,85 @@ export function generateEnglishClinicalNote(state) {
   }
 
   const catLines = [];
+  const processedPmhItemIds = new Set();
+
   PMH_CATEGORIES.forEach((cat) => {
     const catData = pmhCategoriesState[cat.id] || {};
     const catItems = catData.items || {};
     const isNeg = catData.status === 'negated' || catData.negativeAll === true;
+
+    // Collect all unique items for this category (core + dynamic from catItems + dynamic from pmhState.items)
+    const itemMap = new Map();
+    (cat.items || []).forEach((it) => {
+      itemMap.set(it.id, { label: it.label, en: it.en || '' });
+    });
+    Object.entries(catItems).forEach(([k, v]) => {
+      if (!itemMap.has(k)) {
+        itemMap.set(k, { label: v.label || v.fa || k, en: v.en || '' });
+      }
+    });
+    if (pmhState.items) {
+      Object.entries(pmhState.items).forEach(([k, v]) => {
+        if (v) {
+          const inferredCat = v.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId({ id: k, ...v }) : null);
+          if (inferredCat === cat.id && !itemMap.has(k)) {
+            itemMap.set(k, { label: v.label || v.fa || k, en: v.en || '' });
+          }
+        }
+      });
+    }
+
     const posItems = [];
-    cat.items.forEach((item) => {
-      const val = catItems[item.id] || pmhState.items?.[item.id];
+    const negItems = [];
+
+    itemMap.forEach((meta, itemId) => {
+      processedPmhItemIds.add(itemId);
+      const val = catItems[itemId] || pmhState.items?.[itemId];
       const st = typeof val === 'object' && val !== null ? (val.state !== undefined ? val.state : (val.active ? 1 : 0)) : val;
       const dt = typeof val === 'object' && val !== null ? (val.detail || val.note || '') : '';
       if (st === 1 || st === '+1') {
-        const itemEn = tLabel(item.label, item.en);
+        const itemEn = tLabel(meta.label, meta.en);
         posItems.push(dt ? `${itemEn} (${tLabel(dt)})` : itemEn);
+      } else if (st === -1 || st === '-1') {
+        negItems.push(tLabel(meta.label, meta.en));
       }
     });
+
     const catTitleEn = tLabel(cat.title, cat.en);
     if (posItems.length > 0) {
       const otherNoteEn = catData.otherNote ? ` | Other: ${tLabel(catData.otherNote)}` : '';
-      catLines.push(`  * **${catTitleEn}:** ${posItems.join(', ')}${otherNoteEn}`);
+      const negStr = negItems.length > 0 ? ` [Denies: ${negItems.join(', ')}]` : '';
+      catLines.push(`  * **${catTitleEn}:** ${posItems.join(', ')}${negStr}${otherNoteEn}`);
     } else if (isNeg) {
       catLines.push(`  * **${catTitleEn}:** Negative (denies conditions in this category)`);
+    } else if (negItems.length > 0) {
+      catLines.push(`  * **${catTitleEn}:** Explicitly denies: ${negItems.join(', ')}`);
     }
   });
+
+  // Check for any orphan PMH items in pmhState.items that didn't match any category
+  const orphanPosEn = [];
+  const orphanNegEn = [];
+  if (pmhState.items) {
+    Object.entries(pmhState.items).forEach(([k, v]) => {
+      if (!processedPmhItemIds.has(k) && v) {
+        const st = typeof v === 'object' && v !== null ? (v.state !== undefined ? v.state : 0) : v;
+        const dt = typeof v === 'object' && v !== null ? (v.detail || v.note || '') : '';
+        const itemEn = tLabel(v.label || k, v.en);
+        if (st === 1 || st === '+1') {
+          orphanPosEn.push(dt ? `${itemEn} (${tLabel(dt)})` : itemEn);
+        } else if (st === -1 || st === '-1') {
+          orphanNegEn.push(itemEn);
+        }
+      }
+    });
+  }
+  if (orphanPosEn.length > 0) {
+    const negPart = orphanNegEn.length > 0 ? ` [Denies: ${orphanNegEn.join(', ')}]` : '';
+    catLines.push(`  * **Additional Documented Conditions:** ${orphanPosEn.join(', ')}${negPart}`);
+  } else if (orphanNegEn.length > 0) {
+    catLines.push(`  * **Additional Documented Conditions:** Explicitly denies: ${orphanNegEn.join(', ')}`);
+  }
 
   if (catLines.length > 0) {
     lines.push(`- **Past Medical History (PMH):**\n${catLines.join('\n')}`);
@@ -1230,28 +1288,83 @@ export function generateClinicalNote(state, langOverride) {
   }
 
   const categoryLines = [];
+  const processedPmhItemIdsFa = new Set();
+
   PMH_CATEGORIES.forEach((cat) => {
     const catData = pmhCategoriesState[cat.id] || {};
     const catItems = catData.items || {};
     const isNegated = catData.status === 'negated' || catData.negativeAll === true;
 
+    // Collect all unique items for this category (core + dynamic from catItems + dynamic from pmhState.items)
+    const itemMap = new Map();
+    (cat.items || []).forEach((it) => {
+      itemMap.set(it.id, { label: it.label, en: it.en || '' });
+    });
+    Object.entries(catItems).forEach(([k, v]) => {
+      if (!itemMap.has(k)) {
+        itemMap.set(k, { label: v.label || v.fa || k, en: v.en || '' });
+      }
+    });
+    if (pmhState.items) {
+      Object.entries(pmhState.items).forEach(([k, v]) => {
+        if (v) {
+          const inferredCat = v.catId || (typeof inferPmhCatId === 'function' ? inferPmhCatId({ id: k, ...v }) : null);
+          if (inferredCat === cat.id && !itemMap.has(k)) {
+            itemMap.set(k, { label: v.label || v.fa || k, en: v.en || '' });
+          }
+        }
+      });
+    }
+
     const posInCat = [];
-    cat.items.forEach((item) => {
-      const val = catItems[item.id] || pmhState.items?.[item.id];
+    const negInCat = [];
+
+    itemMap.forEach((meta, itemId) => {
+      processedPmhItemIdsFa.add(itemId);
+      const val = catItems[itemId] || pmhState.items?.[itemId];
       const st = typeof val === 'object' && val !== null ? (val.state !== undefined ? val.state : (val.active ? 1 : 0)) : val;
       const detail = typeof val === 'object' && val !== null ? (val.detail || val.note || '') : '';
       if (st === 1 || st === '+1') {
-        posInCat.push(detail && detail.trim() ? `${item.label} (${normalizePersianClinicalText(detail)})` : item.label);
+        posInCat.push(detail && detail.trim() ? `${meta.label} (${normalizePersianClinicalText(detail)})` : meta.label);
+      } else if (st === -1 || st === '-1') {
+        negInCat.push(meta.label);
       }
     });
 
     if (posInCat.length > 0) {
       const otherStr = catData.otherNote ? ` | سایر: ${normalizePersianClinicalText(catData.otherNote)}` : '';
-      categoryLines.push(`  * **${cat.title}:** ${posInCat.join('، ')}${otherStr}`);
+      const negStr = negInCat.length > 0 ? ` [منفی: ${negInCat.join('، ')}]` : '';
+      categoryLines.push(`  * **${cat.title}:** ${posInCat.join('، ')}${negStr}${otherStr}`);
     } else if (isNegated) {
       categoryLines.push(`  * **${cat.title}:** منفی (عدم سابقه بیماری‌های این دسته)`);
+    } else if (negInCat.length > 0) {
+      categoryLines.push(`  * **${cat.title}:** نفی صریح موارد: ${negInCat.join('، ')}`);
     }
   });
+
+  // Check for any orphan PMH items in pmhState.items that didn't match any category
+  const orphanPosFa = [];
+  const orphanNegFa = [];
+  if (pmhState.items) {
+    Object.entries(pmhState.items).forEach(([k, v]) => {
+      if (!processedPmhItemIdsFa.has(k) && v) {
+        const st = typeof v === 'object' && v !== null ? (v.state !== undefined ? v.state : 0) : v;
+        const dt = typeof v === 'object' && v !== null ? (v.detail || v.note || '') : '';
+        const lbl = v.label || v.fa || k;
+        if (st === 1 || st === '+1') {
+          orphanPosFa.push(dt ? `${lbl} (${normalizePersianClinicalText(dt)})` : lbl);
+        } else if (st === -1 || st === '-1') {
+          orphanNegFa.push(lbl);
+        }
+      }
+    });
+  }
+  if (orphanPosFa.length > 0) {
+    const negPart = orphanNegFa.length > 0 ? ` [منفی: ${orphanNegFa.join('، ')}]` : '';
+    categoryLines.push(`  * **سایر سوابق بیماری‌های ثبت‌شده:** ${orphanPosFa.join('، ')}${negPart}`);
+  } else if (orphanNegFa.length > 0) {
+    categoryLines.push(`  * **سایر سوابق بیماری‌های ثبت‌شده:** نفی صریح موارد: ${orphanNegFa.join('، ')}`);
+  }
 
   if (categoryLines.length > 0) {
     lines.push(`- **سوابق پزشکی (PMH):**\n${categoryLines.join('\n')}`);
