@@ -547,21 +547,26 @@ export function generateNarrativeCCAndHPI(state) {
 
     let introSentence = state.admission?.unresponsiveTrauma
       ? `The patient is an emergent trauma admission (${subjectDesc}${maritalEn}) transported by EMS following severe trauma/acute critical condition with altered mental status.`
-      : `The patient is a ${subjectDesc}${maritalEn}${cityEn}${occEn} presenting with a chief complaint of "${ccText}".`;
+      : `The patient is a ${subjectDesc}${maritalEn}${cityEn}${occEn}`;
     if (cc.pathway === 'elective_clinic' || cc.pathway === 'clinic_referral') {
       const att = tLabel(cc.clinicAttending || cc.referringAttending || cc.attendingPhysician || '') || 'Attending Surgeon';
       const diag = tLabel(cc.clinicInitialDiagnosis || cc.establishedDiagnosis || cc.preliminaryDiagnosis || '');
       const proc = tLabel(cc.clinicPlannedProcedure || cc.plannedProcedure || '');
-      introSentence += ` Admitted electively from surgical clinic under ${att}${diag ? ` with initial diagnosis of "${diag}"` : ''}${proc ? ` for planned "${proc}"` : ''}.`;
+      introSentence += ` who presented with a chief complaint of "${ccText}" and was admitted electively from surgical clinic under ${att}${diag ? ` with initial diagnosis of "${diag}"` : ''}${proc ? ` for planned "${proc}"` : ''}.`;
     } else if (cc.pathway === 'inpatient_transfer') {
       const src = tLabel(cc.transferSource || cc.originWardHospital || '') || 'inpatient service';
       const rsn = tLabel(cc.transferReason || cc.primaryAdmissionReason || '');
       const ind = tLabel(cc.transferSurgIndication || cc.transferConsultReason || '');
-      introSentence += ` Admitted via inpatient transfer from "${src}"${rsn ? ` (initial admission reason: ${rsn})` : ''} following surgical consultation${ind ? ` for "${ind}"` : ''}.`;
+      introSentence += ` who presented with a chief complaint of "${ccText}" and was admitted via inpatient transfer from "${src}"${rsn ? ` (initial admission reason: ${rsn})` : ''} following surgical consultation${ind ? ` for "${ind}"` : ''}.`;
     } else if (cc.pathway === 'postop_complication') {
-      introSentence += ` Presenting with acute post-operative complaint/complication following recent surgical intervention.`;
+      introSentence += ` presenting with post-operative complaint/complication of "${ccText}" following recent surgical intervention.`;
     } else {
-      introSentence += ` Evaluated acutely in the Emergency Department / Surgical Service for surgical management.`;
+      const isAcuteEmerg = (state.admission?.emergencyPattern === 'acute' || state.cc?.emergencyPattern === 'acute');
+      if (isAcuteEmerg) {
+        introSentence += ` who presented to the emergency department with acute onset of "${ccText}".`;
+      } else {
+        introSentence += ` who presented to the emergency department with a chief complaint of "${ccText}".`;
+      }
     }
     narrativeSentences.push(introSentence);
 
@@ -702,7 +707,10 @@ export function generateNarrativeCCAndHPI(state) {
     narrativeSentences.push(admSentence);
   } else {
     // emergency_acute
-    let admSentence = `${ptIntro} هستند که با شکایت اصلی «${ccText}» به صورت حاد به اورژانس / بخش جراحی مراجعه و پذیرش نموده‌اند.`;
+    const isAcuteEmerg = (state.admission?.emergencyPattern === 'acute' || state.cc?.emergencyPattern === 'acute');
+    let admSentence = isAcuteEmerg
+      ? `${ptIntro} که با بروز حاد شکایت «${ccText}» به اورژانس مراجعه نموده و جهت بررسی و اقدامات درمانی بستری شده است.`
+      : `${ptIntro} که با شکایت «${ccText}» به اورژانس مراجعه نموده و جهت بررسی و اقدامات درمانی بستری شده است.`;
     narrativeSentences.push(admSentence);
   }
 
@@ -836,8 +844,10 @@ export function generateEnglishClinicalNote(state) {
 
   if (catLines.length > 0) {
     lines.push(`- **Past Medical History (PMH):**\n${catLines.join('\n')}`);
-  } else if (!masterNeg) {
-    lines.push(`- **Past Medical History (PMH):** Denies significant chronic medical illnesses.`);
+  } else if (masterNeg) {
+    lines.push(`- **Past Medical History (PMH):** Patient explicitly denies common chronic medical conditions (Diabetes Mellitus, Hypertension, Dyslipidemia, and Ischemic Heart Disease).`);
+  } else {
+    lines.push(`- **Past Medical History (PMH):** Not assessed / Not documented`);
   }
   if (pmhState.systemGapNote) {
     lines.push(`- **Additional Medical History:** ${tLabel(pmhState.systemGapNote)}`);
@@ -862,7 +872,7 @@ export function generateEnglishClinicalNote(state) {
   if (pshPartsEn.length > 0) {
     lines.push(`- **Past Surgical History (PSH):** ${pshPartsEn.join(' | ')}`);
   } else {
-    lines.push(`- **Past Surgical History (PSH):** Denies prior abdominal or major surgical procedures.`);
+    lines.push(`- **Past Surgical History (PSH):** Not assessed / Not documented`);
   }
   if (state.psh?.systemGapNote) {
     lines.push(`- **Additional Surgical History:** ${tLabel(state.psh.systemGapNote)}`);
@@ -870,17 +880,23 @@ export function generateEnglishClinicalNote(state) {
 
   if (demo.gender !== 'male' && state.obgyn) {
     const o = state.obgyn;
-    const gVal = o.g !== undefined && o.g !== '' ? o.g : (o.gravida || 0);
-    const pVal = o.p !== undefined && o.p !== '' ? o.p : (o.para || 0);
-    const abVal = o.ab !== undefined && o.ab !== '' ? o.ab : (o.abortion || 0);
-    const lVal = o.l !== undefined && o.l !== '' ? o.l : (o.living || 0);
-    const obSegments = [`G${gVal} P${pVal} Ab${abVal} L${lVal}`];
+    const gVal = o.g !== undefined && o.g !== '' ? o.g : '';
+    const pVal = o.p !== undefined && o.p !== '' ? o.p : '';
+    const abVal = o.ab !== undefined && o.ab !== '' ? o.ab : '';
+    const lVal = o.l !== undefined && o.l !== '' ? o.l : '';
+    const obSegments = [];
+    if (gVal !== '' || pVal !== '' || abVal !== '' || lVal !== '') {
+      obSegments.push(`G${gVal || 0} P${pVal || 0} Ab${abVal || 0} L${lVal || 0}`);
+    }
     if (o.deliveryType) obSegments.push(`Delivery Mode: ${tLabel(o.deliveryType)}`);
     if (o.lmp) obSegments.push(`LMP / Menstrual Status: ${tLabel(o.lmp)}`);
     if (o.dysmenorrhea) obSegments.push(`Menstrual Pattern: ${tLabel(o.dysmenorrhea)}`);
-    if (demo.gender === 'female' || o.g || o.p || o.deliveryType || o.lmp || (o.pregnancies && o.pregnancies.length > 0)) {
-      lines.push(`- **Obstetric & Gynecologic History (Ob/Gyn):** ${obSegments.join(' | ')}.`);
-      if (Array.isArray(o.pregnancies) && o.pregnancies.length > 0) {
+    if (o.note && o.note.trim()) obSegments.push(tLabel(o.note.trim()));
+
+    const hasPregs = Array.isArray(o.pregnancies) && o.pregnancies.length > 0;
+    if (obSegments.length > 0 || hasPregs) {
+      lines.push(`- **Obstetric & Gynecologic History (Ob/Gyn):** ${obSegments.join(' | ') || 'Documented'}.`);
+      if (hasPregs) {
         o.pregnancies.forEach((preg, idx) => {
           const pDet = [
             preg.outcome ? `Outcome: ${tLabel(preg.outcome)}` : '',
@@ -891,6 +907,8 @@ export function generateEnglishClinicalNote(state) {
           if (pDet.length > 0) lines.push(`  * Pregnancy #${idx + 1}: ${pDet.join(' | ')}`);
         });
       }
+    } else {
+      lines.push(`- **Obstetric & Gynecologic History (Ob/Gyn):** Not assessed / Not documented`);
     }
   }
 
@@ -911,7 +929,11 @@ export function generateEnglishClinicalNote(state) {
       ...(ahState.drugAllergies ? [tLabel(ahState.drugAllergies)] : []),
       ...(ahState.note ? [tLabel(ahState.note)] : [])
     ].join(' — ');
-    lines.push(`- **Allergies (AH):** ${ahCombined || 'No known drug or food allergies reported.'}`);
+    if (ahCombined) {
+      lines.push(`- **Allergies (AH):** ${ahCombined}`);
+    } else {
+      lines.push(`- **Allergies (AH):** Not assessed / Not documented`);
+    }
   }
   if (ahState.systemGapNote) {
     lines.push(`- **Additional Allergies:** ${tLabel(ahState.systemGapNote)}`);
@@ -945,7 +967,7 @@ export function generateEnglishClinicalNote(state) {
     if (activeList.length > 0) {
       lines.push(`- **Current Medications (DH):** ${activeList.join(', ')}`);
     } else {
-      lines.push(`- **Current Medications (DH):** Denies regular prescription medication use.`);
+      lines.push(`- **Current Medications (DH):** Not assessed / Not documented`);
     }
   }
   if (dhState.note) {
@@ -958,7 +980,7 @@ export function generateEnglishClinicalNote(state) {
   const shState = state.sh || {};
   const shParts = [];
   if (demo.occupation) shParts.push(`Occupation: ${tLabel(demo.occupation)}`);
-  if (shState.negSmoking) shParts.push('Tobacco: Denies smoking/tobacco');
+  if (shState.negSmoking) shParts.push('Tobacco: Denies smoking/tobacco (Non-smoker)');
   else if (shState.cigsPerDay && shState.yearsSmoked) {
     const py = ((Number(shState.cigsPerDay) / 20) * Number(shState.yearsSmoked)).toFixed(1);
     shParts.push(`Tobacco: ${shState.cigsPerDay} cigs/day for ${shState.yearsSmoked} yrs (~${py} pack-years)`);
@@ -972,7 +994,11 @@ export function generateEnglishClinicalNote(state) {
   else if (shState.alcohol) shParts.push(`Alcohol: ${tLabel(shState.alcohol)}`);
   if (shState.note) shParts.push(tLabel(shState.note));
 
-  lines.push(`- **Social History (SH):** ${shParts.length > 0 ? shParts.join('; ') : 'Non-contributory (denies tobacco, alcohol or substance use).'}`);
+  if (shParts.length > 0) {
+    lines.push(`- **Social History (SH):** ${shParts.join('; ')}`);
+  } else {
+    lines.push(`- **Social History (SH):** Not assessed / Not documented`);
+  }
   if (shState.systemGapNote) {
     lines.push(`- **Additional Social History:** ${tLabel(shState.systemGapNote)}`);
   }
@@ -1001,7 +1027,11 @@ export function generateEnglishClinicalNote(state) {
     lines.push(`- **Family History (FH):** Positive for ${fhListEn.join('; ')}.`);
   } else {
     const fhNoteEn = fhState.note || fhState.notes;
-    lines.push(`- **Family History (FH):** ${fhNoteEn ? tLabel(fhNoteEn) : 'Non-contributory (denies familial malignancies or hereditary disorders in first-degree relatives).'}`);
+    if (fhNoteEn && fhNoteEn.trim()) {
+      lines.push(`- **Family History (FH):** ${tLabel(fhNoteEn.trim())}`);
+    } else {
+      lines.push(`- **Family History (FH):** Not assessed / Not documented`);
+    }
   }
   if (fhState.systemGapNote) {
     lines.push(`- **Additional Family History:** ${tLabel(fhState.systemGapNote)}`);
@@ -1044,8 +1074,9 @@ export function generateEnglishClinicalNote(state) {
 
     if (rosLinesEn.length > 0) {
       lines.push(`- **Review of Systems (Systemic Breakdown):**\n${rosLinesEn.join('\n')}`);
+      lines.push(`- *Other systems: Not assessed in this encounter (Not assessed / Not documented).*`);
     } else {
-      lines.push(`- **System Review:** 14-point review of systems non-contributory and baseline negative except as noted in HPI.`);
+      lines.push(`- **Review of Systems (ROS):** Not assessed / Not documented in this encounter.`);
     }
   }
 
@@ -1067,7 +1098,7 @@ export function generateEnglishClinicalNote(state) {
     } else if (neg.length > 0) {
       lines.push(`  * **${pTitleEn}:** Negative for ${neg.map((x) => x.text).join(', ')}`);
     } else {
-      lines.push(`  * **${pTitleEn}:** Unremarkable routine baseline examination`);
+      lines.push(`  * **${pTitleEn}:** Not assessed / Not documented`);
     }
   });
 
@@ -1224,8 +1255,10 @@ export function generateClinicalNote(state, langOverride) {
 
   if (categoryLines.length > 0) {
     lines.push(`- **سوابق پزشکی (PMH):**\n${categoryLines.join('\n')}`);
-  } else if (!masterNeg) {
-    lines.push(`- **سوابق پزشکی (PMH):** سابقه بیماری داخلی مزمن شناخته‌شده‌ای را ذکر نمی‌کند.`);
+  } else if (masterNeg) {
+    lines.push(`- **سوابق پزشکی (PMH):** بیمار سابقه تمام بیماری‌های زمینه‌ای روتین (دیابت شیرین، پرفشاری خون، دیس‌لیپیدمی و بیماری ایسکمیک قلبی) را به طور صریح نفی می‌کند.`);
+  } else {
+    lines.push(`- **سوابق پزشکی (PMH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
   }
 
   if (pmhState.systemGapNote) {
@@ -1254,10 +1287,11 @@ export function generateClinicalNote(state, langOverride) {
   if (state.psh?.historyOfAnesthesia) {
     pshParts.push(`بیهوشی: ${state.psh.historyOfAnesthesia}`);
   }
-  const pshNote = pshParts.length > 0
-    ? pshParts.join(' | ')
-    : 'سابقه عمل جراحی قبلی و عوارض بیهوشی را ذکر نمی‌کند.';
-  lines.push(`- **سوابق جراحی قبلی (PSH):** ${pshNote}`);
+  if (pshParts.length > 0) {
+    lines.push(`- **سوابق جراحی قبلی (PSH):** ${pshParts.join(' | ')}`);
+  } else {
+    lines.push(`- **سوابق جراحی قبلی (PSH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
+  }
   if (state.psh?.systemGapNote) {
     lines.push(`- **سایر سوابق جراحی خارج از لیست:** ${normalizePersianClinicalText(state.psh.systemGapNote)}`);
   }
@@ -1275,22 +1309,26 @@ export function generateClinicalNote(state, langOverride) {
     if (ob.deliveryType) obParts.push(`نوع زایمان‌های قبلی: ${ob.deliveryType}`);
     if (ob.lmp) obParts.push(`وضعیت قاعدگی و تاریخ LMP: ${normalizePersianClinicalText(ob.lmp)}`);
     if (ob.dysmenorrhea) obParts.push(`دیسمنوره/منوراژی: ${normalizePersianClinicalText(ob.dysmenorrhea)}`);
-    if (ob.note) obParts.push(normalizePersianClinicalText(ob.note));
+    if (ob.note && ob.note.trim()) obParts.push(normalizePersianClinicalText(ob.note.trim()));
 
-    lines.push(`- **سوابق بارداری و زایمان (Obstetric History):** ${obParts.join(' | ') || 'بررسی شد.'}`);
-
-    if (ob.pregnancies && Array.isArray(ob.pregnancies) && ob.pregnancies.length > 0) {
-      lines.push(`  * **جزئیات سوابق بارداری‌ها و زایمان‌ها:**`);
-      ob.pregnancies.forEach((preg, i) => {
-        const details = [];
-        if (preg.outcome) details.push(`نتیجه: ${preg.outcome}`);
-        if (preg.deliveryType || preg.deliveryMethod) details.push(`روش: ${preg.deliveryType || preg.deliveryMethod}`);
-        if (preg.term) details.push(`سن بارداری: ${preg.term}`);
-        if (preg.year) details.push(`سال/تاریخ: ${normalizePersianClinicalText(preg.year)}`);
-        if (preg.weightSex) details.push(`وزن/جنس: ${normalizePersianClinicalText(preg.weightSex)}`);
-        if (preg.complications) details.push(`علت/عوارض: ${normalizePersianClinicalText(preg.complications)}`);
-        lines.push(`    - بارداری #${i + 1}: ${details.join(' | ')}`);
-      });
+    const hasPregs = ob.pregnancies && Array.isArray(ob.pregnancies) && ob.pregnancies.length > 0;
+    if (obParts.length > 0 || hasPregs) {
+      lines.push(`- **سوابق بارداری و زایمان (Obstetric History):** ${obParts.join(' | ') || 'ثبت شده'}`);
+      if (hasPregs) {
+        lines.push(`  * **جزئیات سوابق بارداری‌ها و زایمان‌ها:**`);
+        ob.pregnancies.forEach((preg, i) => {
+          const details = [];
+          if (preg.outcome) details.push(`نتیجه: ${preg.outcome}`);
+          if (preg.deliveryType || preg.deliveryMethod) details.push(`روش: ${preg.deliveryType || preg.deliveryMethod}`);
+          if (preg.term) details.push(`سن بارداری: ${preg.term}`);
+          if (preg.year) details.push(`سال/تاریخ: ${normalizePersianClinicalText(preg.year)}`);
+          if (preg.weightSex) details.push(`وزن/جنس: ${normalizePersianClinicalText(preg.weightSex)}`);
+          if (preg.complications) details.push(`علت/عوارض: ${normalizePersianClinicalText(preg.complications)}`);
+          lines.push(`    - بارداری #${i + 1}: ${details.join(' | ')}`);
+        });
+      }
+    } else {
+      lines.push(`- **سوابق بارداری و زایمان (Obstetric History):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
     }
   }
 
@@ -1350,7 +1388,7 @@ export function generateClinicalNote(state, langOverride) {
     if (activeDrugsList.length > 0) {
       lines.push(`- **سوابق دارویی (DH):**\n  * ${activeDrugsList.join('\n  * ')}`);
     } else {
-      lines.push(`- **سوابق دارویی (DH):** مصرف داروی روتین خاصی را ذکر نمی‌کند.`);
+      lines.push(`- **سوابق دارویی (DH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
     }
   }
 
@@ -1368,10 +1406,14 @@ export function generateClinicalNote(state, langOverride) {
     }
     return item;
   });
-  const ahText = state.ah?.nkda
-    ? 'سابقه حساسیت دارویی، غذایی، لاتکس یا ماده حاجب ندارد (NKDA).'
-    : `${ahItems.join('، ')} ${state.ah?.note ? `(${normalizePersianClinicalText(state.ah.note)})` : ''}`.trim() || 'حساسیت دارویی یا غذایی خاصی ذکر نشد.';
-  lines.push(`- **حساسیت‌ها (AH):** ${ahText}`);
+  if (state.ah?.nkda) {
+    lines.push(`- **حساسیت‌ها (AH):** سابقه حساسیت دارویی، غذایی، لاتکس یا ماده حاجب ندارد (NKDA).`);
+  } else if (ahItems.length > 0 || (state.ah?.note && state.ah.note.trim())) {
+    const ahText = `${ahItems.join('، ')} ${state.ah?.note ? `(${normalizePersianClinicalText(state.ah.note)})` : ''}`.trim();
+    lines.push(`- **حساسیت‌ها (AH):** ${ahText}`);
+  } else {
+    lines.push(`- **حساسیت‌ها (AH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
+  }
   if (state.ah?.systemGapNote) {
     lines.push(`- **سایر حساسیت‌های خارج از لیست:** ${normalizePersianClinicalText(state.ah.systemGapNote)}`);
   }
@@ -1386,16 +1428,16 @@ export function generateClinicalNote(state, langOverride) {
   } else if (shState.cigsPerDay && shState.yearsSmoked) {
     const packYear = ((Number(shState.cigsPerDay) / 20) * Number(shState.yearsSmoked)).toFixed(1);
     shParts.push(`مصرف سیگار به میزان ${shState.cigsPerDay} نخ/روز به مدت ${shState.yearsSmoked} سال (~${packYear} Pack-Year)`);
-  } else {
-    shParts.push('عدم مصرف سیگار');
+  } else if (shState.smoking) {
+    shParts.push(`دخانیات: ${normalizePersianClinicalText(shState.smoking)}`);
   }
 
   if (shState.negOpium) {
     shParts.push('عدم مصرف تریاک یا سایر مواد مخدر (Denies substance use)');
   } else if (shState.opium) {
     shParts.push(`مصرف اپیوم/مواد: ${normalizePersianClinicalText(shState.opium)}`);
-  } else {
-    shParts.push('عدم مصرف اپیوم و مواد مخدر');
+  } else if (shState.substance) {
+    shParts.push(`مصرف مواد: ${normalizePersianClinicalText(shState.substance)}`);
   }
 
   if (shState.negAlcohol) {
@@ -1404,8 +1446,13 @@ export function generateClinicalNote(state, langOverride) {
     shParts.push(`مصرف الکل: ${normalizePersianClinicalText(shState.alcohol)}`);
   }
 
-  if (shState.note) shParts.push(normalizePersianClinicalText(shState.note));
-  lines.push(`- **سوابق اجتماعی و عادات (SH):** ${shParts.join(' | ')}.`);
+  if (shState.note && shState.note.trim()) shParts.push(normalizePersianClinicalText(shState.note.trim()));
+
+  if (shParts.length > 0) {
+    lines.push(`- **سوابق اجتماعی و عادات (SH):** ${shParts.join(' | ')}.`);
+  } else {
+    lines.push(`- **سوابق اجتماعی و عادات (SH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
+  }
   if (state.sh?.systemGapNote) {
     lines.push(`- **سایر عادات و سوابق اجتماعی خارج از لیست:** ${normalizePersianClinicalText(state.sh.systemGapNote)}`);
   }
@@ -1450,11 +1497,16 @@ export function generateClinicalNote(state, langOverride) {
       }
       return item;
     });
-    const fhText = [
-      ...(fhItems.length ? [fhItems.join('، ')] : []),
-      ...(state.fh?.note ? [normalizePersianClinicalText(state.fh.note)] : [])
-    ].join(' — ') || 'سابقه بدخیمی یا بیماری ارثی خاص در بستگان درجه یک ذکر نمی‌شود.';
-    lines.push(`- **سوابق خانوادگی (FH):** ${fhText}`);
+    const fhNote = state.fh?.note ? normalizePersianClinicalText(state.fh.note.trim()) : '';
+    if (fhItems.length > 0 || fhNote) {
+      const fhText = [
+        ...(fhItems.length ? [fhItems.join('، ')] : []),
+        ...(fhNote ? [fhNote] : [])
+      ].join(' — ');
+      lines.push(`- **سوابق خانوادگی (FH):** ${fhText}`);
+    } else {
+      lines.push(`- **سوابق خانوادگی (FH):** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
+    }
   }
   if (state.fh?.systemGapNote) {
     lines.push(`- **سایر سوابق خانوادگی خارج از لیست:** ${normalizePersianClinicalText(state.fh.systemGapNote)}`);
@@ -1498,8 +1550,9 @@ export function generateClinicalNote(state, langOverride) {
 
     if (rosLinesFa.length > 0) {
       lines.push(rosLinesFa.join('\n'));
+      lines.push(`- *سایر سیستم‌ها در این نوبت مورد بررسی قرار نگرفته‌اند (Not assessed).*`);
     } else {
-      lines.push(`- **بررسی سیستم‌ها (ROS):** بررسی جامع ۱۴ گانه سیستم‌ها منفی و بدون نکته پاتولوژیک فعال می‌باشد.`);
+      lines.push(`- **بررسی سیستم‌ها (ROS):** بررسی نشده / ثبت نشده (Not assessed / Not documented).`);
     }
   }
 
@@ -1522,7 +1575,7 @@ export function generateClinicalNote(state, langOverride) {
     } else if (neg.length > 0) {
       lines.push(`  * **${pillar.title}:** منفی از نظر ${neg.map((x) => x.text).join('، ')}`);
     } else {
-      lines.push(`  * **${pillar.title}:** معاینه روتین بدون نکته پاتولوژیک`);
+      lines.push(`  * **${pillar.title}:** بررسی نشده / ثبت نشده (Not assessed / Not documented)`);
     }
   });
 
@@ -1558,7 +1611,7 @@ export function generateClinicalNote(state, langOverride) {
       } else if (modNeg.length > 0) {
         lines.push(`- **${mod.title}:** منفی از نظر ${modNeg.join('، ')}`);
       } else {
-        lines.push(`- **${mod.title}:** معاینه اختصاصی انجام شد؛ فاقد یافته غیرطبیعی.`);
+        lines.push(`- **${mod.title}:** بررسی نشده / بدون یافته ثبت‌شده (Not assessed / Not documented)`);
       }
     }
   });
@@ -2102,7 +2155,7 @@ export function generateEnglishSOAPNote(soapState, linkedCaseState = null) {
   if (negOvernight.length > 0) sParts.push(`Denies ${negOvernight.join(', ')}`);
   if (s.narrativeNote) sParts.push(tLabel(s.narrativeNote));
 
-  out.push(`- ${sParts.join(' | ') || 'Patient reports no new acute complaints or distress over the past 24 hours.'}.\n`);
+  out.push(`- ${sParts.join(' | ') || 'No 24-hr clinical complaints recorded (Not documented).'}.\n`);
 
   // 2. O — Objective
   out.push(`#### O — Objective (Vitals, Fluid Balance, Focused PE & Paraclinics)`);
@@ -2275,7 +2328,7 @@ export function generateSOAPProgressNote(soapState, linkedCaseState = null) {
   if (negOvernight.length > 0) sParts.push(`عدم وجود ${negOvernight.join('، ')}`);
   if (s.narrativeNote) sParts.push(normalizePersianClinicalText(s.narrativeNote));
 
-  out.push(`- ${sParts.join(' | ') || 'بیمار در ۲۴ ساعت گذشته شکایت حاد جدیدی نداشته است.'}.\n`);
+  out.push(`- ${sParts.join(' | ') || 'شکایات بیمار در ۲۴ ساعت گذشته: ثبت نشده (Not documented).'}.\n`);
 
   // 3. O — Objective (Bug 6: استاندارد بیمارستانی ایران — حذف کامل کلمه «عینی»)
   out.push(`#### O — Objective (علائم حیاتی، بیلان، معاینه و پاراکلینیک)`);
@@ -2453,12 +2506,12 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
     gcsBreakdown
   ].filter(Boolean);
   out.push(`- **Resuscitation Vitals:** ${vTokens.join(' | ')}`);
-  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, true) || 'Airway Patent & C-Spine Immobilized'}`);
-  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, true) || 'Symmetric Chest Wall Expansion & Clear Bilateral Breath Sounds'}`);
-  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, true) || 'Hemodynamically Stable, Full & Symmetric Pulses'}`);
-  const disText = formatAtlsValue(pri.disability || pri.disabilityPupils, true) || 'Pupils Equal, Round & Reactive to Light (PERRLA), No Focal Deficit';
+  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, true) || 'Not assessed / Not documented'}`);
+  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, true) || 'Not assessed / Not documented'}`);
+  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, true) || 'Not assessed / Not documented'}`);
+  const disText = formatAtlsValue(pri.disability || pri.disabilityPupils, true) || 'Not assessed / Not documented';
   out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | ${disText}`);
-  out.push(`- **E — Exposure & Hypothermia Prevention:** ${formatAtlsValue(pri.exposure, true) || 'Full Exposure & Inline Log-Roll Performed; Hypothermia Prevention Applied'}\n`);
+  out.push(`- **E — Exposure & Hypothermia Prevention:** ${formatAtlsValue(pri.exposure, true) || 'Not assessed / Not documented'}\n`);
 
   // 2. MIST & AMPLE
   out.push(`#### 2. Mechanism, Prehospital Handover (MIST) & Rapid AMPLE History`);
@@ -2476,11 +2529,11 @@ export function generateEnglishATLSNote(atlsState = {}, clinicalState = null) {
     ? preHospList.map((t) => tLabel(t)).join(', ')
     : 'No invasive prehospital interventions';
   out.push(`- **T — Prehospital Interventions:** ${preHosp}`);
-  out.push(`- **A (Allergies):** ${tLabel(ample.allergies) || 'No Known Drug Allergies (NKDA)'}`);
-  out.push(`- **M (Medications):** ${tLabel(ample.medications) || 'No Regular Medications or Anticoagulants'}`);
-  out.push(`- **P (Past Illnesses / Pregnancy):** ${tLabel(ample.pastHistory) || 'No Significant Past Medical or Surgical History'}`);
-  out.push(`- **L (Last Meal / NPO Status):** ${tLabel(ample.lastMeal) || 'Unspecified'}`);
-  out.push(`- **E (Events / Tetanus):** ${tLabel(ample.eventsTetanus) || 'Evaluate & Administer Tetanus Prophylaxis if Indicated'}\n`);
+  out.push(`- **A (Allergies):** ${tLabel(ample.allergies) || 'Not documented'}`);
+  out.push(`- **M (Medications):** ${tLabel(ample.medications) || 'Not documented'}`);
+  out.push(`- **P (Past Illnesses / Pregnancy):** ${tLabel(ample.pastHistory) || 'Not documented'}`);
+  out.push(`- **L (Last Meal / NPO Status):** ${tLabel(ample.lastMeal) || 'Not documented'}`);
+  out.push(`- **E (Events / Tetanus):** ${tLabel(ample.eventsTetanus) || 'Not documented'}\n`);
 
   // 3. Secondary Survey, Injuries & Burn
   out.push(`#### 3. Head-to-Toe Secondary Survey, Injury Registry & Burn Assessment`);
@@ -2608,12 +2661,12 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
     gcsBreakdown
   ].filter(Boolean);
   out.push(`- **علائم حیاتی بدو ورود به تریاژ/احیا (Admission Vitals):** ${vTokens.join(' | ')}`);
-  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, false) || 'راه هوایی باز و ایمن (Patent & Intact)'}`);
-  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, false) || 'حرکات قفسه سینه قرینه و سمع دوطرفه شفاف'}`);
-  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, false) || 'همودینامیک پایدار، نبض‌های محیطی قرینه و پر'}`);
-  const disFa = formatAtlsValue(pri.disability || pri.disabilityPupils, false) || 'مردمک‌ها قرینه و راکتیو به نور (PERRLA)، بدون نقص عصبی فوکال';
+  out.push(`- **A — Airway & C-Spine Protection:** ${formatAtlsValue(pri.airway, false) || 'بررسی نشده / ثبت نشده (Not assessed)'}`);
+  out.push(`- **B — Breathing & Ventilation:** ${formatAtlsValue(pri.breathing, false) || 'بررسی نشده / ثبت نشده (Not assessed)'}`);
+  out.push(`- **C — Circulation & Hemorrhage Control:** ${formatAtlsValue(pri.circulation, false) || 'بررسی نشده / ثبت نشده (Not assessed)'}`);
+  const disFa = formatAtlsValue(pri.disability || pri.disabilityPupils, false) || 'بررسی نشده / ثبت نشده (Not assessed)';
   out.push(`- **D — Disability & Neurological Status:** ${gcsBreakdown} | ${disFa}`);
-  out.push(`- **E — Exposure & Environmental Control:** ${formatAtlsValue(pri.exposure, false) || 'برهنه‌سازی کامل و بررسی پشت (Log-roll) انجام شد؛ پیشگیری از هیپوترمی برقرار است'}\n`);
+  out.push(`- **E — Exposure & Environmental Control:** ${formatAtlsValue(pri.exposure, false) || 'بررسی نشده / ثبت نشده (Not assessed)'}\n`);
 
   // 2. MIST & AMPLE
   out.push(`#### ۲. مکانیسم تروما، اقدامات پیش‌بیمارستانی و شرح‌حال اورژانس (MIST & AMPLE)`);
@@ -2631,11 +2684,11 @@ export function generateATLSNote(atlsState = {}, clinicalState = null) {
     ? preHospArr.join(' ، ')
     : 'بدون اقدام تهاجمی پیش‌بیمارستانی';
   out.push(`- **اقدامات پیش‌بیمارستانی (T — Treatment Given):** ${preHosp}`);
-  out.push(`- **A (Allergies):** ${normalizePersianClinicalText(ample.allergies || 'حساسیت دارویی یا غذایی شناخته‌شده‌ای ندارد (NKDA)')}`);
-  out.push(`- **M (Medications):** ${normalizePersianClinicalText(ample.medications || 'عدم مصرف داروی خاص یا ضدانعقاد')}`);
-  out.push(`- **P (Past Illnesses / Pregnancy):** ${normalizePersianClinicalText(ample.pastHistory || 'بدون سابقه بیماری زمینه‌ای یا جراحی قبلی')}`);
-  out.push(`- **L (Last Meal / NPO Status):** ${normalizePersianClinicalText(ample.lastMeal || 'نامشخص')}`);
-  out.push(`- **E (Events / Environment / Tetanus):** ${normalizePersianClinicalText(ample.eventsTetanus || 'نیازمند بررسی واکسیناسیون کزاز')}\n`);
+  out.push(`- **A (Allergies):** ${normalizePersianClinicalText(ample.allergies || 'ثبت نشده (Not documented)')}`);
+  out.push(`- **M (Medications):** ${normalizePersianClinicalText(ample.medications || 'ثبت نشده (Not documented)')}`);
+  out.push(`- **P (Past Illnesses / Pregnancy):** ${normalizePersianClinicalText(ample.pastHistory || 'ثبت نشده (Not documented)')}`);
+  out.push(`- **L (Last Meal / NPO Status):** ${normalizePersianClinicalText(ample.lastMeal || 'ثبت نشده (Not documented)')}`);
+  out.push(`- **E (Events / Environment / Tetanus):** ${normalizePersianClinicalText(ample.eventsTetanus || 'ثبت نشده (Not documented)')}\n`);
 
   // 3. Secondary Survey, Injury Registry & Burn
   out.push(`#### ۳. ارزیابی ثانویه سر تا پا، نقشه جراحات و سوختگی (Secondary Survey & Injuries)`);

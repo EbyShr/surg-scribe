@@ -358,7 +358,7 @@
           <div class="form-grid-3">
             <label class="toggle-chip active" id="chipPathwayEmergency">
               <input type="radio" name="admissionPathway" value="emergency_acute" checked style="display:none;">
-              <span data-fa="۱. مراجعه حاد / اورژانس (Emergency)" data-en="1. Emergency / Acute Presentation">۱. مراجعه حاد / اورژانس (Emergency)</span>
+              <span data-fa="۱. مراجعه و پذیرش از طریق اورژانس (Emergency Department Presentation)" data-en="1. Emergency Department Presentation">۱. مراجعه و پذیرش از طریق اورژانس (Emergency Department Presentation)</span>
             </label>
             <label class="toggle-chip" id="chipPathwayClinic">
               <input type="radio" name="admissionPathway" value="elective_clinic" style="display:none;">
@@ -368,6 +368,21 @@
               <input type="radio" name="admissionPathway" value="inpatient_transfer" style="display:none;">
               <span data-fa="۳. انتقال بین‌بخشی / اعزام (Transfer)" data-en="3. Inter-Ward / Hospital Transfer">۳. انتقال بین‌بخشی / اعزام (Transfer)</span>
             </label>
+          </div>
+
+          <!-- فیلدهای تکمیلی مراجعه از اورژانس -->
+          <div class="pathway-subcard" id="cardCCEmergency" style="margin-top: 1rem; border-top: 1px dashed var(--border-medium); padding-top: 0.85rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6rem;">
+              <label class="form-label" style="margin:0; font-size:0.84rem; font-weight:600;" data-fa="الگوی مراجعه به اورژانس:" data-en="Emergency Presentation Pattern:">الگوی مراجعه به اورژانس:</label>
+              <div class="segmented-control-pills" id="emergencyPatternSelector">
+                <button type="button" class="elective-seg-pill active" id="btnEmergPatternSubacute" data-pattern="subacute_chronic">
+                  <span data-fa="شکایت تحت‌حاد یا مزمن مراجعه کرده به اورژانس" data-en="Subacute or Chronic Complaint">شکایت تحت‌حاد یا مزمن مراجعه کرده به اورژانس</span>
+                </button>
+                <button type="button" class="elective-seg-pill" id="btnEmergPatternAcute" data-pattern="acute">
+                  <span data-fa="بروز/تشدید حاد علائم" data-en="Acute Onset / Exacerbation">بروز/تشدید حاد علائم</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- فیلدهای تکمیلی بستری الکتیو / ارجاع از درمانگاه -->
@@ -2097,14 +2112,32 @@
             <!-- ۴. آزمایش‌ها و پاراکلینیک جدید امروز با مقایسه خودکار -->
             <div class="form-group mt-2">
               <label class="form-label" data-fa="۴. آزمایش‌ها و پاراکلینیک جدید امروز با ترند خودکار (Today's Labs &amp; Auto-Trends):" data-en="4. Today's Laboratory Results &amp; Automated Delta Trends:">۴. آزمایش‌ها و پاراکلینیک جدید امروز با ترند خودکار (Today's Labs &amp; Auto-Trends):</label>
-              <div class="soap-labs-grid">
+              
+              <!-- نوار جستجو و افزودن آزمایش جدید به پراگرس نوت SOAP -->
+              <div class="tag-quick-search-box" style="margin-bottom: 0.75rem; position: relative;">
+                <div class="search-input-wrapper">
+                  <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                  <input type="text" id="soapLabQuickSearchInput" class="input-text" placeholder="🔍 جستجو و افزودن آزمایش دیگر به پراگرس امروز..." data-fa-ph="🔍 جستجو و افزودن آزمایش دیگر به پراگرس امروز..." data-en-ph="🔍 Search &amp; add other lab to today's progress..." autocomplete="off" />
+                </div>
+                <div id="soapLabQuickSearchTray" class="search-results-tray"></div>
+              </div>
+
+              <div class="soap-labs-grid" id="soapLabsGridContainer">
                 
                 <div class="soap-lab-card" data-lab="wbc">
                   <div class="lab-title-row">
                     <span class="lab-name">WBC</span>
                     <span class="soap-lab-trend" id="soapTrend_wbc"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="wbc" placeholder="9.2" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="wbc" placeholder="—" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="rbc">
+                  <div class="lab-title-row">
+                    <span class="lab-name">RBC</span>
+                    <span class="soap-lab-trend" id="soapTrend_rbc"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="rbc" placeholder="—" />
                 </div>
 
                 <div class="soap-lab-card" data-lab="hb">
@@ -2112,7 +2145,7 @@
                     <span class="lab-name">Hb</span>
                     <span class="soap-lab-trend" id="soapTrend_hb"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="hb" placeholder="12.8" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="hb" placeholder="—" />
                 </div>
 
                 <div class="soap-lab-card" data-lab="plt">
@@ -2120,7 +2153,15 @@
                     <span class="lab-name">Plt</span>
                     <span class="soap-lab-trend" id="soapTrend_plt"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="plt" placeholder="220" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="plt" placeholder="—" />
+                </div>
+
+                <div class="soap-lab-card" data-lab="bun">
+                  <div class="lab-title-row">
+                    <span class="lab-name">BUN</span>
+                    <span class="soap-lab-trend" id="soapTrend_bun"></span>
+                  </div>
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bun" placeholder="—" />
                 </div>
 
                 <div class="soap-lab-card" data-lab="cr">
@@ -2128,7 +2169,7 @@
                     <span class="lab-name">Cr</span>
                     <span class="soap-lab-trend" id="soapTrend_cr"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="cr" placeholder="0.9" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="cr" placeholder="—" />
                 </div>
 
                 <div class="soap-lab-card" data-lab="na">
@@ -2136,7 +2177,7 @@
                     <span class="lab-name">Na</span>
                     <span class="soap-lab-trend" id="soapTrend_na"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="na" placeholder="139" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="na" placeholder="—" />
                 </div>
 
                 <div class="soap-lab-card" data-lab="k">
@@ -2144,87 +2185,7 @@
                     <span class="lab-name">K</span>
                     <span class="soap-lab-trend" id="soapTrend_k"></span>
                   </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="k" placeholder="4.1" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="bs">
-                  <div class="lab-title-row">
-                    <span class="lab-name">BS</span>
-                    <span class="soap-lab-trend" id="soapTrend_bs"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bs" placeholder="110" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="ast">
-                  <div class="lab-title-row">
-                    <span class="lab-name">AST</span>
-                    <span class="soap-lab-trend" id="soapTrend_ast"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="ast" placeholder="24" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="alt">
-                  <div class="lab-title-row">
-                    <span class="lab-name">ALT</span>
-                    <span class="soap-lab-trend" id="soapTrend_alt"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="alt" placeholder="28" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="alp">
-                  <div class="lab-title-row">
-                    <span class="lab-name">ALP</span>
-                    <span class="soap-lab-trend" id="soapTrend_alp"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="alp" placeholder="160" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="bili_t">
-                  <div class="lab-title-row">
-                    <span class="lab-name">Bili T</span>
-                    <span class="soap-lab-trend" id="soapTrend_bili_t"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bili_t" placeholder="0.8" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="bili_d">
-                  <div class="lab-title-row">
-                    <span class="lab-name">Bili D</span>
-                    <span class="soap-lab-trend" id="soapTrend_bili_d"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="bili_d" placeholder="0.2" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="crp">
-                  <div class="lab-title-row">
-                    <span class="lab-name">CRP</span>
-                    <span class="soap-lab-trend" id="soapTrend_crp"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="crp" placeholder="14" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="esr">
-                  <div class="lab-title-row">
-                    <span class="lab-name">ESR</span>
-                    <span class="soap-lab-trend" id="soapTrend_esr"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="esr" placeholder="18" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="pt">
-                  <div class="lab-title-row">
-                    <span class="lab-name">PT</span>
-                    <span class="soap-lab-trend" id="soapTrend_pt"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="pt" placeholder="13.0" />
-                </div>
-
-                <div class="soap-lab-card" data-lab="inr">
-                  <div class="lab-title-row">
-                    <span class="lab-name">INR</span>
-                    <span class="soap-lab-trend" id="soapTrend_inr"></span>
-                  </div>
-                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="inr" placeholder="1.05" />
+                  <input type="text" class="input-text soap-lab-input dir-ltr" data-lab="k" placeholder="—" />
                 </div>
 
               </div>
@@ -2701,6 +2662,115 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btnCancelAppSettings" data-i18n="btn_cancel">انصراف</button>
         <button type="button" class="btn btn-primary" id="btnSaveAppSettings" data-i18n="btn_save_settings">ذخیره تنظیمات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔐 Secret URL Admin Vault Modal (Accessed exclusively via #admin-vault or ?admin=1) -->
+  <div class="modal-backdrop" id="adminVaultModalBackdrop" style="display:none; z-index:9999;">
+    <div class="modal-box admin-vault-modal-box">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.65rem; font-size: 1.05rem; font-weight: 700; color: #fff;">
+          <span style="font-size: 1.3rem;">🔐</span>
+          <span>پنل مدیریت مرکزی پرونده‌ها (Master Clinical Vault — Admin Only)</span>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid rgba(52, 211, 153, 0.4);">v2.1-Audit-Core</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <button type="button" class="btn btn-secondary" id="btnAdminExportDatabase" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: #059669; color: #fff; border: none; display: flex; align-items: center; gap: 0.4rem; border-radius:6px; cursor:pointer;">
+            <span>📊</span>
+            <span>دانلود کل دیتابیس (JSON/CSV)</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnAdminExitVault" style="font-size: 0.82rem; padding: 0.35rem 0.75rem; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); border-radius:6px; cursor:pointer;">
+            <span>خروج از حالت ادمین ✕</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Auth / Password prompt bar if not unlocked -->
+      <div id="adminAuthSection" style="padding: 3rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+        <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">ورود به مخزن مرکزی پرونده‌های بالینی</h3>
+        <p style="color: var(--text-muted); max-width: 480px; margin-bottom: 1.5rem; font-size: 0.88rem; line-height: 1.6;">جهت دسترسی به تمام پرونده‌های ثبت‌شده و دریافت فایل تجمیعی جهت تحلیل آماری، رمز عبور ادمین را وارد نمایید.</p>
+        <div style="display: flex; gap: 0.5rem; max-width: 380px; width: 100%;">
+          <input type="password" id="adminPasswordInput" class="input-text" placeholder="رمز عبور ادمین (پیش‌فرض: SURG2026)" value="SURG2026" style="flex: 1; text-align: center; font-size: 0.95rem; letter-spacing: 2px;" />
+          <button type="button" class="btn btn-primary" id="btnAdminUnlock" style="padding: 0.5rem 1.25rem; font-weight:700;">ورود</button>
+        </div>
+        <div id="adminAuthError" style="color: #ef4444; font-size: 0.84rem; margin-top: 0.75rem; display: none;">رمز عبور نادرست است.</div>
+      </div>
+
+      <!-- Admin Dashboard Content (visible after authentication) -->
+      <div id="adminVaultMainContent" style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
+        <!-- Filters Bar -->
+        <div class="admin-vault-filters" style="padding: 0.65rem 1rem; background: var(--bg-elevated); border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between;">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; flex: 1; min-width: 280px;">
+            <input type="text" id="adminFilterSearch" class="input-text" placeholder="🔍 جستجو در متن، تشخیص، بیمار..." style="max-width: 240px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
+            <select id="adminFilterType" class="input-text input-select" style="max-width: 170px; padding: 0.35rem 0.65rem; font-size: 0.82rem;">
+              <option value="all">همه پرونده‌ها</option>
+              <option value="ADMISSION_HP">شرح‌حال H&amp;P</option>
+              <option value="SOAP_PROGRESS">پراگرس روزانه SOAP</option>
+              <option value="ATLS_TRAUMA">ترومای اورژانس ATLS</option>
+            </select>
+            <input type="text" id="adminFilterCollector" class="input-text" placeholder="نام ثبت‌کننده..." style="max-width: 150px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
+            <input type="date" id="adminFilterDate" class="input-text" style="max-width: 145px; padding: 0.35rem 0.65rem; font-size: 0.82rem;" />
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="adminCaseCountBadge" class="badge" style="background: var(--bg-surface); border: 1px solid var(--border-medium); font-size: 0.78rem; padding: 0.35rem 0.65rem;">تعداد پرونده: ۰</span>
+            <button type="button" class="btn btn-secondary" id="btnAdminRefresh" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;">🔄 بروزرسانی</button>
+          </div>
+        </div>
+
+        <!-- Split View: Table list (right in RTL) + Case Details Preview (left in RTL) -->
+        <div style="display: flex; flex: 1; overflow: hidden;">
+          <!-- Table List -->
+          <div style="flex: 1.2; overflow-y: auto; border-left: 1px solid var(--border-subtle); padding: 0.5rem;">
+            <table class="clinical-table admin-vault-table" id="adminCasesTable" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: var(--bg-elevated); position: sticky; top: 0; z-index: 2;">
+                  <th style="width: 35px; text-align: center;">#</th>
+                  <th>شناسه</th>
+                  <th>نوع</th>
+                  <th>شکایت / تشخیص</th>
+                  <th>ثبت‌کننده</th>
+                  <th>تاریخ</th>
+                </tr>
+              </thead>
+              <tbody id="adminCasesTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Case Inspector Preview Pane -->
+          <div id="adminCaseInspector" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-surface); padding: 0.85rem;">
+            <div id="adminInspectorEmpty" style="color: var(--text-muted); text-align: center; margin-top: 5rem;">
+              <span>یک پرونده را از جدول انتخاب کنید تا جزئیات و متن رندرشده نمایش داده شود.</span>
+            </div>
+            <div id="adminInspectorContent" style="display: none; flex-direction: column; gap: 0.65rem; height: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                  <h4 id="inspectorCaseTitle" style="margin: 0; color: var(--primary); font-size: 0.95rem;"></h4>
+                  <span id="inspectorCaseMeta" style="font-size: 0.76rem; color: var(--text-muted);"></span>
+                </div>
+                <button type="button" class="btn btn-primary" id="btnAdminLoadCaseToEditor" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight:700;">
+                  <span>📥</span>
+                  <span>بارگذاری این پرونده در محیط ویرایشگر برنامه</span>
+                </button>
+              </div>
+              
+              <!-- Tabs for inspecting H&P, SOAP, ATLS notes -->
+              <div class="segmented-control-pills" style="margin-top: 0.15rem;">
+                <button type="button" class="elective-seg-pill active" id="btnInspectHp">H&amp;P Note</button>
+                <button type="button" class="elective-seg-pill" id="btnInspectSoap">SOAP (All Days)</button>
+                <button type="button" class="elective-seg-pill" id="btnInspectAtls">ATLS Trauma</button>
+                <button type="button" class="elective-seg-pill" id="btnInspectRaw">Raw JSON</button>
+              </div>
+              
+              <div style="flex: 1; min-height: 220px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem; overflow-y: auto;">
+                <pre id="inspectorNoteText" style="white-space: pre-wrap; font-family: inherit; font-size: 0.8rem; margin: 0; line-height: 1.6;"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

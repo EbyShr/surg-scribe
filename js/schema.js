@@ -19,8 +19,21 @@
 import { HPI_QUALIFIERS_AND_SYMPTOMS, HPI_PAIN_QUALIFIERS, HPI_ASSOCIATED_SYMPTOMS } from './data/hpi-lexicon.js';
 import { MASTER_ROS_BANK } from './data/ros-bank.js';
 import { MASTER_PE_BANK } from './data/pe-bank.js';
+import {
+  OTC_AND_HERBAL_DRUGS_BANK,
+  MASTER_PSH_SURGERIES_BANK as V21_PSH_SURGERIES_BANK,
+  MISSING_LABS_PATCH_V21
+} from './data/psh-otc-labs-v21.js';
 
-export { HPI_QUALIFIERS_AND_SYMPTOMS, HPI_PAIN_QUALIFIERS, HPI_ASSOCIATED_SYMPTOMS, MASTER_ROS_BANK, MASTER_PE_BANK };
+export {
+  HPI_QUALIFIERS_AND_SYMPTOMS,
+  HPI_PAIN_QUALIFIERS,
+  HPI_ASSOCIATED_SYMPTOMS,
+  MASTER_ROS_BANK,
+  MASTER_PE_BANK,
+  OTC_AND_HERBAL_DRUGS_BANK,
+  MISSING_LABS_PATCH_V21
+};
 
 let currentSchemaLang = 'fa';
 
@@ -1873,6 +1886,14 @@ export const MASTER_DRUG_CATEGORIES = [
       { id: 'drg_vitamin_d3', label: 'ویتامین D3 (Cholecalciferol)', brands: 'Pearl Vit D3 50000 IU', defaultDose: '50000 IU Monthly', aliases: 'ویتامین دی پرل ویتامین دی vitamin d3 cholecalciferol' },
       { id: 'drg_vitamin_b12', label: 'ویتامین B12 (Cyanocobalamin)', brands: 'Neurobion نوروبیون', defaultDose: '1000mcg', aliases: 'ویتامین ب12 نوروبیون سیانوکوبالامین vitamin b12 neurobion' }
     ]
+  },
+  {
+    catId: 'dh_otc_herbal',
+    id: 'dh_otc_herbal',
+    catTitle: 'داروهای بدون نسخه، سرماخوردگی و گیاهی (OTC, Cold & Herbal)',
+    title: 'داروهای بدون نسخه، سرماخوردگی و گیاهی (OTC, Cold & Herbal)',
+    badge: 'OTC / Herbal',
+    drugs: OTC_AND_HERBAL_DRUGS_BANK
   }
 ];
 
@@ -2299,11 +2320,12 @@ export const SURGICAL_LAB_PANELS = [
     title: '۲. بیوشیمی، قند و الکترولیت‌ها (Biochemistry, Glucose & Renal/Lytes)',
     en: 'Biochemistry & Renal',
     badge: 'Biochem / Lytes',
-    coreTestIds: ['bs', 'bun', 'cr', 'na', 'k'],
+    coreTestIds: ['bs', 'bun', 'urea', 'cr', 'na', 'k'],
     allTests: [
       { id: 'bs', label: 'BS (قند خون)', unit: 'mg/dL', min: 70, max: 140, aliases: 'قند خون ناشتا fbs bs' },
       { id: 'hba1c', label: 'HbA1c', unit: '%', min: 4.0, max: 5.7, aliases: 'هموگلوبین ای وان سی قند سه ماهه hba1c a1c' },
-      { id: 'bun', label: 'BUN', unit: 'mg/dL', min: 7, max: 20, aliases: 'بی یو ان اوره خون bun' },
+      { id: 'bun', label: 'BUN (نیتروژن اوره)', unit: 'mg/dL', min: 7, max: 20, aliases: 'بی یو ان نیتروژن اوره bun blood urea nitrogen' },
+      { id: 'urea', label: 'Urea (اوره خون)', en: 'Serum Urea', unit: 'mg/dL', min: 15, max: 45, panel: 'biochem_renal', aliases: 'اوره خون urea serum urea اوره' },
       { id: 'cr', label: 'Cr (کراتینین)', unit: 'mg/dL', min: 0.6, max: 1.2, aliases: 'کراتینین کلیه نارسایی cr creatinine' },
       { id: 'na', label: 'Na (سدیم)', unit: 'mEq/L', min: 135, max: 145, aliases: 'سدیم نمک الکترولیت na sodium' },
       { id: 'k', label: 'K (پتاسیم)', unit: 'mEq/L', min: 3.5, max: 5.0, aliases: 'پتاسیم الکترولیت k potassium' },
@@ -2578,6 +2600,13 @@ export const MASTER_PSH_SURGERIES_BANK = [
   { id: 'psh_tubal_ligation', label: 'بستن لوله‌های رحمی (Tubal Ligation - TL)', en: 'Tubal Ligation (TL)', category: 'OB/GYN', aliases: 'بستن لوله عقیم سازی تی ال tl tubal ligation' }
 ];
 
+// Merge comprehensive surgeries from v2.1 bank without duplicates
+V21_PSH_SURGERIES_BANK.forEach(proc => {
+  if (!MASTER_PSH_SURGERIES_BANK.some(s => s.id === proc.id)) {
+    MASTER_PSH_SURGERIES_BANK.push(proc);
+  }
+});
+
 export const PSH_SURGICAL_PROCEDURES_BANK = MASTER_PSH_SURGERIES_BANK;
 
 // ==========================================================================
@@ -2694,6 +2723,39 @@ export const EXTENDED_LAB_DATABASE = [
   { id: 'lab_ua_sg', label: 'Specific Gravity (SG)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: '', normalRange: '1.005 - 1.030', aliases: 'وزن مخصوص ادرار غلظت ua sg' },
   { id: 'lab_urine_culture', label: 'Urine Culture (U/C - کشت ادرار)', panel: 'ua_uc', category: 'آنالیز ادرار (U/A & U/C)', unit: 'CFU/mL', normalRange: 'No growth / < 10,000', aliases: 'کشت ادرار انتی بیوگرام یو سی uc urine culture' }
 ];
+
+// Merge missing and extended labs from v2.1 patch
+MISSING_LABS_PATCH_V21.forEach(lab => {
+  if (!EXTENDED_LAB_DATABASE.some(l => l.id === lab.id)) {
+    EXTENDED_LAB_DATABASE.push(lab);
+  }
+});
+
+// Comprehensive unified lab catalog for omnisearch (Core, Extended & Patch Labs)
+export const MASTER_ALL_LAB_TESTS = (() => {
+  const map = new Map();
+  (SURGICAL_LAB_PANELS || []).forEach(panel => {
+    (panel.allTests || []).forEach(test => {
+      map.set(test.id, {
+        ...test,
+        panel: test.panel || panel.id,
+        category: panel.title,
+        normalRange: test.normalRange || (test.min !== undefined && test.max !== undefined ? `${test.min} - ${test.max} ${test.unit || ''}` : '')
+      });
+    });
+  });
+  (EXTENDED_LAB_DATABASE || []).forEach(test => {
+    if (!map.has(test.id)) {
+      map.set(test.id, test);
+    }
+  });
+  (MISSING_LABS_PATCH_V21 || []).forEach(test => {
+    if (!map.has(test.id)) {
+      map.set(test.id, test);
+    }
+  });
+  return Array.from(map.values());
+})();
 
 // Combine all PMH items for schema search
 export const ALL_MASTER_PMH_ITEMS = [

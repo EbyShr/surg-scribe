@@ -456,6 +456,67 @@ export class GoogleSheetsSyncEngine {
    * Strips PII (fullName, fatherName, birthDate) automatically before sending.
    * Uses Content-Type: text/plain;charset=utf-8 to prevent CORS Preflight (OPTIONS) failure.
    */
+  async sendPayload(payload) {
+    const caseId = payload.caseId || `CASE-${Date.now()}`;
+
+    // Keep in local staged history
+    this.staged.unshift({
+      caseId,
+      timestamp: payload.timestamp || new Date().toISOString(),
+      collectorName: payload.collectorName || 'پزشک ثبت‌کننده',
+      chiefComplaint: payload.chiefComplaint || 'شکایت جراحی',
+      noteLength: (payload.fullClinicalNote || '').length
+    });
+    this.saveStaged();
+
+    // Check script URL configuration
+    if (!this.config.scriptUrl) {
+      this.enqueue(payload);
+      return {
+        success: false,
+        queued: true,
+        caseId,
+        message: 'آدرس وب‌اپ گوگل اسکریپت در تنظیمات وارد نشده است. پرونده در صف ذخیره شد.'
+      };
+    }
+
+    try {
+      const response = await fetch(this.config.scriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        return {
+          success: true,
+          queued: false,
+          caseId,
+          message: `پرونده ${caseId} با تمام اطلاعات H&P، SOAP و ATLS در Google Sheets ثبت گردید.`
+        };
+      } else {
+        this.enqueue(payload);
+        return {
+          success: false,
+          queued: true,
+          caseId,
+          message: `خطای سرور گوگل (${response.status}). پرونده در صف آفلاین ذخیره شد.`
+        };
+      }
+    } catch (networkError) {
+      console.warn('[GoogleSync] Network request failed. Enqueueing case for offline sync:', networkError);
+      this.enqueue(payload);
+      return {
+        success: false,
+        queued: true,
+        caseId,
+        message: `عدم اتصال به اینترنت. پرونده ${caseId} در صف ذخیره شد و پس از اتصال خودکار ارسال می‌گردد.`
+      };
+    }
+  }
+
   async sendCase(clinicalState, generatedNote, metadataSnapshot) {
     const payload = this.prepareCasePayload(clinicalState, null, generatedNote, metadataSnapshot);
     const caseId = payload.caseId;

@@ -9213,5 +9213,49 @@ body.dark-mode .input-select option {
   font-size: 0.82rem !important;
 }
 
+/* ==========================================================================
+   v2.1-Audit-Core: Focus Pulse & Secret Admin Vault Styles
+   ========================================================================== */
+@keyframes inputFocusPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); border-color: #10b981; }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.4); border-color: #10b981; }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.input-focus-pulse {
+  animation: inputFocusPulse 1.2s ease-out;
+}
+
+.admin-vault-modal-box {
+  max-width: 1200px !important;
+  width: 95vw !important;
+  height: 92vh !important;
+  max-height: 92vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--bg-surface) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.admin-vault-table tr:hover {
+  background: var(--bg-elevated);
+  cursor: pointer;
+}
+
+.admin-vault-table tr.selected {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-right: 3px solid #10b981;
+}
+
+.admin-vault-table th, .admin-vault-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+
 
 

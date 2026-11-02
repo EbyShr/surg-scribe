@@ -58,6 +58,7 @@ import {
   PSH_SURGICAL_PROCEDURES_BANK,
   FH_CANCER_HEREDITARY_DATABASE,
   EXTENDED_LAB_DATABASE,
+  MASTER_ALL_LAB_TESTS,
   PE_COMPREHENSIVE_SYSTEMS
 } from './schema.js';
 import { ClinicalCaseAnalytics, ClinicalTelemetryEngine } from './telemetry.js';
@@ -94,14 +95,16 @@ let gsheetSync = new GoogleSheetsSyncEngine();
 let activeSectionId = 'cc_admission';
 
 // Phase 3 Subsystem Accordions & State Registries
-window._rosExpandedMap = window._rosExpandedMap || new Set();
-window._peExpandedMap = window._peExpandedMap || new Set();
-window._labExpandedMap = window._labExpandedMap || new Set();
-window._rosShowAllMap = window._rosShowAllMap || new Set();
-window._peShowAllMap = window._peShowAllMap || new Set();
-window._labShowAllMap = window._labShowAllMap || new Set();
-window._activeLabTests = window._activeLabTests || new Set();
-window._rosBreastEnabledForMale = window._rosBreastEnabledForMale || false;
+if (typeof window !== 'undefined') {
+  window._rosExpandedMap = window._rosExpandedMap || new Set();
+  window._peExpandedMap = window._peExpandedMap || new Set();
+  window._labExpandedMap = window._labExpandedMap || new Set();
+  window._rosShowAllMap = window._rosShowAllMap || new Set();
+  window._peShowAllMap = window._peShowAllMap || new Set();
+  window._labShowAllMap = window._labShowAllMap || new Set();
+  window._activeLabTests = window._activeLabTests || new Set();
+  window._rosBreastEnabledForMale = window._rosBreastEnabledForMale || false;
+}
 
 function generateCaseId() {
   const now = new Date();
@@ -294,6 +297,7 @@ export function createDefaultClinicalState() {
     },
     admission: {
       pathway: 'emergency_acute',
+      emergencyPattern: 'subacute_chronic', // 'subacute_chronic' | 'acute'
       unresponsiveTrauma: false,
       traumaMoi: '',
       isProcedureOnly: false,
@@ -306,6 +310,7 @@ export function createDefaultClinicalState() {
     },
     cc: {
       pathway: 'emergency_acute', // 'emergency_acute' | 'elective_clinic' | 'inpatient_transfer'
+      emergencyPattern: 'subacute_chronic',
       patientQuote: '',
       establishedDiagnosis: '',
       referringAttending: '',
@@ -476,28 +481,16 @@ export function createDefaultSoapState() {
       podNumber: '1'
     },
     subjective: {
-      overallTrend: 'بهبود کلی علائم نسبت به دیروز',
-      painStatus: 'درد خفیف و کنترل‌شده با مسکن در محل عمل',
+      overallTrend: '',
+      painStatus: '',
       painDetail: '',
-      dietTolerance: 'تحمل خوب مایعات صاف (Clear Liquids Tolerated)',
-      flatus: 1, // 1: +, -1: -
-      bowelMovement: -1, // 1: +, -1: -
+      dietTolerance: '',
+      flatus: null, // null: not assessed, 1: +, -1: -
+      bowelMovement: null, // null: not assessed, 1: +, -1: -
       bowelDetail: '',
-      ambulation: 'خارج شدن از تخت و راه رفتن در بخش (Out of Bed / Ambulating)',
-      overnightSymptoms: {
-        nausea_vomiting: { state: -1, label: 'تهوع و استفراغ' },
-        fever_chills: { state: -1, label: 'تب و لرز' },
-        cold_sweats: { state: -1, label: 'عرق سرد (Cold Sweats)' },
-        dyspnea_cp: { state: -1, label: 'تنگی نفس / درد قفسه سینه' },
-        dysuria_voiding: { state: -1, label: 'سوزش یا احتباس ادراری' }
-      },
-      symptoms: {
-        nausea_vomiting: -1,
-        fever_chills: -1,
-        cold_sweats: -1,
-        dyspnea_cp: -1,
-        dysuria_voiding: -1
-      },
+      ambulation: '',
+      overnightSymptoms: {},
+      symptoms: {},
       symptomDetails: {},
       customSymptoms: [],
       narrativeNote: ''
@@ -510,22 +503,22 @@ export function createDefaultSoapState() {
         temp: '',
         tmax: '',
         spo2: '',
-        hemodynamics: 'همودینامیک پایدار (Stable)'
+        hemodynamics: ''
       },
       io: {
         intake24h: '',
         urineOutput24h: '',
         ngtOutput24h: '',
-        urineStatus: 'دفع ادرار طبیعی و کافی (بدون فولی)'
+        urineStatus: ''
       },
       intake24h: '',
       urineOutput24h: '',
       ngtOutput24h: '',
       drains: [],
-      generalAndCardioPulm: 'بیمار هوشیار (GCS=15)، سمع ریه‌ها دوطرفه شفاف، سمع قلب نرمال بدون سوفل.',
-      abdomenExam: 'شکم نرم و بدون دیستانسیون، تندرنس خفیف محدود به برش جراحی، صداهای روده‌ای نرمال برقرار (BS+).',
-      woundAndDressing: 'پانسمان تمیز و خشک (CDI)، بدون ترشح یا اریتم جدار.',
-      extremitiesDvt: 'اندام‌ها گرم، نبض‌ها قرینه، بدون ادم یا تندرنس ساق (DVT منفی).',
+      generalAndCardioPulm: '',
+      abdomenExam: '',
+      woundAndDressing: '',
+      extremitiesDvt: '',
       examNote: '',
       labs: {},
       previousBaselineLabs: {},
@@ -533,7 +526,7 @@ export function createDefaultSoapState() {
     },
     assessment: {
       summaryText: '',
-      clinicalStatus: 'سیر بهبودی مناسب و پایدار (Improving / Uneventful Recovery)'
+      clinicalStatus: ''
     },
     plan: {
       selectedTags: [],
@@ -933,8 +926,11 @@ function initAdmissionPathwayHandlers() {
   const chipClinic = document.getElementById('chipPathwayClinic');
   const chipTransfer = document.getElementById('chipPathwayTransfer');
   const chipPostop = document.getElementById('chipPathwayPostop');
+  const cardEmerg = document.getElementById('cardCCEmergency');
   const cardClinic = document.getElementById('cardCCReferral');
   const cardTransfer = document.getElementById('cardCCTransfer');
+  const btnPatternSubacute = document.getElementById('btnEmergPatternSubacute');
+  const btnPatternAcute = document.getElementById('btnEmergPatternAcute');
 
   function setPathway(pathway) {
     clinicalState.cc.pathway = pathway;
@@ -950,6 +946,9 @@ function initAdmissionPathwayHandlers() {
     const rTransfer = chipTransfer?.querySelector('input[type="radio"]');
     if (rTransfer) rTransfer.checked = (pathway === 'inpatient_transfer');
 
+    if (cardEmerg) {
+      cardEmerg.style.display = (pathway === 'emergency_acute' || pathway === 'emergency_symptom' || !pathway) ? 'block' : 'none';
+    }
     if (cardClinic) {
       cardClinic.style.display = (pathway === 'elective_clinic' || pathway === 'clinic_referral') ? 'block' : 'none';
     }
@@ -959,6 +958,27 @@ function initAdmissionPathwayHandlers() {
     saveCurrentCase();
     updateLivePreview();
   }
+
+  function setEmergencyPattern(pattern) {
+    if (!clinicalState.admission) clinicalState.admission = {};
+    if (!clinicalState.cc) clinicalState.cc = {};
+    clinicalState.admission.emergencyPattern = pattern;
+    clinicalState.cc.emergencyPattern = pattern;
+
+    btnPatternSubacute?.classList.toggle('active', pattern === 'subacute_chronic');
+    btnPatternAcute?.classList.toggle('active', pattern === 'acute');
+
+    saveCurrentCase();
+    updateLivePreview();
+  }
+
+  btnPatternSubacute?.addEventListener('click', () => setEmergencyPattern('subacute_chronic'));
+  btnPatternAcute?.addEventListener('click', () => setEmergencyPattern('acute'));
+
+  // Sync initial pattern
+  const currentPattern = clinicalState.admission?.emergencyPattern || clinicalState.cc?.emergencyPattern || 'subacute_chronic';
+  btnPatternSubacute?.classList.toggle('active', currentPattern === 'subacute_chronic');
+  btnPatternAcute?.classList.toggle('active', currentPattern === 'acute');
 
   chipEmerg?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -6172,13 +6192,103 @@ export function renderFhSearchTray(query, tray, input) {
   tray.appendChild(fallbackBox);
 }
 
-function renderLabSearchTray(query, tray, input) {
-  const matches = filterSchemaItems(query, EXTENDED_LAB_DATABASE);
+function renderPshSearchTray(query, tray, input) {
+  const pool = (Array.isArray(MASTER_PSH_SURGERIES_BANK) && MASTER_PSH_SURGERIES_BANK.length > 0)
+    ? MASTER_PSH_SURGERIES_BANK
+    : (Array.isArray(PSH_SURGICAL_PROCEDURES_BANK) ? PSH_SURGICAL_PROCEDURES_BANK : []);
+  const matches = filterSchemaItems(query, pool);
 
   const header = document.createElement('div');
   header.className = 'search-tray-header';
   header.innerHTML = `
-    <span>نتایج آزمایش‌های تکمیلی و تخصصی: <span class="search-tray-count">${matches.length} مورد</span></span>
+    <span>سوابق جراحی و پروسیجرها (PSH): <span class="search-tray-count">${matches.length} مورد</span></span>
+    <span>کلیک روی عمل جهت ثبت در سوابق</span>
+  `;
+  tray.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'search-tray-drugs-list';
+
+  matches.forEach((proc) => {
+    const isAdded = (clinicalState.psh?.surgeries || []).some(
+      (s) => s.id === proc.id || (s.label || s.procedure) === (proc.label || proc.name)
+    );
+    const card = document.createElement('div');
+    card.className = `dh-tray-card ${isAdded ? 'is-active' : ''}`;
+
+    const topRow = document.createElement('div');
+    topRow.className = 'dh-tray-top';
+
+    const info = document.createElement('div');
+    info.className = 'dh-tray-main-info';
+    info.innerHTML = `
+      <div class="dh-tray-drug-name">${proc.label || proc.name} ${proc.en ? `<span class="additional-lab-unit">${proc.en}</span>` : ''}</div>
+      ${proc.category ? `<div class="dh-tray-brands">تخصص: ${proc.category}</div>` : ''}
+    `;
+    topRow.appendChild(info);
+
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
+    actionBtn.innerHTML = isAdded ? 'در جدول موجود است' : '+ افزودن عمل';
+
+    const handleAdd = (e) => {
+      e?.stopPropagation();
+      addPshSurgeryItem(proc);
+      tray.classList.remove('is-active');
+      input.value = '';
+      showToast(`عمل «${proc.label || proc.name}» به سوابق جراحی افزوده شد.`, 'info');
+      setTimeout(() => {
+        const rows = document.querySelectorAll('.psh-selected-surgery-row');
+        if (rows.length > 0) {
+          const lastRow = rows[rows.length - 1];
+          const yearInp = lastRow.querySelector('.psh-surg-year-inp');
+          if (yearInp) {
+            yearInp.focus();
+            yearInp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }, 70);
+    };
+
+    actionBtn.addEventListener('click', handleAdd);
+    card.addEventListener('click', handleAdd);
+
+    topRow.appendChild(actionBtn);
+    card.appendChild(topRow);
+    list.appendChild(card);
+  });
+
+  tray.appendChild(list);
+
+  // Fallback box for arbitrary custom surgery
+  const fallbackBox = document.createElement('div');
+  fallbackBox.className = 'search-tray-fallback-box';
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'search-tray-add-btn';
+  addBtn.innerHTML = `افزودن مستقیم عمل «<strong>${query}</strong>» به سوابق جراحی`;
+  addBtn.addEventListener('click', () => {
+    const customProc = { id: 'psh_cust_' + Date.now(), label: query, name: query, procedure: query, en: '', year: '', note: '' };
+    addPshSurgeryItem(customProc);
+    tray.classList.remove('is-active');
+    input.value = '';
+    showToast(`عمل «${query}» به سوابق جراحی افزوده شد.`, 'info');
+  });
+  fallbackBox.appendChild(addBtn);
+  tray.appendChild(fallbackBox);
+}
+
+function renderLabSearchTray(query, tray, input) {
+  const labPool = (typeof MASTER_ALL_LAB_TESTS !== 'undefined' && Array.isArray(MASTER_ALL_LAB_TESTS) && MASTER_ALL_LAB_TESTS.length > 0)
+    ? MASTER_ALL_LAB_TESTS
+    : EXTENDED_LAB_DATABASE;
+  const matches = filterSchemaItems(query, labPool);
+
+  const header = document.createElement('div');
+  header.className = 'search-tray-header';
+  header.innerHTML = `
+    <span>نتایج جستجوی جامع آزمایشگاه: <span class="search-tray-count">${matches.length} مورد</span></span>
     <span>روی آزمایش کلیک کنید تا در پنل تخصصی‌اش قرار گیرد</span>
   `;
   tray.appendChild(header);
@@ -6211,10 +6321,16 @@ function renderLabSearchTray(query, tray, input) {
 
     const handleAdd = (e) => {
       e?.stopPropagation();
-      const pId = test.panel || (SURGICAL_LAB_PANELS.find(p => p.allTests.some(t => t.id === test.id))?.id) || 'biochem_renal';
+      const pId = test.panel || (SURGICAL_LAB_PANELS.find(p => p.allTests && p.allTests.some(t => t.id === test.id))?.id) || 'biochem_renal';
       window._labExpandedMap.add(pId);
       window._activeLabTests = window._activeLabTests || new Set();
       window._activeLabTests.add(test.id);
+
+      const pObj = SURGICAL_LAB_PANELS.find(p => p.id === pId);
+      if (pObj && pObj.allTests && !pObj.allTests.some(t => t.id === test.id)) {
+        pObj.allTests.push(test);
+      }
+
       renderParaclinicLabs();
 
       setTimeout(() => {
@@ -6222,8 +6338,11 @@ function renderLabSearchTray(query, tray, input) {
         if (inp) {
           inp.focus();
           inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          inp.classList.remove('input-focus-pulse');
+          void inp.offsetWidth;
+          inp.classList.add('input-focus-pulse');
         }
-      }, 60);
+      }, 70);
 
       tray.classList.remove('is-active');
       input.value = '';
@@ -6262,8 +6381,11 @@ function renderLabSearchTray(query, tray, input) {
       if (inp) {
         inp.focus();
         inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inp.classList.remove('input-focus-pulse');
+        void inp.offsetWidth;
+        inp.classList.add('input-focus-pulse');
       }
-    }, 60);
+    }, 70);
     tray.classList.remove('is-active');
     input.value = '';
     showToast(`آزمایش «${query}» به پنل آزمایش‌ها افزوده شد.`, 'info');
@@ -6300,6 +6422,8 @@ function initSchemaOmnisearch() {
 
       if (input.id === 'labQuickSearchInput' || targetSection === '#tab-lab' || targetSection === '#tab-paraclinic' || targetSection === '#tab-paraclinics') {
         renderLabSearchTray(query, tray, input);
+      } else if (input.id === 'pshQuickSearchInput' || targetSection === '#tab-psh' || targetSection === '#cardPshHistory') {
+        renderPshSearchTray(query, tray, input);
       } else if (targetSection === '#tab-dh') {
         renderDrugSearchTray(query, tray, input);
       } else if (targetSection === '#tab-fh' || input.id === 'fhQuickSearchInput') {
@@ -8117,6 +8241,99 @@ function initAppSettings() {
   });
 }
 
+export function buildCloudSyncPayload(state) {
+  const cState = state || clinicalState;
+  const sState = soapState;
+  const isSoap = currentAppMode === 'soap';
+
+  // Sanitize
+  const sanitized = typeof sanitizeRecordForExport === 'function'
+    ? sanitizeRecordForExport(cState)
+    : JSON.parse(JSON.stringify(cState));
+
+  const ptName = (isSoap ? sState.context?.fullName : sanitized.demographics?.name) || sanitized.demographics?.name || sState.context?.fullName || 'بیمار ناشناس';
+  const ptAge = (isSoap ? sState.context?.age : sanitized.demographics?.age) || sanitized.demographics?.age || sState.context?.age || '';
+  const ptGender = (isSoap ? sState.context?.gender : sanitized.demographics?.gender) || sanitized.demographics?.gender || sState.context?.gender || '';
+  const ptWard = (isSoap ? sState.context?.ward : sanitized.demographics?.ward) || sanitized.demographics?.ward || sState.context?.ward || '';
+  const ptBed = (isSoap ? sState.context?.bed : sanitized.demographics?.bed) || sanitized.demographics?.bed || sState.context?.bed || '';
+  const caseId = sanitized.metadata?.caseId || sanitized.caseId || sState.linkedCaseId || sState.context?.caseId || `CASE-${Date.now()}`;
+  const admissionDate = sanitized.demographics?.admissionDate || sState.dateStr || new Date().toISOString().split('T')[0];
+  const collectorName = (gsheetSync && gsheetSync.config && gsheetSync.config.collectorName) || sanitized.metadata?.collectorId || '';
+
+  // Synchronize current active soap note into soapHistory if applicable
+  if (sState && sState.dayId) {
+    if (!Array.isArray(cState.soapHistory)) {
+      cState.soapHistory = [];
+    }
+    const idx = cState.soapHistory.findIndex((h) => (h.dayId || h.id) === sState.dayId);
+    const dayCopy = JSON.parse(JSON.stringify(sState));
+    if (idx >= 0) {
+      cState.soapHistory[idx] = dayCopy;
+    } else {
+      cState.soapHistory.push(dayCopy);
+    }
+  }
+
+  const soapDays = Array.isArray(cState.soapHistory) ? cState.soapHistory : [];
+  const renderedSoapHistory = soapDays.map((day, idx) => {
+    const rendered = generateSOAPProgressNote(day, cState);
+    return {
+      ...day,
+      dayNumber: day.context?.hdNumber || day.dayNumber || (idx + 1),
+      renderedText: rendered
+    };
+  });
+
+  const soapAllDaysText = renderedSoapHistory.map((d, i) => {
+    const dayHeader = `=== DAY ${d.context?.hdNumber || i + 1} (${d.dateStr || ''}) ===\n`;
+    return dayHeader + (d.renderedText || generateSOAPProgressNote(d, cState));
+  }).join('\n\n----------------------------------------\n\n');
+
+  const hpText = generateClinicalNote(cState);
+  const atlsText = generateATLSNote(cState.atls || cState, cState);
+
+  const ccText = typeof sanitized.cc === 'string'
+    ? sanitized.cc
+    : (sanitized.cc?.freeText || sanitized.cc?.selectedComplaint || sState.context?.workingDiagnosis || 'شکایت بالینی');
+
+  return {
+    caseId,
+    patientName: ptName,
+    age: ptAge,
+    gender: ptGender,
+    ward: ptWard,
+    bed: ptBed,
+    admissionDate,
+    collectorName,
+    mode: currentAppMode || 'hp',
+    chiefComplaint: ccText,
+    fullClinicalNote: isSoap ? (soapAllDaysText || generateSOAPProgressNote(sState, cState)) : (hpText || atlsText),
+    hp: {
+      cc: sanitized.cc || {},
+      hpi: sanitized.hpi || {},
+      pmh: sanitized.pmh || {},
+      psh: sanitized.psh || [],
+      dh: sanitized.dh || [],
+      allergies: sanitized.allergies || [],
+      fh: sanitized.fh || {},
+      sh: sanitized.sh || {},
+      ros: sanitized.ros || {},
+      pe: sanitized.pe || {},
+      paraclinic: sanitized.paraclinics || sanitized.paraclinic || {},
+      assessment: sanitized.assessment || {},
+      plan: sanitized.plan || {}
+    },
+    soapHistory: renderedSoapHistory,
+    atls: cState.atls || {},
+    generatedTexts: {
+      hp: hpText,
+      atls: atlsText,
+      soapAllDays: soapAllDaysText
+    },
+    timestamp: new Date().toISOString()
+  };
+}
+
 function initCloudSyncUI() {
   const btnSync = document.getElementById('btnCloudSync');
   const collectorInput = document.getElementById('collectorIdInput');
@@ -8132,29 +8349,18 @@ function initCloudSyncUI() {
     btnSync.disabled = true;
     btnSync.innerHTML = '<span>⏳</span><span>در حال ارسال...</span>';
 
-    const isSoap = currentAppMode === 'soap';
-    const stateToSend = isSoap ? soapState : clinicalState;
-    const note = isSoap
-      ? generateSOAPProgressNote(soapState, getLinkedOrCurrentCase())
-      : generateClinicalNote(clinicalState);
-    const meta = isSoap
-      ? {
-          caseId: soapState.context?.caseId || `SOAP-${Date.now()}`,
-          schemaVersion: 'v0.9-SOAP-Engine',
-          metrics: { positiveFindingsCount: 0, negativeFindingsCount: 0, labsRecordedCount: Object.keys(soapState.objective?.labs || {}).length }
-        }
-      : ClinicalCaseAnalytics.buildMetadataSnapshot(clinicalState, gsheetSync.config.collectorName);
-
     try {
-      const res = await gsheetSync.sendCase(stateToSend, note, meta);
+      const payload = buildCloudSyncPayload(clinicalState);
+      const res = await gsheetSync.sendPayload(payload);
       if (res.success) {
-        showToast(res.message, 'success');
+        showToast(res.message || 'پرونده جامع با موفقیت در اکسل ثبت شد.', 'success');
       } else if (res.queued) {
-        showToast(res.message, 'warning');
+        showToast(res.message || 'پرونده در صف همگام‌سازی محلی ذخیره شد.', 'warning');
       } else {
-        showToast(res.message, 'warning');
+        showToast(res.message || 'خطا در ثبت اطلاعات.', 'warning');
       }
     } catch (err) {
+      console.error('[CloudSync] Error:', err);
       showToast('خطا در همگام‌سازی ابری.', 'warning');
     } finally {
       btnSync.disabled = false;
@@ -9370,6 +9576,81 @@ function renderSoapCustomSymptoms() {
   });
 }
 
+export function addSoapLabCard(labId, labTitle = null, value = '') {
+  if (typeof document === 'undefined') return null;
+  const grid = document.getElementById('soapLabsGridContainer');
+  if (!grid) return null;
+
+  let existingCard = grid.querySelector(`.soap-lab-card[data-lab="${labId}"]`);
+  if (existingCard) {
+    const input = existingCard.querySelector('.soap-lab-input');
+    if (input) {
+      if (value !== null && value !== undefined && value !== '') {
+        input.value = value;
+        if (!soapState.objective.labs) soapState.objective.labs = {};
+        soapState.objective.labs[labId] = value;
+      }
+      input.focus();
+      input.classList.remove('input-focus-pulse');
+      void input.offsetWidth;
+      input.classList.add('input-focus-pulse');
+    }
+    return existingCard;
+  }
+
+  // Not in DOM yet: create new card
+  const found = (typeof MASTER_ALL_LAB_TESTS !== 'undefined' ? MASTER_ALL_LAB_TESTS : []).find((t) => t.id === labId);
+  const displayTitle = labTitle || (found ? found.label : labId.toUpperCase());
+  const placeholder = found?.unit || '';
+
+  const card = document.createElement('div');
+  card.className = 'soap-lab-card';
+  card.setAttribute('data-lab', labId);
+  card.innerHTML = `
+    <div class="soap-lab-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="soap-lab-name" style="font-weight:700;">${displayTitle}</span>
+      <div style="display:flex; align-items:center; gap:0.25rem;">
+        <span class="soap-lab-trend"></span>
+        <button type="button" class="btn-remove-soap-lab" title="حذف این تست" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem; line-height:1; padding:0 3px;">×</button>
+      </div>
+    </div>
+    <input type="text" class="input-text soap-lab-input dir-ltr" placeholder="${placeholder}" data-lab="${labId}" value="${value || ''}" />
+  `;
+
+  const input = card.querySelector('.soap-lab-input');
+  input.addEventListener('input', (e) => {
+    if (!soapState.objective.labs) soapState.objective.labs = {};
+    soapState.objective.labs[labId] = e.target.value;
+    updateSoapLabTrends();
+    updateLivePreview();
+  });
+
+  const removeBtn = card.querySelector('.btn-remove-soap-lab');
+  removeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (soapState.objective.labs) {
+      delete soapState.objective.labs[labId];
+    }
+    card.remove();
+    updateSoapLabTrends();
+    updateLivePreview();
+  });
+
+  grid.appendChild(card);
+
+  if (value) {
+    if (!soapState.objective.labs) soapState.objective.labs = {};
+    soapState.objective.labs[labId] = value;
+  }
+
+  input.focus();
+  input.classList.remove('input-focus-pulse');
+  void input.offsetWidth;
+  input.classList.add('input-focus-pulse');
+
+  return card;
+}
+
 function syncSoapInputsFromState() {
   const ctx = soapState.context || {};
   const s = soapState.subjective || {};
@@ -9378,13 +9659,7 @@ function syncSoapInputsFromState() {
   const p = soapState.plan || {};
 
   if (!s.symptoms) {
-    s.symptoms = {
-      nausea_vomiting: -1,
-      fever_chills: -1,
-      cold_sweats: -1,
-      dyspnea_cp: -1,
-      dysuria_voiding: -1
-    };
+    s.symptoms = {};
   }
   if (!s.symptomDetails) s.symptomDetails = {};
   if (!s.customSymptoms) s.customSymptoms = [];
@@ -9393,7 +9668,7 @@ function syncSoapInputsFromState() {
       intake24h: o.intake24h || '',
       urineOutput24h: o.urineOutput24h || '',
       ngtOutput24h: o.ngtOutput24h || '',
-      urineStatus: 'دفع ادرار طبیعی و کافی (بدون فولی)'
+      urineStatus: ''
     };
   }
 
@@ -9478,12 +9753,12 @@ function syncSoapInputsFromState() {
   if (document.getElementById('soapVitalTemp')) document.getElementById('soapVitalTemp').value = v.temp || '';
   if (document.getElementById('soapVitalTmax')) document.getElementById('soapVitalTmax').value = v.tmax || '';
   if (document.getElementById('soapVitalSpo2')) document.getElementById('soapVitalSpo2').value = v.spo2 || '';
-  if (document.getElementById('soapVitalHemodynamics')) document.getElementById('soapVitalHemodynamics').value = v.hemodynamics || 'همودینامیک پایدار (Stable)';
+  if (document.getElementById('soapVitalHemodynamics')) document.getElementById('soapVitalHemodynamics').value = v.hemodynamics || '';
 
   // Urine output quick pills
-  const curUoStatus = o.io?.urineStatus || 'دفع ادرار طبیعی و کافی (بدون فولی)';
+  const curUoStatus = o.io?.urineStatus || '';
   document.querySelectorAll('#soapUrineOutputStatusBar .soap-uo-pill').forEach((pill) => {
-    pill.classList.toggle('active', pill.getAttribute('data-uo-status') === curUoStatus);
+    pill.classList.toggle('active', !!curUoStatus && pill.getAttribute('data-uo-status') === curUoStatus);
   });
 
   if (document.getElementById('soapIntake24h')) document.getElementById('soapIntake24h').value = o.io?.intake24h || o.intake24h || '';
@@ -9498,7 +9773,15 @@ function syncSoapInputsFromState() {
   if (document.getElementById('soapExamExtremities')) document.getElementById('soapExamExtremities').value = o.extremitiesDvt || '';
   if (document.getElementById('soapExamNote')) document.getElementById('soapExamNote').value = o.examNote || '';
 
-  // Labs
+  // Labs: restore any dynamic lab not in default 7
+  const objLabs = o.labs || {};
+  Object.keys(objLabs).forEach((labId) => {
+    const val = objLabs[labId];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      addSoapLabCard(labId, null, val);
+    }
+  });
+
   document.querySelectorAll('.soap-lab-input').forEach((input) => {
     const labId = input.getAttribute('data-lab');
     input.value = o.labs?.[labId] || '';
@@ -10069,11 +10352,109 @@ function initSoapEngine() {
   document.querySelectorAll('.soap-lab-input').forEach((input) => {
     input.addEventListener('input', (e) => {
       const labId = e.target.getAttribute('data-lab');
+      if (!soapState.objective.labs) soapState.objective.labs = {};
       soapState.objective.labs[labId] = e.target.value;
       updateSoapLabTrends();
       updateLivePreview();
     });
   });
+
+  // Labs Quick Search & Tray
+  const soapLabSearchInput = document.getElementById('soapLabQuickSearchInput');
+  const soapLabSearchTray = document.getElementById('soapLabQuickSearchTray');
+
+  if (soapLabSearchInput && soapLabSearchTray) {
+    const renderSoapLabTray = (query) => {
+      soapLabSearchTray.innerHTML = '';
+      const q = (query || '').trim();
+      if (!q) {
+        soapLabSearchTray.classList.remove('is-active');
+        return;
+      }
+
+      const labPool = (typeof MASTER_ALL_LAB_TESTS !== 'undefined' && Array.isArray(MASTER_ALL_LAB_TESTS) && MASTER_ALL_LAB_TESTS.length > 0)
+        ? MASTER_ALL_LAB_TESTS
+        : EXTENDED_LAB_DATABASE;
+      const matches = filterSchemaItems(q, labPool).slice(0, 30);
+
+      if (matches.length === 0) {
+        soapLabSearchTray.innerHTML = '<div style="padding:0.75rem; color:var(--text-muted); text-align:center; font-size:0.82rem;">آزمایشی مطابق با جستجو یافت نشد.</div>';
+        soapLabSearchTray.classList.add('is-active');
+        return;
+      }
+
+      const header = document.createElement('div');
+      header.className = 'search-tray-header';
+      header.innerHTML = `
+        <span>نتایج آزمایشگاه: <span class="search-tray-count">${matches.length} مورد</span></span>
+        <span>روی آزمایش کلیک کنید تا به کارت‌های امروز اضافه شود</span>
+      `;
+      soapLabSearchTray.appendChild(header);
+
+      const list = document.createElement('div');
+      list.className = 'search-tray-drugs-list';
+
+      matches.forEach((test) => {
+        const curVal = soapState.objective?.labs?.[test.id];
+        const isAdded = curVal !== undefined && curVal !== null && String(curVal).trim() !== '';
+
+        const card = document.createElement('div');
+        card.className = `dh-tray-card ${isAdded ? 'is-active' : ''}`;
+
+        const topRow = document.createElement('div');
+        topRow.className = 'dh-tray-top';
+
+        const info = document.createElement('div');
+        info.className = 'dh-tray-main-info';
+        const rangeText = test.normalRange ? `[نرمال: ${test.normalRange}]` : ((test.min !== undefined && test.max !== undefined) ? `[نرمال: ${test.min}-${test.max}]` : '');
+        info.innerHTML = `
+          <div class="dh-tray-drug-name">${test.label} ${test.unit ? `<span class="additional-lab-unit">${test.unit}</span>` : ''}</div>
+          ${rangeText ? `<div class="dh-tray-brands">${rangeText}</div>` : ''}
+        `;
+        topRow.appendChild(info);
+
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.className = `dh-tray-action-btn ${isAdded ? 'active' : ''}`;
+        actionBtn.innerHTML = isAdded ? 'موجود در فرم' : '+ افزودن به امروز';
+
+        const handleSelect = (e) => {
+          e.stopPropagation();
+          addSoapLabCard(test.id, test.label, curVal || '');
+          soapLabSearchTray.classList.remove('is-active');
+          soapLabSearchInput.value = '';
+          updateSoapLabTrends();
+          updateLivePreview();
+        };
+
+        actionBtn.addEventListener('click', handleSelect);
+        card.addEventListener('click', handleSelect);
+
+        topRow.appendChild(actionBtn);
+        card.appendChild(topRow);
+        list.appendChild(card);
+      });
+
+      soapLabSearchTray.appendChild(list);
+      soapLabSearchTray.classList.add('is-active');
+    };
+
+    soapLabSearchInput.addEventListener('input', (e) => {
+      renderSoapLabTray(e.target.value);
+    });
+
+    soapLabSearchInput.addEventListener('focus', (e) => {
+      if (e.target.value.trim()) {
+        renderSoapLabTray(e.target.value);
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!soapLabSearchInput.contains(e.target) && !soapLabSearchTray.contains(e.target)) {
+        soapLabSearchTray.classList.remove('is-active');
+      }
+    });
+  }
 
   document.getElementById('soapNewParaclinicNote')?.addEventListener('input', (e) => {
     soapState.objective.newParaclinicNote = e.target.value;
@@ -10142,27 +10523,18 @@ function initSoapEngine() {
     btnSync.disabled = true;
     btnSync.innerHTML = '<span>⏳</span><span>در حال ارسال...</span>';
 
-    const note = generateSOAPProgressNote(soapState, getLinkedOrCurrentCase());
-    const meta = {
-      caseId: soapState.context?.caseId || `SOAP-${Date.now()}`,
-      schemaVersion: 'v1.1-ATLS-MultiSOAP',
-      metrics: {
-        positiveFindingsCount: 0,
-        negativeFindingsCount: 0,
-        labsRecordedCount: Object.keys(soapState.objective?.labs || {}).length
-      }
-    };
-
     try {
-      const res = await gsheetSync.sendCase(soapState, note, meta);
+      const payload = buildCloudSyncPayload(clinicalState);
+      const res = await gsheetSync.sendPayload(payload);
       if (res.success) {
-        showToast(res.message, 'success');
+        showToast(res.message || 'پرونده جامع با موفقیت در اکسل ثبت شد.', 'success');
       } else if (res.queued) {
-        showToast(res.message, 'warning');
+        showToast(res.message || 'پرونده در صف همگام‌سازی محلی ذخیره شد.', 'warning');
       } else {
-        showToast(res.message, 'warning');
+        showToast(res.message || 'خطا در ثبت اطلاعات.', 'warning');
       }
     } catch (err) {
+      console.error('[CloudSync SOAP] Error:', err);
       showToast('خطا در ارسال به Google Sheets.', 'warning');
     } finally {
       btnSync.disabled = false;
@@ -10729,6 +11101,466 @@ function initManualThemeToggle() {
   }
 }
 
+/* ==========================================================================
+   Secret Admin Vault Dashboard (URL Hash / Query Driven: #admin-vault)
+   ========================================================================== */
+let adminVaultUnlocked = false;
+let adminVaultCasesList = [];
+let adminSelectedCase = null;
+let adminActiveInspectTab = 'hp';
+
+export function checkSecretAdminRoute() {
+  if (typeof window === 'undefined') return;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  const isAdminRoute = hash === '#admin-vault' || hash.includes('admin-vault') || search.includes('admin=1');
+
+  const backdrop = document.getElementById('adminVaultModalBackdrop');
+  if (!backdrop) return;
+
+  if (isAdminRoute) {
+    backdrop.style.display = 'flex';
+    const authSec = document.getElementById('adminAuthSection');
+    const mainContent = document.getElementById('adminVaultMainContent');
+    if (adminVaultUnlocked && mainContent) {
+      if (authSec) authSec.style.display = 'none';
+      mainContent.style.display = 'flex';
+      loadAdminVaultCases();
+    } else {
+      if (authSec) authSec.style.display = 'flex';
+      if (mainContent) mainContent.style.display = 'none';
+      const pwdInput = document.getElementById('adminPasswordInput');
+      if (pwdInput) {
+        pwdInput.focus();
+        pwdInput.select();
+      }
+    }
+  } else {
+    backdrop.style.display = 'none';
+  }
+}
+
+function updateAdminInspectorView() {
+  const pre = document.getElementById('inspectorNoteText');
+  if (!pre) return;
+
+  if (!adminSelectedCase) {
+    pre.textContent = 'هیچ پرونده‌ای انتخاب نشده است.';
+    return;
+  }
+
+  // Update tabs active state
+  const tabs = {
+    hp: document.getElementById('btnInspectHp'),
+    soap: document.getElementById('btnInspectSoap'),
+    atls: document.getElementById('btnInspectAtls'),
+    raw: document.getElementById('btnInspectRaw')
+  };
+
+  Object.entries(tabs).forEach(([k, btn]) => {
+    if (btn) btn.classList.toggle('active', k === adminActiveInspectTab);
+  });
+
+  if (adminActiveInspectTab === 'hp') {
+    pre.textContent = generateClinicalNote(adminSelectedCase);
+  } else if (adminActiveInspectTab === 'soap') {
+    if (Array.isArray(adminSelectedCase.soapHistory) && adminSelectedCase.soapHistory.length > 0) {
+      const allText = adminSelectedCase.soapHistory.map((day, idx) => {
+        const header = `=== روز ${day.context?.hdNumber || idx + 1} (${day.dateStr || ''}) ===\n`;
+        return header + (day.renderedText || generateSOAPProgressNote(day, adminSelectedCase));
+      }).join('\n\n----------------------------------------\n\n');
+      pre.textContent = allText;
+    } else if (adminSelectedCase.mode === 'soap' || adminSelectedCase.subjective) {
+      pre.textContent = generateSOAPProgressNote(adminSelectedCase, adminSelectedCase);
+    } else {
+      pre.textContent = 'هیچ یادداشت روزانه SOAP برای این پرونده ثبت نشده است.';
+    }
+  } else if (adminActiveInspectTab === 'atls') {
+    if (adminSelectedCase.atls && (adminSelectedCase.atls.primarySurvey || adminSelectedCase.atls.moi)) {
+      pre.textContent = generateATLSNote(adminSelectedCase.atls, adminSelectedCase);
+    } else {
+      pre.textContent = 'هیچ فرم ترومای اورژانس (ATLS) برای این پرونده ثبت نشده است.';
+    }
+  } else if (adminActiveInspectTab === 'raw') {
+    pre.textContent = JSON.stringify(adminSelectedCase, null, 2);
+  }
+}
+
+function inspectAdminCase(c) {
+  adminSelectedCase = c;
+  const emptyPrompt = document.getElementById('adminInspectorEmpty');
+  const content = document.getElementById('adminInspectorContent');
+  const title = document.getElementById('inspectorCaseTitle');
+  const meta = document.getElementById('inspectorCaseMeta');
+
+  if (emptyPrompt) emptyPrompt.style.display = 'none';
+  if (content) content.style.display = 'flex';
+
+  const cid = c.caseId || c.metadata?.caseId || '—';
+  const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || 'بیمار ناشناس';
+  const age = c.demographics?.age || c.context?.age || '';
+  const gender = c.demographics?.gender === 'female' ? 'خانم' : c.demographics?.gender === 'male' ? 'آقا' : '';
+  const collector = c.metadata?.collectorId || c.collectorName || '—';
+  const dateStr = (c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '—').split('T')[0];
+
+  if (title) title.textContent = `${ptName} (${age} ساله ${gender}) — ${cid}`;
+  if (meta) meta.textContent = `ثبت‌کننده: ${collector} | تاریخ: ${dateStr}`;
+
+  updateAdminInspectorView();
+}
+
+function renderAdminVaultTable() {
+  const tbody = document.getElementById('adminCasesTableBody');
+  const countBadge = document.getElementById('adminCaseCountBadge');
+  if (!tbody) return;
+
+  const searchVal = (document.getElementById('adminFilterSearch')?.value || '').trim().toLowerCase();
+  const typeFilter = document.getElementById('adminFilterType')?.value || 'all';
+  const collectorFilter = (document.getElementById('adminFilterCollector')?.value || '').trim().toLowerCase();
+  const dateFilter = document.getElementById('adminFilterDate')?.value || '';
+
+  const filtered = adminVaultCasesList.filter((c) => {
+    // Type filter
+    const isTrauma = !!c.atls?.isTrauma || !!c.atls?.moi;
+    const hasSoap = (Array.isArray(c.soapHistory) && c.soapHistory.length > 0) || c.mode === 'soap';
+    const cType = isTrauma ? 'ATLS_TRAUMA' : (hasSoap ? 'SOAP_PROGRESS' : 'ADMISSION_HP');
+    if (typeFilter !== 'all' && cType !== typeFilter) return false;
+
+    // Collector filter
+    const collector = (c.metadata?.collectorId || c.collectorName || '').toLowerCase();
+    if (collectorFilter && !collector.includes(collectorFilter)) return false;
+
+    // Date filter
+    const cDate = c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '';
+    if (dateFilter && !cDate.includes(dateFilter)) return false;
+
+    // Text search
+    if (searchVal) {
+      const ptName = (c.demographics?.fullName || c.demographics?.name || c.context?.fullName || '').toLowerCase();
+      const cc = (typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || c.context?.workingDiagnosis || '')).toLowerCase();
+      const cid = (c.caseId || c.metadata?.caseId || '').toLowerCase();
+      if (!ptName.includes(searchVal) && !cc.includes(searchVal) && !cid.includes(searchVal)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `تعداد پرونده: ${filtered.length}`;
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">هیچ پرونده‌ای با این مشخصات یافت نشد.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((c, idx) => {
+    const cid = c.caseId || c.metadata?.caseId || `CASE-${idx + 1}`;
+    const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || 'بدون نام';
+    const age = c.demographics?.age || c.context?.age || '—';
+    const gender = c.demographics?.gender === 'female' ? 'زن' : c.demographics?.gender === 'male' ? 'مرد' : '';
+    const cc = typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || c.context?.workingDiagnosis || 'بدون شکایت');
+    const collector = c.metadata?.collectorId || c.collectorName || 'نامشخص';
+    const cDate = (c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '—').split('T')[0];
+    const isTrauma = !!c.atls?.isTrauma || !!c.atls?.moi;
+    const hasSoap = (Array.isArray(c.soapHistory) && c.soapHistory.length > 0) || c.mode === 'soap';
+    const badgeType = isTrauma ? '<span class="badge" style="background:#dc2626;color:#fff;font-size:0.7rem;">ATLS</span>'
+      : (hasSoap ? '<span class="badge" style="background:#2563eb;color:#fff;font-size:0.7rem;">SOAP</span>'
+      : '<span class="badge" style="background:#059669;color:#fff;font-size:0.7rem;">H&P</span>');
+
+    const isSelected = adminSelectedCase && ((adminSelectedCase.caseId && adminSelectedCase.caseId === cid) || (adminSelectedCase.metadata?.caseId && adminSelectedCase.metadata.caseId === cid));
+
+    return `
+      <tr class="admin-vault-case-row ${isSelected ? 'selected' : ''}" data-case-id="${cid}" style="cursor:pointer; border-bottom:1px solid var(--border-subtle); ${isSelected ? 'background:rgba(37,99,235,0.12); font-weight:700;' : ''}">
+        <td style="text-align:center; color:var(--text-muted); font-size:0.78rem;">${idx + 1}</td>
+        <td style="font-family:monospace; font-size:0.8rem; direction:ltr;">${cid}</td>
+        <td>${badgeType}</td>
+        <td>
+          <div style="font-size:0.84rem; font-weight:600;">${ptName} (${age} ${gender})</div>
+          <div style="font-size:0.76rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:220px;">${cc}</div>
+        </td>
+        <td style="font-size:0.78rem;">${collector}</td>
+        <td style="font-size:0.76rem; color:var(--text-muted); direction:ltr;">${cDate}</td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('.admin-vault-case-row').forEach((row) => {
+    row.addEventListener('click', () => {
+      const cid = row.getAttribute('data-case-id');
+      const found = adminVaultCasesList.find((c) => (c.caseId === cid || c.metadata?.caseId === cid));
+      if (found) {
+        inspectAdminCase(found);
+        renderAdminVaultTable();
+      }
+    });
+  });
+}
+
+async function loadAdminVaultCases() {
+  const tbody = document.getElementById('adminCasesTableBody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">در حال فراخوانی پرونده‌ها...</td></tr>';
+  }
+
+  const casesMap = new Map();
+
+  // 1. Permanent storage vault archived cases
+  if (typeof storageVault !== 'undefined') {
+    try {
+      const archived = storageVault.getAllArchivedCasesSync();
+      if (Array.isArray(archived)) {
+        archived.forEach((c) => {
+          if (c && (c.caseId || c.metadata?.caseId)) {
+            const cid = c.caseId || c.metadata.caseId;
+            casesMap.set(cid, c);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('[AdminVault] Archived cases read error:', e);
+    }
+  }
+
+  // 2. Local shift cases
+  try {
+    const shiftCases = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    if (Array.isArray(shiftCases)) {
+      shiftCases.forEach((c) => {
+        if (c && (c.caseId || c.metadata?.caseId)) {
+          const cid = c.caseId || c.metadata.caseId;
+          if (!casesMap.has(cid)) {
+            casesMap.set(cid, c);
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[AdminVault] Shift cases read error:', e);
+  }
+
+  // 3. Current active case
+  if (clinicalState && (clinicalState.caseId || clinicalState.demographics?.fullName || clinicalState.demographics?.name)) {
+    const cid = clinicalState.caseId || 'CURRENT_ACTIVE';
+    casesMap.set(cid, clinicalState);
+  }
+
+  adminVaultCasesList = Array.from(casesMap.values());
+
+  renderAdminVaultTable();
+  if (adminVaultCasesList.length > 0 && !adminSelectedCase) {
+    inspectAdminCase(adminVaultCasesList[0]);
+  }
+}
+
+export function initSecretAdminVault() {
+  const pwdInput = document.getElementById('adminPasswordInput');
+  const btnUnlock = document.getElementById('btnAdminUnlock');
+  const authErr = document.getElementById('adminAuthError');
+  const authSec = document.getElementById('adminAuthSection');
+  const mainContent = document.getElementById('adminVaultMainContent');
+  const btnExit = document.getElementById('btnAdminExitVault');
+  const btnRefresh = document.getElementById('btnAdminRefresh');
+  const btnExport = document.getElementById('btnAdminExportDatabase');
+  const btnLoadToEditor = document.getElementById('btnAdminLoadCaseToEditor');
+
+  const unlockVault = () => {
+    const val = (pwdInput?.value || '').trim();
+    if (val === 'SURG2026') {
+      adminVaultUnlocked = true;
+      if (authErr) authErr.style.display = 'none';
+      if (authSec) authSec.style.display = 'none';
+      if (mainContent) mainContent.style.display = 'flex';
+      loadAdminVaultCases();
+      showToast('خوش‌آمدید. دسترسی به مخزن مرکزی پرونده‌ها فعال شد.', 'success');
+    } else {
+      if (authErr) authErr.style.display = 'block';
+      if (pwdInput) {
+        pwdInput.classList.remove('input-focus-pulse');
+        void pwdInput.offsetWidth;
+        pwdInput.classList.add('input-focus-pulse');
+        pwdInput.select();
+      }
+    }
+  };
+
+  btnUnlock?.addEventListener('click', unlockVault);
+  pwdInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      unlockVault();
+    }
+  });
+
+  btnExit?.addEventListener('click', () => {
+    const backdrop = document.getElementById('adminVaultModalBackdrop');
+    if (backdrop) backdrop.style.display = 'none';
+    if (typeof window !== 'undefined' && window.history) {
+      const cleanUrl = window.location.pathname + window.location.search.replace(/[\?&]admin=1/, '');
+      window.history.pushState('', document.title, cleanUrl || '/');
+    }
+    showToast('از پنل ادمین خارج شدید.', 'info');
+  });
+
+  btnRefresh?.addEventListener('click', () => {
+    loadAdminVaultCases();
+    showToast('لیست پرونده‌ها بروزرسانی شد.', 'info');
+  });
+
+  // Filters
+  document.getElementById('adminFilterSearch')?.addEventListener('input', renderAdminVaultTable);
+  document.getElementById('adminFilterType')?.addEventListener('change', renderAdminVaultTable);
+  document.getElementById('adminFilterCollector')?.addEventListener('input', renderAdminVaultTable);
+  document.getElementById('adminFilterDate')?.addEventListener('change', renderAdminVaultTable);
+
+  // Inspector Tabs
+  document.getElementById('btnInspectHp')?.addEventListener('click', () => {
+    adminActiveInspectTab = 'hp';
+    updateAdminInspectorView();
+  });
+  document.getElementById('btnInspectSoap')?.addEventListener('click', () => {
+    adminActiveInspectTab = 'soap';
+    updateAdminInspectorView();
+  });
+  document.getElementById('btnInspectAtls')?.addEventListener('click', () => {
+    adminActiveInspectTab = 'atls';
+    updateAdminInspectorView();
+  });
+  document.getElementById('btnInspectRaw')?.addEventListener('click', () => {
+    adminActiveInspectTab = 'raw';
+    updateAdminInspectorView();
+  });
+
+  // Load into Editor
+  btnLoadToEditor?.addEventListener('click', () => {
+    if (!adminSelectedCase) {
+      showToast('لطفاً ابتدا یک پرونده را از جدول انتخاب نمایید.', 'warning');
+      return;
+    }
+
+    try {
+      const targetCase = JSON.parse(JSON.stringify(adminSelectedCase));
+      const defaults = createDefaultClinicalState();
+
+      clinicalState = {
+        ...defaults,
+        ...targetCase,
+        demographics: { ...defaults.demographics, ...(targetCase.demographics || {}) },
+        admission: { ...defaults.admission, ...(targetCase.admission || {}) },
+        cc: targetCase.cc || defaults.cc,
+        hpi: { ...defaults.hpi, ...(targetCase.hpi || {}) },
+        pmh: { ...defaults.pmh, ...(targetCase.pmh || {}) },
+        psh: Array.isArray(targetCase.psh) ? targetCase.psh : defaults.psh,
+        dh: Array.isArray(targetCase.dh) ? targetCase.dh : defaults.dh,
+        allergies: Array.isArray(targetCase.allergies) ? targetCase.allergies : defaults.allergies,
+        fh: { ...defaults.fh, ...(targetCase.fh || {}) },
+        sh: { ...defaults.sh, ...(targetCase.sh || {}) },
+        ros: { ...defaults.ros, ...(targetCase.ros || {}) },
+        pe: { ...defaults.pe, ...(targetCase.pe || {}) },
+        paraclinics: { ...defaults.paraclinics, ...(targetCase.paraclinics || targetCase.paraclinic || {}) },
+        assessment: { ...defaults.assessment, ...(targetCase.assessment || {}) },
+        plan: { ...defaults.plan, ...(targetCase.plan || {}) },
+        reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) },
+        atls: { ...defaults.atls, ...(targetCase.atls || {}) }
+      };
+
+      if (Array.isArray(targetCase.hpi?.presentations) && targetCase.hpi.presentations.length > 0) {
+        clinicalState.hpi.presentations = targetCase.hpi.presentations;
+      }
+      if (Array.isArray(targetCase.hpi?.painList) && targetCase.hpi.painList.length > 0) {
+        clinicalState.hpi.painList = targetCase.hpi.painList;
+      }
+
+      saveCurrentCase();
+      syncDomFromState();
+      updateLivePreview();
+      updateShiftCasesCount();
+      populateHeaderCaseSwitcher();
+
+      // If case has SOAP data or is SOAP mode, sync SOAP state as well
+      if (Array.isArray(targetCase.soapHistory) && targetCase.soapHistory.length > 0) {
+        soapState = JSON.parse(JSON.stringify(targetCase.soapHistory[0]));
+        syncSoapInputsFromState();
+        renderSoapDayTracker();
+      }
+
+      // Close admin modal & clear hash
+      const backdrop = document.getElementById('adminVaultModalBackdrop');
+      if (backdrop) backdrop.style.display = 'none';
+      if (typeof window !== 'undefined' && window.history) {
+        const cleanUrl = window.location.pathname + window.location.search.replace(/[\?&]admin=1/, '');
+        window.history.pushState('', document.title, cleanUrl || '/');
+      }
+
+      const caseName = clinicalState.demographics?.fullName || clinicalState.demographics?.name || clinicalState.caseId;
+      showToast(`پرونده «${caseName}» با موفقیت در ویراستار اصلی بارگذاری شد.`, 'success');
+    } catch (err) {
+      console.error('[AdminVault] Load into editor error:', err);
+      showToast('خطا در بارگذاری پرونده در ویراستار.', 'warning');
+    }
+  });
+
+  // Export full database JSON and CSV
+  btnExport?.addEventListener('click', () => {
+    if (!adminVaultCasesList || adminVaultCasesList.length === 0) {
+      showToast('دیتابیس خالی است و پرونده‌ای برای خروجی وجود ندارد.', 'warning');
+      return;
+    }
+
+    try {
+      // 1. JSON Export
+      const jsonStr = JSON.stringify(adminVaultCasesList, null, 2);
+      const jsonBlob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const jsonUrl = URL.createObjectURL(jsonBlob);
+      const aJson = document.createElement('a');
+      aJson.href = jsonUrl;
+      aJson.download = `Surgical_Clinical_Vault_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(aJson);
+      aJson.click();
+      document.body.removeChild(aJson);
+      URL.revokeObjectURL(jsonUrl);
+
+      // 2. CSV Export
+      const csvHeaders = ['CaseID', 'PatientName', 'Age', 'Gender', 'Ward', 'Bed', 'Date', 'Collector', 'ChiefComplaint', 'WorkingDiagnosis', 'H&P_Note_Length', 'SOAP_Days_Count', 'IsTrauma'];
+      const csvRows = adminVaultCasesList.map((c) => {
+        const cid = `"${(c.caseId || c.metadata?.caseId || '').replace(/"/g, '""')}"`;
+        const pName = `"${(c.demographics?.fullName || c.demographics?.name || c.context?.fullName || '').replace(/"/g, '""')}"`;
+        const age = `"${c.demographics?.age || c.context?.age || ''}"`;
+        const gender = `"${c.demographics?.gender || c.context?.gender || ''}"`;
+        const ward = `"${(c.demographics?.ward || c.context?.ward || '').replace(/"/g, '""')}"`;
+        const bed = `"${(c.demographics?.bed || c.context?.bed || '').replace(/"/g, '""')}"`;
+        const cDate = `"${(c.metadata?.createdAt || c.demographics?.admissionDate || c.dateStr || '').replace(/"/g, '""')}"`;
+        const collector = `"${(c.metadata?.collectorId || c.collectorName || '').replace(/"/g, '""')}"`;
+        const cc = `"${(typeof c.cc === 'string' ? c.cc : (c.cc?.freeText || c.cc?.selectedComplaint || '')).replace(/"/g, '""')}"`;
+        const dx = `"${(c.context?.workingDiagnosis || c.assessment?.diagnosis || '').replace(/"/g, '""')}"`;
+        const hpLen = (generateClinicalNote(c) || '').length;
+        const soapCount = Array.isArray(c.soapHistory) ? c.soapHistory.length : (c.dayId ? 1 : 0);
+        const isTrauma = (c.atls?.isTrauma || c.atls?.moi) ? 'Yes' : 'No';
+
+        return [cid, pName, age, gender, ward, bed, cDate, collector, cc, dx, hpLen, soapCount, isTrauma].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [csvHeaders.join(','), ...csvRows].join('\r\n');
+      const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const csvUrl = URL.createObjectURL(csvBlob);
+      const aCsv = document.createElement('a');
+      aCsv.href = csvUrl;
+      aCsv.download = `Surgical_Clinical_Vault_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(aCsv);
+      aCsv.click();
+      document.body.removeChild(aCsv);
+      URL.revokeObjectURL(csvUrl);
+
+      showToast('کل دیتابیس به صورت JSON و CSV دانلود شد.', 'success');
+    } catch (exportErr) {
+      console.error('[AdminVault] Export error:', exportErr);
+      showToast('خطا در دانلود دیتابیس.', 'warning');
+    }
+  });
+}
+
 export async function initApp() {
   try {
     initAdmissionPathwayHandlers();
@@ -10762,6 +11594,8 @@ export async function initApp() {
     initMobileDock();
     initDirectPrint();
     initManualThemeToggle();
+    initSecretAdminVault();
+    checkSecretAdminRoute();
 
     await loadSavedState();
     syncDomFromState();
@@ -10774,6 +11608,8 @@ export async function initApp() {
 }
 
 if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', checkSecretAdminRoute);
+
   window.addEventListener('beforeunload', () => {
     if (window.currentAppState) {
       localStorage.setItem('SURG_SCRIBE_ACTIVE_DRAFT_STATE', JSON.stringify(window.currentAppState));
