@@ -11263,19 +11263,32 @@ function initManualThemeToggle() {
 
 /* ==========================================================================
    Secret Admin Vault Dashboard: Google Sheets Live Cloud Monitor (#admin-vault)
-   Direct 100% cloud telemetry, live sheet explorer, and central monitoring.
-   Integrates with Google Apps Script v2.5 (Raw_JSON_Vault & multi-sheet cloud).
+   Direct 100% cloud telemetry, live 2D sheet explorer, and central monitoring.
+   Integrates with Google Apps Script v3.0 (Enterprise Edition).
    ========================================================================== */
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWKN6I80lNriVfPFr7XzZZm9wGdJckmms9led7xn7ieQJnbXz6oumHtWQ85uUHV0Q8/exec';
 
 let adminVaultUnlocked = false;
 let adminVaultCasesList = [];
+let localShiftCasesList = [];
 let adminSelectedCase = null;
 let adminActiveInspectTab = 'hp';
-let cloudActiveTab = 'cases'; // 'cases' | 'hp' | 'soap' | 'atls'
+let cloudActiveTab = 'cases'; // 'cases' | 'hp' | 'soap' | 'atls' | 'vault'
+let adminSourceMode = 'cloud'; // 'cloud' | 'local'
 let cloudSelectedCollector = 'all';
 let cloudSearchQuery = '';
 let cloudIsFetching = false;
+let cloudAdminData = null; // Caches server response { cases, sheetsData, kpiCounts, collectorStats, sheetUrl, pagination }
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 export function checkSecretAdminRoute() {
   if (typeof window === 'undefined') return;
@@ -11294,7 +11307,7 @@ export function checkSecretAdminRoute() {
     }
     const pwdInput = document.getElementById('adminPasswordInput');
     if (pwdInput && !pwdInput.value) {
-      pwdInput.value = 'SURG2026';
+      pwdInput.value = (gsheetSync && gsheetSync.config && gsheetSync.config.adminPasskey) ? gsheetSync.config.adminPasskey : 'SURG2026';
     }
 
     loadAdminVaultCases();
@@ -11306,7 +11319,7 @@ export function checkSecretAdminRoute() {
 /**
  * Renders the live collector stats bar above the table, displaying:
  * 1) Total cases badge
- * 2) Collector breakdown chips with case and SOAP day counts
+ * 2) Collector breakdown chips with case and SOAP day counts (supporting st.total and st.totalCases)
  * 3) Prominent green button: "📊 باز کردن مستقیم Google Sheet مرکزی"
  */
 export function renderAdminCollectorStatsBar(collectorStats = {}, totalCases = 0, sheetUrl = '') {
@@ -11345,9 +11358,11 @@ export function renderAdminCollectorStatsBar(collectorStats = {}, totalCases = 0
 
       let detailText = '';
       if (typeof stats === 'object' && stats !== null) {
-        const cCount = stats.totalCases || stats.cases || 0;
-        const sDays = stats.soapDays || 0;
-        detailText = `${collectorName}: ${cCount.toLocaleString('fa-IR')} پرونده${sDays ? ` | ${sDays.toLocaleString('fa-IR')} روز SOAP` : ''}`;
+        const cCount = (stats.totalCases !== undefined ? stats.totalCases : (stats.total !== undefined ? stats.total : stats.cases)) || 0;
+        const sDays = stats.soapDays || stats.soapDaysCount || 0;
+        const parts = [`${cCount.toLocaleString('fa-IR')} پرونده`];
+        if (sDays) parts.push(`${sDays.toLocaleString('fa-IR')} روز SOAP`);
+        detailText = `${collectorName}: ${parts.join(' | ')}`;
       } else {
         detailText = `${collectorName}: ${Number(stats).toLocaleString('fa-IR')} پرونده`;
       }
@@ -11362,7 +11377,7 @@ export function renderAdminCollectorStatsBar(collectorStats = {}, totalCases = 0
   }
 
   // 3. Green Button: "📊 باز کردن مستقیم Google Sheet مرکزی"
-  const activeSheetUrl = sheetUrl || gsheetSync.config.lastSheetUrl || '';
+  const activeSheetUrl = sheetUrl || (gsheetSync && gsheetSync.config && gsheetSync.config.lastSheetUrl) || '';
   if (activeSheetUrl) {
     const btnOpenSheet = document.createElement('a');
     btnOpenSheet.href = activeSheetUrl;
@@ -11377,7 +11392,8 @@ export function renderAdminCollectorStatsBar(collectorStats = {}, totalCases = 0
 }
 
 /**
- * Loads cloud cases from Google Sheets via fetchCloudDatabase() and merges with local shift cases
+ * Loads cloud cases from Google Sheets via fetchCloudDatabase() with server-side Passkey authentication
+ * and populates server-side KPI counts and sheetsData without mixing localStorage into cloud truth.
  */
 export async function loadAdminVaultCases() {
   if (cloudIsFetching) return;
@@ -11385,11 +11401,14 @@ export async function loadAdminVaultCases() {
 
   const statusBadge = document.getElementById('adminCloudStatusBadge');
   const btnFetch = document.getElementById('btnAdminFetchCloud');
-  const emptyPrompt = document.getElementById('adminTableEmptyPrompt');
-  const table = document.getElementById('adminCloudDataTable') || document.getElementById('adminCasesTable');
+  const scriptInp = document.getElementById('adminScriptUrlInput');
+  const pwdInput = document.getElementById('adminPasswordInput');
+
+  const scriptUrl = (scriptInp?.value || (gsheetSync && gsheetSync.config && gsheetSync.config.scriptUrl) || DEFAULT_SCRIPT_URL).trim();
+  const passkey = (pwdInput?.value || (gsheetSync && gsheetSync.config && gsheetSync.config.adminPasskey) || 'SURG2026').trim();
 
   if (statusBadge) {
-    statusBadge.textContent = '⏳ در حال واکشی اطلاعات زنده از Google Sheets (v2.5)...';
+    statusBadge.textContent = '⏳ در حال واکشی اطلاعات زنده از Google Sheets (v3.0)...';
     statusBadge.style.color = '#38bdf8';
     statusBadge.style.background = 'rgba(56, 189, 248, 0.15)';
     statusBadge.style.borderColor = 'rgba(56, 189, 248, 0.4)';
@@ -11399,43 +11418,74 @@ export async function loadAdminVaultCases() {
     btnFetch.classList.add('loading');
   }
 
-  const casesMap = new Map();
-  let cloudRes = null;
+  // Load local shift cases separately (strictly for Local Drafts tab)
+  localShiftCasesList = [];
+  try {
+    const shiftCases = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
+    if (Array.isArray(shiftCases)) {
+      shiftCases.forEach((c) => {
+        if (c && (c.caseId || c.metadata?.caseId)) {
+          localShiftCasesList.push({ ...c, _source: 'local_shift' });
+        }
+      });
+    }
+  } catch (_) {}
+
+  if (clinicalState && (clinicalState.caseId || clinicalState.demographics?.fullName || clinicalState.demographics?.name)) {
+    localShiftCasesList.unshift({ ...clinicalState, _source: 'active_draft' });
+  }
 
   try {
-    // 1. Fetch live cloud database from Google Sheets v2.5 (?action=getAllCases)
-    cloudRes = await gsheetSync.fetchCloudDatabase();
+    // 1. Fetch live cloud database from Google Sheets v3.0 (?action=getAllCases&key=...)
+    const cloudRes = await gsheetSync.fetchCloudDatabase({ scriptUrl, passkey });
+
+    if (cloudRes && cloudRes.forbidden) {
+      adminVaultUnlocked = false;
+      cloudAdminData = null;
+      adminVaultCasesList = [];
+      if (statusBadge) {
+        statusBadge.textContent = '⛔ دسترسی غیرمجاز: رمز عبور ادمین نامعتبر است.';
+        statusBadge.style.color = '#ef4444';
+        statusBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      }
+      showToast('رمز عبور ادمین (Passkey) توسط سرور رد شد. دسترسی مسدود است.', 'warning');
+      renderAdminVaultTable();
+      return;
+    }
 
     if (cloudRes && cloudRes.success) {
-      if (Array.isArray(cloudRes.cases)) {
-        cloudRes.cases.forEach((c) => {
-          if (c && (c.caseId || c.metadata?.caseId)) {
-            const cid = c.caseId || c.metadata?.caseId;
-            casesMap.set(cid, { ...c, _source: 'cloud' });
-          }
-        });
+      adminVaultUnlocked = true;
+      cloudAdminData = cloudRes;
+
+      if (scriptUrl) {
+        gsheetSync.saveConfig({ scriptUrl, adminPasskey: passkey, lastSheetUrl: cloudRes.sheetUrl });
       }
 
-      renderAdminCollectorStatsBar(cloudRes.collectorStats, cloudRes.totalCases, cloudRes.sheetUrl);
+      // Populate cloud cases (PURE cloud, zero localStorage contamination)
+      adminVaultCasesList = Array.isArray(cloudRes.cases) ? cloudRes.cases.map(c => ({ ...c, _source: 'cloud' })) : [];
 
-      // Update KPI cards
+      // Update 4 KPI cards directly from cloudRes.kpiCounts
       const kpiTotal = document.getElementById('kpiTotalCases');
       const kpiHp = document.getElementById('kpiHpCount');
       const kpiSoap = document.getElementById('kpiSoapCount');
       const kpiAtls = document.getElementById('kpiAtlsCount');
 
-      const allList = Array.from(casesMap.values());
-      const hpCount = allList.filter((c) => (c.mode === 'admission' || c.mode === 'hp' || (c.recordType || '').includes('HP'))).length;
-      const soapCount = allList.reduce((sum, c) => sum + (Array.isArray(c.soapHistory) ? c.soapHistory.length : (c.mode === 'soap' ? 1 : 0)), 0);
-      const atlsCount = allList.filter((c) => (c.mode === 'atls' || (c.recordType || '').includes('ATLS') || c.atls?.isTrauma)).length;
+      const kpis = cloudRes.kpiCounts || {};
+      const totalCount = kpis.totalCases !== undefined ? kpis.totalCases : (cloudRes.totalCases || adminVaultCasesList.length);
+      const hpCount = kpis.hpCount !== undefined ? kpis.hpCount : adminVaultCasesList.filter(c => (c.mode === 'admission' || c.mode === 'hp' || (c.recordType || '').includes('HP'))).length;
+      const soapCount = kpis.soapDaysCount !== undefined ? kpis.soapDaysCount : 0;
+      const atlsCount = kpis.atlsCount !== undefined ? kpis.atlsCount : 0;
 
-      if (kpiTotal) kpiTotal.textContent = Number(cloudRes.totalCases || casesMap.size).toLocaleString('fa-IR');
+      if (kpiTotal) kpiTotal.textContent = Number(totalCount).toLocaleString('fa-IR');
       if (kpiHp) kpiHp.textContent = Number(hpCount).toLocaleString('fa-IR');
       if (kpiSoap) kpiSoap.textContent = Number(soapCount).toLocaleString('fa-IR');
       if (kpiAtls) kpiAtls.textContent = Number(atlsCount).toLocaleString('fa-IR');
 
+      renderAdminCollectorStatsBar(cloudRes.collectorStats, totalCount, cloudRes.sheetUrl);
+
       if (statusBadge) {
-        statusBadge.textContent = `✅ متصل به ابر مرکزی (واکشی در ساعت ${new Date().toLocaleTimeString('fa-IR')})`;
+        statusBadge.textContent = `✅ متصل به ابر مرکزی v3.0 (واکشی در ساعت ${new Date().toLocaleTimeString('fa-IR')})`;
         statusBadge.style.color = '#34d399';
         statusBadge.style.background = 'rgba(52, 211, 153, 0.15)';
         statusBadge.style.borderColor = 'rgba(52, 211, 153, 0.4)';
@@ -11445,6 +11495,7 @@ export async function loadAdminVaultCases() {
         statusBadge.textContent = `⚠️ ${cloudRes?.message || 'خطا در واکشی ابری'}`;
         statusBadge.style.color = '#fbbf24';
       }
+      showToast(cloudRes?.message || 'خطا در ارتباط با سرور ابری', 'warning');
     }
   } catch (err) {
     console.error('[AdminVault] Cloud fetch error:', err);
@@ -11452,43 +11503,23 @@ export async function loadAdminVaultCases() {
       statusBadge.textContent = `❌ خطا در واکشی: ${err.message || 'عدم دسترسی'}`;
       statusBadge.style.color = '#f87171';
     }
-  }
-
-  // 2. Merge local shift cases
-  try {
-    const shiftCases = JSON.parse(localStorage.getItem(STORAGE_SHIFT_CASES_KEY) || '[]');
-    if (Array.isArray(shiftCases)) {
-      shiftCases.forEach((c) => {
-        if (c && (c.caseId || c.metadata?.caseId)) {
-          const cid = c.caseId || c.metadata?.caseId;
-          if (!casesMap.has(cid)) {
-            casesMap.set(cid, { ...c, _source: 'local_shift' });
-          }
-        }
-      });
+    showToast(`خطای واکشی ابری: ${err.message}`, 'error');
+  } finally {
+    cloudIsFetching = false;
+    if (btnFetch) {
+      btnFetch.disabled = false;
+      btnFetch.classList.remove('loading');
     }
-  } catch (e) {}
-
-  // 3. Current active draft case
-  if (clinicalState && (clinicalState.caseId || clinicalState.demographics?.fullName || clinicalState.demographics?.name)) {
-    const cid = clinicalState.caseId || 'CURRENT_ACTIVE';
-    if (!casesMap.has(cid)) {
-      casesMap.set(cid, { ...clinicalState, _source: 'active_draft' });
-    }
-  }
-
-  adminVaultCasesList = Array.from(casesMap.values());
-  renderAdminVaultTable();
-
-  cloudIsFetching = false;
-  if (btnFetch) {
-    btnFetch.disabled = false;
-    btnFetch.classList.remove('loading');
+    renderAdminVaultTable();
   }
 }
 
 /**
- * Renders the Admin Vault Cases table with full search, collector filter, and tri-state mode badges
+ * Renders the Admin Vault table:
+ *  - In 'local' mode: Renders local drafts from localStorage.
+ *  - In 'cloud' mode:
+ *      * 'cases': Renders Master Cases Vault with actions (view note, load editor, download json).
+ *      * 'hp' | 'soap' | 'atls' | 'vault': Renders 2D sheet explorer table from sheetsData.
  */
 export function renderAdminVaultTable() {
   const table = document.getElementById('adminCloudDataTable') || document.getElementById('adminCasesTable');
@@ -11499,10 +11530,109 @@ export function renderAdminVaultTable() {
 
   if (!table || !tbody) return;
 
-  const q = (cloudSearchQuery || document.getElementById('adminFilterSearch')?.value || '').trim().toLowerCase();
-  const targetCol = cloudSelectedCollector === 'all' ? null : cloudSelectedCollector.toLowerCase();
+  // -------------------------------------------------------------
+  // BRANCH 1: Cloud 2D Sheet Explorer ('hp' | 'soap' | 'atls' | 'vault')
+  // -------------------------------------------------------------
+  if (adminSourceMode === 'cloud' && cloudActiveTab !== 'cases') {
+    const sheetKeyMap = {
+      hp: 'Admission_HP',
+      soap: 'SOAP_Progress',
+      atls: 'ATLS_Trauma',
+      vault: 'Database_Vault'
+    };
+    const sheetKey = sheetKeyMap[cloudActiveTab] || 'Admission_HP';
+    const sheet = (cloudAdminData && cloudAdminData.sheetsData) ? cloudAdminData.sheetsData[sheetKey] : null;
 
-  const filtered = adminVaultCasesList.filter((c) => {
+    if (!cloudAdminData) {
+      if (emptyPrompt) {
+        emptyPrompt.style.display = 'flex';
+        emptyPrompt.innerHTML = `
+          <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.6;">☁️</div>
+          <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">هنوز اطلاعات ابری واکشی نشده است</div>
+          <div style="font-size: 0.84rem; max-width: 460px; text-align: center; line-height: 1.6;">جهت اتصال به دیتابیس مرکزی و مشاهده شیت ${sheetKey}، روی دکمه «واکشی زنده اطلاعات از اکسل مرکزی» در بالا کلیک کنید.</div>
+        `;
+      }
+      table.style.display = 'none';
+      if (countBadge) countBadge.textContent = '۰ ردیف';
+      return;
+    }
+
+    if (!sheet || !sheet.headers || sheet.headers.length === 0) {
+      if (emptyPrompt) {
+        emptyPrompt.style.display = 'flex';
+        emptyPrompt.innerHTML = `
+          <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.6;">📊</div>
+          <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">شیت ${sheetKey} خالی است</div>
+          <div style="font-size: 0.84rem; max-width: 460px; text-align: center; line-height: 1.6;">هیچ داده‌ای در شیت ${sheetKey} از Google Sheets یافت نشد.</div>
+        `;
+      }
+      table.style.display = 'none';
+      if (countBadge) countBadge.textContent = `۰ ردیف در ${sheetKey}`;
+      return;
+    }
+
+    if (emptyPrompt) emptyPrompt.style.display = 'none';
+    table.style.display = 'table';
+
+    // Render 2D Headers
+    if (thead) {
+      thead.innerHTML = `
+        <tr style="background: var(--bg-elevated); position: sticky; top: 0; z-index: 2;">
+          <th style="width: 45px; text-align: center; padding: 0.5rem 0.4rem;">#</th>
+          ${sheet.headers.map((h) => `<th style="padding: 0.5rem 0.65rem; white-space: nowrap; font-size: 0.78rem; text-align: right;">${escapeHtml(String(h || ''))}</th>`).join('')}
+        </tr>
+      `;
+    }
+
+    // Filter 2D Rows
+    const q = (cloudSearchQuery || '').trim().toLowerCase();
+    const rawRows = Array.isArray(sheet.rows) ? sheet.rows : [];
+    const filteredRows = rawRows.filter((row) => {
+      if (!q) return true;
+      return row.some((cell) => String(cell || '').toLowerCase().includes(q));
+    });
+
+    if (countBadge) {
+      countBadge.textContent = `${filteredRows.length.toLocaleString('fa-IR')} ردیف در ${sheetKey}`;
+    }
+
+    if (filteredRows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${sheet.headers.length + 1}" style="text-align: center; padding: 2rem; color: var(--text-muted);">ردیفی در شیت ${sheetKey} با فیلتر جستجو یافت نشد.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filteredRows.map((row, rIdx) => {
+      const cellsHtml = row.map((cell, cIdx) => {
+        const valStr = cell === null || cell === undefined ? '' : String(cell);
+        const isLong = valStr.length > 60;
+        const displayStr = isLong ? (valStr.substring(0, 60) + '…') : valStr;
+        const isCode = cIdx === 0 || valStr.startsWith('CASE-') || valStr.startsWith('SURG-');
+        return `
+          <td style="padding: 0.45rem 0.65rem; font-size: 0.79rem; vertical-align: middle; ${isCode ? 'font-family: monospace; direction: ltr; text-align: left; font-weight: 700; color: var(--primary);' : ''}" title="${escapeHtml(valStr)}">
+            ${escapeHtml(displayStr)}
+          </td>
+        `;
+      }).join('');
+
+      return `
+        <tr class="cloud-sheet-2d-row" style="border-bottom: 1px solid var(--border-subtle);">
+          <td style="text-align: center; color: var(--text-muted); font-size: 0.76rem; padding: 0.45rem 0.3rem;">${rIdx + 1}</td>
+          ${cellsHtml}
+        </tr>
+      `;
+    }).join('');
+
+    return;
+  }
+
+  // -------------------------------------------------------------
+  // BRANCH 2: Cases Vault (Master Cloud Cases OR Local Drafts)
+  // -------------------------------------------------------------
+  const targetList = (adminSourceMode === 'local') ? localShiftCasesList : adminVaultCasesList;
+  const q = (cloudSearchQuery || document.getElementById('adminFilterSearch')?.value || '').trim().toLowerCase();
+  const targetCol = (cloudSelectedCollector === 'all' || adminSourceMode === 'local') ? null : cloudSelectedCollector.toLowerCase();
+
+  const filtered = targetList.filter((c) => {
     // Collector filter
     if (targetCol) {
       const cCol = (c.collector || c.collectorName || c.metadata?.collectorId || '').toLowerCase();
@@ -11525,11 +11655,27 @@ export function renderAdminVaultTable() {
   });
 
   if (countBadge) {
-    countBadge.textContent = `${filtered.length.toLocaleString('fa-IR')} پرونده`;
+    const srcLabel = (adminSourceMode === 'local') ? 'پرونده محلی' : 'پرونده ابری';
+    countBadge.textContent = `${filtered.length.toLocaleString('fa-IR')} ${srcLabel}`;
   }
 
-  if (emptyPrompt) emptyPrompt.style.display = filtered.length > 0 ? 'none' : 'flex';
-  table.style.display = 'table';
+  if (emptyPrompt) {
+    if (filtered.length === 0) {
+      emptyPrompt.style.display = 'flex';
+      const promptText = (adminSourceMode === 'local')
+        ? 'هیچ پیش‌نویس محلی روی این مرورگر ذخیره نشده است.'
+        : 'هنوز پرونده‌ای واکشی نشده است یا با فیلتر جستجو همخوانی ندارد.';
+      emptyPrompt.innerHTML = `
+        <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.6;">${adminSourceMode === 'local' ? '💻' : '☁️'}</div>
+        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;">داده‌ای یافت نشد</div>
+        <div style="font-size: 0.84rem; max-width: 460px; text-align: center; line-height: 1.6;">${promptText}</div>
+      `;
+    } else {
+      emptyPrompt.style.display = 'none';
+    }
+  }
+
+  table.style.display = filtered.length > 0 ? 'table' : 'none';
 
   if (thead) {
     thead.innerHTML = `
@@ -11553,11 +11699,11 @@ export function renderAdminVaultTable() {
   tbody.innerHTML = filtered.map((c, idx) => {
     const cid = c.caseId || c.metadata?.caseId || `CASE-${idx + 1}`;
     const recType = (c.recordType || c.record_type || c.mode || 'ADMISSION_HP').toUpperCase();
-    const collector = c.collectorName || c.collector || c.metadata?.collectorId || 'نامشخص';
+    const collector = c.collectorName || c.collector || c.metadata?.collectorId || (c._source === 'local_shift' ? 'شیفت محلی' : (c._source === 'active_draft' ? 'پیش‌نویس فعال' : 'نامشخص'));
     const timeRaw = c.timestamp || c.metadata?.createdAt || c.admissionDate || c.demographics?.admissionDate || c.dateStr || '—';
     const timeStr = String(timeRaw).includes('T') ? String(timeRaw).replace('T', ' ').substring(0, 16) : String(timeRaw);
 
-    const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || c.patientName || c.patient || 'بیمار';
+    const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || c.patientName || c.patient || `بیمار (${cid})`;
     const age = c.demographics?.age || c.context?.age || c.age || '';
     const gender = c.demographics?.gender || c.context?.gender || c.gender || '';
     const ageGender = [age ? `${age} ساله` : '', gender === 'female' ? 'خانم' : (gender === 'male' ? 'آقا' : gender)].filter(Boolean).join(' ');
@@ -11647,7 +11793,7 @@ export function inspectAdminCase(c) {
   const metaEl = document.getElementById('cloudInspectorCaseMeta') || document.getElementById('inspectorCaseMeta');
 
   const cid = c.caseId || c.metadata?.caseId || 'بدون شناسه';
-  const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || c.patientName || c.patient || 'بیمار';
+  const ptName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || c.patientName || c.patient || `بیمار (${cid})`;
   const age = c.demographics?.age || c.context?.age || c.age || '';
   const gender = c.demographics?.gender || c.context?.gender || c.gender || '';
   const ageGender = [age ? `${age} ساله` : '', gender === 'female' ? 'خانم' : (gender === 'male' ? 'آقا' : gender)].filter(Boolean).join(' ');
@@ -11704,73 +11850,97 @@ export function updateAdminInspectorView() {
 }
 
 /**
- * Loads a case into the editor
+ * Rehydrates a cloud case for full, flawless restoration into the application editor
  */
-function importCloudCaseToEditor(caseItem) {
+export function rehydrateCloudCaseForEditor(cloudCase) {
+  const defaults = createDefaultClinicalState();
+  const target = JSON.parse(JSON.stringify(cloudCase || {}));
+  const hpPart = target.hp || target;
+
+  // Normalize PSH
+  const rawPsh = hpPart.psh || target.psh || {};
+  const normalizedPsh = Array.isArray(rawPsh)
+    ? { ...defaults.psh, surgeries: rawPsh }
+    : { ...defaults.psh, ...rawPsh, surgeries: Array.isArray(rawPsh.surgeries) ? rawPsh.surgeries : [] };
+
+  // Normalize DH
+  const rawDh = hpPart.dh || target.dh || {};
+  const normalizedDh = Array.isArray(rawDh)
+    ? { ...defaults.dh, activeDrugs: rawDh }
+    : { ...defaults.dh, ...rawDh, activeDrugs: Array.isArray(rawDh.activeDrugs) ? rawDh.activeDrugs : [] };
+
+  // Normalize AH (Allergies)
+  const rawAh = hpPart.ah || hpPart.allergies || target.ah || target.allergies || {};
+  const normalizedAh = Array.isArray(rawAh)
+    ? { ...defaults.ah, selected: rawAh }
+    : { ...defaults.ah, ...rawAh, selected: Array.isArray(rawAh.selected) ? rawAh.selected : [] };
+
+  const caseId = target.caseId || defaults.caseId;
+
+  const rehydrated = {
+    ...defaults,
+    ...target,
+    caseId,
+    demographics: {
+      ...defaults.demographics,
+      ...(target.demographics || {}),
+      ...(hpPart.demographics || {}),
+      fullName: target.demographics?.fullName || `بیمار بازیابی‌شده (${caseId})`,
+      age: target.age || target.demographics?.age || hpPart.demographics?.age || '',
+      gender: target.gender || target.demographics?.gender || hpPart.demographics?.gender || '',
+      ward: target.ward || target.demographics?.ward || hpPart.demographics?.ward || ''
+    },
+    admission: { ...defaults.admission, ...(hpPart.admission || target.admission || {}) },
+    cc: typeof hpPart.cc === 'object' && hpPart.cc !== null
+      ? { ...defaults.cc, ...hpPart.cc }
+      : { ...defaults.cc, patientQuote: String(hpPart.cc || target.chiefComplaint || '') },
+    hpi: { ...defaults.hpi, ...(hpPart.hpi || target.hpi || {}) },
+    pmh: { ...defaults.pmh, ...(hpPart.pmh || target.pmh || {}) },
+    psh: normalizedPsh,
+    obgyn: { ...defaults.obgyn, ...(hpPart.obgyn || target.obgyn || {}) },
+    dh: normalizedDh,
+    ah: normalizedAh,
+    sh: { ...defaults.sh, ...(hpPart.sh || target.sh || {}) },
+    fh: { ...defaults.fh, ...(hpPart.fh || target.fh || {}) },
+    ros: { ...defaults.ros, ...(hpPart.ros || target.ros || {}) },
+    pe: { ...defaults.pe, ...(hpPart.pe || target.pe || {}) },
+    paraclinics: { ...defaults.paraclinics, ...(target.paraclinics || hpPart.paraclinic || hpPart.paraclinics || {}) },
+    reasoning: { ...defaults.reasoning, ...(hpPart.reasoning || target.reasoning || {}) },
+    atls: { ...defaults.atls, ...(target.atls || {}) },
+    soapHistory: Array.isArray(target.soapHistory) ? target.soapHistory : []
+  };
+
+  if (Array.isArray(rehydrated.hpi.presentations)) {
+    rehydrated.hpi.painList = rehydrated.hpi.presentations.filter(
+      (p) => (p.archetype || p.type) === 'pain_archetype'
+    );
+  }
+
+  return rehydrated;
+}
+
+/**
+ * Loads a case into the editor using rehydrateCloudCaseForEditor
+ */
+export function importCloudCaseToEditor(caseItem) {
   if (!caseItem) return;
   try {
-    let sourceState = null;
-    if (caseItem.clinicalState && typeof caseItem.clinicalState === 'object') {
-      sourceState = caseItem.clinicalState;
-    } else if (caseItem.record_json && typeof caseItem.record_json === 'object') {
-      sourceState = caseItem.record_json;
-    } else if (caseItem.record && typeof caseItem.record === 'object') {
-      sourceState = caseItem.record;
+    let sourceState = caseItem;
+    if (caseItem.rawStateJSON) {
+      try { sourceState = JSON.parse(caseItem.rawStateJSON); } catch (_) {}
     } else if (caseItem.rawJsonString) {
       try { sourceState = JSON.parse(caseItem.rawJsonString); } catch (_) {}
-    } else if (caseItem.rawStateJSON) {
-      try { sourceState = JSON.parse(caseItem.rawStateJSON); } catch (_) {}
+    } else if (caseItem.record_json && typeof caseItem.record_json === 'object') {
+      sourceState = caseItem.record_json;
+    } else if (caseItem.clinicalState && typeof caseItem.clinicalState === 'object') {
+      sourceState = caseItem.clinicalState;
     }
 
-    const defaults = createDefaultClinicalState();
-    if (!sourceState) {
-      sourceState = {
-        ...defaults,
-        caseId: caseItem.caseId || caseItem.metadata?.caseId || `IMPORT-${Date.now()}`,
-        demographics: {
-          ...defaults.demographics,
-          fullName: caseItem.demographics?.fullName || caseItem.patientName || caseItem.patient || '',
-          age: caseItem.demographics?.age || caseItem.age || '',
-          gender: caseItem.demographics?.gender || caseItem.gender || 'male'
-        },
-        cc: {
-          ...defaults.cc,
-          patientQuote: caseItem.chiefComplaint || (typeof caseItem.cc === 'string' ? caseItem.cc : caseItem.cc?.patientQuote) || ''
-        }
-      };
-    }
+    const rehydrated = rehydrateCloudCaseForEditor(sourceState || caseItem);
+    clinicalState = rehydrated;
 
-    clinicalState = {
-      ...defaults,
-      ...sourceState,
-      demographics: { ...defaults.demographics, ...(sourceState.demographics || {}) },
-      admission: { ...defaults.admission, ...(sourceState.admission || {}) },
-      cc: sourceState.cc || defaults.cc,
-      hpi: { ...defaults.hpi, ...(sourceState.hpi || {}) },
-      pmh: { ...defaults.pmh, ...(sourceState.pmh || {}) },
-      psh: sourceState.psh || defaults.psh,
-      dh: sourceState.dh || defaults.dh,
-      allergies: sourceState.allergies || defaults.allergies,
-      fh: { ...defaults.fh, ...(sourceState.fh || {}) },
-      sh: { ...defaults.sh, ...(sourceState.sh || {}) },
-      ros: { ...defaults.ros, ...(sourceState.ros || {}) },
-      pe: { ...defaults.pe, ...(sourceState.pe || {}) },
-      paraclinics: { ...defaults.paraclinics || sourceState.paraclinic || {} },
-      assessment: { ...defaults.assessment, ...(sourceState.assessment || {}) },
-      plan: { ...defaults.plan, ...(sourceState.plan || {}) },
-      reasoning: { ...defaults.reasoning, ...(sourceState.reasoning || {}) },
-      atls: { ...defaults.atls, ...(sourceState.atls || {}) }
-    };
-
-    if (Array.isArray(sourceState.hpi?.presentations) && sourceState.hpi.presentations.length > 0) {
-      clinicalState.hpi.presentations = sourceState.hpi.presentations;
-    }
-    if (Array.isArray(sourceState.hpi?.painList) && sourceState.hpi.painList.length > 0) {
-      clinicalState.hpi.painList = sourceState.hpi.painList;
-    }
-
-    if (Array.isArray(sourceState.soapHistory) && sourceState.soapHistory.length > 0) {
-      const activeDay = sourceState.soapHistory[0];
+    if (Array.isArray(rehydrated.soapHistory) && rehydrated.soapHistory.length > 0) {
+      const activeDay = rehydrated.soapHistory[0];
       soapState = JSON.parse(JSON.stringify(activeDay.soapState || activeDay));
       syncSoapInputsFromState();
       renderSoapDayTracker();
@@ -11793,7 +11963,7 @@ function importCloudCaseToEditor(caseItem) {
       window.history.pushState('', document.title, cleanUrl || '/');
     }
 
-    const cId = clinicalState.caseId || caseItem.caseId || 'پرونده';
+    const cId = clinicalState.caseId || 'پرونده';
     showToast(`پرونده «${cId}» با موفقیت در محیط ویرایشگر برنامه بارگذاری شد.`, 'success');
   } catch (err) {
     console.error('[AdminVault] Error importing case:', err);
@@ -11801,7 +11971,7 @@ function importCloudCaseToEditor(caseItem) {
   }
 }
 
-function downloadSingleCaseJson(c) {
+export function downloadSingleCaseJson(c) {
   if (!c) return;
   const jsonStr = JSON.stringify(c, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
@@ -11819,15 +11989,53 @@ function downloadSingleCaseJson(c) {
 
 /**
  * Standard CSV Export with UTF-8 BOM (\uFEFF) for Microsoft Excel compatibility
+ * Exports either the active 2D sheet or all cases.
  */
 export function exportAdminDatabaseCsv() {
-  if (!adminVaultCasesList || adminVaultCasesList.length === 0) {
+  const sheetKeyMap = {
+    hp: 'Admission_HP',
+    soap: 'SOAP_Progress',
+    atls: 'ATLS_Trauma',
+    vault: 'Database_Vault'
+  };
+
+  if (adminSourceMode === 'cloud' && cloudActiveTab !== 'cases' && sheetKeyMap[cloudActiveTab]) {
+    const sheetName = sheetKeyMap[cloudActiveTab];
+    const sheetData = (cloudAdminData && cloudAdminData.sheetsData) ? cloudAdminData.sheetsData[sheetName] : null;
+    if (!sheetData || !sheetData.headers || sheetData.headers.length === 0) {
+      showToast(`داده‌ای در شیت ${sheetName} برای خروجی موجود نیست.`, 'warning');
+      return;
+    }
+    const headers = sheetData.headers;
+    const rows = sheetData.rows || [];
+    const csvRows = rows.map((row) => {
+      return row.map((val) => {
+        const str = val === null || val === undefined ? '' : String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      }).join(',');
+    });
+    const csvContent = '\uFEFF' + [headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','), ...csvRows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SurgSheet_${sheetName}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`خروجی اکسل CSV شیت ${sheetName} با استاندارد UTF-8 BOM دانلود شد.`, 'success');
+    return;
+  }
+
+  const exportList = (adminSourceMode === 'local') ? localShiftCasesList : adminVaultCasesList;
+  if (!exportList || exportList.length === 0) {
     showToast('هیچ پرونده‌ای برای خروجی یافت نشد.', 'warning');
     return;
   }
 
   const headers = ['CaseID', 'PatientName', 'Age', 'Gender', 'Ward', 'Bed', 'Date', 'Collector', 'ChiefComplaint', 'Source', 'H&P_Note_Length', 'SOAP_Days_Count', 'IsTrauma'];
-  const rows = adminVaultCasesList.map((c) => {
+  const rows = exportList.map((c) => {
     const cid = c.caseId || c.metadata?.caseId || '';
     const pName = c.demographics?.fullName || c.demographics?.name || c.context?.fullName || c.patientName || c.patient || '';
     const age = c.demographics?.age || c.context?.age || c.age || '';
@@ -11837,7 +12045,7 @@ export function exportAdminDatabaseCsv() {
     const cDate = c.timestamp || c.metadata?.createdAt || c.admissionDate || c.demographics?.admissionDate || c.dateStr || '';
     const collector = c.collectorName || c.collector || c.metadata?.collectorId || '';
     const cc = typeof c.cc === 'string' ? c.cc : (c.cc?.patientQuote || c.cc?.freeText || c.cc?.selectedComplaint || c.chiefComplaint || c.context?.workingDiagnosis || '');
-    const source = c._source || 'cloud';
+    const source = c._source || adminSourceMode;
     const hpLen = (c.fullClinicalNote || generateClinicalNote(c) || '').length;
     const soapCount = Array.isArray(c.soapHistory) ? c.soapHistory.length : (c.mode === 'soap' ? 1 : 0);
     const isTrauma = (c.atls?.isTrauma || c.atls?.moi || c.mode === 'atls') ? 'Yes' : 'No';
@@ -11848,13 +12056,13 @@ export function exportAdminDatabaseCsv() {
     }).join(',');
   });
 
-  // Prefix with \uFEFF UTF-8 BOM so Persian characters display perfectly in Microsoft Excel
   const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `SurgMasterSheet_AllCases_${new Date().toISOString().split('T')[0]}.csv`;
+  const fileNameSuffix = (adminSourceMode === 'local') ? 'LocalCases' : 'CloudMaster';
+  a.download = `SurgMasterSheet_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -11863,13 +12071,14 @@ export function exportAdminDatabaseCsv() {
   showToast('خروجی اکسل CSV پرونده‌ها با استاندارد UTF-8 BOM دانلود شد.', 'success');
 }
 
-function exportAdminDatabaseJson() {
-  if (!adminVaultCasesList || adminVaultCasesList.length === 0) {
+export function exportAdminDatabaseJson() {
+  const exportTarget = (adminSourceMode === 'cloud' && cloudAdminData) ? cloudAdminData : (adminSourceMode === 'local' ? localShiftCasesList : adminVaultCasesList);
+  if (!exportTarget || (Array.isArray(exportTarget) && exportTarget.length === 0)) {
     showToast('دیتابیس خالی است و پرونده‌ای برای خروجی وجود ندارد.', 'warning');
     return;
   }
 
-  const jsonStr = JSON.stringify(adminVaultCasesList, null, 2);
+  const jsonStr = JSON.stringify(exportTarget, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -11893,6 +12102,27 @@ export function initSecretAdminVault() {
   const btnExportDb = document.getElementById('btnAdminExportDatabase');
   const searchInp = document.getElementById('adminCloudSearchInput') || document.getElementById('adminFilterSearch');
 
+  // Source Switcher (Cloud vs Local Drafts)
+  const btnSourceCloud = document.getElementById('btnAdminSourceCloud');
+  const btnSourceLocal = document.getElementById('btnAdminSourceLocal');
+  const sourceDesc = document.getElementById('adminSourceDescBadge');
+
+  btnSourceCloud?.addEventListener('click', () => {
+    adminSourceMode = 'cloud';
+    btnSourceCloud.classList.add('active');
+    btnSourceLocal?.classList.remove('active');
+    if (sourceDesc) sourceDesc.textContent = 'نمایش مستقیم پایگاه داده مرکزی ابری بدون تداخل با پرونده‌های محلی';
+    renderAdminVaultTable();
+  });
+
+  btnSourceLocal?.addEventListener('click', () => {
+    adminSourceMode = 'local';
+    btnSourceLocal.classList.add('active');
+    btnSourceCloud?.classList.remove('active');
+    if (sourceDesc) sourceDesc.textContent = 'نمایش پرونده‌ها و پیش‌نویس‌های ذخیره‌شده روی همین دستگاه (localStorage)';
+    renderAdminVaultTable();
+  });
+
   // Connection triggers
   btnFetch?.addEventListener('click', () => loadAdminVaultCases());
   btnRefresh?.addEventListener('click', () => loadAdminVaultCases());
@@ -11905,7 +12135,7 @@ export function initSecretAdminVault() {
   });
 
   btnOpenSheet?.addEventListener('click', () => {
-    const sheetUrl = gsheetSync.config.lastSheetUrl;
+    const sheetUrl = (cloudAdminData && cloudAdminData.sheetUrl) || (gsheetSync && gsheetSync.config && gsheetSync.config.lastSheetUrl);
     if (sheetUrl && sheetUrl.startsWith('http')) {
       window.open(sheetUrl, '_blank');
     } else {
@@ -11947,16 +12177,42 @@ export function initSecretAdminVault() {
     { id: 'tabBtnCloudCases', key: 'cases' },
     { id: 'tabBtnSheetHp', key: 'hp' },
     { id: 'tabBtnSheetSoap', key: 'soap' },
-    { id: 'tabBtnSheetAtls', key: 'atls' }
+    { id: 'tabBtnSheetAtls', key: 'atls' },
+    { id: 'tabBtnSheetVault', key: 'vault' }
   ];
 
   tabBtns.forEach(({ id, key }) => {
     const btn = document.getElementById(id);
-    btn?.addEventListener('click', () => {
+    btn?.addEventListener('click', async () => {
       cloudActiveTab = key;
       tabBtns.forEach((b) => {
         document.getElementById(b.id)?.classList.toggle('active', b.key === key);
       });
+
+      // If user switched to local mode earlier, auto return to cloud mode when clicking sheet tabs
+      if (adminSourceMode !== 'cloud') {
+        adminSourceMode = 'cloud';
+        btnSourceCloud?.classList.add('active');
+        btnSourceLocal?.classList.remove('active');
+        if (sourceDesc) sourceDesc.textContent = 'نمایش مستقیم پایگاه داده مرکزی ابری بدون تداخل با پرونده‌های محلی';
+      }
+
+      // If 2D sheet not in cloudAdminData, fetch on demand
+      if (key !== 'cases') {
+        const sheetKeyMap = { hp: 'Admission_HP', soap: 'SOAP_Progress', atls: 'ATLS_Trauma', vault: 'Database_Vault' };
+        const sName = sheetKeyMap[key];
+        if (sName && (!cloudAdminData?.sheetsData || !cloudAdminData.sheetsData[sName])) {
+          const passkey = document.getElementById('adminPasswordInput')?.value.trim() || (gsheetSync && gsheetSync.config && gsheetSync.config.adminPasskey) || 'SURG2026';
+          showToast(`در حال دریافت داده‌های شیت ${sName}...`, 'info');
+          const res = await gsheetSync.fetchSheet2DData(sName, passkey);
+          if (res && res.success) {
+            if (!cloudAdminData) cloudAdminData = { sheetsData: {} };
+            if (!cloudAdminData.sheetsData) cloudAdminData.sheetsData = {};
+            cloudAdminData.sheetsData[sName] = res;
+          }
+        }
+      }
+
       renderAdminVaultTable();
     });
   });
@@ -11996,6 +12252,8 @@ export function initSecretAdminVault() {
     }
   });
 }
+
+
 
 export async function initApp() {
   try {

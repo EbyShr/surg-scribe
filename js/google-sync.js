@@ -122,14 +122,16 @@ export class GoogleSheetsSyncEngine {
         return {
           scriptUrl: (parsed.scriptUrl || DEFAULT_SCRIPT_URL).trim(),
           collectorName: (parsed.collectorName || '').trim(),
-          lastSheetUrl: parsed.lastSheetUrl || ''
+          lastSheetUrl: parsed.lastSheetUrl || '',
+          adminPasskey: (parsed.adminPasskey || 'SURG2026').trim()
         };
       }
     } catch (_) {}
     return {
       scriptUrl: DEFAULT_SCRIPT_URL,
       collectorName: '',
-      lastSheetUrl: ''
+      lastSheetUrl: '',
+      adminPasskey: 'SURG2026'
     };
   }
 
@@ -138,7 +140,8 @@ export class GoogleSheetsSyncEngine {
       ...this.config,
       scriptUrl: (newConfig.scriptUrl !== undefined ? newConfig.scriptUrl : this.config.scriptUrl).trim(),
       collectorName: (newConfig.collectorName !== undefined ? newConfig.collectorName : this.config.collectorName).trim(),
-      lastSheetUrl: newConfig.lastSheetUrl || this.config.lastSheetUrl || ''
+      lastSheetUrl: newConfig.lastSheetUrl || this.config.lastSheetUrl || '',
+      adminPasskey: (newConfig.adminPasskey !== undefined ? newConfig.adminPasskey : (this.config.adminPasskey || 'SURG2026')).trim()
     };
     try {
       localStorage.setItem(STORAGE_GSHEET_CONFIG_KEY, JSON.stringify(this.config));
@@ -300,22 +303,38 @@ export class GoogleSheetsSyncEngine {
     return { flushed: flushedCount };
   }
 
-  async fetchCloudDatabase() {
-    const scriptUrl = (this.config.scriptUrl || '').trim();
+  async fetchCloudDatabase(options = {}) {
+    const scriptUrl = (options.scriptUrl || this.config.scriptUrl || '').trim();
+    const passkey = (options.passkey || this.config.adminPasskey || 'SURG2026').trim();
+
     if (!scriptUrl || !scriptUrl.startsWith('https://script.google.com/')) {
       return {
         success: false,
-        message: 'لینک Google Apps Script در تنظیمات وارد نشده است.',
+        message: 'لینک Google Apps Script تنظیم نشده است.',
         cases: [],
         collectorStats: {},
+        kpiCounts: { totalCases: 0, hpCount: 0, soapDaysCount: 0, atlsCount: 0 },
+        sheetsData: {},
         sheetUrl: ''
       };
     }
 
     try {
-      const separator = scriptUrl.includes('?') ? '&' : '?';
-      const urlWithParams = `${scriptUrl}${separator}action=getAllCases&t=${Date.now()}`;
+      const params = new URLSearchParams({
+        action: 'getAllCases',
+        key: passkey,
+        page: String(options.page || 1),
+        limit: String(options.limit || 200),
+        t: String(Date.now())
+      });
+      if (options.collector) params.set('collector', options.collector);
+      if (options.mode && options.mode !== 'all') params.set('mode', options.mode);
+      if (options.q) params.set('q', options.q);
 
+      const separator = scriptUrl.includes('?') ? '&' : '?';
+      const urlWithParams = `${scriptUrl}${separator}${params.toString()}`;
+
+      // CRITICAL: No headers object so GET remains a CORS Simple Request!
       const response = await fetch(urlWithParams, {
         method: 'GET',
         redirect: 'follow'
@@ -325,19 +344,39 @@ export class GoogleSheetsSyncEngine {
         throw new Error(`HTTP Error ${response.status}`);
       }
 
-      const rawText = await response.text();
-      const data = JSON.parse(rawText);
+      const data = JSON.parse(await response.text());
+
+      if (data && data.status === 'forbidden') {
+        return {
+          success: false,
+          forbidden: true,
+          message: data.message || 'رمز عبور ادمین (Passkey) توسط سرور رد شد.',
+          cases: [],
+          collectorStats: {},
+          kpiCounts: { totalCases: 0, hpCount: 0, soapDaysCount: 0, atlsCount: 0 },
+          sheetsData: {},
+          sheetUrl: ''
+        };
+      }
 
       if (data && data.status === 'success') {
         if (data.sheetUrl) {
-          this.saveConfig({ lastSheetUrl: data.sheetUrl });
+          this.saveConfig({ lastSheetUrl: data.sheetUrl, adminPasskey: passkey });
         }
         return {
           success: true,
           cases: Array.isArray(data.cases) ? data.cases : [],
           collectorStats: data.collectorStats || {},
+          kpiCounts: data.kpiCounts || {
+            totalCases: data.totalCases || 0,
+            hpCount: (data.cases || []).length,
+            soapDaysCount: 0,
+            atlsCount: 0
+          },
+          pagination: data.pagination || { page: 1, limit: 200, totalFiltered: (data.cases || []).length, totalPages: 1 },
+          sheetsData: data.sheetsData || {},
           sheetUrl: data.sheetUrl || this.config.lastSheetUrl || '',
-          totalCases: data.totalCases || (Array.isArray(data.cases) ? data.cases.length : 0)
+          totalCases: data.totalCases || 0
         };
       } else {
         throw new Error(data?.message || 'خطا در دریافت اطلاعات از شیت');
@@ -349,8 +388,30 @@ export class GoogleSheetsSyncEngine {
         message: `خطا در ارتباط زنده با Google Sheets: ${err.message}`,
         cases: [],
         collectorStats: {},
+        kpiCounts: { totalCases: 0, hpCount: 0, soapDaysCount: 0, atlsCount: 0 },
+        sheetsData: {},
         sheetUrl: this.config.lastSheetUrl || ''
       };
     }
   }
+
+  async fetchSheet2DData(sheetName = 'Admission_HP', passkey = 'SURG2026') {
+    const scriptUrl = (this.config.scriptUrl || '').trim();
+    const effectivePasskey = (passkey || this.config.adminPasskey || 'SURG2026').trim();
+    if (!scriptUrl) return { success: false, headers: [], rows: [], totalRows: 0 };
+    try {
+      const separator = scriptUrl.includes('?') ? '&' : '?';
+      const url = `${scriptUrl}${separator}action=getSheetData&sheetName=${encodeURIComponent(sheetName)}&key=${encodeURIComponent(effectivePasskey)}&t=${Date.now()}`;
+      const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        return { success: true, headers: data.headers || [], rows: data.rows || [], totalRows: data.totalRows || 0 };
+      }
+      return { success: false, headers: [], rows: [], totalRows: 0 };
+    } catch (_) {
+      return { success: false, headers: [], rows: [], totalRows: 0 };
+    }
+  }
 }
+
+export const gsheetSync = new GoogleSheetsSyncEngine();
