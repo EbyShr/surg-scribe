@@ -1,12 +1,13 @@
 /**
  * MedHistorism v3.1 — Ob/Gyn Deterministic Bilingual Clinical Narrative Engine
- * Pure ES Module (Node-safe, Zero DOM Access, Zero Emojis, Not Assessed != Negative)
+ * Pure ES Module (Node-safe, Zero DOM Access, Zero Emojis, Strict Not Assessed != Negative)
  */
 
 import {
   OBGYN_OBSTETRIC_ARCHETYPES,
   OBGYN_GYN_ARCHETYPES,
   OBGYN_SYMPTOM_BANK,
+  OBGYN_STRUCTURED_PE_IDS,
   OBGYN_PE_BANK,
   OBGYN_CONTRACEPTION_OPTIONS
 } from './obgyn-data.js';
@@ -28,37 +29,46 @@ function cleanEn(val, fallback = '') {
   if (!/[\u0600-\u06FF]/.test(s)) return s;
   const translated = tLabel(s);
   if (translated && !/[\u0600-\u06FF]/.test(translated)) return translated;
-  // Extract parenthetical English if present e.g. "سفالیک (Cephalic)" -> "Cephalic"
   const paren = s.match(/\(([A-Za-z0-9\s\/\-\.,+%<>≥≤=]+)\)/);
   if (paren && paren[1]) return paren[1].trim();
   const stripped = s.replace(/[\u0600-\u06FF،؛؟ـ\u200B-\u200D\uFEFF]+/g, ' ').replace(/\s+/g, ' ').trim();
   return stripped || fallback;
 }
 
+function hasValue(val) {
+  return val !== null && val !== undefined && String(val).trim() !== '';
+}
+
 function getFieldOptionLabel(archetypeList, archId, key, val, isEn) {
-  if (!val) return '';
+  if (!hasValue(val)) return '';
   const arch = archetypeList.find((a) => a.id === archId);
   const f = arch?.fields?.find((fld) => fld.key === key);
   if (f?.options) {
     const opt = f.options.find((o) => o.val === val);
     if (opt) return isEn ? opt.en : opt.fa;
   }
-  return isEn ? cleanEn(val, String(val)) : String(val);
+  return isEn ? cleanEn(val, String(val)) : String(val).trim();
 }
 
-function formatObstetricFormula(idx, subMode) {
-  const g = idx.G !== '' && idx.G !== null && idx.G !== undefined ? idx.G : '0';
-  const p = idx.P !== '' && idx.P !== null && idx.P !== undefined ? idx.P : '0';
-  const l = idx.L !== '' && idx.L !== null && idx.L !== undefined ? idx.L : '0';
-  const d = idx.D !== '' && idx.D !== null && idx.D !== undefined ? idx.D : '0';
-  const ab = idx.Ab !== '' && idx.Ab !== null && idx.Ab !== undefined ? idx.Ab : '0';
-  const iufd = idx.IUFD !== '' && idx.IUFD !== null && idx.IUFD !== undefined ? idx.IUFD : '0';
-  const ep = idx.EP !== '' && idx.EP !== null && idx.EP !== undefined ? idx.EP : '0';
-  const mole = idx.Mole !== '' && idx.Mole !== null && idx.Mole !== undefined ? idx.Mole : '0';
+function formatObstetricFormula(idx = {}, subMode = 'obstetrics') {
+  const keys = ['G', 'P', 'L', 'D', 'Ab', 'IUFD', 'EP', 'Mole'];
+  const anyFilled = keys.some((k) => hasValue(idx[k]));
+  if (!anyFilled) return '';
+
+  const num = (k) => (hasValue(idx[k]) ? String(idx[k]).trim() : '0');
+  const g = num('G');
+  const p = num('P');
+  const l = num('L');
+  const d = num('D');
+  const ab = num('Ab');
+  const iufd = num('IUFD');
+  const ep = num('EP');
+  const mole = num('Mole');
 
   if (subMode === 'gynecology' && !idx.expandZeroIndexFields) {
     let formula = `G${g}P${p}L${l}Ab${ab}`;
     if (Number(d) > 0) formula += `D${d}`;
+    if (Number(iufd) > 0) formula += `IUFD${iufd}`;
     if (Number(ep) > 0) formula += `EP${ep}`;
     if (Number(mole) > 0) formula += `Mole${mole}`;
     return formula;
@@ -73,6 +83,7 @@ function formatObstetricFormula(idx, subMode) {
 
 function collectSharedHistories(clinicalState, ob, isEn) {
   const c = clinicalState || {};
+  const notDoc = isEn ? 'Not documented.' : 'ثبت نشده / بررسی نشده.';
 
   // 3. PMHx
   const pmhPos = [];
@@ -83,8 +94,11 @@ function collectSharedHistories(clinicalState, ob, isEn) {
     if (cat.items && typeof cat.items === 'object') {
       Object.entries(cat.items).forEach(([itemId, val]) => {
         const st = val && typeof val === 'object' ? val.state : val;
-        const lbl = val && typeof val === 'object' ? (isEn ? cleanEn(val.en || val.label || itemId, itemId) : (val.label || itemId)) : itemId;
-        if (st === 1) pmhPos.push(lbl);
+        const lbl = val && typeof val === 'object'
+          ? (isEn ? cleanEn(val.en || val.label || val.fa || itemId, itemId) : (val.label || val.fa || itemId))
+          : itemId;
+        const det = val && typeof val === 'object' && val.detail ? (isEn ? cleanEn(val.detail) : val.detail) : '';
+        if (st === 1) pmhPos.push(det ? `${lbl} (${det})` : lbl);
         else if (st === -1) pmhNeg.push(lbl);
       });
     }
@@ -92,29 +106,33 @@ function collectSharedHistories(clinicalState, ob, isEn) {
       pmhPos.push(isEn ? cleanEn(cat.otherNote) : String(cat.otherNote).trim());
     }
   });
-  let pmhText = '';
-  if (pmhPos.length > 0) pmhText = pmhPos.join(isEn ? ', ' : '، ');
-  else if (c.pmh?.masterRoutineNegative) {
+  let pmhText = notDoc;
+  if (pmhPos.length > 0) {
+    pmhText = pmhPos.join(isEn ? ', ' : '، ');
+    if (pmhNeg.length > 0) {
+      pmhText += isEn ? ` (denies ${pmhNeg.join(', ')})` : ` (سابقه ${pmhNeg.join('، ')} را ذکر نمی‌کند)`;
+    }
+  } else if (c.pmh?.masterRoutineNegative) {
     pmhText = isEn
-      ? 'No history of chronic medical illness (denies DM, HTN, IHD, renal, or thyroid disease).'
+      ? 'Denies chronic medical illness (DM, HTN, IHD, renal, or thyroid disease).'
       : 'سابقه بیماری زمینه‌ای خاصی (فشار خون مزمن، دیابت، بیماری قلبی، کلیوی یا تیروئیدی) را ذکر نمی‌کند.';
   } else if (pmhNeg.length > 0) {
     pmhText = isEn ? `Denies ${pmhNeg.join(', ')}.` : `سابقه ${pmhNeg.join('، ')} را ذکر نمی‌کند.`;
-  } else {
-    pmhText = isEn ? 'Not documented.' : 'ثبت‌نشده.';
   }
 
   // 4. PSHx
   const surgeries = Array.isArray(c.psh?.surgeries) ? c.psh.surgeries : [];
-  let pshText = '';
+  let pshText = notDoc;
   if (surgeries.length > 0) {
-    pshText = surgeries.map((s) => (isEn ? cleanEn(s.en || s.label || s.name) : (s.label || s.name || s.en))).filter(Boolean).join(isEn ? ', ' : '، ');
+    pshText = surgeries.map((s) => {
+      const nm = isEn ? cleanEn(s.en || s.label || s.procedure || s.name) : (s.label || s.procedure || s.name || s.en);
+      const extra = [s.year, s.note].filter(Boolean).map((x) => (isEn ? cleanEn(x) : x)).join(' — ');
+      return extra ? `${nm} (${extra})` : nm;
+    }).filter(Boolean).join(isEn ? ', ' : '، ');
   } else if (c.psh?.noSurgeries) {
-    pshText = isEn ? 'No prior surgical history.' : 'سابقه عمل جراحی قبلی ندارد.';
+    pshText = isEn ? 'Denies prior surgical history.' : 'سابقه عمل جراحی قبلی را ذکر نمی‌کند.';
   } else if (c.psh?.note && String(c.psh.note).trim()) {
     pshText = isEn ? cleanEn(c.psh.note) : String(c.psh.note).trim();
-  } else {
-    pshText = isEn ? 'Not documented.' : 'ثبت‌نشده.';
   }
 
   // 5. Drug Hx
@@ -122,7 +140,7 @@ function collectSharedHistories(clinicalState, ob, isEn) {
     ...(Array.isArray(c.dh?.activeDrugs) ? c.dh.activeDrugs : []),
     ...(Array.isArray(c.dh?.customDrugs) ? c.dh.customDrugs : [])
   ];
-  let dhText = '';
+  let dhText = notDoc;
   if (drugs.length > 0) {
     dhText = drugs.map((dr) => {
       const nm = isEn ? cleanEn(dr.en || dr.name || dr.label) : (dr.name || dr.label || dr.en);
@@ -130,21 +148,20 @@ function collectSharedHistories(clinicalState, ob, isEn) {
       return extra ? `${nm} (${extra})` : nm;
     }).filter(Boolean).join(isEn ? ', ' : '، ');
   } else if (c.dh?.noRoutineMeds) {
-    dhText = isEn ? 'No routine medications.' : 'داروی خاصی به صورت روتین مصرف نمی‌کند.';
+    dhText = isEn ? 'Denies routine medications.' : 'داروی خاصی به صورت روتین مصرف نمی‌کند.';
   } else if (c.dh?.note && String(c.dh.note).trim()) {
     dhText = isEn ? cleanEn(c.dh.note) : String(c.dh.note).trim();
-  } else {
-    dhText = isEn ? 'Not documented.' : 'ثبت‌نشده.';
   }
 
-  // 6. PAHx (Mandatory dedicated Ob/Gyn section!)
+  // 6. PAHx (Strict Tri-State: 0 untouched, -1 denied, 1 positive)
   const pahx = ob.gynScreeningAndRecords?.pahx || {};
-  let pahxText = '';
   const anesTypes = Array.isArray(pahx.anesthesiaTypes) && pahx.anesthesiaTypes.length > 0
     ? pahx.anesthesiaTypes.map((a) => (isEn ? cleanEn(a) : a)).join(isEn ? ', ' : '، ')
     : '';
   const compStr = (pahx.complications || '').trim();
-  if (pahx.hasPriorAnesthesia || anesTypes || compStr) {
+  const isPosPahx = pahx.status === 1 || pahx.hasPriorAnesthesia || Boolean(anesTypes) || Boolean(compStr);
+  let pahxText = notDoc;
+  if (isPosPahx) {
     if (isEn) {
       const base = anesTypes || 'Prior anesthesia';
       const comp = compStr ? cleanEn(compStr, compStr) : 'without complications';
@@ -154,13 +171,13 @@ function collectSharedHistories(clinicalState, ob, isEn) {
       const comp = compStr || 'بدون عارضه بیهوشی';
       pahxText = `${base} (${comp}).`;
     }
-  } else {
-    pahxText = isEn ? 'No prior anesthesia history.' : 'سابقه بیهوشی یا بی‌حسی قبلی ندارد.';
+  } else if (pahx.status === -1) {
+    pahxText = isEn ? 'Denies prior anesthesia history.' : 'سابقه بیهوشی یا بی‌حسی قبلی را ذکر نمی‌کند.';
   }
 
   // 7. Allergy
   const ahSel = Array.isArray(c.ah?.selected) ? c.ah.selected : [];
-  let allergyText = '';
+  let allergyText = notDoc;
   if (c.ah?.nkda) {
     allergyText = isEn ? 'No known drug or food allergies (NKDA).' : 'حساسیت دارویی یا غذایی شناخته‌شده‌ای ذکر نمی‌کند (NKDA).';
   } else if (ahSel.length > 0) {
@@ -170,11 +187,40 @@ function collectSharedHistories(clinicalState, ob, isEn) {
     }).join(isEn ? ', ' : '، ');
   } else if (c.ah?.note && String(c.ah.note).trim()) {
     allergyText = isEn ? cleanEn(c.ah.note) : String(c.ah.note).trim();
-  } else {
-    allergyText = isEn ? 'Not documented.' : 'ثبت‌نشده.';
   }
 
-  return { pmhText, pshText, dhText, pahxText, allergyText };
+  // Optional SH & FH line
+  const shParts = [];
+  if (c.sh?.negSmoking && c.sh?.negOpium && c.sh?.negAlcohol) {
+    shParts.push(isEn ? 'Denies tobacco, opium, or alcohol use' : 'مصرف سیگار، مواد مخدر و الکل را ذکر نمی‌کند');
+  } else {
+    if (c.sh?.negSmoking) shParts.push(isEn ? 'Non-smoker' : 'عدم مصرف سیگار');
+    if (c.sh?.negOpium) shParts.push(isEn ? 'No opium use' : 'عدم مصرف تریاک/مخدر');
+    if (c.sh?.negAlcohol) shParts.push(isEn ? 'No alcohol use' : 'عدم مصرف الکل');
+  }
+  if (hasValue(c.sh?.note)) shParts.push(isEn ? cleanEn(c.sh.note) : String(c.sh.note).trim());
+
+  const fhParts = [];
+  if (c.fh?.negFamilyHistory || c.fh?.masterNeg) {
+    fhParts.push(isEn ? 'Denies significant family history' : 'سابقه بیماری ارثی یا سرطان خانوادگی ذکر نمی‌کند');
+  }
+  if (Array.isArray(c.fh?.diseases) && c.fh.diseases.length > 0) {
+    fhParts.push(c.fh.diseases.map((f) => (isEn ? cleanEn(f.name || f.en) : f.name)).filter(Boolean).join(isEn ? ', ' : '، '));
+  }
+  if (hasValue(c.fh?.note)) fhParts.push(isEn ? cleanEn(c.fh.note) : String(c.fh.note).trim());
+
+  const shFhParts = [];
+  if (shParts.length > 0) shFhParts.push(`**SH:** ${shParts.join(isEn ? '; ' : '؛ ')}`);
+  if (fhParts.length > 0) shFhParts.push(`**FH:** ${fhParts.join(isEn ? '; ' : '؛ ')}`);
+
+  return {
+    pmhText,
+    pshText,
+    dhText,
+    pahxText,
+    allergyText,
+    shFhText: shFhParts.join(' | ')
+  };
 }
 
 function buildHpiSymptomSentences(ob, isEn) {
@@ -208,7 +254,6 @@ function buildHpiSymptomSentences(ob, isEn) {
     }
   });
 
-  // Also include any custom symptoms stored outside the filtered bank
   Object.entries(symMap).forEach(([id, entry]) => {
     if (!entry || (entry.state !== 1 && entry.state !== -1)) return;
     if (bank.some((b) => b.id === id)) return;
@@ -240,29 +285,41 @@ function buildHpiSymptomSentences(ob, isEn) {
 function buildArchetypeChronologyProse(ob, isEn) {
   const hpi = ob.ccAndHpi || {};
   const list = ob.subMode === 'gynecology' ? OBGYN_GYN_ARCHETYPES : OBGYN_OBSTETRIC_ARCHETYPES;
-  const arch = list.find((a) => a.id === hpi.selectedArchetype);
-  const fields = hpi.archetypeFields || {};
+  const presentations = Array.isArray(hpi.presentations) && hpi.presentations.length > 0
+    ? hpi.presentations
+    : (hpi.selectedArchetype
+        ? [{ id: `legacy_${hpi.selectedArchetype}`, archetypeId: hpi.selectedArchetype, fields: hpi.archetypeFields || {} }]
+        : []);
 
-  const parts = [];
-  if (arch) {
+  const paragraphs = [];
+  presentations.forEach((pres, pIdx) => {
+    const arch = list.find((a) => a.id === pres.archetypeId);
+    if (!arch) return;
+    const fields = pres.fields || {};
     const details = (arch.fields || []).map((f) => {
       const val = fields[f.key];
-      if (!val || !String(val).trim()) return '';
+      if (!hasValue(val)) return '';
       const fLabel = isEn ? f.en : f.fa;
       const vLabel = getFieldOptionLabel(list, arch.id, f.key, val, isEn);
-      return `${fLabel}: ${vLabel}`;
+      return vLabel ? `${fLabel}: ${vLabel}` : '';
     }).filter(Boolean);
 
+    const archName = isEn ? arch.en : arch.fa;
     if (details.length > 0) {
-      parts.push(isEn
-        ? `Regarding the primary presentation (${arch.en}), clinical details include ${details.join('; ')}.`
-        : `در شرح وضعیت فعلی (${arch.fa})، جزئیات بالینی شامل ${details.join('؛ ')} است.`);
+      paragraphs.push(isEn
+        ? `${pIdx === 0 ? 'Regarding' : 'Additionally, regarding'} **${archName}**, clinical chronology includes ${details.join('; ')}.`
+        : `${pIdx === 0 ? 'در بررسی' : 'همچنین در خصوص'} **${archName}**، جزئیات بالینی شامل ${details.join('؛ ')} است.`);
+    } else {
+      paragraphs.push(isEn
+        ? `${pIdx === 0 ? 'The primary presenting problem involves' : 'In addition, the patient presents with'} **${archName}**.`
+        : `${pIdx === 0 ? 'تظاهر اصلی بیماری به صورت' : 'همچنین همزمان تابلوی'} **${archName}** مطرح است.`);
     }
+  });
+
+  if (hasValue(hpi.narrativeExtra)) {
+    paragraphs.push(isEn ? cleanEn(hpi.narrativeExtra) : String(hpi.narrativeExtra).trim());
   }
-  if (hpi.narrativeExtra && String(hpi.narrativeExtra).trim()) {
-    parts.push(isEn ? cleanEn(hpi.narrativeExtra) : String(hpi.narrativeExtra).trim());
-  }
-  return parts.join(' ');
+  return paragraphs.join('\n\n');
 }
 
 function buildAdcaOrdersLines(adca, isEn) {
@@ -283,12 +340,15 @@ function buildAdcaOrdersLines(adca, isEn) {
   ];
   const lines = [];
   fields.forEach(([letter, title, raw]) => {
-    if (!raw || !String(raw).trim()) return;
+    if (!hasValue(raw)) return;
     const text = isEn ? cleanEn(raw, String(raw).trim()) : String(raw).trim();
-    lines.push(`- **${letter} (${title}):** ${text.replace(/\n+/g, ' | ')}`);
+    if (text) lines.push(`- **${letter} (${title}):** ${text.replace(/\n+/g, ' | ')}`);
   });
-  if (lines.length > 0 && (adca.physicianName || adca.dateTime)) {
-    const sig = [adca.physicianName ? (isEn ? cleanEn(adca.physicianName) : adca.physicianName) : '', adca.dateTime || ''].filter(Boolean).join(' — ');
+  if (lines.length > 0 && (hasValue(adca.physicianName) || hasValue(adca.dateTime))) {
+    const sig = [
+      hasValue(adca.physicianName) ? (isEn ? cleanEn(adca.physicianName) : adca.physicianName) : '',
+      hasValue(adca.dateTime) ? (isEn ? cleanEn(adca.dateTime) : adca.dateTime) : ''
+    ].filter(Boolean).join(' — ');
     if (sig) lines.push(isEn ? `- **Order Sign-Off:** ${sig}` : `- **امضا و زمان ثبت دستورات:** ${sig}`);
   }
   return lines;
@@ -302,7 +362,9 @@ function buildPeFindingsByGroups(ob, groupOrder, isEn, excludeInternalIfVirgin =
   const lines = [];
   groupOrder.forEach((grp) => {
     const items = OBGYN_PE_BANK.filter((it) =>
-      (it.subMode === 'both' || it.subMode === sub) && it.subGroup === grp
+      !OBGYN_STRUCTURED_PE_IDS.has(it.id) &&
+      (it.subMode === 'both' || it.subMode === sub) &&
+      it.subGroup === grp
     );
     if (items.length === 0) return;
 
@@ -311,7 +373,7 @@ function buildPeFindingsByGroups(ob, groupOrder, isEn, excludeInternalIfVirgin =
     items.forEach((it) => {
       if (excludeInternalIfVirgin && isVirgin && it.isInternalPelvic) return;
       const entry = findings[it.id];
-      if (!entry || (entry.state !== 1 && entry.state !== -1)) return; // Strict Not Assessed != Negative
+      if (!entry || (entry.state !== 1 && entry.state !== -1)) return;
       const name = isEn ? it.en : it.fa;
       const det = entry.detail && String(entry.detail).trim()
         ? (isEn ? cleanEn(entry.detail) : String(entry.detail).trim())
@@ -330,6 +392,29 @@ function buildPeFindingsByGroups(ob, groupOrder, isEn, excludeInternalIfVirgin =
   return lines;
 }
 
+function buildDemographicHeader(d, formula, dateDisplay, isEn) {
+  const patientName = hasValue(d.fullName)
+    ? (isEn ? cleanEn(d.fullName, 'Unnamed Patient') : String(d.fullName).trim())
+    : (isEn ? 'Unnamed Patient' : 'نام ثبت‌نشده');
+  const age = normalizeDigits(d.age || '');
+  const parts = isEn
+    ? [
+        `Patient: **${patientName}**`,
+        age ? `Age: **${age} y/o**` : '',
+        'Sex: **Female**',
+        formula ? `Index: **${formula}**` : '',
+        `Date: **${dateDisplay}**`
+      ]
+    : [
+        `نام بیمار: **${patientName}**`,
+        age ? `سن: **${age} ساله**` : '',
+        'جنس: **خانم**',
+        formula ? `فرمول مامایی: **${formula}**` : '',
+        `تاریخ: **${dateDisplay}**`
+      ];
+  return `> ${parts.filter(Boolean).join(' | ')}`;
+}
+
 function generateObstetricsNote(clinicalState, ob, isEn) {
   const d = clinicalState.demographics || {};
   const idx = ob.obstetricIndex || {};
@@ -337,31 +422,77 @@ function generateObstetricsNote(clinicalState, ob, isEn) {
   const hpi = ob.ccAndHpi || {};
   const shared = collectSharedHistories(clinicalState, ob, isEn);
 
-  const patientName = isEn ? cleanEn(d.fullName, 'Unnamed Patient') : (d.fullName || 'بیمار بدون نام');
-  const age = normalizeDigits(d.age || '') || '—';
-  const ccText = isEn
-    ? cleanEn(hpi.ccText || clinicalState.cc?.patientQuote, 'Obstetric evaluation')
-    : (hpi.ccText || clinicalState.cc?.patientQuote || 'مراجعه جهت ارزیابی مامایی');
-  const duration = isEn ? cleanEn(hpi.duration, 'recent onset') : (hpi.duration || 'اخیر');
+  const age = normalizeDigits(d.age || '');
+  const ccRaw = hasValue(hpi.ccText) ? hpi.ccText : (hasValue(clinicalState.cc?.patientQuote) ? clinicalState.cc.patientQuote : '');
+  const ccText = hasValue(ccRaw) ? (isEn ? cleanEn(ccRaw) : String(ccRaw).trim()) : '';
+  const durRaw = hasValue(hpi.duration) ? (isEn ? cleanEn(hpi.duration) : String(hpi.duration).trim()) : '';
 
   const formula = formatObstetricFormula(idx, 'obstetrics');
-  const nd = idx.ND !== '' && idx.ND !== null && idx.ND !== undefined ? idx.ND : '0';
-  const cs = idx.CS !== '' && idx.CS !== null && idx.CS !== undefined ? idx.CS : '0';
-  const csIndStr = Number(cs) > 0 && idx.priorCsIndications
+  const hasNdCs = hasValue(idx.ND) || hasValue(idx.CS);
+  const nd = hasValue(idx.ND) ? String(idx.ND).trim() : '0';
+  const cs = hasValue(idx.CS) ? String(idx.CS).trim() : '0';
+  const csIndStr = Number(cs) > 0 && hasValue(idx.priorCsIndications)
     ? (isEn ? ` due to ${cleanEn(idx.priorCsIndications)}` : ` به علت ${idx.priorCsIndications}`)
     : '';
-  const bgRh = idx.maternalBgRh || (isEn ? 'Pending' : 'نامشخص');
+  const bgRh = hasValue(idx.maternalBgRh) ? idx.maternalBgRh : '';
 
   const gaCalc = calculateTripleGestationalAge(gd);
-  const ntStr = gaCalc.gaByNt ? `GA = ${gaCalc.gaByNt.code}` : (isEn ? 'Not recorded' : 'ثبت‌نشده');
-  const lmpStr = gaCalc.gaByLmp ? `GA = ${gaCalc.gaByLmp.code}` : (gd.isReliableLmp === false ? (isEn ? 'Unreliable LMP' : 'LMP نامطمئن') : (isEn ? 'Not recorded' : 'ثبت‌نشده'));
-  const lastSonoStr = gaCalc.gaByLastSono ? `GA = ${gaCalc.gaByLastSono.code}` : (isEn ? 'Not recorded' : 'ثبت‌نشده');
-  const eddStr = gaCalc.officialEdd || (isEn ? '—' : '—');
+  const gaClausesFa = [];
+  const gaClausesEn = [];
+  if (gaCalc.gaByNt) {
+    gaClausesFa.push(`**GA = ${gaCalc.gaByNt.code}** بر اساس سونوگرافی NT`);
+    gaClausesEn.push(`**GA = ${gaCalc.gaByNt.code}** by first-trimester NT ultrasound`);
+  }
+  if (gaCalc.gaByLmp) {
+    gaClausesFa.push(`**GA = ${gaCalc.gaByLmp.code}** بر اساس LMP (${gd.lmpDate})`);
+    gaClausesEn.push(`**GA = ${gaCalc.gaByLmp.code}** by LMP (${cleanEn(gd.lmpDate)})`);
+  } else if (gd.isReliableLmp === false && hasValue(gd.lmpDate)) {
+    gaClausesFa.push(`LMP نامطمئن (${gd.lmpDate})`);
+    gaClausesEn.push(`unreliable LMP (${cleanEn(gd.lmpDate)})`);
+  }
+  if (gaCalc.gaByLastSono) {
+    gaClausesFa.push(`**GA = ${gaCalc.gaByLastSono.code}** بر اساس آخرین سونوگرافی (${gd.lastSonoDate})`);
+    gaClausesEn.push(`**GA = ${gaCalc.gaByLastSono.code}** by last ultrasound (${cleanEn(gd.lastSonoDate)})`);
+  }
 
-  // Opening Sentence (Section 2.4 Formula)
-  const openingSentence = isEn
-    ? `The patient is a ${age}-year-old **${formula}** woman (history of **${nd}** prior normal vaginal deliveries [ND] and **${cs}** cesarean sections [CS]${csIndStr}), blood group **${bgRh}**, at a gestational age of **${ntStr}** by first-trimester NT ultrasound, **${lmpStr}** by LMP (${gd.lmpDate || '—'}), and **${lastSonoStr}** by last ultrasound (${gd.lastSonoDate || '—'}) (Official EDD: **${eddStr}**), who presents with ${ccText} starting ${duration} prior to arrival.`
-    : `بیمار خانم ${age} ساله، **${formula}** (با سابقه **${nd}** زایمان طبیعی [ND] و **${cs}** سزارین [CS]${csIndStr})، گروه خونی **${bgRh}**، با سن بارداری **${ntStr}** بر اساس سونوگرافی NT، **${lmpStr}** بر اساس LMP (${gd.lmpDate || '—'})، و **${lastSonoStr}** بر اساس آخرین سونوگرافی (${gd.lastSonoDate || '—'}) (EDD رسمی: **${eddStr}**) می‌باشد که از ${duration} قبل با شکایت «${ccText}» به این مرکز مراجعه کرده است.`;
+  // Piece-by-piece conditional opening sentence (Zero broken placeholders!)
+  let openingSentence = '';
+  if (isEn) {
+    const subjectParts = [
+      age ? `The patient is a ${age}-year-old` : 'The patient is an adult',
+      formula ? `**${formula}**` : '',
+      'female patient',
+      hasNdCs ? `(history of **${nd}** prior NVD and **${cs}** CS${csIndStr})` : '',
+      bgRh ? `blood group **${bgRh}**` : ''
+    ].filter(Boolean).join(' ');
+
+    const gaSegment = gaClausesEn.length > 0
+      ? `, at ${gaClausesEn.join(', ')}${gaCalc.officialEdd ? ` (Official EDD: **${gaCalc.officialEdd}**)` : ''}`
+      : '';
+
+    const tailSegment = ccText
+      ? `, presenting${durRaw ? ` ${durRaw} prior to arrival` : ''} with a chief complaint of "${ccText}".`
+      : `${durRaw ? `, presenting ${durRaw} prior to arrival` : ''} for obstetric admission and evaluation.`;
+
+    openingSentence = `${subjectParts}${gaSegment}${tailSegment}`;
+  } else {
+    const subjectParts = [
+      age ? `بیمار خانم ${age} ساله` : 'بیمار خانم',
+      formula ? `**${formula}**` : '',
+      hasNdCs ? `(با سابقه **${nd}** زایمان طبیعی [ND] و **${cs}** سزارین [CS]${csIndStr})` : '',
+      bgRh ? `گروه خونی **${bgRh}**` : ''
+    ].filter(Boolean).join('، ');
+
+    const gaSegment = gaClausesFa.length > 0
+      ? `، با سن بارداری ${gaClausesFa.join('، ')}${gaCalc.officialEdd ? ` (EDD رسمی: **${gaCalc.officialEdd}**)` : ''}`
+      : '';
+
+    const tailSegment = ccText
+      ? ` می‌باشد که${durRaw ? ` از ${durRaw} قبل` : ''} با شکایت «${ccText}» به این مرکز مراجعه کرده است.`
+      : ` می‌باشد که${durRaw ? ` از ${durRaw} قبل` : ''} جهت ارزیابی و اقدامات مامایی پذیرش شده است.`;
+
+    openingSentence = `${subjectParts}${gaSegment}${tailSegment}`;
+  }
 
   const archProse = buildArchetypeChronologyProse(ob, isEn);
   const symProse = buildHpiSymptomSentences(ob, isEn);
@@ -382,10 +513,10 @@ function generateObstetricsNote(clinicalState, ob, isEn) {
 
   const pregRows = (poh.pregnancies || []).map((p, idxRow) => {
     const out = isEn ? cleanEn(p.outcomeType, p.outcomeType) : p.outcomeType;
-    const ga = p.gaAtOutcomeWeeks ? `${p.gaAtOutcomeWeeks}w` : '';
-    const wt = p.birthWeightGrams ? `${p.birthWeightGrams}g` : '';
-    const reason = p.csIndicationOrLossMethod ? (isEn ? cleanEn(p.csIndicationOrLossMethod) : p.csIndicationOrLossMethod) : '';
-    const yr = p.yearOrChildAge ? (isEn ? cleanEn(p.yearOrChildAge) : p.yearOrChildAge) : '';
+    const ga = hasValue(p.gaAtOutcomeWeeks) ? `${p.gaAtOutcomeWeeks}w` : '';
+    const wt = hasValue(p.birthWeightGrams) ? `${p.birthWeightGrams}g` : '';
+    const reason = hasValue(p.csIndicationOrLossMethod) ? (isEn ? cleanEn(p.csIndicationOrLossMethod) : p.csIndicationOrLossMethod) : '';
+    const yr = hasValue(p.yearOrChildAge) ? (isEn ? cleanEn(p.yearOrChildAge) : p.yearOrChildAge) : '';
     return `G${p.orderNumber || idxRow + 1}: ${[yr, out, ga, wt, reason].filter(Boolean).join(', ')}`;
   });
 
@@ -404,149 +535,170 @@ function generateObstetricsNote(clinicalState, ob, isEn) {
     }
   }
 
-  // Rh follow-up if Rh negative
-  const rhNote = /[-−]/.test(idx.maternalBgRh || '') && (idx.paternalBgRh || idx.indirectCoombsRhogam)
+  const rhNote = /[-−]/.test(idx.maternalBgRh || '') && (hasValue(idx.paternalBgRh) || hasValue(idx.indirectCoombsRhogam))
     ? (isEn
-        ? `Paternal Blood Group: ${idx.paternalBgRh || '—'}; Indirect Coombs / RhoGAM: ${cleanEn(idx.indirectCoombsRhogam, '—')}.`
-        : `گروه خونی همسر: ${idx.paternalBgRh || '—'}؛ وضعیت کومبس غیرمستقیم / روگام: ${idx.indirectCoombsRhogam || '—'}.`)
+        ? `Paternal Blood Group: ${idx.paternalBgRh || 'Pending'}; Indirect Coombs / RhoGAM: ${cleanEn(idx.indirectCoombsRhogam, 'Pending')}.`
+        : `گروه خونی همسر: ${idx.paternalBgRh || 'نامشخص'}؛ وضعیت کومبس غیرمستقیم / روگام: ${idx.indirectCoombsRhogam || 'ثبت نشده'}.`)
     : '';
 
-  // 8. Last Obstetric Ultrasound (6 Checkpoints) + Antenatal Audit + NST
+  // 8. Last Obstetric Ultrasound, Antenatal Screening, Admission Labs & NST
   const us = ob.paraclinics?.lastObstetricUltrasound || {};
   const usLines = [
-    us.presentation ? (isEn ? `- **Fetal Presentation:** ${cleanEn(us.presentation)}` : `- **پرزانتاسیون جنین:** ${us.presentation}`) : '',
-    us.placentalLocationAndGrade ? (isEn ? `- **Placental Location:** ${cleanEn(us.placentalLocationAndGrade)}` : `- **محل جفت:** ${us.placentalLocationAndGrade}`) : '',
-    us.amnioticFluidVolume ? (isEn ? `- **Amniotic Fluid Volume:** ${cleanEn(us.amnioticFluidVolume)}` : `- **میزان مایع آمنیوتیک:** ${us.amnioticFluidVolume}`) : '',
-    us.sonographicGa ? (isEn ? `- **Sonographic GA:** ${cleanEn(us.sonographicGa)}` : `- **سن بارداری سونوگرافی:** ${us.sonographicGa}`) : '',
-    us.efwGramsAndPercentile ? (isEn ? `- **Estimated Fetal Weight (EFW):** ${cleanEn(us.efwGramsAndPercentile)}` : `- **وزن تخمینی جنین و صدک:** ${us.efwGramsAndPercentile}`) : '',
-    us.placentaAccretaColorDoppler ? (isEn ? `- **Placenta Accreta Color Doppler:** ${cleanEn(us.placentaAccretaColorDoppler)}` : `- **نتیجه کالرداپلر آکرتای جفت:** ${us.placentaAccretaColorDoppler}`) : '',
-    us.bppScore || us.umbilicalAndMcaDoppler || us.cervicalLengthMm
+    hasValue(us.presentation) ? (isEn ? `- **Fetal Presentation:** ${cleanEn(us.presentation)}` : `- **پرزانتاسیون جنین:** ${us.presentation}`) : '',
+    hasValue(us.placentalLocationAndGrade) ? (isEn ? `- **Placental Location:** ${cleanEn(us.placentalLocationAndGrade)}` : `- **محل جفت:** ${us.placentalLocationAndGrade}`) : '',
+    hasValue(us.amnioticFluidVolume) ? (isEn ? `- **Amniotic Fluid Volume:** ${cleanEn(us.amnioticFluidVolume)}` : `- **میزان مایع آمنیوتیک:** ${us.amnioticFluidVolume}`) : '',
+    hasValue(us.sonographicGa) ? (isEn ? `- **Sonographic GA:** ${cleanEn(us.sonographicGa)}` : `- **سن بارداری سونوگرافی:** ${us.sonographicGa}`) : '',
+    hasValue(us.efwGramsAndPercentile) ? (isEn ? `- **Estimated Fetal Weight (EFW):** ${cleanEn(us.efwGramsAndPercentile)}` : `- **وزن تخمینی جنین و صدک:** ${us.efwGramsAndPercentile}`) : '',
+    hasValue(us.placentaAccretaColorDoppler) ? (isEn ? `- **Placenta Accreta Color Doppler:** ${cleanEn(us.placentaAccretaColorDoppler)}` : `- **نتیجه کالرداپلر آکرتای جفت:** ${us.placentaAccretaColorDoppler}`) : '',
+    (hasValue(us.bppScore) || hasValue(us.umbilicalAndMcaDoppler) || hasValue(us.cervicalLengthMm))
       ? (isEn
           ? `- **BPP / Doppler / CL:** ${[us.bppScore ? `BPP ${us.bppScore}` : '', cleanEn(us.umbilicalAndMcaDoppler), us.cervicalLengthMm ? `CL ${us.cervicalLengthMm}` : ''].filter(Boolean).join(' | ')}`
           : `- **BPP / داپلر / طول سرویکس:** ${[us.bppScore ? `BPP ${us.bppScore}` : '', us.umbilicalAndMcaDoppler, us.cervicalLengthMm ? `CL ${us.cervicalLengthMm}` : ''].filter(Boolean).join(' | ')}`)
       : ''
   ].filter(Boolean);
 
-  // Antenatal Screening Audit
   const ac = ob.antenatalCareChecklist || {};
   const acAuditParts = [
-    ac.careRegularity ? (isEn ? cleanEn(ac.careRegularity) : ac.careRegularity) : '',
-    ac.firstTrimesterScreening?.ntScanDone ? (isEn ? `1st-Trimester NT: ${ac.firstTrimesterScreening.ntMeasurementMm || 'Done'} mm, NB: ${cleanEn(ac.firstTrimesterScreening.nasalBone, '—')}, Risk: ${ac.firstTrimesterScreening.doubleMarkerRisk || '—'}` : `غربالگری سه‌ماهه اول: NT=${ac.firstTrimesterScreening.ntMeasurementMm || 'انجام شده'}mm، NB: ${ac.firstTrimesterScreening.nasalBone || '—'}، ریسک: ${ac.firstTrimesterScreening.doubleMarkerRisk || '—'}`) : '',
+    hasValue(ac.careRegularity) ? (isEn ? cleanEn(ac.careRegularity) : ac.careRegularity) : '',
+    ac.firstTrimesterScreening?.ntScanDone ? (isEn ? `1st-Trimester NT: ${ac.firstTrimesterScreening.ntMeasurementMm || 'Done'}, Risk: ${ac.firstTrimesterScreening.doubleMarkerRisk || 'Done'}` : `غربالگری سه‌ماهه اول: NT=${ac.firstTrimesterScreening.ntMeasurementMm || 'انجام شده'}، ریسک: ${ac.firstTrimesterScreening.doubleMarkerRisk || 'ثبت شده'}`) : '',
     ac.secondTrimesterScreening?.anomalyScanDone ? (isEn ? `Anomaly scan: ${cleanEn(ac.secondTrimesterScreening.anomalyScanResult, 'Done')}` : `آنومالی اسکن: ${ac.secondTrimesterScreening.anomalyScanResult || 'انجام شده'}`) : '',
-    ac.secondTrimesterScreening?.amniocentesisOrNipt ? (isEn ? `Amniocentesis/NIPT: ${cleanEn(ac.secondTrimesterScreening.amniocentesisOrNipt)}` : `آمنیوسنتز/NIPT: ${ac.secondTrimesterScreening.amniocentesisOrNipt}`) : '',
-    ac.routineAntenatalLabsAudit?.gdmScreening75gOgtt ? (isEn ? `OGTT: ${cleanEn(ac.routineAntenatalLabsAudit.gdmScreening75gOgtt)}` : `OGTT: ${ac.routineAntenatalLabsAudit.gdmScreening75gOgtt}`) : '',
-    ac.routineAntenatalLabsAudit?.hemoglobinAndAnemia ? (isEn ? `Hb/Anemia: ${cleanEn(ac.routineAntenatalLabsAudit.hemoglobinAndAnemia)}` : `هموگلوبین/آنمی: ${ac.routineAntenatalLabsAudit.hemoglobinAndAnemia}`) : '',
-    ac.routineAntenatalLabsAudit?.plateletCount ? (isEn ? `Platelets: ${cleanEn(ac.routineAntenatalLabsAudit.plateletCount)}` : `پلاکت: ${ac.routineAntenatalLabsAudit.plateletCount}`) : '',
-    ac.routineAntenatalLabsAudit?.viralMarkers ? (isEn ? `Viral Markers: ${cleanEn(ac.routineAntenatalLabsAudit.viralMarkers)}` : `ویرال مارکرها: ${ac.routineAntenatalLabsAudit.viralMarkers}`) : '',
-    ac.notableSonographicFindingsInPregnancy?.uterineFibroids ? (isEn ? `Fibroids: ${cleanEn(ac.notableSonographicFindingsInPregnancy.uterineFibroids)}` : `فیبروم: ${ac.notableSonographicFindingsInPregnancy.uterineFibroids}`) : '',
-    ac.notableSonographicFindingsInPregnancy?.placentaPreviaHistory ? (isEn ? `Previa Hx: ${cleanEn(ac.notableSonographicFindingsInPregnancy.placentaPreviaHistory)}` : `سابقه جفت پرویا: ${ac.notableSonographicFindingsInPregnancy.placentaPreviaHistory}`) : ''
+    hasValue(ac.routineAntenatalLabsAudit?.gdmScreening75gOgtt) ? `OGTT: ${isEn ? cleanEn(ac.routineAntenatalLabsAudit.gdmScreening75gOgtt) : ac.routineAntenatalLabsAudit.gdmScreening75gOgtt}` : '',
+    hasValue(ac.routineAntenatalLabsAudit?.viralMarkers) ? (isEn ? `Viral Markers: ${cleanEn(ac.routineAntenatalLabsAudit.viralMarkers)}` : `ویرال مارکرها: ${ac.routineAntenatalLabsAudit.viralMarkers}`) : '',
+    hasValue(ac.routineAntenatalLabsAudit?.gbsSwab35to37w) ? `GBS: ${isEn ? cleanEn(ac.routineAntenatalLabsAudit.gbsSwab35to37w) : ac.routineAntenatalLabsAudit.gbsSwab35to37w}` : ''
   ].filter(Boolean);
 
-  // NST / Fetal Monitoring (5-step PDF 4 Slide 33)
   const fm = ob.paraclinics?.fetalMonitoring || {};
   let nstLine = '';
-  if (fm.baselineBpm || fm.variability || fm.accelerations || (fm.decelerations?.type && fm.decelerations.type !== 'None')) {
+  if (hasValue(fm.baselineBpm) || hasValue(fm.variability) || hasValue(fm.accelerations) || (fm.decelerations?.type && fm.decelerations.type !== 'None')) {
     const nichd = evaluateNichdCategory(fm);
     const dec = fm.decelerations || {};
     const decStr = dec.type && dec.type !== 'None'
       ? `${dec.type}${dec.isRecurrent ? (isEn ? ' (Recurrent)' : ' (راجعه)') : ''}${dec.cordCompressionPatternVariant && dec.cordCompressionPatternVariant !== 'None' ? ` [${dec.cordCompressionPatternVariant}]` : ''}`
       : (isEn ? 'No decelerations' : 'فاقد افت ضربان');
     nstLine = isEn
-      ? `- **${fm.testType || 'NST'} (5-Step EFM):** Baseline ${fm.baselineBpm || '—'} bpm, Variability: ${fm.variability || '—'}, Accelerations: ${cleanEn(fm.accelerations, '—')}, Decelerations: ${decStr}, Contractions: ${cleanEn(fm.contractionsIn10Min, '—')} — **${fm.nichdCategory || nichd.labelEn}**`
-      : `- **${fm.testType || 'NST'} (تفسیر ۵ مرحله‌ای):** پایه (Baseline): ${fm.baselineBpm || '—'} bpm، تغییرپذیری (Variability): ${fm.variability || '—'}، تسریع (Accelerations): ${fm.accelerations || '—'}، افت ضربان (Decelerations): ${decStr}، انقباضات: ${fm.contractionsIn10Min || '—'} — **${fm.nichdCategory || nichd.labelFa}**`;
+      ? `- **${fm.testType || 'NST'} (5-Step EFM):** Baseline ${fm.baselineBpm || 'Pending'} bpm${fm.variability ? `, Variability: ${fm.variability}` : ''}${hasValue(fm.accelerations) ? `, Accelerations: ${cleanEn(fm.accelerations)}` : ''}, Decelerations: ${decStr}${hasValue(fm.contractionsIn10Min) ? `, Contractions: ${cleanEn(fm.contractionsIn10Min)}` : ''} — **${fm.nichdCategory || nichd.labelEn}**`
+      : `- **${fm.testType || 'NST'} (تفسیر ۵ مرحله‌ای):** پایه (Baseline): ${fm.baselineBpm || 'نامشخص'} bpm${fm.variability ? `، تغییرپذیری: ${fm.variability}` : ''}${hasValue(fm.accelerations) ? `، تسریع: ${fm.accelerations}` : ''}، افت ضربان: ${decStr}${hasValue(fm.contractionsIn10Min) ? `، انقباضات: ${fm.contractionsIn10Min}` : ''} — **${fm.nichdCategory || nichd.labelFa}**`;
   }
 
-  // Key Labs
   const kl = ob.paraclinics?.keyLabs || {};
   const labItems = [
-    kl.bhcg ? `β-hCG: ${kl.bhcg}` : '',
-    kl.wbc ? `WBC: ${kl.wbc}` : '',
-    kl.hb ? `Hb: ${kl.hb}` : '',
-    kl.plt ? `Plt: ${kl.plt}` : '',
-    kl.cr ? `Cr: ${kl.cr}` : '',
-    kl.ast ? `AST: ${kl.ast}` : '',
-    kl.alt ? `ALT: ${kl.alt}` : '',
-    kl.ldh ? `LDH: ${kl.ldh}` : '',
-    kl.urinePrCr ? `Urine Pr/Cr: ${kl.urinePrCr}` : '',
-    kl.ptInr ? `PT/INR: ${kl.ptInr}` : '',
-    kl.tsh ? `TSH: ${kl.tsh}` : '',
-    kl.ogtt75 ? `OGTT 75g: ${kl.ogtt75}` : ''
+    hasValue(kl.bhcg) ? `β-hCG: ${kl.bhcg}` : '',
+    hasValue(kl.wbc) ? `WBC: ${kl.wbc}` : '',
+    hasValue(kl.hb) ? `Hb: ${kl.hb}` : '',
+    hasValue(kl.plt) ? `Plt: ${kl.plt}` : '',
+    hasValue(kl.cr) ? `Cr: ${kl.cr}` : '',
+    hasValue(kl.ast) ? `AST: ${kl.ast}` : '',
+    hasValue(kl.alt) ? `ALT: ${kl.alt}` : '',
+    hasValue(kl.ldh) ? `LDH: ${kl.ldh}` : '',
+    hasValue(kl.urinePrCr) ? `Urine Pr/Cr: ${kl.urinePrCr}` : '',
+    hasValue(kl.ptInr) ? `PT/INR: ${kl.ptInr}` : '',
+    hasValue(kl.tsh) ? `TSH: ${kl.tsh}` : '',
+    hasValue(kl.ogtt75) ? `OGTT 75g: ${kl.ogtt75}` : '',
+    hasValue(kl.viralMarkers) ? `Viral: ${isEn ? cleanEn(kl.viralMarkers) : kl.viralMarkers}` : '',
+    hasValue(kl.indirectCoombs) ? `Indirect Coombs: ${isEn ? cleanEn(kl.indirectCoombs) : kl.indirectCoombs}` : '',
+    hasValue(kl.gbs) ? `GBS: ${isEn ? cleanEn(kl.gbs) : kl.gbs}` : ''
   ].filter(Boolean);
 
   // 9. Vitals
   const v = ob.pe?.vitals || {};
   const vitalsLine = [
-    v.bp ? `BP: ${v.bp}${v.bpRepeat ? ` (${isEn ? 'Repeat' : 'تکرار'}: ${v.bpRepeat})` : ''}` : '',
-    v.pr ? `PR: ${v.pr}` : '',
-    v.rr ? `RR: ${v.rr}` : '',
-    v.temp ? `T: ${v.temp}` : '',
-    v.urineDipstick ? `Urine Dipstick: ${v.urineDipstick}` : ''
+    hasValue(v.bp) ? `BP: ${v.bp}${hasValue(v.bpRepeat) ? ` (${isEn ? 'Repeat' : 'تکرار'}: ${v.bpRepeat})` : ''}` : '',
+    hasValue(v.pr) ? `PR: ${v.pr}` : '',
+    hasValue(v.rr) ? `RR: ${v.rr}` : '',
+    hasValue(v.temp) ? `T: ${v.temp}` : '',
+    hasValue(v.urineDipstick) ? `Urine Dipstick: ${v.urineDipstick}` : ''
   ].filter(Boolean).join(' | ');
 
-  // 10. Obstetric Abdomen, FHR & FH
+  // 10. Obstetric Abdomen & Leopold + DTR/Edema
   const om = ob.pe?.obsMeasurements || {};
   const fhrFhParts = [
-    om.fhr ? `FHR: ${om.fhr} bpm${om.fhrQuadrant ? ` (${om.fhrQuadrant})` : ''}` : '',
-    om.fundalHeightCm ? `${isEn ? 'Fundal Height (FH)' : 'ارتفاع رحم (FH)'}: ${om.fundalHeightCm} cm` : ''
+    hasValue(om.fhr) ? `FHR: ${om.fhr} bpm${om.fhrQuadrant ? ` (${om.fhrQuadrant})` : ''}` : '',
+    hasValue(om.fundalHeightCm) ? `${isEn ? 'Fundal Height (FH)' : 'ارتفاع رحم (FH)'}: ${om.fundalHeightCm} cm` : ''
   ].filter(Boolean);
 
   const peAbdomenAndExtLines = buildPeFindingsByGroups(ob, [
+    'مانورهای لئوپولد و لمس شکم حاملگی',
     'معاینه شکم حاملگی و سمع FHR',
+    'معاینه اندام‌ها، ادم و رفلکس‌ها (DTR)',
     'معاینه اندام‌ها و رفلکس‌ها (DTR)'
   ], isEn, false);
 
-  // 11. TV & Pelvimetry + Bishop Score
+  // 11. TV & Pelvimetry & Speculum
   const tvParts = [
-    om.dilationCm !== '' && om.dilationCm !== undefined ? `${isEn ? 'Dilation' : 'دیلاتاسیون'}: ${om.dilationCm} cm` : '',
-    om.effacementPct !== '' && om.effacementPct !== undefined ? `${isEn ? 'Effacement' : 'افاسمان'}: ${om.effacementPct}%` : '',
-    om.stationValue !== '' && om.stationValue !== undefined ? `Station (${om.stationScale === '3' ? '-3..+3' : '-5..+5'}): ${om.stationValue}` : '',
-    om.presentingPart ? `${isEn ? 'Presenting Part' : 'عضو پرزانته'}: ${isEn ? cleanEn(om.presentingPart) : om.presentingPart}` : '',
-    om.membranesStatus ? `${isEn ? 'Membranes' : 'وضعیت پرده‌ها'}: ${isEn ? cleanEn(om.membranesStatus) : om.membranesStatus}${om.amnioticFluidChar ? ` (${isEn ? cleanEn(om.amnioticFluidChar) : om.amnioticFluidChar})` : ''}` : ''
+    hasValue(om.dilationCm) ? `${isEn ? 'Dilation' : 'دیلاتاسیون'}: ${om.dilationCm} cm` : '',
+    hasValue(om.effacementPct) ? `${isEn ? 'Effacement' : 'افاسمان'}: ${om.effacementPct}%` : '',
+    hasValue(om.stationValue) ? `Station (${om.stationScale === '3' ? '-3..+3' : '-5..+5'}): ${om.stationValue}` : '',
+    hasValue(om.presentingPart) ? `${isEn ? 'Presenting Part' : 'عضو پرزانته'}: ${isEn ? cleanEn(om.presentingPart) : om.presentingPart}` : '',
+    hasValue(om.membranesStatus) ? `${isEn ? 'Membranes' : 'وضعیت پرده‌ها'}: ${isEn ? cleanEn(om.membranesStatus) : om.membranesStatus}${hasValue(om.amnioticFluidChar) ? ` (${isEn ? cleanEn(om.amnioticFluidChar) : om.amnioticFluidChar})` : ''}` : ''
   ].filter(Boolean);
 
   const bishop = calculateBishopScore(om);
   const tvPeLines = idx.isVirgin
-    ? [isEn ? '- **Pelvic / TV Exam:** Patient is Virgin; digital vaginal and speculum exams deferred.' : '- **معاینه واژینال:** با توجه به Virgin بودن بیمار، معاینه با اسپکولوم و توشه واژینال (TV) انجام نشد.']
-    : buildPeFindingsByGroups(ob, ['معاینه واژینال مامایی (TV) و لگن'], isEn, true);
+    ? [isEn ? '- **Pelvic / TV Exam:** Patient is Virgin; internal speculum and digital vaginal exams deferred.' : '- **معاینه واژینال و اسپکولوم:** با توجه به Virgin بودن بیمار، معاینه داخلی و توشه واژینال (TV) انجام نشد.']
+    : buildPeFindingsByGroups(ob, [
+        'پلویمتری بالینی (Clinical Pelvimetry)',
+        'معاینه واژینال مامایی (TV) و لگن',
+        'معاینه با اسپکولوم و ژنیتال خارجی'
+      ], isEn, true);
 
-  // 12. DDx & 13. Plan + ADCA VAN DIMLS
+  // 12. DDx & 13. Plan
   const ap = ob.assessmentAndPlan || {};
   const ddxList = [
     ...(Array.isArray(ap.ddx) ? ap.ddx.map((x) => (isEn ? cleanEn(x) : x)) : []),
     ...(ap.ddxCustom ? ap.ddxCustom.split(/\n+/).map((x) => (isEn ? cleanEn(x) : x.trim())).filter(Boolean) : [])
-  ];
+  ].filter(Boolean);
   const orderLines = buildAdcaOrdersLines(ap.adcaVanDimls, isEn);
 
-  const dateDisplay = ap.adcaVanDimls?.dateTime || new Date().toLocaleDateString(isEn ? 'en-US' : 'fa-IR');
+  const dateDisplay = hasValue(ap.adcaVanDimls?.dateTime) ? (isEn ? cleanEn(ap.adcaVanDimls.dateTime) : ap.adcaVanDimls.dateTime) : new Date().toLocaleDateString(isEn ? 'en-US' : 'fa-IR');
+  const demoBanner = buildDemographicHeader(d, formula, dateDisplay, isEn);
+  const hpiBody = [openingSentence + (rhNote ? ` ${rhNote}` : ''), archProse, symProse, pohText].filter(Boolean).join('\n\n');
+
+  const workupBody = [
+    usLines.length ? usLines.join('\n') : '',
+    acAuditParts.length ? (isEn ? `- **Antenatal Screening Audit:** ${acAuditParts.join(' | ')}` : `- **بررسی غربالگری‌ها و مراقبت‌های قبلی:** ${acAuditParts.join(' | ')}`) : '',
+    labItems.length ? (isEn ? `- **Admission Labs:** ${labItems.join(' | ')}` : `- **آزمایشات بدو پذیرش:** ${labItems.join(' | ')}`) : '',
+    hasValue(ob.paraclinics?.keyLabsNote) ? (isEn ? `- **Lab Notes:** ${cleanEn(ob.paraclinics.keyLabsNote)}` : `- **توضیحات آزمایشات:** ${ob.paraclinics.keyLabsNote}`) : '',
+    nstLine
+  ].filter(Boolean).join('\n');
+
+  const obsAbdBody = [
+    fhrFhParts.length ? `- ${fhrFhParts.join(' | ')}` : '',
+    ...peAbdomenAndExtLines
+  ].filter(Boolean).join('\n');
+
+  const tvBody = [
+    (!idx.isVirgin && tvParts.length) ? (isEn ? `- **TV Exam:** ${tvParts.join(' | ')}${bishop.assessedCount > 0 ? ` — **${bishop.labelEn}**` : ''}` : `- **یافته‌های TV:** ${tvParts.join(' | ')}${bishop.assessedCount > 0 ? ` — **${bishop.labelFa}**` : ''}`) : '',
+    ...tvPeLines
+  ].filter(Boolean).join('\n');
 
   if (isEn) {
     return [
-      `> **Patient Demographics:** ${patientName} | Age: ${age} | ${formula} | Date: ${dateDisplay}`,
+      demoBanner,
       `### OBSTETRICS & GYNECOLOGY WARD ADMISSION NOTE (OBSTETRIC PATIENT)`,
-      `**1. Chief Complaint (CC):** "${ccText}"`,
-      `### 2. History of Present Illness (PI)\n${openingSentence}${rhNote ? ` ${rhNote}` : ''}\n\n${[archProse, symProse].filter(Boolean).join(' ')}\n\n${pohText}`.trim(),
-      `### 3–7. Core Histories & Past Anesthesia History (PAHx)\n- **3. PMHx:** ${shared.pmhText}\n- **4. PSHx:** ${shared.pshText}\n- **5. Drug Hx:** ${shared.dhText}\n- **6. PAHx:** ${shared.pahxText}\n- **7. Allergies:** ${shared.allergyText}`,
-      `### 8. Last Obstetric Ultrasound, Antenatal Screening & Fetal Surveillance\n${usLines.length ? usLines.join('\n') : '- Last obstetric ultrasound not yet recorded.'}${acAuditParts.length ? `\n- **Antenatal Screening & Labs Audit:** ${acAuditParts.join(' | ')}` : ''}${labItems.length ? `\n- **Admission Labs:** ${labItems.join(' | ')}` : ''}${ob.paraclinics?.keyLabsNote ? `\n- **Lab Notes:** ${cleanEn(ob.paraclinics.keyLabsNote)}` : ''}${nstLine ? `\n${nstLine}` : ''}`,
-      `### 9. Vital Signs\n- ${vitalsLine || 'Vital signs not yet recorded.'}`,
-      `### 10. Obstetric Abdominal Exam & FHR\n${fhrFhParts.length ? `- ${fhrFhParts.join(' | ')}\n` : ''}${peAbdomenAndExtLines.length ? peAbdomenAndExtLines.join('\n') : (!fhrFhParts.length ? '- Not yet assessed.' : '')}`,
-      `### 11. Vaginal Exam (TV), Clinical Pelvimetry & Extremities\n${!idx.isVirgin && tvParts.length ? `- **TV Measurements:** ${tvParts.join(' | ')}${bishop.assessedCount > 0 ? ` — **${bishop.labelEn}**` : ''}\n` : ''}${tvPeLines.length ? tvPeLines.join('\n') : (!tvParts.length ? '- Not yet assessed.' : '')}`,
-      `### 12. Differential Diagnoses (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- Pending clinical synthesis.'}`,
-      `### 13. Management Plan & Admission Orders (ADCA VAN DIMLS)\n${ap.planSummary ? `${cleanEn(ap.planSummary)}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- Admission orders not yet entered.'}`
+      ccText ? `**1. Chief Complaint (CC):** "${ccText}"` : `**1. Chief Complaint (CC):** Not yet recorded.`,
+      `### 2. History of Present Illness (PI)\n${hpiBody}`,
+      `### 3–7. Core Histories & Past Anesthesia History (PAHx)\n- **3. PMHx:** ${shared.pmhText}\n- **4. PSHx:** ${shared.pshText}\n- **5. Drug Hx:** ${shared.dhText}\n- **6. PAHx:** ${shared.pahxText}\n- **7. Allergies:** ${shared.allergyText}${shared.shFhText ? `\n- ${shared.shFhText}` : ''}`,
+      `### 8. Last Obstetric Ultrasound, Antenatal Screening & Fetal Surveillance\n${workupBody || '- Not yet documented.'}`,
+      `### 9. Vital Signs\n- ${vitalsLine || 'Not yet recorded.'}`,
+      `### 10. Obstetric Abdominal Exam, FHR & DTR\n${obsAbdBody || '- Not yet assessed.'}`,
+      `### 11. Vaginal Exam (TV), Clinical Pelvimetry & Speculum\n${tvBody || '- Not yet assessed.'}`,
+      `### 12. Differential Diagnoses (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- Not yet documented.'}`,
+      `### 13. Management Plan & Admission Orders (ADCA VAN DIMLS)\n${hasValue(ap.planSummary) ? `${cleanEn(ap.planSummary)}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- Orders not yet entered.'}`
     ].filter(Boolean).join('\n\n');
   }
 
   return [
-    `> **مشخصات هویتی بیمار:** نام و نام خانوادگی: **${patientName}** | سن: **${age} ساله** | فرمول مامایی: **${formula}** | تاریخ: **${dateDisplay}**`,
-    `### شرح حال بخش زنان و زایمان (خانم باردار)`,
-    `**۱. CC:** «${ccText}»`,
-    `### ۲. PI (شرح بیماری فعلی و سوابق بارداری)\n${openingSentence}${rhNote ? ` ${rhNote}` : ''}\n\n${[archProse, symProse].filter(Boolean).join(' ')}\n\n${pohText}`.trim(),
-    `### ۳ تا ۷. سوابق بالینی و سابقه بیهوشی (PAHx)\n- **۳. PMHx:** ${shared.pmhText}\n- **۴. PSHx:** ${shared.pshText}\n- **۵. Drug Hx:** ${shared.dhText}\n- **۶. PAHx:** ${shared.pahxText}\n- **۷. Allergy:** ${shared.allergyText}`,
-    `### ۸. آخرین سونوگرافی بارداری، غربالگری‌ها و آزمایشات\n${usLines.length ? usLines.join('\n') : '- آخرین سونوگرافی بارداری هنوز ثبت نشده است.'}${acAuditParts.length ? `\n- **بررسی مدارک، غربالگری‌ها و آزمایشات قبلی:** ${acAuditParts.join(' | ')}` : ''}${labItems.length ? `\n- **آزمایشات بدو پذیرش:** ${labItems.join(' | ')}` : ''}${ob.paraclinics?.keyLabsNote ? `\n- **توضیحات آزمایشات:** ${ob.paraclinics.keyLabsNote}` : ''}${nstLine ? `\n${nstLine}` : ''}`,
-    `### ۹. علائم حیاتی (Vital Signs)\n- ${vitalsLine || 'علائم حیاتی هنوز ثبت نشده است.'}`,
-    `### ۱۰. معاینه شکم حاملگی و سمع FHR\n${fhrFhParts.length ? `- ${fhrFhParts.join(' | ')}\n` : ''}${peAbdomenAndExtLines.length ? peAbdomenAndExtLines.join('\n') : (!fhrFhParts.length ? '- هنوز ارزیابی نشده است.' : '')}`,
-    `### ۱۱. معاینه TV، معاینه لگن و رفلکس‌ها\n${!idx.isVirgin && tvParts.length ? `- **یافته‌های TV:** ${tvParts.join(' | ')}${bishop.assessedCount > 0 ? ` — **${bishop.labelFa}**` : ''}\n` : ''}${tvPeLines.length ? tvPeLines.join('\n') : (!tvParts.length ? '- هنوز ارزیابی نشده است.' : '')}`,
-    `### ۱۲. تشخیص‌های افتراقی (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- در حال جمع‌بندی بالینی.'}`,
-    `### ۱۳. برنامه درمانی (Plan) و دستورات بستری (ADCA VAN DIMLS)\n${ap.planSummary ? `${ap.planSummary}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- دستورات بستری هنوز ثبت نشده است.'}`
+    demoBanner,
+    `### شرح حال بخش زنان و زایمان (بخش مامایی / پره‌ناتال)`,
+    ccText ? `**۱. شکایت اصلی (CC):** «${ccText}»` : `**۱. شکایت اصلی (CC):** ثبت نشده است.`,
+    `### ۲. شرح بیماری فعلی و سوابق بارداری (PI)\n${hpiBody}`,
+    `### ۳ تا ۷. سوابق بالینی و سابقه بیهوشی (PAHx)\n- **۳. PMHx:** ${shared.pmhText}\n- **۴. PSHx:** ${shared.pshText}\n- **۵. Drug Hx:** ${shared.dhText}\n- **۶. PAHx:** ${shared.pahxText}\n- **۷. Allergy:** ${shared.allergyText}${shared.shFhText ? `\n- ${shared.shFhText}` : ''}`,
+    `### ۸. آخرین سونوگرافی بارداری، غربالگری‌ها و آزمایشات\n${workupBody || '- هنوز ثبت نشده است.'}`,
+    `### ۹. علائم حیاتی (Vital Signs)\n- ${vitalsLine || 'هنوز ثبت نشده است.'}`,
+    `### ۱۰. معاینه شکم حاملگی، FHR و رفلکس‌ها\n${obsAbdBody || '- هنوز ارزیابی نشده است.'}`,
+    `### ۱۱. معاینه واژینال (TV)، پلویمتری و اسپکولوم\n${tvBody || '- هنوز ارزیابی نشده است.'}`,
+    `### ۱۲. تشخیص‌های افتراقی (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- هنوز ثبت نشده است.'}`,
+    `### ۱۳. برنامه درمانی (Plan) و دستورات بستری (ADCA VAN DIMLS)\n${hasValue(ap.planSummary) ? `${ap.planSummary}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- دستورات بستری هنوز ثبت نشده است.'}`
   ].filter(Boolean).join('\n\n');
 }
 
@@ -558,12 +710,10 @@ function generateGynecologyNote(clinicalState, ob, isEn) {
   const hpi = ob.ccAndHpi || {};
   const shared = collectSharedHistories(clinicalState, ob, isEn);
 
-  const patientName = isEn ? cleanEn(d.fullName, 'Unnamed Patient') : (d.fullName || 'بیمار بدون نام');
-  const age = normalizeDigits(d.age || '') || '—';
-  const ccText = isEn
-    ? cleanEn(hpi.ccText || clinicalState.cc?.patientQuote, 'Gynecologic evaluation')
-    : (hpi.ccText || clinicalState.cc?.patientQuote || 'مراجعه جهت ارزیابی ژنیکولوژی');
-  const duration = isEn ? cleanEn(hpi.duration, 'recent onset') : (hpi.duration || 'اخیر');
+  const age = normalizeDigits(d.age || '');
+  const ccRaw = hasValue(hpi.ccText) ? hpi.ccText : (hasValue(clinicalState.cc?.patientQuote) ? clinicalState.cc.patientQuote : '');
+  const ccText = hasValue(ccRaw) ? (isEn ? cleanEn(ccRaw) : String(ccRaw).trim()) : '';
+  const durRaw = hasValue(hpi.duration) ? (isEn ? cleanEn(hpi.duration) : String(hpi.duration).trim()) : '';
 
   const maritalMap = {
     married: isEn ? 'married' : 'متأهل',
@@ -572,99 +722,153 @@ function generateGynecologyNote(clinicalState, ob, isEn) {
     widowed: isEn ? 'widowed' : 'همسر فوت‌شده'
   };
   const reproMap = {
-    reproductive: isEn ? 'reproductive age' : 'در سنین باروری',
+    reproductive: isEn ? 'reproductive-age' : 'در سنین باروری',
     perimenopausal: isEn ? 'perimenopausal' : 'در دوره حوالی یائسگی (پری‌منوپوز)',
-    postmenopausal: isEn ? `postmenopausal (since age ${mh.menopauseAge || idx.menopauseAge || '—'})` : `یائسه (سن یائسگی: ${mh.menopauseAge || idx.menopauseAge || '—'} سال)`,
+    postmenopausal: isEn
+      ? `postmenopausal${hasValue(mh.menopauseAge || idx.menopauseAge) ? ` (since age ${mh.menopauseAge || idx.menopauseAge})` : ''}`
+      : `یائسه${hasValue(mh.menopauseAge || idx.menopauseAge) ? ` (سن یائسگی: ${mh.menopauseAge || idx.menopauseAge} سال)` : ''}`,
     pregnant: isEn ? 'pregnant' : 'باردار',
     postpartum: isEn ? 'postpartum' : 'دوره پس از زایمان'
   };
 
   const formula = formatObstetricFormula(idx, 'gynecology');
-  const nd = idx.ND !== '' && idx.ND !== null && idx.ND !== undefined ? idx.ND : '0';
-  const cs = idx.CS !== '' && idx.CS !== null && idx.CS !== undefined ? idx.CS : '0';
-  const marriageDur = idx.marriageDurationYears
-    ? (isEn ? ` (married ${idx.marriageDurationYears} years)` : ` (مدت ازدواج: ${idx.marriageDurationYears} سال)`)
+  const hasNdCs = hasValue(idx.ND) || hasValue(idx.CS);
+  const nd = hasValue(idx.ND) ? String(idx.ND).trim() : '0';
+  const cs = hasValue(idx.CS) ? String(idx.CS).trim() : '0';
+
+  const mensesParts = [];
+  if (hasValue(mh.lmpDate || ob.gestationalDating?.lmpDate)) {
+    mensesParts.push(`LMP: ${isEn ? cleanEn(mh.lmpDate || ob.gestationalDating.lmpDate) : (mh.lmpDate || ob.gestationalDating.lmpDate)}`);
+  }
+  if (mh.regularity) {
+    mensesParts.push(mh.regularity === 'irregular' ? (isEn ? 'irregular cycles' : 'الگوی منس نامنظم') : (isEn ? 'regular cycles' : 'الگوی منس منظم'));
+  }
+  if (hasValue(mh.cycleIntervalDays)) {
+    mensesParts.push(isEn ? `${mh.cycleIntervalDays}-day interval` : `طول سیکل ${mh.cycleIntervalDays} روز`);
+  }
+  if (hasValue(mh.bleedingDurationDays)) {
+    mensesParts.push(isEn ? `${mh.bleedingDurationDays} days flow` : `مدت خونریزی ${mh.bleedingDurationDays} روز`);
+  }
+  if (mh.flowVolume) {
+    const flowMap = {
+      light: isEn ? 'light flow' : 'حجم کم',
+      normal: isEn ? 'moderate flow' : 'حجم متوسط/طبیعی',
+      heavy: isEn ? 'heavy flow (HMB)' : 'حجم شدید (لخته/پد مکرر)'
+    };
+    mensesParts.push(flowMap[mh.flowVolume] || '');
+  }
+  if (hasValue(mh.padsPerDay)) {
+    mensesParts.push(isEn ? `${mh.padsPerDay} pads/day` : `مصرف ${mh.padsPerDay} پد در روز`);
+  }
+
+  const cMethod = gsr.contraception?.currentMethod;
+  const contraObj = cMethod ? CONTRACEPTION_MAP[cMethod] : null;
+  const contraClause = contraObj
+    ? (isEn ? `contraception: ${contraObj.en}` : `روش پیشگیری از بارداری: ${contraObj.fa}`)
     : '';
 
-  const regText = mh.regularity === 'irregular' ? (isEn ? 'irregular' : 'نامنظم') : (isEn ? 'regular' : 'منظم');
-  const flowMap = {
-    light: isEn ? 'light' : 'کم‌حجم',
-    normal: isEn ? 'moderate/normal' : 'متوسط/طبیعی',
-    heavy: isEn ? 'heavy (hypermenorrhea)' : 'شدید (همراه با دفع لخته / تعویض مکرر پد)'
-  };
-  const contraObj = CONTRACEPTION_MAP[gsr.contraception?.currentMethod || 'none'];
-  const contraStr = contraObj ? (isEn ? contraObj.en : contraObj.fa) : (isEn ? 'None' : 'ندارد');
-  const lmpDateStr = mh.lmpDate || ob.gestationalDating?.lmpDate || '—';
+  let openingSentence = '';
+  if (isEn) {
+    const segs = [
+      age ? `The patient is a ${age}-year-old` : 'The patient is an adult',
+      maritalMap[idx.maritalStatus] || '',
+      hasValue(idx.marriageDurationYears) ? `(married ${idx.marriageDurationYears}y)` : '',
+      formula ? `**${formula}**` : '',
+      reproMap[idx.reproductiveStatus] || '',
+      'female patient',
+      hasNdCs ? `(${nd} prior NVD, ${cs} prior CS)` : ''
+    ].filter(Boolean).join(' ');
 
-  const openingSentence = isEn
-    ? `The patient is a ${age}-year-old ${maritalMap[idx.maritalStatus] || 'married'}${marriageDur} **${formula}** ${reproMap[idx.reproductiveStatus] || 'reproductive-age'} woman (${nd} prior NVD, ${cs} prior CS), with an LMP of ${lmpDateStr}, a ${regText} menstrual pattern (${mh.cycleIntervalDays || '—'}-day cycles, ${mh.bleedingDurationDays || '—'} days duration, ${flowMap[mh.flowVolume] || 'moderate'} flow${mh.padsPerDay ? `, ${mh.padsPerDay} pads/day` : ''}), using ${contraStr} for contraception, who presents with a ${duration} history of ${ccText}.`
-    : `بیمار خانم ${age} ساله، ${maritalMap[idx.maritalStatus] || 'متأهل'}${marriageDur}، **${formula}** (سابقه ${nd} زایمان طبیعی و ${cs} سزارین)، ${reproMap[idx.reproductiveStatus] || 'در سنین باروری'}، با LMP مورخ ${lmpDateStr} و الگوی منس ${regText} (طول سیکل ${mh.cycleIntervalDays || '—'} روز، مدت خونریزی ${mh.bleedingDurationDays || '—'} روز، با حجم ${flowMap[mh.flowVolume] || 'متوسط'}${mh.padsPerDay ? `، مصرف ${mh.padsPerDay} پد در روز` : ''})، و روش پیشگیری از بارداری ${contraStr} می‌باشد که از ${duration} قبل به علت «${ccText}» مراجعه کرده است.`;
+    const extras = [
+      mensesParts.length ? `menstrual history: ${mensesParts.filter(Boolean).join(', ')}` : '',
+      contraClause
+    ].filter(Boolean).join('; ');
+
+    openingSentence = `${segs}${extras ? `, with ${extras}` : ''}${ccText ? `, presenting${durRaw ? ` ${durRaw} prior` : ''} with a chief complaint of "${ccText}".` : `${durRaw ? `, presenting ${durRaw} prior` : ''} for gynecologic evaluation.`}`;
+  } else {
+    const segs = [
+      age ? `بیمار خانم ${age} ساله` : 'بیمار خانم',
+      maritalMap[idx.maritalStatus] || '',
+      hasValue(idx.marriageDurationYears) ? `(مدت ازدواج: ${idx.marriageDurationYears} سال)` : '',
+      formula ? `**${formula}**` : '',
+      hasNdCs ? `(سابقه ${nd} زایمان طبیعی و ${cs} سزارین)` : '',
+      reproMap[idx.reproductiveStatus] || '',
+      mensesParts.length ? `با ${mensesParts.filter(Boolean).join('، ')}` : '',
+      contraClause
+    ].filter(Boolean).join('، ');
+
+    openingSentence = `${segs}${ccText ? ` می‌باشد که${durRaw ? ` از ${durRaw} قبل` : ''} با شکایت «${ccText}» مراجعه کرده است.` : ` می‌باشد که${durRaw ? ` از ${durRaw} قبل` : ''} جهت ارزیابی بیماری‌های زنان مراجعه کرده است.`}`;
+  }
 
   const archProse = buildArchetypeChronologyProse(ob, isEn);
   const symProse = buildHpiSymptomSentences(ob, isEn);
 
-  // Prior Records, Pathology, Pap Smear, HPV, TVS/TAS & Labs
+  // Records, Pathology, Pap, HPV, TVS/TAS & Labs
   const scr = gsr.cervicalAndBreastScreening || {};
   const pathRecs = Array.isArray(gsr.priorPathologyAndCurettage?.records) ? gsr.priorPathologyAndCurettage.records : [];
   const tvs = ob.paraclinics?.gynecologicUltrasound || {};
   const kl = ob.paraclinics?.keyLabs || {};
 
   const recordBullets = [
-    scr.lastPapSmearResult && scr.lastPapSmearResult !== 'انجام نشده'
-      ? (isEn ? `- **Pap Smear (${scr.lastPapSmearDate || 'recent'}):** ${cleanEn(scr.lastPapSmearResult)}` : `- **پاپ‌اسمیر (${scr.lastPapSmearDate || 'اخیر'}):** ${scr.lastPapSmearResult}`)
+    hasValue(scr.lastPapSmearResult)
+      ? (isEn ? `- **Pap Smear${scr.lastPapSmearDate ? ` (${cleanEn(scr.lastPapSmearDate)})` : ''}:** ${cleanEn(scr.lastPapSmearResult)}` : `- **پاپ‌اسمیر${scr.lastPapSmearDate ? ` (${scr.lastPapSmearDate})` : ''}:** ${scr.lastPapSmearResult}`)
       : '',
-    scr.hpvTestStatus && scr.hpvTestStatus !== 'انجام نشده'
+    hasValue(scr.hpvTestStatus)
       ? (isEn ? `- **HPV DNA Test:** ${cleanEn(scr.hpvTestStatus)}` : `- **تست HPV:** ${scr.hpvTestStatus}`)
       : '',
     pathRecs.length > 0
       ? (isEn
-          ? `- **Prior D&C / Biopsy Pathology:** ${pathRecs.map((r) => `${cleanEn(r.procedureType)} (${r.date || '—'}): ${cleanEn(r.pathologyResult)}`).join(' | ')}`
-          : `- **جواب پاتولوژی کورتاژ و عمل‌های قبلی:** ${pathRecs.map((r) => `${r.procedureType} (${r.date || '—'}): ${r.pathologyResult}`).join(' | ')}`)
+          ? `- **Prior D&C / Biopsy Pathology:** ${pathRecs.map((r) => `${cleanEn(r.procedureType)} (${r.date || 'Prior'}): ${cleanEn(r.pathologyResult)}`).join(' | ')}`
+          : `- **پاتولوژی کورتاژ و بیوپسی قبلی:** ${pathRecs.map((r) => `${r.procedureType} (${r.date || 'قبلی'}): ${r.pathologyResult}`).join(' | ')}`)
       : '',
-    (tvs.uterusDimensionsMm || tvs.myometrialEchoAndMyomas || tvs.endometrialThicknessMm || tvs.rightOvary || tvs.leftOvary)
+    (hasValue(tvs.uterusDimensionsMm) || hasValue(tvs.myometrialEchoAndMyomas) || hasValue(tvs.endometrialThicknessMm) || hasValue(tvs.rightOvary) || hasValue(tvs.leftOvary) || hasValue(tvs.culDeSacFreeFluid))
       ? (isEn
-          ? `- **Pelvic Ultrasound (${tvs.scanType || 'TVS'} ${tvs.scanDate || ''}):** ${[
-              tvs.uterusDimensionsMm ? `Uterus ${tvs.uterusDimensionsMm}` : '',
-              tvs.myometrialEchoAndMyomas ? cleanEn(tvs.myometrialEchoAndMyomas) : '',
-              tvs.endometrialThicknessMm ? `ET ${tvs.endometrialThicknessMm} mm` : '',
-              tvs.rightOvary ? `Right ovary: ${cleanEn(tvs.rightOvary)}` : '',
-              tvs.leftOvary ? `Left ovary: ${cleanEn(tvs.leftOvary)}` : '',
-              tvs.culDeSacFreeFluid ? `Cul-de-sac: ${cleanEn(tvs.culDeSacFreeFluid)}` : ''
+          ? `- **Pelvic Ultrasound (${tvs.scanType || 'TVS'}${tvs.scanDate ? ` ${cleanEn(tvs.scanDate)}` : ''}):** ${[
+              hasValue(tvs.uterusDimensionsMm) ? `Uterus ${tvs.uterusDimensionsMm}` : '',
+              hasValue(tvs.myometrialEchoAndMyomas) ? cleanEn(tvs.myometrialEchoAndMyomas) : '',
+              hasValue(tvs.endometrialThicknessMm) ? `ET ${tvs.endometrialThicknessMm} mm` : '',
+              hasValue(tvs.rightOvary) ? `RO: ${cleanEn(tvs.rightOvary)}` : '',
+              hasValue(tvs.leftOvary) ? `LO: ${cleanEn(tvs.leftOvary)}` : '',
+              hasValue(tvs.culDeSacFreeFluid) ? `Cul-de-sac: ${cleanEn(tvs.culDeSacFreeFluid)}` : ''
             ].filter(Boolean).join('; ')}`
-          : `- **سونوگرافی (${tvs.scanType || 'TVS'} ${tvs.scanDate || ''}):** ${[
-              tvs.uterusDimensionsMm ? `ابعاد رحم ${tvs.uterusDimensionsMm}` : '',
-              tvs.myometrialEchoAndMyomas || '',
-              tvs.endometrialThicknessMm ? `ضخامت اندومتر (ET) ${tvs.endometrialThicknessMm} mm` : '',
-              tvs.rightOvary ? `تخمدان راست: ${tvs.rightOvary}` : '',
-              tvs.leftOvary ? `تخمدان چپ: ${tvs.leftOvary}` : '',
-              tvs.culDeSacFreeFluid ? `کل‌دوساک: ${tvs.culDeSacFreeFluid}` : ''
+          : `- **سونوگرافی لگن (${tvs.scanType || 'TVS'}${tvs.scanDate ? ` ${tvs.scanDate}` : ''}):** ${[
+              hasValue(tvs.uterusDimensionsMm) ? `ابعاد رحم ${tvs.uterusDimensionsMm}` : '',
+              hasValue(tvs.myometrialEchoAndMyomas) ? tvs.myometrialEchoAndMyomas : '',
+              hasValue(tvs.endometrialThicknessMm) ? `ضخامت اندومتر (ET) ${tvs.endometrialThicknessMm} mm` : '',
+              hasValue(tvs.rightOvary) ? `تخمدان راست: ${tvs.rightOvary}` : '',
+              hasValue(tvs.leftOvary) ? `تخمدان چپ: ${tvs.leftOvary}` : '',
+              hasValue(tvs.culDeSacFreeFluid) ? `کل‌دوساک: ${tvs.culDeSacFreeFluid}` : ''
             ].filter(Boolean).join('؛ ')}`)
       : ''
   ].filter(Boolean);
 
   const labItems = [
-    kl.bhcg ? `β-hCG: ${kl.bhcg}` : '',
-    kl.wbc ? `WBC: ${kl.wbc}` : '',
-    kl.hb ? `Hb: ${kl.hb}` : '',
-    kl.plt ? `Plt: ${kl.plt}` : '',
-    kl.tsh ? `TSH: ${kl.tsh}` : '',
-    kl.ptInr ? `PT/INR: ${kl.ptInr}` : '',
-    kl.cr ? `Cr: ${kl.cr}` : ''
+    hasValue(kl.bhcg) ? `β-hCG: ${kl.bhcg}` : '',
+    hasValue(kl.wbc) ? `WBC: ${kl.wbc}` : '',
+    hasValue(kl.hb) ? `Hb: ${kl.hb}` : '',
+    hasValue(kl.plt) ? `Plt: ${kl.plt}` : '',
+    hasValue(kl.tsh) ? `TSH: ${kl.tsh}` : '',
+    hasValue(kl.ptInr) ? `PT/INR: ${kl.ptInr}` : '',
+    hasValue(kl.ca125) ? `CA-125: ${kl.ca125}` : '',
+    hasValue(kl.prolactin) ? `Prolactin: ${kl.prolactin}` : '',
+    hasValue(kl.fshLh) ? `FSH/LH: ${kl.fshLh}` : '',
+    hasValue(kl.cr) ? `Cr: ${kl.cr}` : ''
   ].filter(Boolean);
   if (labItems.length > 0) {
     recordBullets.push(isEn ? `- **Admission Labs:** ${labItems.join(' | ')}` : `- **آزمایشات بدو مراجعه:** ${labItems.join(' | ')}`);
   }
+  if (hasValue(ob.paraclinics?.keyLabsNote)) {
+    recordBullets.push(isEn ? `- **Lab Notes:** ${cleanEn(ob.paraclinics.keyLabsNote)}` : `- **توضیحات آزمایشات:** ${ob.paraclinics.keyLabsNote}`);
+  }
 
-  // 8. Vitals
   const v = ob.pe?.vitals || {};
   const vitalsLine = [
-    v.bp ? `BP: ${v.bp}` : '',
-    v.pr ? `PR: ${v.pr}` : '',
-    v.rr ? `RR: ${v.rr}` : '',
-    v.temp ? `T: ${v.temp}` : ''
+    hasValue(v.bp) ? `BP: ${v.bp}` : '',
+    hasValue(v.pr) ? `PR: ${v.pr}` : '',
+    hasValue(v.rr) ? `RR: ${v.rr}` : '',
+    hasValue(v.temp) ? `T: ${v.temp}` : ''
   ].filter(Boolean).join(' | ');
 
-  // 9. Breast/Abd + Speculum + Bimanual (respecting isVirgin!)
   const abdLines = buildPeFindingsByGroups(ob, ['معاینه پستان و شکم'], isEn, false);
   const pelvicLines = idx.isVirgin
     ? [
@@ -679,50 +883,50 @@ function generateGynecologyNote(clinicalState, ob, isEn) {
   const ddxList = [
     ...(Array.isArray(ap.ddx) ? ap.ddx.map((x) => (isEn ? cleanEn(x) : x)) : []),
     ...(ap.ddxCustom ? ap.ddxCustom.split(/\n+/).map((x) => (isEn ? cleanEn(x) : x.trim())).filter(Boolean) : [])
-  ];
+  ].filter(Boolean);
   const orderLines = buildAdcaOrdersLines(ap.adcaVanDimls, isEn);
-  const dateDisplay = ap.adcaVanDimls?.dateTime || new Date().toLocaleDateString(isEn ? 'en-US' : 'fa-IR');
+
+  const dateDisplay = hasValue(ap.adcaVanDimls?.dateTime) ? (isEn ? cleanEn(ap.adcaVanDimls.dateTime) : ap.adcaVanDimls.dateTime) : new Date().toLocaleDateString(isEn ? 'en-US' : 'fa-IR');
+  const demoBanner = buildDemographicHeader(d, formula, dateDisplay, isEn);
+  const hpiBody = [openingSentence, archProse, symProse].filter(Boolean).join('\n\n');
 
   if (isEn) {
     return [
-      `> **Patient Demographics:** ${patientName} | Age: ${age} | ${formula} | Date: ${dateDisplay}`,
+      demoBanner,
       `### OBSTETRICS & GYNECOLOGY WARD ADMISSION NOTE (GYNECOLOGY PATIENT)`,
-      `**1. Chief Complaint (CC):** "${ccText}"`,
-      `### 2. History of Present Illness (PI)\n${openingSentence}\n\n${[archProse, symProse].filter(Boolean).join(' ')}`.trim(),
-      `### 3–7. Core Histories & Past Anesthesia History (PAHx)\n- **3. PMHx:** ${shared.pmhText}\n- **4. PSHx:** ${shared.pshText}\n- **5. Drug Hx:** ${shared.dhText}\n- **6. PAHx:** ${shared.pahxText}\n- **7. Allergies:** ${shared.allergyText}`,
-      `### Prior Labs, Ultrasounds, Pathology, Pap Smear & HPV Audit\n${recordBullets.length ? recordBullets.join('\n') : '- No prior records entered.'}`,
-      `### 8. Vital Signs\n- ${vitalsLine || 'Vital signs not yet recorded.'}`,
+      ccText ? `**1. Chief Complaint (CC):** "${ccText}"` : `**1. Chief Complaint (CC):** Not yet recorded.`,
+      `### 2. History of Present Illness (PI)\n${hpiBody}`,
+      `### 3–7. Core Histories & Past Anesthesia History (PAHx)\n- **3. PMHx:** ${shared.pmhText}\n- **4. PSHx:** ${shared.pshText}\n- **5. Drug Hx:** ${shared.dhText}\n- **6. PAHx:** ${shared.pahxText}\n- **7. Allergies:** ${shared.allergyText}${shared.shFhText ? `\n- ${shared.shFhText}` : ''}`,
+      `### Prior Labs, Pelvic Ultrasound, Pathology, Pap Smear & HPV Audit\n${recordBullets.length ? recordBullets.join('\n') : '- Not yet documented.'}`,
+      `### 8. Vital Signs\n- ${vitalsLine || 'Not yet recorded.'}`,
       `### 9. Physical, Speculum & Bimanual Pelvic Exam\n${[...abdLines, ...pelvicLines].length ? [...abdLines, ...pelvicLines].join('\n') : '- Not yet assessed.'}`,
-      `### 10. Differential Diagnoses (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- Pending clinical synthesis.'}`,
-      `### 11. Management Plan & Admission Orders (ADCA VAN DIMLS)\n${ap.planSummary ? `${cleanEn(ap.planSummary)}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- Admission orders not yet entered.'}`
+      `### 10. Differential Diagnoses (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- Not yet documented.'}`,
+      `### 11. Management Plan & Admission Orders (ADCA VAN DIMLS)\n${hasValue(ap.planSummary) ? `${cleanEn(ap.planSummary)}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- Orders not yet entered.'}`
     ].filter(Boolean).join('\n\n');
   }
 
   return [
-    `> **مشخصات هویتی بیمار:** نام و نام خانوادگی: **${patientName}** | سن: **${age} ساله** | فرمول مامایی: **${formula}** | تاریخ: **${dateDisplay}**`,
-    `### شرح حال بخش زنان و زایمان (ژنیکولوژی)`,
-    `**۱. CC:** «${ccText}»`,
-    `### ۲. PI (شرح بیماری فعلی و الگوی قاعدگی)\n${openingSentence}\n\n${[archProse, symProse].filter(Boolean).join(' ')}`.trim(),
-    `### ۳ تا ۷. سوابق بالینی و سابقه بیهوشی (PAHx)\n- **۳. PMHx:** ${shared.pmhText}\n- **۴. PSHx:** ${shared.pshText}\n- **۵. Drug Hx:** ${shared.dhText}\n- **۶. PAHx:** ${shared.pahxText}\n- **۷. Allergy:** ${shared.allergyText}`,
-    `### بررسی آزمایشات، سونوگرافی‌ها، پاتولوژی‌ها، پاپ‌اسمیر و تست HPV قبلی\n${recordBullets.length ? recordBullets.join('\n') : '- مدرک یا سونوگرافی قبلی ثبت نشده است.'}`,
-    `### ۸. علائم حیاتی (Vital Signs)\n- ${vitalsLine || 'علائم حیاتی هنوز ثبت نشده است.'}`,
-    `### ۹. معاینه شکم، اسپکولوم واژینال و معاینه دودستی لگن\n${[...abdLines, ...pelvicLines].length ? [...abdLines, ...pelvicLines].join('\n') : '- هنوز ارزیابی نشده است.'}`,
-    `### ۱۰. تشخیص‌های افتراقی (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- در حال جمع‌بندی بالینی.'}`,
-    `### ۱۱. برنامه درمانی (Plan) و دستورات بستری (ADCA VAN DIMLS)\n${ap.planSummary ? `${ap.planSummary}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- دستورات بستری هنوز ثبت نشده است.'}`
+    demoBanner,
+    `### شرح حال بخش زنان و زایمان (بیماری‌های زنان / ژنیکولوژی)`,
+    ccText ? `**۱. شکایت اصلی (CC):** «${ccText}»` : `**۱. شکایت اصلی (CC):** ثبت نشده است.`,
+    `### ۲. شرح بیماری فعلی و الگوی قاعدگی (PI)\n${hpiBody}`,
+    `### ۳ تا ۷. سوابق بالینی و سابقه بیهوشی (PAHx)\n- **۳. PMHx:** ${shared.pmhText}\n- **۴. PSHx:** ${shared.pshText}\n- **۵. Drug Hx:** ${shared.dhText}\n- **۶. PAHx:** ${shared.pahxText}\n- **۷. Allergy:** ${shared.allergyText}${shared.shFhText ? `\n- ${shared.shFhText}` : ''}`,
+    `### بررسی آزمایشات، سونوگرافی لگن، پاتولوژی‌ها، پاپ‌اسمیر و تست HPV\n${recordBullets.length ? recordBullets.join('\n') : '- هنوز ثبت نشده است.'}`,
+    `### ۸. علائم حیاتی (Vital Signs)\n- ${vitalsLine || 'هنوز ثبت نشده است.'}`,
+    `### ۹. معاینه پستان و شکم، اسپکولوم و معاینه دودستی لگن\n${[...abdLines, ...pelvicLines].length ? [...abdLines, ...pelvicLines].join('\n') : '- هنوز ارزیابی نشده است.'}`,
+    `### ۱۰. تشخیص‌های افتراقی (DDx)\n${ddxList.length ? ddxList.map((item, i) => `${i + 1}. ${item}`).join('\n') : '- هنوز ثبت نشده است.'}`,
+    `### ۱۱. برنامه درمانی (Plan) و دستورات بستری (ADCA VAN DIMLS)\n${hasValue(ap.planSummary) ? `${ap.planSummary}\n\n` : ''}${orderLines.length ? orderLines.join('\n') : '- دستورات بستری هنوز ثبت نشده است.'}`
   ].filter(Boolean).join('\n\n');
 }
 
 function generateSoapeAndDischargeNote(clinicalState, ob, isEn) {
   const d = clinicalState.demographics || {};
-  const patientName = isEn ? cleanEn(d.fullName, 'Unnamed Patient') : (d.fullName || 'بیمار بدون نام');
-  const age = normalizeDigits(d.age || '') || '—';
+  const dateDisplay = new Date().toLocaleDateString(isEn ? 'en-US' : 'fa-IR');
   const days = Array.isArray(ob.soapeHistory) ? ob.soapeHistory : [];
   const activeDay = days.find((x) => x.id === ob.activeSoapeId) || days[days.length - 1];
 
   const blocks = [
-    isEn
-      ? `> **Patient Demographics:** ${patientName} | Age: ${age}`
-      : `> **مشخصات هویتی بیمار:** نام و نام خانوادگی: **${patientName}** | سن: **${age} ساله**`,
+    buildDemographicHeader(d, '', dateDisplay, isEn),
     isEn
       ? `### OB/GYN WARD PROGRESS NOTE (SOAPE)`
       : `### یادداشت سیر روزانه بخش زنان و زایمان (SOAPE)`
@@ -739,36 +943,51 @@ function generateSoapeAndDischargeNote(clinicalState, ob, isEn) {
     const typeLabel = isEn
       ? (NOTE_TYPE_EN_MAP[activeDay.noteType] || cleanEn(activeDay.noteType, 'Daily Progress'))
       : (activeDay.noteType || 'سیر روزانه');
-    const pModEn = cleanEn(activeDay.P_modifications);
-    const pReasonEn = cleanEn(activeDay.P_reason);
-    const pOrdersEn = cleanEn(activeDay.P_newOrders);
+    const vt = activeDay.vitals || {};
+    const vitalStr = [
+      hasValue(vt.bp) ? `BP: ${vt.bp}` : '',
+      hasValue(vt.pr) ? `PR: ${vt.pr}` : '',
+      hasValue(vt.rr) ? `RR: ${vt.rr}` : '',
+      hasValue(vt.temp) ? `T: ${vt.temp}` : '',
+      hasValue(vt.io) ? `I&O: ${isEn ? cleanEn(vt.io) : vt.io}` : ''
+    ].filter(Boolean).join(' | ');
+
+    const oTextRaw = isEn ? cleanEn(activeDay.O) : (activeDay.O || '').trim();
+    const oCombined = [vitalStr, oTextRaw].filter(Boolean).join(' — ');
+
+    const pMod = isEn ? cleanEn(activeDay.P_modifications) : (activeDay.P_modifications || '').trim();
+    const pReason = isEn ? cleanEn(activeDay.P_reason) : (activeDay.P_reason || '').trim();
+    const pOrders = isEn ? cleanEn(activeDay.P_newOrders) : (activeDay.P_newOrders || '').trim();
+
     blocks.push(isEn
-      ? `**Day #${activeDay.dayNumber || 1} (${typeLabel}) — ${cleanEn(activeDay.dateTime, '')}**\n- **S (Subjective):** ${cleanEn(activeDay.S, '—')}\n- **O (Objective — Factual Only):** ${cleanEn(activeDay.O, '—')}\n- **A (Assessment & Prioritized Problem List):** ${cleanEn(activeDay.A, '—')}\n- **P (Plan — Modifications & Reason):** ${[pModEn, pReasonEn ? `Reason: ${pReasonEn}` : '', pOrdersEn ? `New Orders: ${pOrdersEn}` : ''].filter(Boolean).join(' | ') || '—'}\n- **E (Patient Education):** ${cleanEn(activeDay.E, '—')}`
-      : `**روز #${activeDay.dayNumber || 1} (${typeLabel}) — ${activeDay.dateTime || ''}**\n- **S (گزارش و احوالپرسی بیمار):** ${activeDay.S || '—'}\n- **O (یافته‌های عینی بدون تفسیر):** ${activeDay.O || '—'}\n- **A (ارزیابی و لیست اولویت‌دار مشکلات):** ${activeDay.A || '—'}\n- **P (تغییر دستورات با ذکر علت و دستورات جدید):** ${[activeDay.P_modifications, activeDay.P_reason ? `علت تغییر: ${activeDay.P_reason}` : '', activeDay.P_newOrders ? `دستورات جدید: ${activeDay.P_newOrders}` : ''].filter(Boolean).join(' | ') || '—'}\n- **E (آموزش بر بالین بیمار):** ${activeDay.E || '—'}`
+      ? `**Day #${activeDay.dayNumber || 1} (${typeLabel})${activeDay.dateTime ? ` — ${cleanEn(activeDay.dateTime)}` : ''}**\n- **S (Subjective):** ${cleanEn(activeDay.S, 'Not documented.')}\n- **O (Objective — Factual Only):** ${oCombined || 'Not documented.'}\n- **A (Assessment & Prioritized Problem List):** ${cleanEn(activeDay.A, 'Not documented.')}\n- **P (Plan — Modifications & Reason):** ${[pMod, pReason ? `Reason: ${pReason}` : '', pOrders ? `New Orders: ${pOrders}` : ''].filter(Boolean).join(' | ') || 'Not documented.'}\n- **E (Patient Education):** ${cleanEn(activeDay.E, 'Not documented.')}`
+      : `**روز #${activeDay.dayNumber || 1} (${typeLabel})${activeDay.dateTime ? ` — ${activeDay.dateTime}` : ''}**\n- **S (گزارش و احوالپرسی بیمار):** ${activeDay.S || 'ثبت نشده.'}\n- **O (یافته‌های عینی بدون تفسیر):** ${oCombined || 'ثبت نشده.'}\n- **A (ارزیابی و لیست اولویت‌دار مشکلات):** ${activeDay.A || 'ثبت نشده.'}\n- **P (تغییر دستورات با ذکر علت و دستورات جدید):** ${[pMod, pReason ? `علت تغییر: ${pReason}` : '', pOrders ? `دستورات جدید: ${pOrders}` : ''].filter(Boolean).join(' | ') || 'ثبت نشده.'}\n- **E (آموزش بر بالین بیمار):** ${activeDay.E || 'ثبت نشده.'}`
     );
   } else {
     blocks.push(isEn ? '- No SOAPE progress day recorded yet.' : '- هنوز یادداشت SOAPE برای این بیمار ثبت نشده است.');
   }
 
   const ds = ob.dischargeSadaf || {};
-  if (ds.active || ds.finalDx || ds.sadaf?.S_stitches || ds.sadaf?.D_drugsDiet) {
+  if (ds.active || hasValue(ds.finalDx) || hasValue(ds.sadaf?.S_stitches) || hasValue(ds.sadaf?.D_drugsDiet)) {
     const courseMap = {
       improving: isEn ? 'Improving' : 'رو به بهبود',
       worsening: isEn ? 'Worsening' : 'رو به وخامت',
       unchanged: isEn ? 'Unchanged' : 'بدون تغییر'
     };
     blocks.push(isEn
-      ? `### DISCHARGE SUMMARY (PD / DS) & SADAF INSTRUCTIONS\n- **CC & Initial Dx:** ${cleanEn(ds.ccAndInitialDx, '—')}\n- **Final Diagnosis:** ${cleanEn(ds.finalDx, '—')}\n- **Treatments & Surgical Procedures:** ${cleanEn(ds.treatmentsAndProcedures, '—')}\n- **Positive & Pertinent Negative Labs:** ${cleanEn(ds.labSummary, '—')}\n- **Disease Course & Condition at Discharge:** ${courseMap[ds.diseaseCourse] || 'Improving'} — ${cleanEn(ds.dischargeCondition, 'Stable')}\n- **S (Stitches / Incision Care):** ${cleanEn(ds.sadaf?.S_stitches, '—')}\n- **A (Activity):** ${cleanEn(ds.sadaf?.A_activity, '—')}\n- **D (Drugs & Diet):** ${cleanEn(ds.sadaf?.D_drugsDiet, '—')}\n- **F (Follow-up & Pathology):** ${cleanEn(ds.sadaf?.F_followUp, '—')}`
-      : `### خلاصه پرونده ترخیص (PD / DS) و آموزش SADAF\n- **شکایت و تشخیص اولیه:** ${ds.ccAndInitialDx || '—'}\n- **تشخیص نهایی:** ${ds.finalDx || '—'}\n- **اقدامات درمانی و جراحی انجام‌شده:** ${ds.treatmentsAndProcedures || '—'}\n- **نتایج مثبت و منفی آزمایشات:** ${ds.labSummary || '—'}\n- **سیر بیماری و وضعیت زمان ترخیص:** ${courseMap[ds.diseaseCourse] || 'رو به بهبود'} — ${ds.dischargeCondition || 'پایدار'}\n- **S (بخیه و مراقبت زخم):** ${ds.sadaf?.S_stitches || '—'}\n- **A (سطح فعالیت):** ${ds.sadaf?.A_activity || '—'}\n- **D (داروها و رژیم غذایی):** ${ds.sadaf?.D_drugsDiet || '—'}\n- **F (مراجعه بعدی و پیگیری پاتولوژی):** ${ds.sadaf?.F_followUp || '—'}`
+      ? `### DISCHARGE SUMMARY (PD / DS) & SADAF INSTRUCTIONS\n- **CC & Initial Dx:** ${cleanEn(ds.ccAndInitialDx, 'Not documented.')}\n- **Final Diagnosis:** ${cleanEn(ds.finalDx, 'Not documented.')}\n- **Treatments & Surgical Procedures:** ${cleanEn(ds.treatmentsAndProcedures, 'Not documented.')}\n- **Positive & Pertinent Negative Labs:** ${cleanEn(ds.labSummary, 'Not documented.')}\n- **Disease Course & Condition at Discharge:** ${courseMap[ds.diseaseCourse] || 'Improving'}${hasValue(ds.dischargeCondition) ? ` — ${cleanEn(ds.dischargeCondition)}` : ''}\n- **S (Stitches / Incision Care):** ${cleanEn(ds.sadaf?.S_stitches, 'Not documented.')}\n- **A (Activity):** ${cleanEn(ds.sadaf?.A_activity, 'Not documented.')}\n- **D (Drugs & Diet):** ${cleanEn(ds.sadaf?.D_drugsDiet, 'Not documented.')}\n- **F (Follow-up & Pathology):** ${cleanEn(ds.sadaf?.F_followUp, 'Not documented.')}`
+      : `### خلاصه پرونده ترخیص (PD / DS) و آموزش SADAF\n- **شکایت و تشخیص اولیه:** ${ds.ccAndInitialDx || 'ثبت نشده.'}\n- **تشخیص نهایی:** ${ds.finalDx || 'ثبت نشده.'}\n- **اقدامات درمانی و جراحی انجام‌شده:** ${ds.treatmentsAndProcedures || 'ثبت نشده.'}\n- **نتایج مثبت و منفی آزمایشات:** ${ds.labSummary || 'ثبت نشده.'}\n- **سیر بیماری و وضعیت زمان ترخیص:** ${courseMap[ds.diseaseCourse] || 'رو به بهبود'}${hasValue(ds.dischargeCondition) ? ` — ${ds.dischargeCondition}` : ''}\n- **S (بخیه و مراقبت زخم):** ${ds.sadaf?.S_stitches || 'ثبت نشده.'}\n- **A (سطح فعالیت):** ${ds.sadaf?.A_activity || 'ثبت نشده.'}\n- **D (داروها و رژیم غذایی):** ${ds.sadaf?.D_drugsDiet || 'ثبت نشده.'}\n- **F (مراجعه بعدی و پیگیری پاتولوژی):** ${ds.sadaf?.F_followUp || 'ثبت نشده.'}`
     );
   }
 
   const cn = ob.consultNote || {};
-  if (cn.active || cn.consultReason || cn.targetService) {
+  if (cn.active || hasValue(cn.consultReason) || hasValue(cn.targetService)) {
     const urg = cn.urgency === 'urgent' ? (isEn ? 'URGENT / STAT' : 'اورژانس') : (isEn ? 'Non-Urgent / Routine' : 'غیراورژانس');
+    const ptDisplay = hasValue(d.fullName) ? (isEn ? cleanEn(d.fullName) : d.fullName) : (isEn ? 'Female Patient' : 'بیمار خانم');
+    const ageDisplay = normalizeDigits(d.age || '');
     blocks.push(isEn
-      ? `### CONSULTATION REQUEST\n- **To Service:** ${cleanEn(cn.targetService, '—')} (${urg})\n- **Patient & Admission Reason:** ${patientName} (${age} y/o) — ${cleanEn(cn.admissionReason, '—')}\n- **Reason for Consultation:** ${cleanEn(cn.consultReason, '—')}\n- **Clinical Summary:** ${cleanEn(cn.summary, '—')}\n- **Requesting Physician & Date/Time:** ${cleanEn(cn.requestingPhysician, '—')} | ${cn.dateTime || '—'}`
-      : `### برگه درخواست مشاوره تخصصی\nبا سلام و احترام، لطفاً بیمار خانم **${patientName}** (${age} ساله) بستری در بخش زنان به علت **${cn.admissionReason || '—'}** از نظر **${cn.consultReason || '—'}** مورد بررسی و مشاوره **${urg}** سرویس محترم **${cn.targetService || '—'}** قرار گیرند.\n- **خلاصه نکات کلیدی:** ${cn.summary || '—'}\n- **پزشک درخواست‌کننده و زمان:** ${cn.requestingPhysician || '—'} | ${cn.dateTime || '—'} — با تشکر و خسته نباشید.`
+      ? `### CONSULTATION REQUEST\n- **To Service:** ${cleanEn(cn.targetService, 'Not documented')} (${urg})\n- **Patient & Admission Reason:** ${ptDisplay}${ageDisplay ? ` (${ageDisplay} y/o)` : ''}${hasValue(cn.admissionReason) ? ` — ${cleanEn(cn.admissionReason)}` : ''}\n- **Reason for Consultation:** ${cleanEn(cn.consultReason, 'Not documented')}\n- **Clinical Summary:** ${cleanEn(cn.summary, 'Not documented')}\n- **Requesting Physician & Date/Time:** ${cleanEn(cn.requestingPhysician, 'Not documented')}${cn.dateTime ? ` | ${cleanEn(cn.dateTime)}` : ''}`
+      : `### برگه درخواست مشاوره تخصصی\nبا سلام و احترام، لطفاً بیمار خانم **${ptDisplay}**${ageDisplay ? ` (${ageDisplay} ساله)` : ''} بستری در بخش زنان${hasValue(cn.admissionReason) ? ` به علت **${cn.admissionReason}**` : ''} از نظر **${cn.consultReason || 'ارزیابی تخصصی'}** مورد بررسی و مشاوره **${urg}** سرویس محترم **${cn.targetService || 'مشاوره‌شونده'}** قرار گیرند.\n- **خلاصه نکات کلیدی:** ${cn.summary || 'ثبت نشده.'}\n- **پزشک درخواست‌کننده و زمان:** ${cn.requestingPhysician || 'ثبت نشده'}${cn.dateTime ? ` | ${cn.dateTime}` : ''} — با تشکر و خسته نباشید.`
     );
   }
 

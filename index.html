@@ -27,7 +27,7 @@
 
   <!-- Core Precision Stylesheet & MedHistorism v3.0 Design System -->
   <link rel="stylesheet" href="css/clinical-ui.css?v=3.0.0">
-  <link rel="stylesheet" href="css/medhistorism-v3.css?v=3.1.0">
+  <link rel="stylesheet" href="css/medhistorism-v3.css?v=3.1.1">
 </head>
 <body class="dark-mode view-hub">
 
@@ -2941,13 +2941,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=3.1.0"></script>
+  <script type="module" src="js/app.js?v=3.1.1"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=3.1.0').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=3.1.1').then((reg) => {
           console.log('[PWA v3.0] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();

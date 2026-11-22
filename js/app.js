@@ -1189,29 +1189,45 @@ function initDemographicsHandlers() {
 
 export function updateHeaderActivePatientBadge() {
   const badgeTextEl = document.getElementById('headerActivePatientText');
-  if (!badgeTextEl) return;
+  const metaEl = document.getElementById('headerActivePatientMeta');
+  const idEl = document.getElementById('headerCaseId');
   const lang = getCurrentLanguage();
   const isEn = lang === 'en';
-  const d = clinicalState.demographics || {};
+  const d = clinicalState?.demographics || {};
   const bed = d.bed ? String(d.bed).trim() : '';
   const name = d.fullName ? String(d.fullName).trim() : '';
   const ward = d.ward ? String(d.ward).trim() : '';
+  const lens = typeof getActiveSpecialtyLens === 'function'
+    ? getActiveSpecialtyLens()
+    : (clinicalState?.specialty === 'obgyn' ? 'obgyn' : 'surgery');
 
+  if (idEl) {
+    idEl.textContent = clinicalState?.caseId || '—';
+  }
+
+  if (metaEl) {
+    const defaultWard = lens === 'obgyn'
+      ? (isEn ? 'Ob/Gyn Ward' : 'بخش زنان و مامایی')
+      : (isEn ? 'Surgical Ward' : 'بخش جراحی');
+    const wardStr = ward || defaultWard;
+    const bedStr = bed || '—';
+    metaEl.textContent = isEn ? `${wardStr} • Bed ${bedStr}` : `${wardStr} • تخت ${bedStr}`;
+  }
+
+  if (!badgeTextEl) return;
   let text = '';
-  if (bed && name) {
-    text = isEn ? `Bed ${bed} - ${name}` : `تخت ${bed} - ${name}`;
+  if (name) {
+    text = name;
   } else if (bed) {
     text = isEn ? `Bed ${bed}` : `تخت ${bed}`;
-  } else if (name) {
-    text = name;
   } else if (ward) {
     text = isEn ? `Ward ${ward}` : `بخش ${ward}`;
   } else {
-    text = isEn ? 'Active Case' : 'پرونده فعال';
+    text = isEn ? 'Active Patient' : 'پرونده فعال';
   }
 
-  if (text.length > 14) {
-    text = text.substring(0, 13) + '…';
+  if (text.length > 22) {
+    text = text.substring(0, 21) + '…';
   }
   badgeTextEl.textContent = text;
 }
@@ -7430,9 +7446,10 @@ export function updateLivePreview() {
     const ageStr = clinicalState.demographics?.age
       ? (isEn ? `${clinicalState.demographics.age} y/o` : `${clinicalState.demographics.age} ساله`)
       : '—';
-    const genStr = clinicalState.demographics?.gender === 'female'
+    const effectiveGender = activeLens === 'obgyn' ? 'female' : clinicalState.demographics?.gender;
+    const genStr = effectiveGender === 'female'
       ? (isEn ? 'Female' : 'خانم')
-      : clinicalState.demographics?.gender === 'male'
+      : effectiveGender === 'male'
       ? (isEn ? 'Male' : 'آقا')
       : '—';
     chartPtAgeGender.textContent = `${ageStr} / ${genStr}`;
@@ -7456,6 +7473,7 @@ export function updateLivePreview() {
     chartPtDate.textContent = clinicalState.demographics?.admissionDate || (isEn ? new Date().toLocaleDateString('en-US') : new Date().toLocaleDateString('fa-IR'));
   }
 
+  updateHeaderActivePatientBadge();
   updateSectionCounters();
 
   // Update SOAP notes counter badge on H&P preview toolbar
@@ -7753,6 +7771,9 @@ function initExportAndCopy() {
       saveCaseToShiftVault(clinicalState);
       clinicalState = createDefaultClinicalState();
       clinicalState.specialty = currentSpec;
+      if (currentSpec === 'obgyn') {
+        clinicalState.demographics.gender = 'female';
+      }
       saveCurrentCase();
       syncDomFromState();
       if (currentSpec === 'obgyn') renderObgynWorkspace();
@@ -7794,7 +7815,7 @@ export function extractCaseChiefComplaint(c, isEn = false) {
 export function extractCaseAgeGender(c, isEn = false) {
   if (!c || !c.demographics) return isEn ? 'Age/Gender Unset' : 'سن و جنسیت ثبت‌نشده';
   const age = (c.demographics.age || '').toString().trim();
-  const gender = c.demographics.gender;
+  const gender = c.specialty === 'obgyn' ? 'female' : c.demographics.gender;
   let gLabel = '';
   if (gender === 'male') gLabel = isEn ? 'Male' : 'مرد';
   else if (gender === 'female') gLabel = isEn ? 'Female' : 'زن';

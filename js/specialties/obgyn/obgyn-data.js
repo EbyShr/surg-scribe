@@ -189,6 +189,12 @@ export const OBGYN_GYN_ARCHETYPES = [
         { val: 'bilateral', fa: 'دو طرفه پایین شکم', en: 'Bilateral lower abdomen' }
       ]},
       { key: 'quality', type: 'text', fa: 'کیفیت درد', en: 'Pain Quality', phFa: 'کرامپی / تیز و خنجری / مبهم و فشاری', phEn: 'Crampy / sharp / dull pressure' },
+      { key: 'nrsSeverity', type: 'select', fa: 'شدت درد (NRS 1-10)', en: 'Pain Severity (NRS 1-10)', options: [
+        { val: '1-3 (خفیف)', fa: '۱ تا ۳ (خفیف)', en: '1-3/10 (Mild)' },
+        { val: '4-6 (متوسط)', fa: '۴ تا ۶ (متوسط)', en: '4-6/10 (Moderate)' },
+        { val: '7-8 (شدید)', fa: '۷ تا ۸ (شدید)', en: '7-8/10 (Severe)' },
+        { val: '9-10 (غیرقابل تحمل)', fa: '۹ تا ۱۰ (بسیار شدید)', en: '9-10/10 (Extreme)' }
+      ]},
       { key: 'cycleRelation', type: 'select', fa: 'ارتباط با سیکل قاعدگی', en: 'Cycle Relationship', options: [
         { val: 'cyclic', fa: 'مرتبط با قاعدگی (Cyclic)', en: 'Cyclic (menses-related)' },
         { val: 'acyclic', fa: 'غیرمرتبط با سیکل (Acyclic)', en: 'Acyclic (non-menstrual)' }
@@ -611,6 +617,22 @@ export const OBGYN_SYMPTOM_BANK = [
   }
 ];
 
+export const OBGYN_STRUCTURED_PE_IDS = new Set([
+  'pe_vitals_bp',
+  'pe_vitals_pr',
+  'pe_vitals_rr',
+  'pe_vitals_temp',
+  'pe_obs_urine_dipstick',
+  'pe_obs_fhr',
+  'pe_obs_fundal_height',
+  'pe_obs_tv_dilation',
+  'pe_obs_tv_effacement',
+  'pe_obs_tv_station',
+  'pe_obs_tv_presenting_part',
+  'pe_obs_tv_membranes',
+  'pe_obs_tv_cervix_consistency_position'
+]);
+
 export const OBGYN_PE_BANK = [
   // 1. VITAL SIGNS & PREECLAMPSIA BEDSIDE CHECKS (5)
   {
@@ -716,8 +738,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_leopold_1_2_lie',
     subMode: 'obstetrics',
-    subGroup: 'معاینه شکم حاملگی و سمع FHR',
-    subGroupEn: 'Obstetric Abdominal Exam & FHR',
+    subGroup: 'مانورهای لئوپولد و لمس شکم حاملگی',
+    subGroupEn: 'Leopold Maneuvers & Obstetric Abdominal Exam',
     en: 'Leopold I & II: Fetal Lie & Back Position',
     fa: 'مانور لئوپولد ۱ و ۲ (قرار جنین و وضعیت پشت)',
     isCore: false,
@@ -730,8 +752,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_leopold_3_presentation',
     subMode: 'obstetrics',
-    subGroup: 'معاینه شکم حاملگی و سمع FHR',
-    subGroupEn: 'Obstetric Abdominal Exam & FHR',
+    subGroup: 'مانورهای لئوپولد و لمس شکم حاملگی',
+    subGroupEn: 'Leopold Maneuvers & Obstetric Abdominal Exam',
     en: 'Leopold III (Pawlik): Presenting Part',
     fa: 'مانور لئوپولد ۳ (عضو پرزانته بر فراز لگن)',
     isCore: true,
@@ -744,8 +766,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_leopold_4_engagement',
     subMode: 'obstetrics',
-    subGroup: 'معاینه شکم حاملگی و سمع FHR',
-    subGroupEn: 'Obstetric Abdominal Exam & FHR',
+    subGroup: 'مانورهای لئوپولد و لمس شکم حاملگی',
+    subGroupEn: 'Leopold Maneuvers & Obstetric Abdominal Exam',
     en: 'Leopold IV: Engagement of Presenting Part',
     fa: 'مانور لئوپولد ۴ (وضعیت انگاژمان عضو پرزانته)',
     isCore: false,
@@ -758,8 +780,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_uterine_contractions',
     subMode: 'obstetrics',
-    subGroup: 'معاینه شکم حاملگی و سمع FHR',
-    subGroupEn: 'Obstetric Abdominal Exam & FHR',
+    subGroup: 'مانورهای لئوپولد و لمس شکم حاملگی',
+    subGroupEn: 'Leopold Maneuvers & Obstetric Abdominal Exam',
     en: 'Palpable Uterine Contractions',
     fa: 'لمس انقباضات رحمی (Contractions)',
     isCore: true,
@@ -772,8 +794,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_scar_tenderness',
     subMode: 'obstetrics',
-    subGroup: 'معاینه شکم حاملگی و سمع FHR',
-    subGroupEn: 'Obstetric Abdominal Exam & FHR',
+    subGroup: 'مانورهای لئوپولد و لمس شکم حاملگی',
+    subGroupEn: 'Leopold Maneuvers & Obstetric Abdominal Exam',
     en: 'Prior Pfannenstiel / CS Scar Tenderness or Uterine Tetany',
     fa: 'تندرنس محل اسکار سزارین قبلی یا سفتی تندر رحم (شک به دکولمان/راپچر)',
     isCore: true,
@@ -872,8 +894,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_clinical_pelvimetry',
     subMode: 'obstetrics',
-    subGroup: 'معاینه واژینال مامایی (TV) و لگن',
-    subGroupEn: 'Obstetric Vaginal Exam (TV) & Pelvimetry',
+    subGroup: 'پلویمتری بالینی (Clinical Pelvimetry)',
+    subGroupEn: 'Clinical Pelvimetry',
     en: 'Clinical Pelvimetry (Inlet, Midpelvis, Outlet)',
     fa: 'معاینه لگن (پلویمتری بالینی)',
     isCore: true,
@@ -888,8 +910,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_edema',
     subMode: 'obstetrics',
-    subGroup: 'معاینه اندام‌ها و رفلکس‌ها (DTR)',
-    subGroupEn: 'Extremities & Deep Tendon Reflexes (DTR)',
+    subGroup: 'معاینه اندام‌ها، ادم و رفلکس‌ها (DTR)',
+    subGroupEn: 'Extremities, Edema & Deep Tendon Reflexes (DTR)',
     en: 'Peripheral / Pretibial / Generalized Edema',
     fa: 'ادم اندام‌ها، پره‌تیبیال یا ژنرالیزه',
     isCore: true,
@@ -902,8 +924,8 @@ export const OBGYN_PE_BANK = [
   {
     id: 'pe_obs_dtr_clonus',
     subMode: 'obstetrics',
-    subGroup: 'معاینه اندام‌ها و رفلکس‌ها (DTR)',
-    subGroupEn: 'Extremities & Deep Tendon Reflexes (DTR)',
+    subGroup: 'معاینه اندام‌ها، ادم و رفلکس‌ها (DTR)',
+    subGroupEn: 'Extremities, Edema & Deep Tendon Reflexes (DTR)',
     en: 'Deep Tendon Reflexes (DTR) & Ankle Clonus',
     fa: 'رفلکس‌های تاندونی عمقی (DTR) و کلونوس',
     isCore: true,
@@ -1306,4 +1328,37 @@ export const ADCA_VAN_DIMLS_PRESETS = {
       S_special: 'Maintain labor partograph; continuous/serial EFM monitoring and Bishop Score charting'
     }
   }
+};
+
+
+export const OBGYN_SOAPE_CAPSULES = {
+  S: [
+    { id: 's_well', fa: 'حال عمومی خوب و پایدار', en: 'General condition stable and comfortable' },
+    { id: 's_pain_ctrl', fa: 'درد کنترل‌شده', en: 'Pain well controlled' },
+    { id: 's_fm_pos', fa: 'حرکات جنین مناسب (FM+)', en: 'Good fetal movements perceived (FM+)' },
+    { id: 's_vb_normal', fa: 'خونریزی واژینال/لوکیا در حد طبیعی', en: 'Vaginal bleeding / lochia within normal limits' },
+    { id: 's_rom_neg', fa: 'آبریزش ندارد (ROM−)', en: 'No fluid leakage (ROM negative)' },
+    { id: 's_ss_neg', fa: 'بدون علائم SS (سردرد/تاری دید/درد اپیگاستر)', en: 'Denies severe preeclampsia symptoms (headache, visual changes, epigastric pain)' },
+    { id: 's_breastfeed', fa: 'شیردهی برقرار', en: 'Breastfeeding established well' },
+    { id: 's_diet_bowel', fa: 'تحمل رژیم و دفع گاز/مدفوع نرمال', en: 'Tolerating oral diet; passing flatus/stool normally' }
+  ],
+  O: [
+    { id: 'o_fundus_firm', fa: 'فوندوس رحم سفت و منقبض (در سطح ناف/زیر ناف)', en: 'Uterine fundus firm and well-contracted at/below umbilicus' },
+    { id: 'o_lochia_nml', fa: 'لوکیا نرمال و غیربدبو', en: 'Lochia rubra appropriate amount, non-foul-smelling' },
+    { id: 'o_wound_clean', fa: 'پانسمان برش جراحی خشک و تمیز', en: 'Surgical incision dressing clean, dry, and intact' },
+    { id: 'o_fhr_nml', fa: 'FHR نرمال و منظم', en: 'Fetal heart rate regular in normal range' },
+    { id: 'o_ext_nodvt', fa: 'اندامها بدون ادم و تندرنس DVT', en: 'Extremities symmetric without significant edema or calf tenderness (DVT-negative)' },
+    { id: 'o_dtr_nml', fa: 'DTR نرمال (+2) بدون کلونوس', en: 'Deep tendon reflexes 2+ symmetric without clonus' }
+  ],
+  P: [
+    { id: 'p_continue', fa: 'ادامه دستورات قبلی', en: 'Continue current ward orders' },
+    { id: 'p_discharge_ready', fa: 'آماده ترخیص', en: 'Cleared for discharge with SADAF instructions' },
+    { id: 'p_cbc_am', fa: 'تکرار CBC فردا صبح', en: 'Repeat CBC tomorrow morning' }
+  ],
+  E: [
+    { id: 'e_redflags', fa: 'آموزش علائم خطر (خونریزی شدید، تب، بدبویی ترشح، سردرد/تاری دید)', en: 'Counseled on red-flag precautions (heavy VB, fever, foul lochia, headache/visual symptoms)' },
+    { id: 'e_wound', fa: 'آموزش مراقبت از بخیه و پانسمان', en: 'Instructed on incision hygiene and suture care' },
+    { id: 'e_ambulation', fa: 'آموزش تحرک زودهنگام (پیشگیری از DVT)', en: 'Encouraged early ambulation for DVT prophylaxis' },
+    { id: 'e_bf_meds', fa: 'آموزش شیردهی و مصرف منظم مکملها/داروها', en: 'Advised on breastfeeding technique and medication adherence' }
+  ]
 };

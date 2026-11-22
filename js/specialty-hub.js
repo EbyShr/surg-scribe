@@ -96,9 +96,19 @@ export function setActiveSpecialtyLens(lens = 'surgery', { persistToCase = true 
   activeLens = normalized;
 
   const state = hubBridge.getState();
-  if (persistToCase && state) {
-    state.specialty = normalized;
-    hubBridge.persistState();
+  if (state) {
+    if (normalized === 'obgyn') {
+      if (!state.demographics) state.demographics = {};
+      state.demographics.gender = 'female';
+      if (typeof document !== 'undefined') {
+        const gEl = document.getElementById('demoGender');
+        if (gEl) gEl.value = 'female';
+      }
+    }
+    if (persistToCase) {
+      state.specialty = normalized;
+      hubBridge.persistState();
+    }
   }
 
   if (typeof document !== 'undefined') {

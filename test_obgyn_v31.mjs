@@ -18,7 +18,12 @@ import {
   normalizeObgynState,
   normalizeSubMode
 } from './js/specialties/obgyn/obgyn-state.js';
-import { ADCA_VAN_DIMLS_PRESETS } from './js/specialties/obgyn/obgyn-data.js';
+import {
+  ADCA_VAN_DIMLS_PRESETS,
+  OBGYN_STRUCTURED_PE_IDS,
+  OBGYN_PE_BANK,
+  OBGYN_SOAPE_CAPSULES
+} from './js/specialties/obgyn/obgyn-data.js';
 import { generateObgynNote } from './js/specialties/obgyn/obgyn-generator.js';
 import { deepStripPIIForCloud } from './js/google-sync.js';
 import { sanitizeRecordForExport } from './js/generator.js';
@@ -150,16 +155,53 @@ assert.equal(gMismatch.ndCsMismatch, true);
 assert.equal(gMismatch.bhcgMandatory, true);
 console.log('PASS: All 5 clinical guardrails verified.');
 
-console.log('--- 5. Testing Generator Invariants (Zero False Negatives & Pure English) ---');
+console.log('--- 5. Testing Phase 2.5 Generator Invariants (Zero False Negatives, Zero Male/Placeholders, Multi-Presentation) ---');
 const emptyCase = {
-  demographics: { fullName: 'مریم کریمی', age: '29', bed: '12' },
+  demographics: { fullName: 'مریم کریمی', age: '29', gender: 'male', bed: '12' },
   obgynModule: createDefaultObgynState()
 };
-const emptyFa = generateObgynNote(emptyCase, 'fa');
-const emptyEn = generateObgynNote(emptyCase, 'en');
-assert.ok(!emptyFa.includes('بیمار وجود') && !emptyFa.includes('ذکر نمی‌کند'), 'Untouched symptoms leaked as denied negatives in FA');
-assert.ok(!emptyEn.includes('explicitly denies'), 'Untouched symptoms leaked as denied negatives in EN');
-assert.equal(PERSIAN_RE.test(emptyEn), false, 'English empty note leaked Persian characters');
+const emptyObsFa = generateObgynNote(emptyCase, 'fa');
+const emptyObsEn = generateObgynNote(emptyCase, 'en');
+assert.ok(!emptyObsFa.includes('آقا') && !emptyObsEn.includes('Male'), 'Ob/Gyn header leaked Male/آقا');
+assert.ok(emptyObsFa.includes('خانم') && emptyObsEn.includes('Female'), 'Ob/Gyn header missing Female/خانم');
+assert.ok(!emptyObsFa.includes('ثبت‌نشده بر اساس سونوگرافی NT') && !emptyObsFa.includes('از اخیر قبل'), 'Broken Obstetric placeholder appeared');
+assert.ok(!emptyObsFa.includes('سابقه بیهوشی یا بی‌حسی قبلی را ذکر نمی‌کند') && !emptyObsFa.includes('بیمار وجود'), 'Untouched PAHx/symptoms leaked as denied negative');
+assert.ok(!emptyObsEn.includes('explicitly denies') && !emptyObsEn.includes('Denies prior anesthesia history'), 'Untouched PAHx/symptoms leaked as denied negative in EN');
+assert.equal(PERSIAN_RE.test(emptyObsEn), false, 'English empty note leaked Persian characters');
+
+const emptyGynCase = {
+  demographics: { fullName: 'مریم کریمی', age: '27', gender: 'male' },
+  obgynModule: { ...createDefaultObgynState(), subMode: 'gynecology' }
+};
+const emptyGynFa = generateObgynNote(emptyGynCase, 'fa');
+assert.ok(!emptyGynFa.includes('آقا') && !emptyGynFa.includes('بدون روش پیشگیری') && !emptyGynFa.includes('الگوی منس منظم') && !emptyGynFa.includes('طول سیکل — روز'), 'Untouched Gyn defaults polluted narrative');
+
+// Verify PAHx tri-state (-1 explicit negative) & Multi-Presentation sequencing
+const multiPresState = normalizeObgynState({
+  subMode: 'obstetrics',
+  gynScreeningAndRecords: { pahx: { status: -1, hasPriorAnesthesia: false, anesthesiaTypes: [], complications: '' } },
+  ccAndHpi: {
+    ccText: 'آبریزش و درد زایمان',
+    duration: '۴ ساعت',
+    presentations: [
+      { id: 'p1', archetypeId: 'OB-2', fields: { onsetCharacter: 'gush', fluidColor: 'clear' } },
+      { id: 'p2', archetypeId: 'OB-1', fields: { frequencyMins: '5', regularity: 'regular_progressive' } },
+      { id: 'p3', archetypeId: 'OB-3', fields: { bleedingAmount: 'spotting' } }
+    ]
+  }
+});
+const multiGuard = evaluateObgynSafetyGuardrails(multiPresState);
+assert.equal(multiGuard.previaTvContraindicated, true, 'Multi-presentation OB-3 should trigger previaTvContraindicated');
+const multiFa = generateObgynNote({ demographics: { age: '30' }, obgynModule: multiPresState }, 'fa');
+const multiEn = generateObgynNote({ demographics: { age: '30' }, obgynModule: multiPresState }, 'en');
+assert.ok(multiFa.includes('در بررسی') && multiFa.includes('همچنین در خصوص'), 'Multi-presentation sequential prose failed in FA');
+assert.ok(multiFa.includes('سابقه بیهوشی یا بی‌حسی قبلی را ذکر نمی‌کند'), 'Explicit PAHx status=-1 denial missing');
+assert.equal(PERSIAN_RE.test(multiEn), false, `Multi-presentation EN leaked Persian text:\n${multiEn}`);
+
+// Verify qualitative PE filter removes all 13 structured duplicates
+const qualitativePeCount = OBGYN_PE_BANK.filter((it) => !OBGYN_STRUCTURED_PE_IDS.has(it.id)).length;
+assert.equal(OBGYN_STRUCTURED_PE_IDS.size, 13, 'Expected 13 structured PE duplicate IDs');
+assert.ok(qualitativePeCount > 0 && OBGYN_SOAPE_CAPSULES.S.length >= 6 && OBGYN_SOAPE_CAPSULES.O.length >= 5, 'Qualitative PE or SOAPE capsules incomplete');
 
 // Obstetrics Severe Preeclampsia case (bilingual check)
 const obsState = normalizeObgynState({
@@ -226,7 +268,7 @@ assert.ok(gynFa.includes('Virgin'), 'Gyn Virgin deferral missing');
 assert.equal(PERSIAN_RE.test(gynEn), false, `Gyn EN leaked Persian text:\n${gynEn}`);
 assert.equal(EMOJI_RE.test(gynFa) || EMOJI_RE.test(gynEn), false, 'Emoji leaked into Gynecology output');
 
-// SOAPE + SADAF + Consult case
+// SOAPE + Vitals + SADAF + Consult case
 const soapeState = normalizeObgynState({
   subMode: 'soape',
   soapeHistory: [{
@@ -234,8 +276,9 @@ const soapeState = normalizeObgynState({
     dayNumber: 1,
     noteType: 'سیر روزانه',
     dateTime: '1405/01/16',
+    vitals: { bp: '130/80', pr: '82', rr: '18', temp: '36.8', io: 'UOP 70 mL/h' },
     S: 'کاهش سردرد و دید طبیعی',
-    O: 'BP 130/80 mmHg، رفلکس +2، برون‌ده ادراری 70 mL/h',
+    O: 'رفلکس +2، فوندوس رحم سفت',
     A: 'بهبود بالینی پره‌اکلامپسی تحت سولفات',
     P_modifications: 'ادامه سولفات منیزیم تا ۲۴ ساعت پس از زایمان',
     P_reason: 'پیشگیری از اکلامپسی پس از زایمان',
@@ -266,7 +309,7 @@ const soapeState = normalizeObgynState({
 const soapeCase = { demographics: { fullName: 'فاطمه رضایی', age: '32', bed: '402' }, obgynModule: soapeState };
 const soapeFa = generateObgynNote(soapeCase, 'fa');
 const soapeEn = generateObgynNote(soapeCase, 'en');
-assert.ok(soapeFa.includes('SADAF') && soapeFa.includes('مشاوره'), 'SOAPE FA missing SADAF or Consult');
+assert.ok(soapeFa.includes('SADAF') && soapeFa.includes('مشاوره') && soapeFa.includes('130/80'), 'SOAPE FA missing vitals, SADAF, or Consult');
 assert.equal(PERSIAN_RE.test(soapeEn), false, `SOAPE EN leaked Persian text:\n${soapeEn}`);
 assert.equal(EMOJI_RE.test(soapeFa) || EMOJI_RE.test(soapeEn), false, 'Emoji leaked into SOAPE output');
 console.log('PASS: Narrative generation (Obs/Gyn/SOAPE/SADAF/Consult FA+EN) verified.');
@@ -292,6 +335,7 @@ assert.equal(serializedExport.includes('فاطمه رضایی'), false, 'JSON ex
 
 // Check every STATIC_ASSET in sw.js exists on disk & scan Ob/Gyn modules for emojis
 const swContent = fs.readFileSync('./sw.js', 'utf8');
+assert.ok(swContent.includes('medhistorism-v3.1.1-obgyn-refined-cache'), 'sw.js cache version not bumped to v3.1.1');
 const matchAssets = swContent.match(/STATIC_ASSETS\s*=\s*\[([\s\S]*?)\]/);
 assert.ok(matchAssets, 'Could not parse STATIC_ASSETS in sw.js');
 const assetPaths = [...matchAssets[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);

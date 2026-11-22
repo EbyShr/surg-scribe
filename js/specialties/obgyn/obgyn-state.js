@@ -456,28 +456,30 @@ export function evaluateObgynSafetyGuardrails(obgynState = {}) {
   const idx = ob.obstetricIndex || {};
   const hpi = ob.ccAndHpi || {};
   const symptoms = hpi.symptoms || {};
+  const presArr = Array.isArray(hpi.presentations) ? hpi.presentations : [];
+  const hasArch = (archId) => presArr.some((p) => p?.archetypeId === archId) || hpi.selectedArchetype === archId;
 
   const virginLock = Boolean(idx.isVirgin);
 
   const bleedingPos = symptoms.obs_vaginal_bleeding?.state === 1;
   const previaTvContraindicated =
-    ob.subMode === 'obstetrics' && (bleedingPos || hpi.selectedArchetype === 'OB-3');
+    ob.subMode === 'obstetrics' && (bleedingPos || hasArch('OB-3'));
 
-  const csCount = parseInt(normalizeDigits(idx.CS || '0'), 10) || 0;
-  const pCount = parseInt(normalizeDigits(idx.P || '0'), 10) || 0;
-  const ndCount = parseInt(normalizeDigits(idx.ND || '0'), 10) || 0;
+  const csCount = parseInt(normalizeDigits(idx.CS ?? '0'), 10) || 0;
+  const pCount = parseInt(normalizeDigits(idx.P ?? '0'), 10) || 0;
+  const ndCount = parseInt(normalizeDigits(idx.ND ?? '0'), 10) || 0;
 
   const accretaDopplerMandatory = ob.subMode === 'obstetrics' && csCount > 0;
   const priorCsIndicationMissing = csCount > 0 && !(idx.priorCsIndications || '').trim();
-  const ndCsMismatch = pCount > 0 && (ndCount + csCount !== pCount);
+  const ndCsMismatch = idx.P !== null && idx.P !== '' && idx.P !== undefined && pCount > 0 && (ndCount + csCount !== pCount);
 
-  const isRepro = idx.reproductiveStatus === 'reproductive';
+  const isNonMenopausal = idx.reproductiveStatus !== 'postmenopausal';
   const gynBleedingOrPain =
-    hpi.selectedArchetype === 'GYN-1' ||
-    hpi.selectedArchetype === 'GYN-2' ||
+    hasArch('GYN-1') ||
+    hasArch('GYN-2') ||
     symptoms.gyn_vaginal_bleeding?.state === 1 ||
     symptoms.gyn_abdominal_pelvic_pain?.state === 1;
-  const bhcgMandatory = ob.subMode === 'gynecology' && isRepro && gynBleedingOrPain;
+  const bhcgMandatory = ob.subMode === 'gynecology' && isNonMenopausal && gynBleedingOrPain;
 
   const ssUnassessedCount = OBGYN_SS_FIVE_IDS.filter((id) => {
     const st = symptoms[id]?.state;
@@ -512,27 +514,27 @@ export function createDefaultObgynState() {
     subMode: 'obstetrics', // 'obstetrics' | 'gynecology' | 'soape'
     activeTab: 'admission',
     obstetricIndex: {
-      G: '',
-      P: '',
-      L: '',
-      D: '',
-      Ab: '',
-      IUFD: '',
-      EP: '',
-      Mole: '',
+      G: null,
+      P: null,
+      L: null,
+      D: null,
+      Ab: null,
+      IUFD: null,
+      EP: null,
+      Mole: null,
       expandZeroIndexFields: false,
-      ND: '',
-      CS: '',
+      ND: null,
+      CS: null,
       priorCsIndications: '',
       isVirgin: false,
-      maritalStatus: 'married',
+      maritalStatus: '',
       marriageDurationYears: '',
-      reproductiveStatus: 'pregnant',
+      reproductiveStatus: '',
       menopauseAge: '',
       maternalBgRh: '',
       paternalBgRh: '',
       indirectCoombsRhogam: '',
-      currentFetalCount: 1,
+      currentFetalCount: null,
       chorionicity: ''
     },
     gestationalDating: {
@@ -550,9 +552,8 @@ export function createDefaultObgynState() {
     },
     ccAndHpi: {
       ccText: '',
-      selectedArchetype: '',
       duration: '',
-      archetypeFields: {},
+      presentations: [], // [{ id, archetypeId, collapse, fields: {} }]
       symptoms: {}, // id -> { state: 1 | -1, modifiers: [], detail: '' }
       narrativeExtra: ''
     },
@@ -575,27 +576,28 @@ export function createDefaultObgynState() {
       menopauseAge: '',
       hrtUse: false,
       lmpDate: '',
-      lmpCertainty: 'reliable',
+      lmpCertainty: '',
       pmpDate: '',
-      regularity: 'regular',
+      regularity: '',
       cycleIntervalDays: '',
       bleedingDurationDays: '',
-      flowVolume: 'normal',
+      flowVolume: '',
       padsPerDay: '',
       clotPassage: false,
       floodingOrNightChange: false,
-      dysmenorrhea: 'none',
+      dysmenorrhea: '',
       imb: false,
       pcb: false,
       pmsSymptoms: false
     },
     gynScreeningAndRecords: {
       contraception: {
-        currentMethod: 'none',
+        currentMethod: '',
         durationOfUse: '',
         priorMethodsAndSideEffects: ''
       },
       pahx: {
+        status: 0, // 0 = untouched, -1 = explicitly denied, 1 = positive
         hasPriorAnesthesia: false,
         anesthesiaTypes: [],
         complications: ''
@@ -606,8 +608,8 @@ export function createDefaultObgynState() {
       },
       cervicalAndBreastScreening: {
         lastPapSmearDate: '',
-        lastPapSmearResult: 'انجام نشده',
-        hpvTestStatus: 'انجام نشده',
+        lastPapSmearResult: '',
+        hpvTestStatus: '',
         priorColposcopyResult: '',
         lastMammographyOrBreastUsDate: '',
         lastMammographyBirads: ''
@@ -732,7 +734,13 @@ export function createDefaultObgynState() {
         urinePrCr: '',
         tsh: '',
         ptInr: '',
-        ogtt75: ''
+        ogtt75: '',
+        ca125: '',
+        prolactin: '',
+        fshLh: '',
+        indirectCoombs: '',
+        gbs: '',
+        viralMarkers: ''
       },
       keyLabsNote: ''
     },
@@ -819,11 +827,36 @@ export function normalizeObgynState(saved) {
   const merged = deepMerge(defaults, saved);
   merged.subMode = normalizeSubMode(saved.subMode);
 
+  // Migrate single selectedArchetype -> multi-presentation array cleanly
+  if (!Array.isArray(merged.ccAndHpi.presentations)) {
+    merged.ccAndHpi.presentations = [];
+  }
+  if (saved.ccAndHpi?.selectedArchetype && merged.ccAndHpi.presentations.length === 0) {
+    merged.ccAndHpi.presentations.push({
+      id: `obpres_${saved.ccAndHpi.selectedArchetype}`,
+      archetypeId: saved.ccAndHpi.selectedArchetype,
+      collapsed: false,
+      fields: { ...(saved.ccAndHpi.archetypeFields || {}) }
+    });
+  }
+
+  // Migrate PAHx boolean -> tri-state (0 untouched, -1 denied, 1 positive)
+  const pahx = merged.gynScreeningAndRecords.pahx;
+  if (saved.gynScreeningAndRecords?.pahx) {
+    const rawPahx = saved.gynScreeningAndRecords.pahx;
+    if (rawPahx.status === 1 || rawPahx.status === -1) {
+      pahx.status = rawPahx.status;
+    } else if (rawPahx.hasPriorAnesthesia || (Array.isArray(rawPahx.anesthesiaTypes) && rawPahx.anesthesiaTypes.length > 0) || (rawPahx.complications || '').trim()) {
+      pahx.status = 1;
+      pahx.hasPriorAnesthesia = true;
+    }
+  }
+
   // Migrate Phase-1 flat keys if present on legacy saved.obgyn
-  if (saved.g !== undefined && merged.obstetricIndex.G === '') merged.obstetricIndex.G = saved.g;
-  if (saved.p !== undefined && merged.obstetricIndex.P === '') merged.obstetricIndex.P = saved.p;
-  if (saved.ab !== undefined && merged.obstetricIndex.Ab === '') merged.obstetricIndex.Ab = saved.ab;
-  if (saved.l !== undefined && merged.obstetricIndex.L === '') merged.obstetricIndex.L = saved.l;
+  if (saved.g !== undefined && (merged.obstetricIndex.G === null || merged.obstetricIndex.G === '')) merged.obstetricIndex.G = saved.g;
+  if (saved.p !== undefined && (merged.obstetricIndex.P === null || merged.obstetricIndex.P === '')) merged.obstetricIndex.P = saved.p;
+  if (saved.ab !== undefined && (merged.obstetricIndex.Ab === null || merged.obstetricIndex.Ab === '')) merged.obstetricIndex.Ab = saved.ab;
+  if (saved.l !== undefined && (merged.obstetricIndex.L === null || merged.obstetricIndex.L === '')) merged.obstetricIndex.L = saved.l;
   if (saved.lmp && !merged.gestationalDating.lmpDate) {
     merged.gestationalDating.lmpDate = saved.lmp;
     merged.menstrualHistory.lmpDate = saved.lmp;

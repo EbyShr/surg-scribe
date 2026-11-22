@@ -2725,3 +2725,239 @@ select.input-select {
     overflow: hidden !important;
   }
 }
+
+@media (max-width: 520px) {
+  .topbar-mode-switcher#obgynModeSwitcher {
+    gap: 4px !important;
+    padding: 3px !important;
+  }
+
+  #obgynModeSwitcher .mode-icon {
+    display: none !important;
+  }
+
+  #obgynModeSwitcher .mode-switch-btn {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding: 0 6px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* ==========================================================================
+   Phase 2.5 Surgical UX Refactor — Compact Split-Pill Grids, Multi-Presentation
+   Cards, Tab 4 In-Place Pickers, Capsule SOAPE & Collapsible ADCA (v3.1.1)
+   ========================================================================== */
+
+.obgyn-split-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.obgyn-split-grid.is-ss-grid {
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+}
+
+.obgyn-sym-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.obgyn-sym-cell.has-drawer {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-sym-cell.has-drawer .obgyn-split-pill {
+  max-width: 440px;
+}
+
+.obgyn-split-pill {
+  width: 100%;
+  min-width: 0;
+}
+
+.obgyn-split-pill .obgyn-split-label {
+  flex: 1 1 auto;
+  text-align: center;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+/* Multi-Presentation HPI Launcher & Presentation Cards */
+.obgyn-launcher-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--v3-text-muted);
+}
+
+.obgyn-archetype-card.has-added {
+  border-color: var(--lens-accent);
+  background: var(--lens-accent-soft);
+}
+
+.obgyn-arch-add-badge {
+  margin-inline-start: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  color: var(--lens-accent);
+}
+
+.obgyn-pres-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.obgyn-pres-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.obgyn-pres-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--v3-text-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: start;
+}
+
+/* Tab 4 In-Place Search Result Chips & Selected Rows */
+.obgyn-search-result-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.obgyn-search-result-chip:hover {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-selected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.obgyn-selected-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.3fr) minmax(130px, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-selected-row.is-psh {
+  grid-template-columns: minmax(140px, 1.2fr) 90px minmax(120px, 1fr) 32px;
+}
+
+.obgyn-selected-row.is-dh {
+  grid-template-columns: minmax(150px, 1.2fr) 140px 140px 32px;
+}
+
+.obgyn-selected-row strong {
+  font-size: 0.8rem;
+  color: var(--v3-text-primary);
+}
+
+/* SOAPE Quick Capsules & Mini Vitals Strip */
+.obgyn-capsule-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.obgyn-capsule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.obgyn-capsule-chip:hover {
+  border-color: var(--lens-accent-border);
+}
+
+.obgyn-capsule-chip.active {
+  background: var(--lens-accent-soft);
+  border-color: var(--lens-accent);
+  color: var(--lens-accent);
+}
+
+.obgyn-vitals-mini {
+  margin-bottom: 6px;
+}
+
+/* Collapsible ADCA Accordion & Highlighted Filled Fields */
+.obgyn-adca-accordion {
+  border: 1px solid var(--v3-border);
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+}
+
+.obgyn-pe-count.has-filled {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-field.is-filled input,
+.obgyn-field.is-filled textarea {
+  border-color: var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+}
+
+@media (max-width: 640px) {
+  .obgyn-split-grid,
+  .obgyn-split-grid.is-ss-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .obgyn-sym-cell.has-drawer .obgyn-split-pill {
+    max-width: 100%;
+  }
+
+  .obgyn-selected-row,
+  .obgyn-selected-row.is-psh,
+  .obgyn-selected-row.is-dh {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

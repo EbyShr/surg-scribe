@@ -1,4 +1,4 @@
-const CACHE_NAME = 'medhistorism-v3.1.0-obgyn-clinical-cache';
+const CACHE_NAME = 'medhistorism-v3.1.1-obgyn-refined-cache';
 
 const STATIC_ASSETS = [
   './',
