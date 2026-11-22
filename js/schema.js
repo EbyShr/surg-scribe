@@ -24,6 +24,13 @@ import {
   MASTER_PSH_SURGERIES_BANK as V21_PSH_SURGERIES_BANK,
   MISSING_LABS_PATCH_V21
 } from './data/psh-otc-labs-v21.js';
+import { EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK } from './data/drugs-supplements-v22.js';
+import {
+  OBGYN_MEDICATIONS_DELTA,
+  OBGYN_LABS_DELTA,
+  OBGYN_PSH_DELTA,
+  OBGYN_PMH_DELTA
+} from './specialties/obgyn/obgyn-data.js';
 
 export {
   HPI_QUALIFIERS_AND_SYMPTOMS,
@@ -32,7 +39,12 @@ export {
   MASTER_ROS_BANK,
   MASTER_PE_BANK,
   OTC_AND_HERBAL_DRUGS_BANK,
-  MISSING_LABS_PATCH_V21
+  EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK,
+  MISSING_LABS_PATCH_V21,
+  OBGYN_MEDICATIONS_DELTA,
+  OBGYN_LABS_DELTA,
+  OBGYN_PSH_DELTA,
+  OBGYN_PMH_DELTA
 };
 
 let currentSchemaLang = 'fa';
@@ -1665,8 +1677,8 @@ export const MASTER_DRUG_CATEGORIES = [
     catTitle: '۱. ضدپلاکت‌ها و ضدانعقادها (داروهای پرخطر جراحی - High-Alert)',
     drugs: [
       { id: 'drg_asa', aliases: 'اسپرین آشپرین اشپرین آ.اس.آ آ اس آ asa aspirin 80 100 325 antiplatelet', label: 'آسپرین (Aspirin - ASA)', brands: 'Aspirin 80mg, 100mg, 325mg', defaultDose: '80mg', highAlert: true },
-      { id: 'drg_clopidogrel', aliases: 'پلاویکس پلاوکس اسویکس زیلیت کلوپیدگرل clopidogrel plavix osvix zyllt', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت', defaultDose: '75mg', highAlert: true },
-      { id: 'drg_ticagrelor', aliases: 'بریلینتا تیکاگرلور ticagrelor brilinta', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticarel', defaultDose: '90mg', highAlert: true },
+      { id: 'drg_clopidogrel', aliases: 'پلاویکس پلاوکس اسویکس زیلیت کلوپیدگرل clopidogrel plavix osvix zyllt تروکسام troxam', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت, Troxam تروکسام', defaultDose: '75mg', highAlert: true },
+      { id: 'drg_ticagrelor', aliases: 'بریلینتا تیکاگرلور ticagrelor brilinta تیکاگریل ticagril تیکانور tikanor', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticagril تیکاگریل, Ticarel', defaultDose: '90mg', highAlert: true },
       { id: 'drg_prasugrel', label: 'پرازوگرل (Prasugrel)', brands: 'Effient افینت', defaultDose: '10mg', highAlert: true, aliases: 'پرازوگرل افینت prasugrel effient' },
       { id: 'drg_cilostazol', label: 'سیلوستازول (Cilostazol)', brands: 'Pletaal پلتال', defaultDose: '100mg', highAlert: true, aliases: 'سیلوستازول پلتال cilostazol pletaal' },
       { id: 'drg_warfarin', aliases: 'کومادین وارفارین warfarin coumadin ضدانعقاد', label: 'وارفارین (Warfarin)', brands: 'Coumadin کومادین', defaultDose: '5mg', highAlert: true },
@@ -1764,11 +1776,11 @@ export const MASTER_DRUG_CATEGORIES = [
     catTitle: '۴. داروهای گوارشی، کبدی و ضدتهوع',
     drugs: [
       { id: 'drg_pantoprazole', aliases: 'پنتاپرازول پنتوپرازول نولپازا نلپازا پنتوزول معده pantoprazole nolpaza controloc', label: 'پنتوپرازول (Pantoprazole - Nolpaza)', brands: 'Nolpaza نولپازا, پنتوزول, Controloc', defaultDose: '40mg' },
-      { id: 'drg_omeprazole', aliases: 'امپرازول لوسک omeprazole losec', label: 'امپرازول (Omeprazole)', brands: 'Losec لوسک', defaultDose: '20mg' },
+      { id: 'drg_omeprazole', aliases: 'امپرازول لوسک omeprazole losec آلپرازون alprazone', label: 'امپرازول (Omeprazole)', brands: 'Losec لوسک, Alprazone آلپرازون', defaultDose: '20mg' },
       { id: 'drg_esomeprazole', aliases: 'اسومپرازول نکسیوم اسوپرکس esomeprazole nexium', label: 'اس‌امپرازول (Esomeprazole - Nexium)', brands: 'Nexium نکسیوم, اسوپرکس', defaultDose: '40mg' },
       { id: 'drg_lansoprazole', label: 'لنسوپرازول (Lansoprazole)', brands: 'Prevacid پرواسید', defaultDose: '30mg', aliases: 'لنسوپرازول lansoprazole prevacid' },
       { id: 'drg_rabeprazole', label: 'رابپرازول (Rabeprazole)', brands: 'Pariet پاریت', defaultDose: '20mg', aliases: 'رابپرازول پاریت rabeprazole pariet' },
-      { id: 'drg_famotidine', aliases: 'فاموتیدین پپسید famotidine pepcid', label: 'فاموتیدین (Famotidine)', brands: 'Pepcid پپسید', defaultDose: '40mg' },
+      { id: 'drg_famotidine', aliases: 'فاموتیدین پپسید famotidine pepcid واریکت variket', label: 'فاموتیدین (Famotidine)', brands: 'Pepcid پپسید, Variket واریکت', defaultDose: '40mg' },
       { id: 'drg_cimetidine', label: 'سایمتیدین (Cimetidine)', brands: 'Tagamet تاگامت', defaultDose: '200mg', aliases: 'سایمتیدین تاگامت cimetidine tagamet' },
       { id: 'drg_sucralfate', label: 'سوکرالفیت (Sucralfate)', brands: 'Carafate کارافیت', defaultDose: '1g', aliases: 'سوکرالفیت sucralfate' },
       { id: 'drg_aluminum_mgs', label: 'شربت آلومینیوم ام‌جی‌اس (Aluminum MgS)', brands: 'Al-Mg-S', defaultDose: '10ml', aliases: 'الومینیوم ام جی اس شربت معده انتی اسید aluminum mgs antacid' },
@@ -1897,6 +1909,87 @@ export const MASTER_DRUG_CATEGORIES = [
   }
 ];
 
+// Helper to partition supplements vs prescription/GLP-1 items
+const isSupplementOrMineral = (d) => (
+  (d.id && (d.id.startsWith('vitamin_') || d.id.startsWith('mineral_') || d.id.startsWith('supplement_'))) ||
+  (d.category && (
+    d.category.includes('ویتامین') ||
+    d.category.includes('مکمل') ||
+    d.category.includes('املاح') ||
+    d.category.includes('پروبیوتیک')
+  ))
+);
+
+// Collect all existing drug IDs currently in MASTER_DRUG_CATEGORIES
+const existingDrugIdSet = new Set();
+MASTER_DRUG_CATEGORIES.forEach(cat => {
+  (cat.drugs || []).forEach(drg => {
+    if (drg && drg.id) existingDrugIdSet.add(drg.id);
+  });
+});
+
+// Create quick lookup of v22 items to enrich existing items if IDs match
+const v22BankMap = new Map((EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK || []).map(d => [d.id, d]));
+MASTER_DRUG_CATEGORIES.forEach(cat => {
+  (cat.drugs || []).forEach(drg => {
+    if (v22BankMap.has(drg.id)) {
+      const v22Item = v22BankMap.get(drg.id);
+      if (v22Item.aliases) {
+        drg.aliases = drg.aliases ? `${drg.aliases}; ${v22Item.aliases}` : v22Item.aliases;
+      }
+      if (v22Item.label && !drg.label.includes(v22Item.label)) {
+        drg.label = v22Item.label;
+      }
+      if (v22Item.en && !drg.en) {
+        drg.en = v22Item.en;
+      }
+    }
+  });
+});
+
+// Deduplicate EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK items based on id
+const deduplicatedV22Supplements = [];
+const deduplicatedV22RxAndPens = [];
+
+(EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK || []).forEach(item => {
+  if (!existingDrugIdSet.has(item.id)) {
+    existingDrugIdSet.add(item.id);
+    if (isSupplementOrMineral(item)) {
+      deduplicatedV22Supplements.push({
+        ...item,
+        catId: 'dh_vitamins_supplements',
+        category: item.category || '۸. ویتامین‌ها، مکمل‌های آهن، تقویتی‌ها و املاح (Vitamins, Iron & Supplements)'
+      });
+    } else {
+      deduplicatedV22RxAndPens.push({
+        ...item,
+        catId: 'dh_expanded_rx_glp1',
+        category: item.category || '۹. قلم‌های لاغری، برندهای درمانی و داروهای تکمیلی (GLP-1 Pens & Expanded Rx)'
+      });
+    }
+  }
+});
+
+// Append the new categories to MASTER_DRUG_CATEGORIES
+MASTER_DRUG_CATEGORIES.push(
+  {
+    catId: 'dh_vitamins_supplements',
+    id: 'dh_vitamins_supplements',
+    catTitle: '۸. ویتامین‌ها، مکمل‌های آهن، تقویتی‌ها و املاح (Vitamins, Iron & Supplements)',
+    title: '۸. ویتامین‌ها، مکمل‌های آهن، تقویتی‌ها و املاح (Vitamins, Iron & Supplements)',
+    badge: 'Vitamins & Minerals',
+    drugs: deduplicatedV22Supplements
+  },
+  {
+    catId: 'dh_expanded_rx_glp1',
+    id: 'dh_expanded_rx_glp1',
+    catTitle: '۹. قلم‌های لاغری، برندهای درمانی و داروهای تکمیلی (GLP-1 Pens & Expanded Rx)',
+    title: '۹. قلم‌های لاغری، برندهای درمانی و داروهای تکمیلی (GLP-1 Pens & Expanded Rx)',
+    badge: 'GLP-1 & Rx Bank',
+    drugs: deduplicatedV22RxAndPens
+  }
+);
+
 // Compatibility bridge: ensure both catId/id and catTitle/title are present
 MASTER_DRUG_CATEGORIES.forEach(cat => {
   if (!cat.id) cat.id = cat.catId;
@@ -1904,9 +1997,59 @@ MASTER_DRUG_CATEGORIES.forEach(cat => {
 });
 
 export const DH_CATEGORIES = MASTER_DRUG_CATEGORIES;
-export const ALL_MASTER_DRUGS = MASTER_DRUG_CATEGORIES.flatMap(cat => 
-  (cat.drugs || []).map(drg => ({ ...drg, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
-);
+
+// Build master list of all drugs with guaranteed uniqueness by id
+const allDrugsMap = new Map();
+MASTER_DRUG_CATEGORIES.forEach(cat => {
+  (cat.drugs || []).forEach(drg => {
+    if (!allDrugsMap.has(drg.id)) {
+      allDrugsMap.set(drg.id, {
+        ...drg,
+        category: drg.category || cat.catTitle || cat.title,
+        catId: drg.catId || cat.catId || cat.id
+      });
+    } else {
+      const existing = allDrugsMap.get(drg.id);
+      if (drg.aliases && !existing.aliases?.includes(drg.aliases)) {
+        existing.aliases = [existing.aliases, drg.aliases].filter(Boolean).join('; ');
+      }
+      if (drg.brands && !existing.brands?.includes(drg.brands)) {
+        existing.brands = [existing.brands, drg.brands].filter(Boolean).join(', ');
+      }
+    }
+  });
+});
+
+// Ensure all items from EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK are safely present in allDrugsMap
+(EXPANDED_DRUGS_AND_SUPPLEMENTS_BANK || []).forEach(drg => {
+  if (!allDrugsMap.has(drg.id)) {
+    allDrugsMap.set(drg.id, {
+      ...drg,
+      category: drg.category || 'بانک جامع داروها و مکمل‌ها',
+      catId: isSupplementOrMineral(drg) ? 'dh_vitamins_supplements' : 'dh_expanded_rx_glp1'
+    });
+  }
+});
+
+// Merge Ob/Gyn Delta Medications cleanly into Shared Core Formulary
+(OBGYN_MEDICATIONS_DELTA || []).forEach(drg => {
+  if (!allDrugsMap.has(drg.id)) {
+    allDrugsMap.set(drg.id, {
+      ...drg,
+      label: drg.label || `${drg.fa} (${drg.en})`,
+      brands: drg.commonDose || '',
+      category: drg.category ? `زنان و زایمان — ${drg.category}` : 'زنان و زایمان (Ob/Gyn)',
+      catId: 'dh_expanded_rx_glp1'
+    });
+  } else {
+    const existing = allDrugsMap.get(drg.id);
+    if (drg.aliases && !existing.aliases?.includes(drg.aliases)) {
+      existing.aliases = [existing.aliases, drg.aliases].filter(Boolean).join(' ');
+    }
+  }
+});
+
+export const ALL_MASTER_DRUGS = Array.from(allDrugsMap.values());
 
 export const ROS_SYSTEM_META = [
   { id: 'constitutional', group: '۱. علائم عمومی (Constitutional Symptoms)', en: 'Constitutional Symptoms' },
@@ -2607,6 +2750,17 @@ V21_PSH_SURGERIES_BANK.forEach(proc => {
   }
 });
 
+// Merge Ob/Gyn Delta Surgical Procedures into Shared PSH Bank
+(OBGYN_PSH_DELTA || []).forEach(proc => {
+  if (!MASTER_PSH_SURGERIES_BANK.some(s => s.id === proc.id)) {
+    MASTER_PSH_SURGERIES_BANK.push({
+      ...proc,
+      label: proc.label || `${proc.fa} (${proc.en})`,
+      category: 'OB/GYN'
+    });
+  }
+});
+
 export const PSH_SURGICAL_PROCEDURES_BANK = MASTER_PSH_SURGERIES_BANK;
 
 // ==========================================================================
@@ -2754,6 +2908,16 @@ export const MASTER_ALL_LAB_TESTS = (() => {
       map.set(test.id, test);
     }
   });
+  (OBGYN_LABS_DELTA || []).forEach(test => {
+    if (!map.has(test.id)) {
+      map.set(test.id, {
+        ...test,
+        label: test.label || `${test.fa} (${test.en})`,
+        panel: 'obgyn_panel',
+        category: 'زنان و زایمان (Ob/Gyn)'
+      });
+    }
+  });
   return Array.from(map.values());
 })();
 
@@ -2771,16 +2935,32 @@ export function inferPmhCatId(item) {
   return 'pmh_cat_cardio';
 }
 
-// Combine all PMH items for schema search
-export const ALL_MASTER_PMH_ITEMS = [
-  ...MASTER_PMH_CATEGORIES.flatMap(cat => 
+// Combine all PMH items for schema search (including Ob/Gyn Delta)
+export const ALL_MASTER_PMH_ITEMS = (() => {
+  const pmhMap = new Map();
+  MASTER_PMH_CATEGORIES.flatMap(cat =>
     (cat.items || []).map(it => ({ ...it, category: cat.catTitle || cat.title, catId: cat.catId || cat.id }))
-  ),
-  ...HIDDEN_EXTENDED_PMH_DATABASE.map(it => ({
-    ...it,
-    catId: it.catId || inferPmhCatId(it)
-  }))
-];
+  ).forEach(it => pmhMap.set(it.id, it));
+
+  HIDDEN_EXTENDED_PMH_DATABASE.forEach(it => {
+    if (!pmhMap.has(it.id)) {
+      pmhMap.set(it.id, { ...it, catId: it.catId || inferPmhCatId(it) });
+    }
+  });
+
+  (OBGYN_PMH_DELTA || []).forEach(it => {
+    if (!pmhMap.has(it.id)) {
+      pmhMap.set(it.id, {
+        ...it,
+        label: it.label || `${it.fa} (${it.en})`,
+        category: 'زنان و زایمان (Ob/Gyn)',
+        catId: it.catId || inferPmhCatId(it)
+      });
+    }
+  });
+
+  return Array.from(pmhMap.values());
+})();
 
 // ==========================================================================
 // v0.8-Omnisearch: Comprehensive 12-System Physical Examination Schema (PE)

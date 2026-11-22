@@ -1,8 +1,8 @@
 {
   "id": "/surg-scribe/",
-  "name": "SurgHistory Clinical Workstation",
-  "short_name": "SurgHistory",
-  "description": "سامانه جامع بالینی ثبت شرح‌حال، ترومای اورژانس و سیر روزانه جراحی عمومی",
+  "name": "MedHistorism Clinical Workstation",
+  "short_name": "MedHistorism",
+  "description": "سامانه جامع بالینی MedHistorism برای ثبت شرح‌حال بستری، ترومای اورژانس، زنان و زایمان و سیر روزانه بخش",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -11,7 +11,7 @@
     "standalone",
     "minimal-ui"
   ],
-  "background_color": "#090D16",
+  "background_color": "#0B0F17",
   "theme_color": "#0D9488",
   "orientation": "any",
   "lang": "fa",
@@ -57,9 +57,9 @@
   ],
   "shortcuts": [
     {
-      "name": "پذیرش جدید (H&P)",
+      "name": "پذیرش جراحی (H&P)",
       "url": "./index.html?mode=admission",
-      "description": "ثبت شرح‌حال بیمار جدید"
+      "description": "ثبت شرح‌حال بیمار جدید جراحی"
     },
     {
       "name": "ترومای اورژانس (ATLS)",
@@ -70,6 +70,11 @@
       "name": "سیر روزانه (SOAP)",
       "url": "./index.html?mode=soap",
       "description": "ثبت ویزیت روزانه بخش"
+    },
+    {
+      "name": "زنان و زایمان (Ob/Gyn)",
+      "url": "./index.html?lens=obgyn",
+      "description": "ورود مستقیم به لنز بالینی زنان و زایمان"
     }
   ]
 }

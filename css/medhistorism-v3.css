@@ -1,0 +1,2727 @@
+/* ==========================================================================
+   MedHistorism v3.0 — Modular Clinical Core & 5-Reference Design System
+   Loaded after css/clinical-ui.css (Zero Regression Layer)
+   Themes: Swiss Clinical Light & Obsidian Night-Shift Dark
+   Lenses: Surgery & Trauma (#0D9488 / #14B8A6) | Ob/Gyn (#9D174D / #E11D48)
+   ========================================================================== */
+
+/* 1. Tiered v3.0 Surface, Contrast & Specialty Lens Tokens
+   -------------------------------------------------------------------------- */
+:root,
+body.theme-light,
+body:not(.dark-mode) {
+  color-scheme: light;
+  --v3-canvas: #F7F8FA;
+  --v3-surface: #FFFFFF;
+  --v3-surface-elevated: #F8FAFC;
+  --v3-surface-muted: #F1F5F9;
+  --v3-border: #E2E8F0;
+  --v3-border-strong: #CBD5E1;
+  --v3-text-primary: #0F172A;
+  --v3-text-secondary: #334155;
+  --v3-text-muted: #64748B;
+  --v3-paper-bg: #FFFEFC;
+  --v3-paper-gutter: #EEF2F6;
+  --v3-paper-border: #DCE3EC;
+  --v3-callout-bg: #ECFDF5;
+  --v3-callout-border: #A7F3D0;
+  --v3-safety-bg: #FEF3C7;
+  --v3-safety-border: #FCD34D;
+  --v3-safety-text: #92400E;
+  --v3-emerald-dot: #10B981;
+  --v3-emerald-bg: rgba(16, 185, 129, 0.10);
+  --v3-emerald-text: #047857;
+  --v3-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --v3-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.03);
+  --v3-shadow-hover: 0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+
+  /* Refine clinical-ui.css Light Mode tokens without breaking contrasts */
+  --bg-app: var(--v3-canvas);
+  --bg-primary: var(--v3-canvas);
+  --bg-surface: var(--v3-surface);
+  --bg-panel: var(--v3-surface);
+  --bg-elevated: var(--v3-surface-elevated);
+  --bg-surface-elevated: var(--v3-surface-elevated);
+  --bg-surface-alt: var(--v3-surface-muted);
+  --bg-input: #F8FAFC;
+  --border-subtle: var(--v3-border);
+  --border-strong: var(--v3-border-strong);
+  --border-medium: var(--v3-border-strong);
+  --text-primary: var(--v3-text-primary);
+  --text-secondary: var(--v3-text-secondary);
+  --text-muted: var(--v3-text-muted);
+  --card-shadow: var(--v3-shadow-card);
+  --shadow-card: var(--v3-shadow-card);
+}
+
+body.dark-mode {
+  color-scheme: dark;
+  --v3-canvas: #0B0F17;
+  --v3-surface: #111827;
+  --v3-surface-elevated: #161B22;
+  --v3-surface-muted: #1B2332;
+  --v3-border: rgba(255, 255, 255, 0.08);
+  --v3-border-strong: rgba(255, 255, 255, 0.14);
+  --v3-text-primary: #F1F5F9;
+  --v3-text-secondary: #94A3B8;
+  --v3-text-muted: #64748B;
+  --v3-paper-bg: #121826;
+  --v3-paper-gutter: #0B0F17;
+  --v3-paper-border: rgba(255, 255, 255, 0.10);
+  --v3-callout-bg: rgba(16, 185, 129, 0.10);
+  --v3-callout-border: rgba(16, 185, 129, 0.32);
+  --v3-safety-bg: rgba(245, 158, 11, 0.14);
+  --v3-safety-border: rgba(245, 158, 11, 0.34);
+  --v3-safety-text: #FCD34D;
+  --v3-emerald-dot: #34D399;
+  --v3-emerald-bg: rgba(16, 185, 129, 0.14);
+  --v3-emerald-text: #6EE7B7;
+  --v3-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --v3-shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.45);
+  --v3-shadow-hover: 0 12px 28px -4px rgba(0, 0, 0, 0.60);
+
+  /* Obsidian Night-Shift tokens mapped cleanly onto existing variables */
+  --bg-app: var(--v3-canvas);
+  --bg-primary: var(--v3-canvas);
+  --bg-surface: var(--v3-surface);
+  --bg-panel: var(--v3-surface);
+  --bg-elevated: var(--v3-surface-elevated);
+  --bg-surface-elevated: var(--v3-surface-elevated);
+  --bg-surface-alt: #0E141F;
+  --bg-card: var(--v3-surface);
+  --bg-input: #172030;
+  --border-subtle: var(--v3-border);
+  --border-strong: var(--v3-border-strong);
+  --border-medium: var(--v3-border-strong);
+  --chip-neutral-bg: #172030;
+  --chip-neutral-border: rgba(255, 255, 255, 0.11);
+  --chip-neutral-text: #E2E8F0;
+  --chip-neutral-hover: #1E293B;
+  --pill-neutral-bg: #172030;
+  --pill-neutral-border: rgba(255, 255, 255, 0.11);
+  --pill-neutral-text: #E2E8F0;
+  --card-shadow: var(--v3-shadow-card);
+  --shadow-card: var(--v3-shadow-card);
+}
+
+/* Specialty Lens Accents — Surgery & Trauma (Default) */
+html,
+html[data-specialty="surgery"] {
+  --lens-accent: #0D9488;
+  --lens-accent-hover: #0F766E;
+  --lens-accent-soft: rgba(13, 148, 136, 0.10);
+  --lens-accent-border: rgba(13, 148, 136, 0.34);
+  --lens-glow: rgba(13, 148, 136, 0.12);
+}
+
+html[data-specialty="surgery"] body.dark-mode,
+body.dark-mode {
+  --lens-accent: #14B8A6;
+  --lens-accent-hover: #2DD4BF;
+  --lens-accent-soft: rgba(20, 184, 166, 0.14);
+  --lens-accent-border: rgba(20, 184, 166, 0.38);
+  --lens-glow: rgba(20, 184, 166, 0.16);
+}
+
+/* Specialty Lens Accents — Ob/Gyn (Clinical Plum-Rose) */
+html[data-specialty="obgyn"] {
+  --lens-accent: #9D174D;
+  --lens-accent-hover: #831843;
+  --lens-accent-soft: rgba(157, 23, 77, 0.10);
+  --lens-accent-border: rgba(157, 23, 77, 0.34);
+  --lens-glow: rgba(157, 23, 77, 0.12);
+  --accent-primary: var(--lens-accent);
+  --primary: var(--lens-accent);
+  --primary-hover: var(--lens-accent-hover);
+  --primary-light: var(--lens-accent-soft);
+  --primary-glow: var(--lens-glow);
+  --brand-primary: var(--lens-accent);
+  --brand-hover: var(--lens-accent-hover);
+  --brand-subtle: var(--lens-accent-soft);
+  --brand-border: var(--lens-accent-border);
+  --border-focus: var(--lens-accent);
+}
+
+html[data-specialty="obgyn"] body.dark-mode {
+  --lens-accent: #E11D48;
+  --lens-accent-deep: #BE185D;
+  --lens-accent-hover: #F43F5E;
+  --lens-accent-soft: rgba(190, 24, 93, 0.18);
+  --lens-accent-border: rgba(225, 29, 72, 0.42);
+  --lens-glow: rgba(225, 29, 72, 0.18);
+  --accent-primary: #E11D48;
+  --primary: #E11D48;
+  --primary-hover: #F43F5E;
+  --primary-light: rgba(190, 24, 93, 0.18);
+  --primary-glow: rgba(225, 29, 72, 0.18);
+  --brand-primary: #E11D48;
+  --brand-hover: #F43F5E;
+  --brand-subtle: rgba(190, 24, 93, 0.18);
+  --brand-border: rgba(225, 29, 72, 0.42);
+  --border-focus: #E11D48;
+}
+
+/* 2. View State Switching (Hub vs Workstation — Zero DOM Breakage)
+   -------------------------------------------------------------------------- */
+body.view-hub #workstationTopBar,
+body.view-hub #clinicalWorkstation,
+body.view-hub #mobileBottomDock {
+  display: none !important;
+}
+
+body.view-hub #medhistorism-hub-view {
+  display: block;
+}
+
+body.view-workstation #medhistorism-hub-view {
+  display: none !important;
+}
+
+/* 3. Specialty Hub — Landing Command Center (Refs 1, 2, 4)
+   -------------------------------------------------------------------------- */
+.medhistorism-hub-view {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: var(--v3-canvas);
+  color: var(--v3-text-primary);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.dark-mode .medhistorism-hub-view {
+  background-image:
+    radial-gradient(ellipse 65% 45% at 15% 0%, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 85% 5%, rgba(190, 24, 93, 0.07), transparent 60%);
+}
+
+body:not(.dark-mode) .medhistorism-hub-view {
+  background-image:
+    radial-gradient(ellipse 70% 45% at 18% 0%, rgba(13, 148, 136, 0.05), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 82% 0%, rgba(157, 23, 77, 0.04), transparent 58%);
+}
+
+.hub-shell {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Hub Top Floating Header Bar */
+.hub-header {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.65rem 1rem;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 14px;
+  box-shadow: var(--v3-shadow-card);
+  backdrop-filter: blur(12px);
+}
+
+body.dark-mode .hub-header {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.hub-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.hub-brand-emblem {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  border: 1px solid var(--lens-accent-border);
+  flex-shrink: 0;
+}
+
+.hub-brand-wordmark {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--v3-text-primary);
+  white-space: nowrap;
+}
+
+.hub-version-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-secondary);
+  border: 1px solid var(--v3-border);
+  white-space: nowrap;
+}
+
+.hub-search-trigger {
+  flex: 1 1 auto;
+  max-width: 440px;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+  color: var(--v3-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.hub-search-trigger:hover {
+  border-color: var(--lens-accent-border);
+  color: var(--v3-text-primary);
+}
+
+.hub-search-text {
+  flex: 1;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hub-search-kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.14rem 0.42rem;
+  border-radius: 5px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  color: var(--v3-text-secondary);
+  flex-shrink: 0;
+}
+
+.hub-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.hub-offline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.34rem 0.7rem;
+  border-radius: 9999px;
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hub-offline-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--v3-emerald-dot);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+}
+
+.hub-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--v3-surface-muted);
+  border: 1px solid var(--v3-border);
+}
+
+.hub-lang-btn {
+  border: none;
+  background: transparent;
+  color: var(--v3-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hub-lang-btn.active {
+  background: var(--v3-surface);
+  color: var(--v3-text-primary);
+  box-shadow: var(--v3-shadow-sm);
+}
+
+.hub-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hub-icon-btn:hover {
+  border-color: var(--v3-border-strong);
+  color: var(--v3-text-primary);
+}
+
+.hub-vault-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface);
+  color: var(--v3-text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.hub-vault-btn:hover {
+  border-color: var(--lens-accent-border);
+  background: var(--v3-surface-elevated);
+}
+
+.hub-vault-count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.42rem;
+  border-radius: 9999px;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  border: 1px solid var(--lens-accent-border);
+}
+
+/* Hub Main 2-Area Grid */
+.hub-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.hub-primary-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.hub-hero-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hub-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lens-accent);
+}
+
+.hub-heading {
+  margin: 0;
+  font-size: 1.68rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--v3-text-primary);
+  line-height: 1.25;
+}
+
+.hub-subheading {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--v3-text-muted);
+}
+
+/* Flagship Specialty Lens Cards */
+.hub-flagship-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.hub-lens-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  box-shadow: var(--v3-shadow-card);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.hub-lens-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--v3-shadow-hover);
+}
+
+.hub-lens-card[data-lens="surgery"] {
+  --card-accent: #0D9488;
+  --card-accent-hover: #0F766E;
+  --card-accent-soft: rgba(13, 148, 136, 0.11);
+  --card-accent-border: rgba(13, 148, 136, 0.36);
+}
+
+.hub-lens-card[data-lens="obgyn"] {
+  --card-accent: #9D174D;
+  --card-accent-hover: #831843;
+  --card-accent-soft: rgba(157, 23, 77, 0.11);
+  --card-accent-border: rgba(157, 23, 77, 0.36);
+}
+
+body.dark-mode .hub-lens-card[data-lens="surgery"] {
+  --card-accent: #14B8A6;
+  --card-accent-hover: #2DD4BF;
+  --card-accent-soft: rgba(20, 184, 166, 0.15);
+  --card-accent-border: rgba(20, 184, 166, 0.42);
+  border-color: rgba(20, 184, 166, 0.34);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(20, 184, 166, 0.12), transparent 65%),
+    var(--v3-surface);
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.10), var(--v3-shadow-card);
+}
+
+body.dark-mode .hub-lens-card[data-lens="obgyn"] {
+  --card-accent: #E11D48;
+  --card-accent-hover: #BE185D;
+  --card-accent-soft: rgba(190, 24, 93, 0.18);
+  --card-accent-border: rgba(225, 29, 72, 0.42);
+  border-color: rgba(225, 29, 72, 0.34);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(190, 24, 93, 0.14), transparent 65%),
+    var(--v3-surface);
+  box-shadow: 0 0 0 1px rgba(225, 29, 72, 0.10), var(--v3-shadow-card);
+}
+
+/* Crisp 3px Top Accent Bar in Light Mode */
+body:not(.dark-mode) .hub-lens-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 3.5px;
+  background: var(--card-accent);
+}
+
+.hub-lens-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.hub-lens-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-accent-soft);
+  color: var(--card-accent);
+  border: 1px solid var(--card-accent-border);
+  flex-shrink: 0;
+}
+
+.hub-lens-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.hub-lens-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: var(--v3-text-primary);
+  line-height: 1.3;
+}
+
+.hub-lens-sub {
+  font-size: 0.77rem;
+  color: var(--v3-text-muted);
+  margin-top: 0.15rem;
+}
+
+.hub-quick-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.hub-quick-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--v3-text-muted);
+}
+
+.hub-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.hub-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.4rem 0.72rem;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-secondary);
+  font-size: 0.79rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hub-quick-pill:hover {
+  border-color: var(--card-accent-border);
+  background: var(--card-accent-soft);
+  color: var(--v3-text-primary);
+}
+
+.hub-lens-cta {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.68rem 1rem;
+  border-radius: 9px;
+  border: none;
+  background: var(--card-accent);
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.hub-lens-cta:hover {
+  background: var(--card-accent-hover);
+}
+
+body.dark-mode .hub-lens-card[data-lens="obgyn"] .hub-lens-cta {
+  background: #BE185D;
+}
+
+body.dark-mode .hub-lens-card[data-lens="obgyn"] .hub-lens-cta:hover {
+  background: #E11D48;
+}
+
+.hub-lens-footer {
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--v3-border);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--v3-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+/* Modular Core Expansion Row */
+.hub-expansion-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hub-section-heading {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--v3-text-secondary);
+  margin: 0;
+}
+
+.hub-expansion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.hub-expansion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  border: 1px dashed var(--v3-border-strong);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-muted);
+  text-align: start;
+  cursor: pointer;
+  opacity: 0.86;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+body.dark-mode .hub-expansion-card {
+  background: rgba(22, 27, 34, 0.75);
+}
+
+.hub-expansion-card:hover {
+  opacity: 1;
+  border-color: var(--v3-text-muted);
+}
+
+.hub-expansion-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.hub-expansion-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.hub-expansion-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-muted);
+  border: 1px solid var(--v3-border);
+  flex-shrink: 0;
+}
+
+.hub-expansion-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--v3-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-expansion-tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.18rem 0.52rem;
+  border-radius: 6px;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-muted);
+  border: 1px solid var(--v3-border);
+}
+
+/* Right Side Rail: Today's Shift Cases */
+.hub-shift-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.05rem;
+  border-radius: 14px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  box-shadow: var(--v3-shadow-card);
+  min-width: 0;
+}
+
+.hub-rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hub-rail-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--v3-text-primary);
+}
+
+.hub-rail-count {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-secondary);
+  border: 1px solid var(--v3-border);
+}
+
+.hub-shift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 410px;
+  overflow-y: auto;
+}
+
+.hub-shift-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.78rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface-elevated);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  width: 100%;
+}
+
+.hub-shift-item:hover {
+  border-color: var(--lens-accent-border);
+  background: var(--v3-surface);
+}
+
+.hub-shift-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hub-shift-case-id {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--v3-text-primary);
+}
+
+.hub-shift-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hub-shift-dot.is-surgery {
+  background: #14B8A6;
+}
+
+.hub-shift-dot.is-obgyn {
+  background: #E11D48;
+}
+
+.hub-shift-ward {
+  font-size: 0.78rem;
+  color: var(--v3-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-shift-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--v3-text-muted);
+}
+
+.hub-shift-arrow {
+  display: inline-flex;
+  color: var(--v3-text-muted);
+}
+
+html[dir="rtl"] .hub-shift-arrow svg,
+html[dir="rtl"] .return-hub-arrow svg {
+  transform: scaleX(-1);
+}
+
+/* Active Shift Continuity Strip */
+.hub-continuity-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.15rem;
+  border-radius: 12px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  box-shadow: var(--v3-shadow-sm);
+  flex-wrap: wrap;
+}
+
+.hub-continuity-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.hub-continuity-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 6px;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  border: 1px solid var(--lens-accent-border);
+  white-space: nowrap;
+}
+
+.hub-continuity-meta {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--v3-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-continuity-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.52rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--lens-accent);
+  color: #FFFFFF;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.hub-continuity-btn:hover {
+  background: var(--lens-accent-hover);
+}
+
+/* Bottom Architectural Universal Core Strip (Ref 4) */
+.hub-core-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.72rem 1rem;
+  border-radius: 12px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  box-shadow: var(--v3-shadow-sm);
+  flex-wrap: wrap;
+}
+
+.hub-core-strip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--v3-text-secondary);
+  white-space: nowrap;
+}
+
+.hub-core-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hub-core-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.3rem 0.68rem;
+  border-radius: 9999px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+  color: var(--v3-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hub-core-pill.is-shield {
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.hub-core-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--v3-text-primary);
+}
+
+/* Mobile Bedside Hub Bottom Dock (< 1024px) */
+.hub-mobile-dock {
+  display: none;
+}
+
+@media (max-width: 1120px) {
+  .hub-main-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .hub-shell {
+    padding: 0.75rem 0.85rem 5.25rem;
+    gap: 1rem;
+  }
+
+  .hub-header {
+    position: relative;
+    top: 0;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.65rem 0.75rem;
+    gap: 0.55rem;
+  }
+
+  .hub-version-badge,
+  .hub-offline-pill,
+  .hub-search-kbd {
+    display: none;
+  }
+
+  .hub-brand-wordmark {
+    font-size: 0.98rem;
+  }
+
+  .hub-vault-btn {
+    padding: 0.34rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .hub-search-trigger {
+    order: 3;
+    flex: 1 0 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .hub-heading {
+    font-size: 1.32rem;
+  }
+
+  .hub-flagship-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 0.75rem;
+    padding-bottom: 0.25rem;
+    max-width: 100%;
+  }
+
+  .hub-flagship-grid .hub-lens-card {
+    flex: 0 0 86%;
+    scroll-snap-align: start;
+  }
+
+  .hub-expansion-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hub-mobile-dock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    z-index: 160;
+    background: var(--v3-surface);
+    border-top: 1px solid var(--v3-border-strong);
+    padding: 0.4rem 0.35rem calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hub-dock-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border: none;
+    background: transparent;
+    color: var(--v3-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem;
+    cursor: pointer;
+  }
+
+  .hub-dock-btn.active,
+  .hub-dock-btn:hover {
+    color: var(--lens-accent);
+  }
+}
+
+/* 4. Workstation Top Bar Enhancements (Hub Return + Specialty Lens Switcher)
+   -------------------------------------------------------------------------- */
+.btn-return-hub {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-return-hub:hover {
+  border-color: var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+}
+
+.return-hub-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: var(--v3-text-muted);
+}
+
+.specialty-lens-switcher {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--v3-border-strong);
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.lens-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.26rem 0.58rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--v3-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.lens-switch-btn:hover {
+  color: var(--v3-text-primary);
+}
+
+.lens-switch-btn.active[data-lens="surgery"] {
+  background: rgba(13, 148, 136, 0.14);
+  color: #0F766E;
+  border-color: rgba(13, 148, 136, 0.35);
+}
+
+body.dark-mode .lens-switch-btn.active[data-lens="surgery"] {
+  background: rgba(20, 184, 166, 0.18);
+  color: #5EEAD4;
+  border-color: rgba(20, 184, 166, 0.42);
+}
+
+.lens-switch-btn.active[data-lens="obgyn"] {
+  background: rgba(157, 23, 77, 0.14);
+  color: #9D174D;
+  border-color: rgba(157, 23, 77, 0.35);
+}
+
+body.dark-mode .lens-switch-btn.active[data-lens="obgyn"] {
+  background: rgba(190, 24, 93, 0.24);
+  color: #FDA4AF;
+  border-color: rgba(225, 29, 72, 0.48);
+}
+
+.lens-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lens-dot-surgery {
+  background: #14B8A6;
+}
+
+.lens-dot-obgyn {
+  background: #E11D48;
+}
+
+/* Ob/Gyn Top Mode Switcher Visibility & Active State */
+html:not([data-specialty="obgyn"]) #obgynModeSwitcher {
+  display: none !important;
+}
+
+html[data-specialty="obgyn"] #appModeSwitcher {
+  display: none !important;
+}
+
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #railNavAdmission,
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #railNavAtls,
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #railNavSoap,
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #hp-mobile-tabs,
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #atls-mobile-tabs,
+html[data-specialty="obgyn"]:not([data-obgyn-shared="true"]) #soap-mobile-tabs {
+  display: none !important;
+}
+
+html[data-specialty="obgyn"] #obgyn-mobile-tabs:not([hidden]) {
+  display: flex !important;
+}
+
+#obgynModeSwitcher .mode-switch-btn.active {
+  background: var(--lens-accent) !important;
+  color: #FFFFFF !important;
+}
+
+.obgyn-shared-return-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  margin-bottom: 0.9rem;
+  border-radius: 10px;
+  background: var(--lens-accent-soft);
+  border: 1px solid var(--lens-accent-border);
+  color: var(--v3-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.obgyn-shared-return-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 7px;
+  border: none;
+  background: var(--lens-accent);
+  color: #FFFFFF;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  #workstationTopBar.workstation-top-bar {
+    background: var(--v3-surface) !important;
+    border-bottom: 1px solid var(--v3-border) !important;
+  }
+
+  .topbar-center-cluster {
+    max-width: 340px !important;
+    min-width: 140px !important;
+  }
+
+  .topbar-brand-cluster .brand-version.version-pill {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .topbar-brand-cluster {
+    flex-wrap: nowrap !important;
+    min-width: 0 !important;
+    max-width: 72% !important;
+    gap: 4px !important;
+  }
+
+  .btn-return-hub {
+    padding: 0.22rem 0.42rem;
+    gap: 0.25rem;
+  }
+
+  .btn-return-hub .brand-title {
+    display: none !important;
+  }
+
+  .lens-switch-btn {
+    padding: 0.22rem 0.42rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* 5. Column 1 Left Rail Stepper (Ref 3)
+   -------------------------------------------------------------------------- */
+#railNavAdmission .rail-nav-list,
+#railNavObgyn .rail-nav-list {
+  position: relative;
+  padding-inline-start: 0.2rem;
+}
+
+#railNavAdmission .rail-nav-list::before,
+#railNavObgyn .rail-nav-list::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  inset-inline-start: 16px;
+  width: 1.5px;
+  background: var(--v3-border);
+  pointer-events: none;
+}
+
+#railNavAdmission .tab-btn,
+#railNavObgyn .obgyn-rail-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.48rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--v3-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+#railNavAdmission .tab-btn:hover,
+#railNavObgyn .obgyn-rail-btn:hover {
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-primary);
+}
+
+#railNavAdmission .tab-btn.active,
+#railNavObgyn .obgyn-rail-btn.active {
+  background: var(--lens-accent-soft) !important;
+  color: var(--v3-text-primary) !important;
+  border-color: var(--lens-accent-border) !important;
+  box-shadow: inset 3px 0 0 var(--lens-accent);
+}
+
+html[dir="rtl"] #railNavAdmission .tab-btn.active,
+html[dir="rtl"] #railNavObgyn .obgyn-rail-btn.active {
+  box-shadow: inset -3px 0 0 var(--lens-accent);
+}
+
+#railNavAdmission .tab-icon-wrap,
+#railNavObgyn .obgyn-rail-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  color: var(--v3-text-muted);
+  flex-shrink: 0;
+}
+
+#railNavAdmission .tab-btn.active .tab-icon-wrap,
+#railNavObgyn .obgyn-rail-btn.active .obgyn-rail-icon {
+  background: var(--lens-accent);
+  border-color: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-rail-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 6. Column 2 Precision Split-Pills, Callouts & Safety Badges (Refs 3 & 5)
+   -------------------------------------------------------------------------- */
+.v3-safety-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.52rem;
+  border-radius: 9999px;
+  background: var(--v3-safety-bg);
+  border: 1px solid var(--v3-safety-border);
+  color: var(--v3-safety-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.split-chip-wrap.has-inline-open {
+  position: relative;
+}
+
+body:not(.dark-mode) .split-chip-wrap.has-inline-open .inline-detail-input {
+  background: var(--v3-callout-bg) !important;
+  border-color: var(--v3-callout-border) !important;
+  color: #064E3B !important;
+  padding-inline: 0.65rem !important;
+  height: 32px !important;
+}
+
+body.dark-mode .split-chip-wrap.has-inline-open .inline-detail-input {
+  background: rgba(16, 185, 129, 0.10) !important;
+  border-color: rgba(16, 185, 129, 0.34) !important;
+  color: #ECFDF5 !important;
+  padding-inline-start: 0.75rem !important;
+  border-inline-start: 3px solid #10B981 !important;
+  height: 32px !important;
+}
+
+/* Slim Shared Core Footer Bar in Center Shell */
+.shared-core-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.42rem 1rem;
+  background: var(--v3-surface);
+  border-top: 1px solid var(--v3-border);
+  flex-shrink: 0;
+}
+
+.shared-core-footer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  border: none;
+  background: transparent;
+  color: var(--v3-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+
+.shared-core-footer-toggle:hover {
+  color: var(--lens-accent);
+}
+
+.shared-core-footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.core-meta-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.16rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  border: 1px solid var(--lens-accent-border);
+}
+
+/* 7. Column 3 Living Clinical Manuscript & Archival Sheet (Refs 3, 4, 5)
+   -------------------------------------------------------------------------- */
+.preview-paper-scroll-body {
+  background: var(--v3-paper-gutter) !important;
+  padding: 1rem 1rem 2rem !important;
+}
+
+.v3-manuscript-sheet {
+  background: var(--v3-paper-bg);
+  border: 1px solid var(--v3-paper-border);
+  border-radius: 10px;
+  padding: 1.15rem 1.2rem 1.5rem;
+  box-shadow: var(--v3-shadow-card);
+}
+
+body:not(.dark-mode) .v3-manuscript-sheet {
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 6px 18px rgba(15, 23, 42, 0.06),
+    0 8px 0 -3px #F8F7F2,
+    0 8px 0 -2px #D8E0EA,
+    0 15px 0 -6px #F2F0E8,
+    0 15px 0 -5px #D8E0EA;
+}
+
+.chart-header-stamps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.chart-pii-shield-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.16rem 0.48rem;
+  border-radius: 9999px;
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 8. Ob/Gyn Specialty Shell & Executive Header Strip (Ref 5)
+   -------------------------------------------------------------------------- */
+.obgyn-mode-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  padding-bottom: 2.5rem;
+}
+
+.obgyn-exec-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.9rem 1.05rem;
+  border-radius: 12px;
+  background: var(--v3-surface);
+  border: 1px solid var(--lens-accent-border);
+  box-shadow: var(--v3-shadow-card);
+}
+
+body.dark-mode .obgyn-exec-strip {
+  background:
+    radial-gradient(100% 90% at 10% 0%, rgba(190, 24, 93, 0.16), transparent 65%),
+    var(--v3-surface);
+}
+
+.obgyn-exec-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.obgyn-exec-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--lens-accent);
+}
+
+.obgyn-exec-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.obgyn-mono-pill {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.26rem 0.6rem;
+  border-radius: 7px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border-strong);
+  color: var(--v3-text-primary);
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.obgyn-pill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+@media (max-width: 720px) {
+  .obgyn-pill-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.obgyn-pill-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.obgyn-split-pill {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  border-radius: 8px;
+  background: var(--pill-neutral-bg);
+  border: 1px solid var(--pill-neutral-border);
+  overflow: hidden;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.obgyn-split-pill.is-pos {
+  background: var(--lens-accent-soft);
+  border-color: var(--lens-accent-border);
+  color: var(--v3-text-primary);
+}
+
+.obgyn-split-pill.is-neg {
+  background: var(--pill-neg-bg);
+  border-color: var(--pill-neg-border);
+  color: var(--pill-neg-text);
+}
+
+.obgyn-split-btn {
+  width: 34px;
+  min-width: 34px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--v3-text-muted);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.obgyn-split-pill.is-pos .obgyn-split-btn.btn-pos {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-split-pill.is-neg .obgyn-split-btn.btn-neg {
+  background: var(--pill-neg-border);
+  color: #FFFFFF;
+}
+
+.obgyn-split-label {
+  flex: 1;
+  padding: 0 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-inline: 1px solid var(--v3-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.obgyn-detail-drawer {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.6rem;
+  border-radius: 8px;
+  background: var(--lens-accent-soft);
+  border: 1px solid var(--lens-accent-border);
+  border-inline-start: 3px solid var(--lens-accent);
+}
+
+.obgyn-detail-arrow {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--lens-accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.obgyn-detail-input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  color: var(--v3-text-primary) !important;
+  font-size: 0.8rem !important;
+  padding: 0 !important;
+  outline: none !important;
+}
+
+.obgyn-shared-bridge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .obgyn-shared-bridge-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.obgyn-shared-bridge-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface-elevated);
+}
+
+.obgyn-shared-bridge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+  color: var(--v3-text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obgyn-shared-bridge-btn:hover {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+@media print {
+  .medhistorism-hub-view,
+  .shared-core-footer-bar,
+  .chart-pii-shield-pill {
+    display: none !important;
+  }
+
+  .v3-manuscript-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    background: #FFFFFF !important;
+    padding: 0 !important;
+  }
+}
+
+
+/* ==========================================================================
+   MedHistorism v3.1 — Ob/Gyn Complete Clinical Workspace Styles (Light & Obsidian Dark)
+   ========================================================================== */
+
+#railNavObgyn .obgyn-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#railNavObgyn .obgyn-rail-badge {
+  margin-inline-start: auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+}
+
+#obgyn-mobile-tabs .obgyn-mobile-tab-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  color: var(--v3-text-secondary);
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#obgyn-mobile-tabs .obgyn-mobile-tab-btn.active {
+  background: var(--lens-accent);
+  border-color: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-tab-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.obgyn-section-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.obgyn-section-card.is-focused-drawer {
+  border-color: var(--lens-accent-border);
+  box-shadow: 0 0 0 2px var(--lens-glow);
+}
+
+.obgyn-submode-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+}
+
+.obgyn-mono-pill {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.obgyn-mono-pill.is-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(217, 119, 6, 0.14);
+  color: #B45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+.obgyn-mono-pill.is-alert {
+  background: rgba(225, 29, 72, 0.12);
+  color: #BE123C;
+  border-color: rgba(225, 29, 72, 0.35);
+}
+
+body.dark-mode .obgyn-mono-pill.is-lock {
+  color: #FBBF24;
+}
+
+body.dark-mode .obgyn-mono-pill.is-alert {
+  color: #FB7185;
+}
+
+.obgyn-mt-xs { margin-top: 6px; }
+.obgyn-mt-sm { margin-top: 10px; }
+.obgyn-mt-md { margin-top: 14px; }
+
+/* Safety Guardrail Banners */
+.obgyn-guardrail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obgyn-guardrail-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.obgyn-guardrail-banner.is-danger {
+  background: rgba(220, 38, 38, 0.09);
+  border-color: rgba(220, 38, 38, 0.38);
+  color: #991B1B;
+}
+
+.obgyn-guardrail-banner.is-warning,
+.obgyn-guardrail-banner.is-lock {
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.40);
+  color: #92400E;
+}
+
+body.dark-mode .obgyn-guardrail-banner.is-danger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #FCA5A5;
+}
+
+body.dark-mode .obgyn-guardrail-banner.is-warning,
+body.dark-mode .obgyn-guardrail-banner.is-lock {
+  background: rgba(245, 158, 11, 0.14);
+  color: #FCD34D;
+}
+
+.obgyn-guardrail-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  margin-top: 2px;
+}
+
+/* Responsive Clinical Form Grids */
+.obgyn-form-grid {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.obgyn-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.obgyn-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.obgyn-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.obgyn-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+.obgyn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.obgyn-field.is-span-2 { grid-column: span 2; }
+.obgyn-field.is-span-3 { grid-column: span 3; }
+.obgyn-field.is-span-4 { grid-column: span 4; }
+.obgyn-field.obgyn-flex-end { justify-content: flex-end; }
+
+.obgyn-field label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--v3-text-secondary);
+}
+
+.obgyn-field.is-amber-mandatory input {
+  border-color: rgba(217, 119, 6, 0.7);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.obgyn-field.is-bhcg-mandatory input {
+  border-color: rgba(220, 38, 38, 0.7);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.obgyn-inline-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* Obstetric 8-Part Index Pills */
+.obgyn-gpal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.obgyn-index-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 68px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-index-pill.is-extended {
+  border-style: dashed;
+}
+
+.obgyn-index-pill.is-mode {
+  border-color: var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+}
+
+.obgyn-index-pill label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--v3-text-secondary);
+}
+
+.obgyn-index-pill input {
+  text-align: center;
+  padding: 4px 2px;
+  font-weight: 700;
+}
+
+.obgyn-rh-box {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(245, 158, 11, 0.07);
+}
+
+.obgyn-rh-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #B45309;
+  margin-bottom: 8px;
+}
+
+body.dark-mode .obgyn-rh-title {
+  color: #FBBF24;
+}
+
+/* Calendar Switch & Triple GA Output */
+.obgyn-calendar-switch {
+  display: inline-flex;
+  border: 1px solid var(--v3-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--v3-surface-elevated);
+}
+
+.obgyn-cal-btn {
+  border: none;
+  background: transparent;
+  color: var(--v3-text-secondary);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.obgyn-cal-btn.active {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-ga-summary-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-ga-result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.obgyn-ga-result-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-ga-result-cell.is-official {
+  border-color: var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+}
+
+.obgyn-ga-cell-label {
+  font-size: 0.7rem;
+  color: var(--v3-text-muted);
+}
+
+.obgyn-ga-cell-val {
+  font-size: 0.8rem;
+  color: var(--v3-text-primary);
+}
+
+.obgyn-redating-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+.obgyn-redating-alert.is-concordant {
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+}
+
+.obgyn-redating-alert.is-redated,
+.obgyn-redating-alert.is-discrepancy {
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400E;
+}
+
+body.dark-mode .obgyn-redating-alert.is-redated,
+body.dark-mode .obgyn-redating-alert.is-discrepancy {
+  color: #FCD34D;
+}
+
+/* Toggle Chips & Safety Pill */
+.obgyn-toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-secondary);
+  font-size: 0.77rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.obgyn-toggle-chip.active {
+  background: var(--lens-accent-soft);
+  border-color: var(--lens-accent);
+  color: var(--lens-accent);
+}
+
+.obgyn-toggle-chip.is-lock.active,
+.obgyn-toggle-chip.is-danger.active {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #B91C1C;
+}
+
+body.dark-mode .obgyn-toggle-chip.is-lock.active,
+body.dark-mode .obgyn-toggle-chip.is-danger.active {
+  color: #FCA5A5;
+}
+
+.obgyn-safety-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--v3-safety-bg);
+  border: 1px solid var(--v3-safety-border);
+  color: var(--v3-safety-text);
+}
+
+/* Archetype Cards & Targeted Fields */
+.obgyn-archetype-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.obgyn-archetype-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: start;
+  gap: 4px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface-elevated);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.obgyn-archetype-card:hover {
+  border-color: var(--lens-accent-border);
+}
+
+.obgyn-archetype-card.active {
+  border-color: var(--lens-accent);
+  background: var(--lens-accent-soft);
+}
+
+.obgyn-arch-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.obgyn-arch-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  color: var(--lens-accent);
+}
+
+.obgyn-arch-title {
+  font-size: 0.8rem;
+  color: var(--v3-text-primary);
+}
+
+.obgyn-arch-sub {
+  font-size: 0.72rem;
+  color: var(--v3-text-muted);
+  line-height: 1.4;
+}
+
+.obgyn-arch-fields-box {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--lens-accent-border);
+}
+
+.obgyn-arch-fields-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--lens-accent);
+  margin-bottom: 8px;
+}
+
+/* 5-Symptom SS Preeclampsia Quick-Bar */
+.obgyn-ss-quickbar {
+  border-color: rgba(220, 38, 38, 0.32);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.04), transparent);
+}
+
+.obgyn-ss-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.obgyn-ss-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #B91C1C;
+}
+
+body.dark-mode .obgyn-ss-title {
+  color: #FCA5A5;
+}
+
+.obgyn-ss-badge {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.obgyn-ss-badge.is-pending {
+  background: rgba(220, 38, 38, 0.14);
+  color: #B91C1C;
+}
+
+.obgyn-ss-badge.is-clear {
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+}
+
+.obgyn-ss-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Search Filter & Split-Pill Rows */
+.obgyn-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.obgyn-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 8px;
+  background: var(--v3-surface-elevated);
+}
+
+.obgyn-inline-search {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-width: 190px;
+}
+
+.obgyn-symptoms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obgyn-sym-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.obgyn-split-pill.state-neutral {
+  background: var(--v3-surface-elevated);
+  border-color: var(--v3-border-strong);
+}
+
+.obgyn-split-pill.state-pos {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.obgyn-split-pill.state-neg {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+.obgyn-split-pill.is-compact {
+  flex: 1 1 200px;
+}
+
+.obgyn-split-pill.state-pos .obgyn-split-btn.is-pos {
+  background: #059669;
+  color: #FFFFFF;
+}
+
+.obgyn-split-pill.state-neg .obgyn-split-btn.is-neg {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+
+.obgyn-flag-tag {
+  margin-inline-start: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #B91C1C;
+}
+
+.obgyn-flag-tag.is-lock {
+  background: rgba(217, 119, 6, 0.16);
+  color: #92400E;
+}
+
+.obgyn-detail-drawer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-inline-start: 16px;
+}
+
+.obgyn-drawer-arrow {
+  color: var(--lens-accent);
+  margin-top: 6px;
+}
+
+.obgyn-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.obgyn-mod-chips,
+.obgyn-comp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.obgyn-mod-chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface);
+  color: var(--v3-text-secondary);
+  cursor: pointer;
+}
+
+.obgyn-mod-chip.active {
+  background: var(--lens-accent);
+  border-color: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+/* Dynamic Pregnancy & Pathology Tables */
+.obgyn-preg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obgyn-preg-row {
+  display: grid;
+  grid-template-columns: 44px 100px 145px 86px 96px 1fr 34px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-preg-row.is-path {
+  grid-template-columns: 44px 110px 170px 1fr 34px;
+}
+
+.obgyn-preg-badge {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 30px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+}
+
+.obgyn-icon-del {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  color: #DC2626;
+  cursor: pointer;
+}
+
+.obgyn-empty-hint {
+  font-size: 0.8rem;
+  color: var(--v3-text-muted);
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--v3-surface-elevated);
+  border: 1px dashed var(--v3-border);
+}
+
+/* Mandatory PAHx & Shared Core Bridge Cards */
+.obgyn-pahx-mandatory-card {
+  border-inline-start: 4px solid var(--lens-accent);
+}
+
+.obgyn-shared-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--v3-text-primary);
+}
+
+.obgyn-shared-stat {
+  font-size: 0.76rem;
+  color: var(--v3-text-muted);
+}
+
+/* PE Accordions, TV Box & Bishop Badge */
+.obgyn-tv-box {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-tv-box.is-locked {
+  opacity: 0.58;
+  border-color: rgba(217, 119, 6, 0.55);
+}
+
+.obgyn-tv-box.is-previa-warn {
+  border-color: rgba(220, 38, 38, 0.65);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.obgyn-bishop-badge,
+.obgyn-nichd-badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-bishop-badge.is-favorable,
+.obgyn-nichd-badge.is-cat1 {
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+  border-color: var(--v3-callout-border);
+}
+
+.obgyn-bishop-badge.is-unfavorable,
+.obgyn-nichd-badge.is-cat3 {
+  background: rgba(220, 38, 38, 0.12);
+  color: #B91C1C;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.obgyn-bishop-badge.is-intermediate,
+.obgyn-nichd-badge.is-cat2 {
+  background: rgba(217, 119, 6, 0.14);
+  color: #92400E;
+  border-color: rgba(217, 119, 6, 0.4);
+}
+
+body.dark-mode .obgyn-bishop-badge.is-unfavorable,
+body.dark-mode .obgyn-nichd-badge.is-cat3 {
+  color: #FCA5A5;
+}
+
+body.dark-mode .obgyn-bishop-badge.is-intermediate,
+body.dark-mode .obgyn-nichd-badge.is-cat2 {
+  color: #FCD34D;
+}
+
+.obgyn-pe-accordions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obgyn-pe-accordion {
+  padding: 0;
+}
+
+.obgyn-pe-acc-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.obgyn-pe-acc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--v3-text-primary);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.obgyn-pe-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-secondary);
+}
+
+.obgyn-normal-sec-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--v3-callout-border);
+  background: var(--v3-emerald-bg);
+  color: var(--v3-emerald-text);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obgyn-pe-acc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--v3-border);
+  padding-top: 10px;
+}
+
+.obgyn-var-decel-box {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  font-size: 0.79rem;
+}
+
+/* ADCA Presets & SOAPE Day Pills */
+.obgyn-preset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.obgyn-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--lens-accent-border);
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obgyn-preset-btn:hover {
+  background: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-day-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.obgyn-day-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obgyn-day-pill.active {
+  background: var(--lens-accent);
+  border-color: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+/* Responsive Breakpoints (Tablet & Mobile Bedside PWA) */
+@media (max-width: 960px) {
+  .obgyn-cols-4,
+  .obgyn-cols-6,
+  .obgyn-ga-result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .obgyn-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .obgyn-preg-row {
+    grid-template-columns: 44px 1fr 1fr;
+  }
+
+  .obgyn-preg-row.is-path {
+    grid-template-columns: 44px 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .obgyn-cols-2,
+  .obgyn-cols-3,
+  .obgyn-cols-4,
+  .obgyn-cols-6,
+  .obgyn-ga-result-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .obgyn-field.is-span-2,
+  .obgyn-field.is-span-3,
+  .obgyn-field.is-span-4 {
+    grid-column: span 1;
+  }
+
+  .obgyn-preg-row,
+  .obgyn-preg-row.is-path {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Mobile & Select Polish Fixes (v3.1) */
+select,
+select.input-select {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: normal;
+}
+
+@media (max-width: 768px) {
+  .topbar-mode-switcher#obgynModeSwitcher {
+    display: flex !important;
+    grid-template-columns: none !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+    padding: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar-mode-switcher#obgynModeSwitcher::-webkit-scrollbar {
+    display: none;
+  }
+
+  #obgynModeSwitcher .mode-switch-btn {
+    width: auto !important;
+    min-width: max-content !important;
+    flex: 0 0 auto !important;
+    height: 36px !important;
+    padding: 0 11px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+}

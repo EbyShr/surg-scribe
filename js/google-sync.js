@@ -87,8 +87,36 @@ export function deepStripPIIForCloud(rawPayload, rawClinicalState = null) {
   }
   if (clone.generatedTexts) {
     if (clone.generatedTexts.hp) clone.generatedTexts.hp = scrubMarkdownText(clone.generatedTexts.hp);
+    if (clone.generatedTexts.obgyn) clone.generatedTexts.obgyn = scrubMarkdownText(clone.generatedTexts.obgyn);
     if (clone.generatedTexts.atls) clone.generatedTexts.atls = scrubMarkdownText(clone.generatedTexts.atls);
     if (clone.generatedTexts.soapAllDays) clone.generatedTexts.soapAllDays = scrubMarkdownText(clone.generatedTexts.soapAllDays);
+  }
+  const obTarget = clone.hp?.obgynModule || clone.obgynModule;
+  if (obTarget && typeof obTarget === 'object') {
+    if (obTarget.ccAndHpi) {
+      if (obTarget.ccAndHpi.ccText) obTarget.ccAndHpi.ccText = scrubMarkdownText(obTarget.ccAndHpi.ccText);
+      if (obTarget.ccAndHpi.narrativeExtra) obTarget.ccAndHpi.narrativeExtra = scrubMarkdownText(obTarget.ccAndHpi.narrativeExtra);
+    }
+    if (obTarget.assessmentAndPlan?.planSummary) {
+      obTarget.assessmentAndPlan.planSummary = scrubMarkdownText(obTarget.assessmentAndPlan.planSummary);
+    }
+    if (Array.isArray(obTarget.soapeHistory)) {
+      obTarget.soapeHistory.forEach((day) => {
+        ['S', 'O', 'A', 'P_modifications', 'P_reason', 'P_newOrders', 'E'].forEach((k) => {
+          if (day[k]) day[k] = scrubMarkdownText(day[k]);
+        });
+      });
+    }
+    if (obTarget.dischargeSadaf) {
+      ['ccAndInitialDx', 'finalDx', 'treatmentsAndProcedures', 'labSummary', 'dischargeCondition'].forEach((k) => {
+        if (obTarget.dischargeSadaf[k]) obTarget.dischargeSadaf[k] = scrubMarkdownText(obTarget.dischargeSadaf[k]);
+      });
+    }
+    if (obTarget.consultNote) {
+      ['admissionReason', 'consultReason', 'summary'].forEach((k) => {
+        if (obTarget.consultNote[k]) obTarget.consultNote[k] = scrubMarkdownText(obTarget.consultNote[k]);
+      });
+    }
   }
   if (Array.isArray(clone.soapHistory)) {
     clone.soapHistory.forEach((day) => {

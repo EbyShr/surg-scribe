@@ -40,6 +40,34 @@ export function normalizePersianClinicalText(text) {
  * while preserving demographic metadata (age, gender, marital, city, occupation, ward).
  */
 export function sanitizeRecordForExport(rawState) {
+  const fullName = rawState?.demographics?.fullName ? String(rawState.demographics.fullName).trim() : '';
+  const nameTokens = fullName.split(/\s+/).filter((t) => t.length >= 2);
+  const redactText = (text) => {
+    let out = String(text);
+    if (fullName.length >= 2) {
+      out = out.split(fullName).join('[REDACTED]');
+    }
+    nameTokens.forEach((tok) => {
+      const escaped = tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(escaped, 'g'), '[REDACTED]');
+    });
+    out = out.replace(/تخت\s*[:#]?\s*[\d۰-۹A-Za-z\-]+/g, 'تخت [محفوظ]');
+    out = out.replace(/Bed\s*[:#]?\s*[\dA-Za-z\-]+/gi, 'Bed [Redacted]');
+    return out;
+  };
+  const scrubNode = (node) => {
+    if (typeof node === 'string') return redactText(node);
+    if (Array.isArray(node)) return node.map(scrubNode);
+    if (node && typeof node === 'object') {
+      const next = {};
+      Object.keys(node).forEach((k) => {
+        next[k] = scrubNode(node[k]);
+      });
+      return next;
+    }
+    return node;
+  };
+
   const cloned = JSON.parse(JSON.stringify(rawState || {}));
   ['demographics', 'admission', 'context'].forEach((sec) => {
     if (cloned[sec]) {
@@ -53,6 +81,9 @@ export function sanitizeRecordForExport(rawState) {
   delete cloned.fatherName;
   delete cloned.birthDate;
   delete cloned.bed;
+  if (cloned.obgynModule) {
+    cloned.obgynModule = scrubNode(cloned.obgynModule);
+  }
   return cloned;
 }
 

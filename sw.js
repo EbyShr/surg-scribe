@@ -1,18 +1,29 @@
-const CACHE_NAME = 'surg-v2.0.0-clinical-pro-cache-v200';
+const CACHE_NAME = 'medhistorism-v3.1.0-obgyn-clinical-cache';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/clinical-ui.css',
+  './css/medhistorism-v3.css',
   './js/icons.js',
   './js/storage-vault.js',
   './js/fuzzy-search.js',
   './js/schema.js',
+  './js/data/drugs-supplements-v22.js',
+  './js/data/hpi-lexicon.js',
+  './js/data/pe-bank.js',
+  './js/data/psh-otc-labs-v21.js',
+  './js/data/ros-bank.js',
   './js/telemetry.js',
   './js/generator.js',
   './js/i18n.js',
-  './js/cloud-sync.js',
   './js/google-sync.js',
+  './js/specialty-hub.js',
+  './js/specialties/obgyn/obgyn-data.js',
+  './js/specialties/obgyn/obgyn-state.js',
+  './js/specialties/obgyn/obgyn-ui.js',
+  './js/specialties/obgyn/obgyn-generator.js',
+  './js/specialties/obgyn/obgyn-shell.js',
   './js/app.js',
   './manifest.json',
   './icons/icon-192.png',
@@ -25,7 +36,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v2.0-Pro] Pre-caching offline surgical clinical assets');
+      console.log('[SW v3.1] Pre-caching MedHistorism modular clinical core assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -37,7 +48,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW v2.0-Pro] Removing old cache version:', key);
+            console.log('[SW v3.1] Removing old cache version:', key);
             return caches.delete(key);
           }
         })
@@ -61,7 +72,7 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => caches.match(event.request, { ignoreSearch: true }).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }
@@ -76,7 +87,7 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => caches.match(event.request, { ignoreSearch: true }).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }

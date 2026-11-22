@@ -71,7 +71,7 @@ import {
   synthesizeProblemRepresentation,
   sanitizeRecordForExport
 } from './generator.js';
-import { GoogleSheetsSyncEngine, deepStripPIIForCloud } from './google-sync.js';
+import { gsheetSync, deepStripPIIForCloud } from './google-sync.js';
 import {
   getCurrentLanguage,
   setLanguage,
@@ -83,16 +83,28 @@ import {
   getLocalizedItemLabel,
   applyI18nToDOM
 } from './i18n.js';
+import {
+  initSpecialtyHub,
+  refreshHubView,
+  getActiveSpecialtyLens,
+  setActiveSpecialtyLens,
+  enterWorkstation
+} from './specialty-hub.js';
+import {
+  generateObgynNote,
+  createDefaultObgynState,
+  normalizeObgynState,
+  renderObgynWorkspace
+} from './specialties/obgyn/obgyn-shell.js';
 
 /* ==========================================================================
-   State & Global Singletons (v0.5-Surg)
+   State & Global Singletons (v0.5-Surg -> v3.0 Modular Core)
    ========================================================================== */
 const STORAGE_CURRENT_CASE_KEY = 'surg_current_case_v05';
 const STORAGE_SHIFT_CASES_KEY = 'surg_shift_cases_v05';
 const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 let telemetry = new ClinicalTelemetryEngine();
-let gsheetSync = new GoogleSheetsSyncEngine();
 let activeSectionId = 'cc_admission';
 
 // Phase 3 Subsystem Accordions & State Registries
@@ -281,6 +293,7 @@ export function createDefaultClinicalState() {
   const defaultPres = createDefaultPresentation('pain_archetype', 1);
   return {
     caseId: generateCaseId(),
+    specialty: 'surgery',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     demographics: {
@@ -337,11 +350,17 @@ export function createDefaultClinicalState() {
       l: '',
       deliveryType: '',
       lmp: '',
+      ga: '',
+      rh: '',
+      subMode: 'prenatal',
       dysmenorrhea: '',
       pregnancies: [], // array of { id, outcome, deliveryMethod, year, complications }
+      quickFindings: {},
+      gynFindings: {},
       note: '',
       systemGapNote: ''
     },
+    obgynModule: createDefaultObgynState(),
     pmh: {
       masterRoutineNegative: false,
       categories: {}, // catId -> { status: 'neutral'|'negated'|'has_positive', items: {}, otherNote: '' }
@@ -572,7 +591,7 @@ export function getAllAvailableCases() {
 /* ==========================================================================
    UI Helpers & Notification Toasts
    ========================================================================== */
-function showToast(message, type = 'info') {
+export function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
   const toast = document.createElement('div');
@@ -855,6 +874,7 @@ async function loadSavedState() {
         cc: { ...defaults.cc, ...(loadedState.cc || {}) },
         hpi: { ...defaults.hpi, ...(loadedState.hpi || {}) },
         obgyn: { ...defaults.obgyn, ...(loadedState.obgyn || {}) },
+        obgynModule: normalizeObgynState(loadedState.obgynModule || loadedState.obgyn),
         pmh: { ...defaults.pmh, ...(loadedState.pmh || {}) },
         psh: { ...defaults.psh, ...(loadedState.psh || {}) },
         dh: { ...defaults.dh, ...(loadedState.dh || {}) },
@@ -3478,7 +3498,10 @@ function renderPregnancyHistoryRows() {
 /* ==========================================================================
    Tab 4: Categorized Drug History (DH) & 3-Box Inline Inputs
    ========================================================================== */
-export function addActiveDrug(drugObj) {
+export function addActiveDrug(drugObj, maybeLabel, maybeCategory) {
+  if (typeof drugObj === 'string') {
+    drugObj = { id: drugObj, label: maybeLabel || drugObj, category: maybeCategory };
+  }
   if (!clinicalState.dh.activeDrugs) clinicalState.dh.activeDrugs = [];
   clinicalState.dh.noRoutineMeds = false;
   const noMedsBtn = document.getElementById('btnNoRoutineMedications');
@@ -6126,6 +6149,8 @@ function renderDrugSearchTray(query, tray, input) {
     doseInp.value = drugEntry.dose || drug.defaultDose || '';
     doseInp.addEventListener('input', (e) => {
       drugEntry.dose = e.target.value;
+      const ad = (clinicalState.dh.activeDrugs || []).find((d) => d.id === drug.id);
+      if (ad) ad.dose = e.target.value;
       saveCurrentCase();
       updateLivePreview();
       renderDhCategories();
@@ -6142,6 +6167,8 @@ function renderDrugSearchTray(query, tray, input) {
     });
     sigSel.addEventListener('change', (e) => {
       drugEntry.sig = e.target.value;
+      const ad = (clinicalState.dh.activeDrugs || []).find((d) => d.id === drug.id);
+      if (ad) ad.sig = e.target.value;
       saveCurrentCase();
       updateLivePreview();
       renderDhCategories();
@@ -6154,6 +6181,8 @@ function renderDrugSearchTray(query, tray, input) {
     noteInp.value = drugEntry.note || '';
     noteInp.addEventListener('input', (e) => {
       drugEntry.note = e.target.value;
+      const ad = (clinicalState.dh.activeDrugs || []).find((d) => d.id === drug.id);
+      if (ad) ad.note = e.target.value;
       saveCurrentCase();
       updateLivePreview();
       renderDhCategories();
@@ -6174,6 +6203,15 @@ function renderDrugSearchTray(query, tray, input) {
       if (drugEntry.active && !drugEntry.dose) {
         drugEntry.dose = drug.defaultDose || '';
         doseInp.value = drugEntry.dose;
+      }
+      if (drugEntry.active) {
+        addActiveDrug(drug);
+      } else if (clinicalState.dh.activeDrugs) {
+        const aIdx = clinicalState.dh.activeDrugs.findIndex((ad) => ad.id === drug.id);
+        if (aIdx >= 0) {
+          clinicalState.dh.activeDrugs.splice(aIdx, 1);
+          renderActiveDrugs();
+        }
       }
       saveCurrentCase();
       updateLivePreview();
@@ -7341,7 +7379,12 @@ function initNavigationTabs() {
 
 export function updateLivePreview() {
   let noteMarkdown = '';
-  if (currentAppMode === 'soap') {
+  const activeLens = getActiveSpecialtyLens();
+  const isObgynNote = activeLens === 'obgyn' && typeof document !== 'undefined' && document.documentElement?.dataset?.obgynShared !== 'true';
+
+  if (isObgynNote) {
+    noteMarkdown = generateObgynNote(clinicalState, getCurrentLanguage());
+  } else if (currentAppMode === 'soap') {
     const linkedCase = getLinkedOrCurrentCase();
     noteMarkdown = generateSOAPProgressNote(soapState, linkedCase);
     syncActiveSoapDayToHistory();
@@ -7365,6 +7408,20 @@ export function updateLivePreview() {
   // Sync demographics table on live medical chart paper (bilingual support)
   const isEn = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() === 'en' : false;
 
+  const docTypeSubtitle = document.getElementById('chartDocTypeSubtitle');
+  if (docTypeSubtitle) {
+    docTypeSubtitle.textContent = activeLens === 'obgyn'
+      ? (isEn ? 'Department of Obstetrics & Gynecology — Inpatient Clinical Record' : 'برگه پذیرش و خلاصه شرح‌حال بالینی زنان و زایمان')
+      : (isEn ? 'Department of General Surgery — Inpatient Clinical Record' : 'برگه پذیرش و خلاصه شرح‌حال بالینی جراحی');
+  }
+
+  const chartPtDoctor = document.getElementById('chartPtDoctor');
+  if (chartPtDoctor) {
+    chartPtDoctor.textContent = activeLens === 'obgyn'
+      ? (isEn ? 'On-Call Ob/Gyn Team' : 'تیم کشیک زنان و مامایی')
+      : (isEn ? 'On-Call Surgical Team' : 'تیم کشیک جراحی');
+  }
+
   const chartPtName = document.getElementById('chartPtName');
   if (chartPtName) chartPtName.textContent = clinicalState.demographics?.fullName || '—';
 
@@ -7383,7 +7440,10 @@ export function updateLivePreview() {
 
   const chartPtWardBed = document.getElementById('chartPtWardBed');
   if (chartPtWardBed) {
-    const wardStr = clinicalState.demographics?.ward || (isEn ? 'Surgery' : 'جراحی');
+    const defaultWardLabel = activeLens === 'obgyn'
+      ? (isEn ? 'Ob/Gyn' : 'زنان و مامایی')
+      : (isEn ? 'Surgery' : 'جراحی');
+    const wardStr = clinicalState.demographics?.ward || defaultWardLabel;
     const bedStr = clinicalState.demographics?.bed || '—';
     chartPtWardBed.textContent = isEn ? `${wardStr} • Bed ${bedStr}` : `${wardStr} • تخت ${bedStr}`;
   }
@@ -7640,7 +7700,10 @@ function initExportAndCopy() {
   function copyText() {
     let text = '';
     let msg = 'متن کامل شرح‌حال در حافظه کپی شد.';
-    if (currentAppMode === 'soap') {
+    if (getActiveSpecialtyLens() === 'obgyn' && document.documentElement?.dataset?.obgynShared !== 'true') {
+      text = generateObgynNote(clinicalState, getCurrentLanguage());
+      msg = getCurrentLanguage() === 'en' ? 'Ob/Gyn clinical note copied.' : 'متن شرح‌حال زنان و زایمان در حافظه کپی شد.';
+    } else if (currentAppMode === 'soap') {
       text = generateSOAPProgressNote(soapState, getLinkedOrCurrentCase());
       msg = 'متن یادداشت SOAP در حافظه کپی شد.';
     } else if (currentAppMode === 'atls') {
@@ -7666,7 +7729,9 @@ function initExportAndCopy() {
     const bundle = {
       record: sanitized,
       metadata: meta,
-      generatedNote: generateClinicalNote(sanitized)
+      generatedNote: getActiveSpecialtyLens() === 'obgyn'
+        ? generateObgynNote(sanitized, getCurrentLanguage())
+        : generateClinicalNote(sanitized)
     };
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -7684,10 +7749,13 @@ function initExportAndCopy() {
   document.getElementById('btnNewCase')?.addEventListener('click', () => {
     const curName = clinicalState.demographics?.fullName || 'بیمار جاری';
     if (confirm(`آیا مایل به ثبت پرونده جدید هستید؟ پرونده «${curName}» در شیفت ذخیره می‌شود.`)) {
+      const currentSpec = getActiveSpecialtyLens() || 'surgery';
       saveCaseToShiftVault(clinicalState);
       clinicalState = createDefaultClinicalState();
+      clinicalState.specialty = currentSpec;
       saveCurrentCase();
       syncDomFromState();
+      if (currentSpec === 'obgyn') renderObgynWorkspace();
       updateLivePreview();
       updateShiftCasesCount();
       populateHeaderCaseSwitcher();
@@ -7857,6 +7925,7 @@ function initHeaderCaseSwitcher() {
           cc: { ...defaults.cc, ...(targetCase.cc || {}) },
           hpi: { ...defaults.hpi, ...(targetCase.hpi || {}) },
           obgyn: { ...defaults.obgyn, ...(targetCase.obgyn || {}) },
+          obgynModule: normalizeObgynState(targetCase.obgynModule || targetCase.obgyn),
           pmh: { ...defaults.pmh, ...(targetCase.pmh || {}) },
           psh: { ...defaults.psh, ...(targetCase.psh || {}) },
           dh: { ...defaults.dh, ...(targetCase.dh || {}) },
@@ -7879,6 +7948,7 @@ function initHeaderCaseSwitcher() {
 
         saveCurrentCase();
         syncDomFromState();
+        setActiveSpecialtyLens(clinicalState.specialty || 'surgery', { persistToCase: false });
         updateLivePreview();
         updateShiftCasesCount();
         populateHeaderCaseSwitcher();
@@ -7890,11 +7960,66 @@ function initHeaderCaseSwitcher() {
   });
 }
 
+export function loadCaseById(caseId, { skipConfirm = false } = {}) {
+  if (!caseId) return null;
+  if (caseId === clinicalState?.caseId) return clinicalState;
+  const allCases = getDeduplicatedShiftCases();
+  const targetCase = allCases.find((c) => c && c.caseId === caseId);
+  if (!targetCase) return null;
+
+  if (!skipConfirm) {
+    const ok = confirm('آیا مایل به جابجایی به این پرونده ذخیره‌شده هستید؟ پرونده فعلی در حافظه دائمی حفظ می‌شود.');
+    if (!ok) return null;
+  }
+
+  saveCaseToShiftVault(clinicalState);
+  const defaults = createDefaultClinicalState();
+  clinicalState = {
+    ...defaults,
+    ...targetCase,
+    admission: { ...defaults.admission, ...(targetCase.admission || {}) },
+    demographics: { ...defaults.demographics, ...(targetCase.demographics || {}) },
+    cc: { ...defaults.cc, ...(targetCase.cc || {}) },
+    hpi: { ...defaults.hpi, ...(targetCase.hpi || {}) },
+    obgyn: { ...defaults.obgyn, ...(targetCase.obgyn || {}) },
+    obgynModule: normalizeObgynState(targetCase.obgynModule || targetCase.obgyn),
+    pmh: { ...defaults.pmh, ...(targetCase.pmh || {}) },
+    psh: { ...defaults.psh, ...(targetCase.psh || {}) },
+    dh: { ...defaults.dh, ...(targetCase.dh || {}) },
+    ah: { ...defaults.ah, ...(targetCase.ah || {}) },
+    sh: { ...defaults.sh, ...(targetCase.sh || {}) },
+    fh: { ...defaults.fh, ...(targetCase.fh || {}) },
+    ros: { ...defaults.ros, ...(targetCase.ros || {}) },
+    pe: { ...defaults.pe, ...(targetCase.pe || {}) },
+    paraclinics: { ...defaults.paraclinics, ...(targetCase.paraclinics || {}) },
+    reasoning: { ...defaults.reasoning, ...(targetCase.reasoning || {}) },
+    atls: { ...defaults.atls, ...(targetCase.atls || {}) }
+  };
+
+  if (Array.isArray(targetCase.hpi?.presentations) && targetCase.hpi.presentations.length > 0) {
+    clinicalState.hpi.presentations = targetCase.hpi.presentations;
+  }
+  if (Array.isArray(targetCase.hpi?.painList) && targetCase.hpi.painList.length > 0) {
+    clinicalState.hpi.painList = targetCase.hpi.painList;
+  }
+
+  saveCurrentCase();
+  syncDomFromState();
+  setActiveSpecialtyLens(clinicalState.specialty || 'surgery', { persistToCase: false });
+  updateLivePreview();
+  updateShiftCasesCount();
+  populateHeaderCaseSwitcher();
+  return clinicalState;
+}
+
 function updateShiftCasesCount() {
   try {
     const allCases = getDeduplicatedShiftCases();
     const countEl = document.getElementById('shiftCasesCount');
     if (countEl) countEl.textContent = allCases.length;
+    if (typeof document !== 'undefined' && document.body.classList.contains('view-hub')) {
+      refreshHubView();
+    }
   } catch (e) {}
 }
 
@@ -8192,7 +8317,7 @@ if (typeof window !== 'undefined') {
     const notice = document.getElementById('pwaInstalledNotice');
     if (btn) btn.style.display = 'none';
     if (notice) notice.style.display = 'block';
-    showToast(typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en' ? 'SurgHistory installed successfully on your device.' : 'اپلیکیشن با موفقیت روی دستگاه شما نصب شد.', 'success');
+    showToast(typeof getCurrentLanguage === 'function' && getCurrentLanguage() === 'en' ? 'MedHistorism installed successfully on your device.' : 'اپلیکیشن با موفقیت روی دستگاه شما نصب شد.', 'success');
   });
 }
 
@@ -8298,7 +8423,7 @@ function initAppSettings() {
       deferredPwaInstallPrompt.prompt();
       const choice = await deferredPwaInstallPrompt.userChoice;
       if (choice && choice.outcome === 'accepted') {
-        showToast(getCurrentLanguage() === 'en' ? 'Installing SurgHistory app...' : 'در حال نصب اپلیکیشن روی دستگاه...', 'info');
+        showToast(getCurrentLanguage() === 'en' ? 'Installing MedHistorism app...' : 'در حال نصب اپلیکیشن روی دستگاه...', 'info');
         deferredPwaInstallPrompt = null;
         const btn = document.getElementById('btnInstallPwa');
         if (btn) btn.style.display = 'none';
@@ -8306,7 +8431,7 @@ function initAppSettings() {
     } else {
       const isStandalone = (typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true));
       if (isStandalone) {
-        showToast(getCurrentLanguage() === 'en' ? 'SurgHistory is already running in native standalone mode.' : 'اپلیکیشن هم‌اکنون به صورت نصبی روی این دستگاه اجرا شده است.', 'info');
+        showToast(getCurrentLanguage() === 'en' ? 'MedHistorism is already running in native standalone mode.' : 'اپلیکیشن هم‌اکنون به صورت نصبی روی این دستگاه اجرا شده است.', 'info');
       } else {
         const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
         const msg = isIos
@@ -8439,12 +8564,16 @@ export function buildCloudSyncPayload(state) {
     return dayHeader + (d.renderedText || '');
   }).join('\n\n----------------------------------------\n\n');
 
+  const isObgynCase = cState.specialty === 'obgyn';
   const hpText = generateClinicalNote(cState);
+  const obgynText = isObgynCase ? generateObgynNote(cState) : '';
   const atlsText = generateATLSNote(cState.atls || {}, cState);
-  const ccText = cState.cc?.patientQuote || cState.cc?.ccPhrase || cState.cc?.establishedDiagnosis || sState.context?.workingDiagnosis || '';
+  const ccText = cState.cc?.patientQuote || cState.cc?.ccPhrase || cState.cc?.establishedDiagnosis || cState.obgynModule?.ccAndHpi?.ccText || sState.context?.workingDiagnosis || '';
 
   const rawPayload = {
     caseId,
+    specialty: cState.specialty || 'surgery',
+    obgynSubMode: isObgynCase ? (cState.obgynModule?.subMode || 'obstetrics') : null,
     age: ptAge,
     gender: ptGender,
     ward: ptWard,
@@ -8461,14 +8590,15 @@ export function buildCloudSyncPayload(state) {
       informant: cState.demographics?.informant || '',
       ward: ptWard
     },
-    fullClinicalNote: isSoap ? (soapAllDaysText || hpText) : (currentAppMode === 'atls' ? atlsText : hpText),
+    fullClinicalNote: isObgynCase ? obgynText : (isSoap ? (soapAllDaysText || hpText) : (currentAppMode === 'atls' ? atlsText : hpText)),
     hp: {
       admission: cState.admission || {},
       cc: cState.cc || {},
       hpi: cState.hpi || {},
+      obgyn: cState.obgyn || {},
+      obgynModule: cState.obgynModule || {},
       pmh: cState.pmh || {},
       psh: cState.psh || {},
-      obgyn: cState.obgyn || {},
       dh: cState.dh || {},
       ah: cState.ah || {},
       sh: cState.sh || {},
@@ -8482,6 +8612,7 @@ export function buildCloudSyncPayload(state) {
     atls: cState.atls || {},
     generatedTexts: {
       hp: hpText,
+      obgyn: obgynText,
       atls: atlsText,
       soapAllDays: soapAllDaysText
     },
@@ -8537,6 +8668,8 @@ function initThemeToggle() {
 
   const currentTheme = localStorage.getItem(STORAGE_THEME_KEY) || 'dark';
   document.body.classList.toggle('dark-mode', currentTheme === 'dark');
+  document.body.classList.toggle('theme-light', currentTheme !== 'dark');
+  document.documentElement.dataset.theme = currentTheme === 'dark' ? 'dark' : 'light';
   if (sun && moon) {
     sun.style.display = currentTheme === 'dark' ? 'block' : 'none';
     moon.style.display = currentTheme === 'dark' ? 'none' : 'block';
@@ -8544,6 +8677,8 @@ function initThemeToggle() {
 
   btn?.addEventListener('click', () => {
     const isDark = document.body.classList.toggle('dark-mode');
+    document.body.classList.toggle('theme-light', !isDark);
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
     localStorage.setItem(STORAGE_THEME_KEY, isDark ? 'dark' : 'light');
     if (sun && moon) {
       sun.style.display = isDark ? 'block' : 'none';
@@ -11063,6 +11198,9 @@ function initCommandPalette() {
         row.innerHTML = `<span>${n.label}</span><kbd class="cmd-item-badge">${n.shortcut}</kbd>`;
         row.addEventListener('click', () => {
           closePalette();
+          if (document.body.classList.contains('view-hub')) {
+            enterWorkstation({ lens: 'surgery' });
+          }
           if (n.type === 'mode') {
             switchAppMode(n.id);
           } else {
@@ -11091,6 +11229,9 @@ function initCommandPalette() {
           row.innerHTML = `<span>${sym.label}</span><span class="cmd-item-badge">علامت بالینی</span>`;
           row.addEventListener('click', () => {
             closePalette();
+            if (document.body.classList.contains('view-hub')) {
+              enterWorkstation({ lens: 'surgery' });
+            }
             if (currentAppMode !== 'admission') switchAppMode('admission');
             const btn = document.querySelector('.tab-btn[data-tab="tab-hpi"]');
             if (btn) btn.click();
@@ -11115,7 +11256,10 @@ function initCommandPalette() {
           row.innerHTML = `<span>${drug.label} ${drug.brands ? `<small>(${drug.brands})</small>` : ''}</span><span class="cmd-item-badge">+ افزودن به داروها</span>`;
           row.addEventListener('click', () => {
             closePalette();
-            addActiveDrug(drug.id, drug.label, drug.category);
+            if (document.body.classList.contains('view-hub')) {
+              enterWorkstation({ lens: 'surgery' });
+            }
+            addActiveDrug(drug);
             if (currentAppMode !== 'admission') switchAppMode('admission');
             const btn = document.querySelector('.tab-btn[data-tab="tab-dh"]');
             if (btn) btn.click();
@@ -12292,10 +12436,49 @@ export async function initApp() {
     checkSecretAdminRoute();
 
     await loadSavedState();
+
+    // Restore persisted appearance & localization preferences
+    setTheme(getCurrentTheme());
+    setFont(getCurrentFont());
+    const savedLang = getCurrentLanguage();
+    if (savedLang === 'en') {
+      document.documentElement.setAttribute('lang', 'en');
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.body.classList.add('lang-en');
+      document.body.classList.remove('lang-fa');
+      applyI18nToDOM('en');
+    } else {
+      document.documentElement.setAttribute('lang', 'fa');
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.body.classList.add('lang-fa');
+      document.body.classList.remove('lang-en');
+      applyI18nToDOM('fa');
+    }
+
     syncDomFromState();
     updateLivePreview();
     updateShiftCasesCount();
-    console.log('[Surg-Scribe v1.1-ATLS-MultiSOAP] Application initialized successfully.');
+
+    initSpecialtyHub({
+      getState: () => clinicalState,
+      getShiftCases: () => getDeduplicatedShiftCases(),
+      getCurrentMode: () => currentAppMode,
+      switchMode: (mode) => switchAppMode(mode),
+      loadCaseById: (id, opts) => loadCaseById(id, opts),
+      openCommandPalette: () => document.getElementById('globalCommandBarTrigger')?.click(),
+      openShiftManager: () => document.getElementById('btnOpenShiftManager')?.click(),
+      openAppSettings: () => document.getElementById('btnAppSettings')?.click(),
+      updateLivePreview: () => updateLivePreview(),
+      persistState: () => persistCurrentStateNow(),
+      showToast: (msg, type) => showToast(msg, type),
+      openAdmissionTab: (tabId) => {
+        if (currentAppMode !== 'admission') switchAppMode('admission');
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        if (btn) btn.click();
+      }
+    });
+
+    console.log('[MedHistorism v3.0] Application initialized successfully.');
   } catch (err) {
     console.error('[Surg-Scribe] Error during initApp:', err ? (err.message + '\n' + err.stack) : 'unknown error');
   }
@@ -12337,12 +12520,15 @@ if (typeof window !== 'undefined') {
     renderPeMandatoryPillars();
     renderMassExamModule();
     renderAtlsExamModule();
-    renderParaclinicModalityCards();
+    renderParaclinicLabs();
+    initModalityLauncherBar();
+    renderImagingReportsList();
     renderPainEpisodes();
     renderSoapDayTracker();
     updateHeaderActivePatientBadge();
-    updateLivePreview();
     applyI18nToDOM(lang);
+    if (getActiveSpecialtyLens() === 'obgyn') renderObgynWorkspace();
+    updateLivePreview();
   });
 
   window.addEventListener('keydown', (e) => {

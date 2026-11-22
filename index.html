@@ -1,50 +1,93 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" data-specialty="surgery">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>SurgHistory Clinical Workstation | سامانه جامع شرح‌حال و پیگیری جراحی</title>
+  <title>MedHistorism Clinical Workstation | سامانه جامع بالینی</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('surg_theme_mode') || 'dark';
+      document.querySelector('meta[name="color-scheme"]').content = savedTheme === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+    } catch (_) {}
+  </script>
   
   <!-- PWA & Native App Metadata -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0D9488">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="سامانه بالینی استاندارد ثبت شرح‌حال بستری H&P، ترومای اورژانس ATLS و پراگرس نوت چندروزه SOAP جراحی">
+  <meta name="description" content="سامانه جامع بالینی MedHistorism — هسته یکپارچه ثبت شرح‌حال بستری H&P، ترومای اورژانس ATLS، زنان و زایمان و سیر روزانه SOAP">
 
   <!-- Precision Clinical Typography: Vazirmatn & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Core Precision Stylesheet -->
-  <link rel="stylesheet" href="css/clinical-ui.css?v=2.0.0">
+  <!-- Core Precision Stylesheet & MedHistorism v3.0 Design System -->
+  <link rel="stylesheet" href="css/clinical-ui.css?v=3.0.0">
+  <link rel="stylesheet" href="css/medhistorism-v3.css?v=3.1.0">
 </head>
-<body class="dark-mode">
+<body class="dark-mode view-hub">
+
+  <!-- ================= MEDHISTORISM v3.0 SPECIALTY HUB (LANDING COMMAND CENTER) ================= -->
+  <div id="medhistorism-hub-view" class="medhistorism-hub-view" aria-label="MedHistorism Specialty Hub"></div>
 
   <!-- ================= TOP WORKSTATION BAR (56px, z-index: 100 — Desktop & Mobile) ================= -->
   <header class="workstation-top-bar app-header" id="workstationTopBar">
     <div class="topbar-brand-cluster">
-      <div class="brand-logo-icon">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"></path></svg>
+      <button type="button" class="btn-return-hub" id="btnReturnToHub" data-fa-title="بازگشت به مرکز فرمان تخصصی MedHistorism" data-en-title="Return to MedHistorism Specialty Hub">
+        <span class="return-hub-arrow" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </span>
+        <span class="brand-logo-icon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 20.66 7 20.66 17 12 22 3.34 17 3.34 7 12 2"></polygon><path d="M12 2v5.5"></path><path d="M3.34 7l5.2 3"></path><path d="M20.66 7l-5.2 3"></path><path d="M12 22v-5.5"></path><path d="M3.34 17l5.2-3"></path><path d="M20.66 17l-5.2-3"></path><path d="M12 9.5v5"></path><path d="M9.5 12h5"></path></svg>
+        </span>
+        <span class="brand-title" data-i18n="brand_title">MedHistorism</span>
+      </button>
+      <span class="brand-version version-pill" data-i18n="version_pill">v3.1 Core</span>
+      <div class="specialty-lens-switcher" id="specialtyLensSwitcher" role="group" aria-label="Specialty Lens">
+        <button type="button" class="lens-switch-btn active" id="btnLensSurgery" data-lens="surgery">
+          <span class="lens-dot lens-dot-surgery" aria-hidden="true"></span>
+          <span class="i18n-text" data-i18n="lens_short_surgery">جراحی</span>
+        </button>
+        <button type="button" class="lens-switch-btn" id="btnLensObgyn" data-lens="obgyn">
+          <span class="lens-dot lens-dot-obgyn" aria-hidden="true"></span>
+          <span class="i18n-text" data-i18n="lens_short_obgyn">زنان و زایمان</span>
+        </button>
       </div>
-      <span class="brand-title">SurgHistory</span>
-      <span class="brand-version version-pill" data-i18n="version_pill">v2.0-Pro</span>
     </div>
 
     <!-- Primary 3-Mode Switcher (H&P | ATLS | SOAP — Full Width Tier-2 in Mobile, 1/3 Width Each) -->
     <div class="topbar-mode-switcher app-mode-switcher" id="appModeSwitcher" role="radiogroup" aria-label="Clinical Mode">
       <button type="button" class="mode-switch-btn active" id="btnModeAdmission" data-mode="admission" data-fa-title="شرح‌حال کامل پذیرش (Admission H&amp;P)" data-en-title="Inpatient Admission History &amp; Physical (H&amp;P)">
-        <span class="mode-icon">📋</span>
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span>
         <span class="mode-text" data-i18n="mode_admission">H&amp;P</span>
       </button>
       <button type="button" class="mode-switch-btn mode-switch-atls" id="btnModeAtls" data-mode="atls" data-fa-title="ترومای حاد اورژانس و احیا (Emergency ATLS)" data-en-title="Emergency Trauma &amp; ATLS Resuscitation">
-        <span class="mode-icon">🚑</span>
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle><path d="M6 10h4"></path><path d="M8 8v4"></path></svg></span>
         <span class="mode-text" data-i18n="mode_atls">ATLS</span>
       </button>
       <button type="button" class="mode-switch-btn" id="btnModeSoap" data-mode="soap" data-fa-title="یادداشت سیر روزانه بستری (SOAP Progress Note)" data-en-title="Daily Inpatient SOAP Progress Note">
-        <span class="mode-icon">📈</span>
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
         <span class="mode-text" data-i18n="mode_soap">SOAP</span>
+      </button>
+    </div>
+
+    <!-- Ob/Gyn Specialty Sub-Mode Switcher (Shown ONLY when data-specialty="obgyn") -->
+    <div class="topbar-mode-switcher obgyn-mode-switcher" id="obgynModeSwitcher" role="radiogroup" aria-label="Ob/Gyn Clinical Mode" style="display: none;">
+      <button type="button" class="mode-switch-btn active" id="btnObgynModePrenatal" data-obgyn-mode="obstetrics">
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v7"></path><path d="M9 17h6"></path><path d="M7.5 10.5C7.5 8 9.5 6.5 12 6.5s4.5 1.5 4.5 4c0 2-1.8 3.5-4.5 3.5s-4.5-1.5-4.5-3.5Z"></path></svg></span>
+        <span class="mode-text i18n-text" data-i18n="obgyn_mode_prenatal">مامایی و پره‌ناتال</span>
+      </button>
+      <button type="button" class="mode-switch-btn" id="btnObgynModeGyn" data-obgyn-mode="gynecology">
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M12 14v7"></path><path d="M9 18h6"></path></svg></span>
+        <span class="mode-text i18n-text" data-i18n="obgyn_mode_gyn">بیماری‌های زنان</span>
+      </button>
+      <button type="button" class="mode-switch-btn" id="btnObgynModeSoap" data-obgyn-mode="soape">
+        <span class="mode-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
+        <span class="mode-text i18n-text" data-i18n="obgyn_mode_soap">سیر روزانه (SOAPE)</span>
       </button>
     </div>
 
@@ -193,6 +236,9 @@
         </nav>
       </div>
 
+      <!-- Ob/Gyn Specialty Rail Navigation (Shown ONLY when data-specialty === 'obgyn') -->
+      <div id="railNavObgyn" class="rail-nav-group" style="display: none;"></div>
+
       <!-- Active Patient Card at bottom of Sidebar -->
       <div class="rail-patient-card-footer">
         <button type="button" class="header-active-patient-badge rail-active-patient-card" id="headerActivePatientBadge" data-fa-title="بیمار فعال — کلیک جهت جابجایی یا مدیریت پرونده‌ها" data-en-title="Active Case — Click to switch or manage shift cases">
@@ -258,6 +304,9 @@
           <button type="button" class="mode-sec-tab-btn rail-atls-btn" data-scroll-to="atlsSectionSecondary" data-fa="۳. Secondary &amp; Wounds" data-en="3. Secondary &amp; Wounds">۳. Secondary &amp; Wounds</button>
           <button type="button" class="mode-sec-tab-btn rail-atls-btn" data-scroll-to="atlsSectionEfastPlan" data-fa="۴. eFAST &amp; Plan" data-en="4. eFAST &amp; Plan">۴. eFAST &amp; Plan</button>
         </div>
+
+        <!-- 4. Ob/Gyn Mobile Section Strip (Shown ONLY when specialty === 'obgyn') -->
+        <div class="mobile-tabs-scroll-container mode-mobile-tabs" id="obgyn-mobile-tabs" role="tablist" hidden></div>
       </nav>
 
       <main class="clinical-input-column" id="clinicalInputColumn">
@@ -501,6 +550,7 @@
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>
               <span data-fa="علائم همراه HPI (معماری ماژولار Unlockable)" data-en="Associated HPI Symptoms (Modular Unlockable Architecture)">علائم همراه HPI (معماری ماژولار Unlockable)</span>
+              <span class="v3-safety-badge" data-i18n="safety_not_assessed">ارزیابی‌نشده ≠ منفی</span>
             </div>
             <span class="card-badge" data-fa="تپ: خنثی / + مثبت / − منفی" data-en="Tap: Neutral / + Pos / − Neg">تپ: خنثی / + مثبت / − منفی</span>
           </div>
@@ -867,6 +917,7 @@
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>
               <span data-fa="بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد" data-en="Review of Systems (ROS — Standardized Bilingual Terminology)">بررسی سیستم‌ها (Review of Systems - ROS) اصطلاحات دوزبانه استاندارد</span>
+              <span class="v3-safety-badge" data-i18n="safety_not_assessed">ارزیابی‌نشده ≠ منفی</span>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
               <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAllRos" title="باز کردن یا بستن یکجای تمام سیستم‌ها">
@@ -992,6 +1043,7 @@
             <div class="card-title">
               <span class="icon-holder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg></span>
               <span data-fa="معاینه فیزیکی جامع (۱۲ ستون بالینی و ارکان معاینه جراحی)" data-en="Comprehensive Physical Examination (12 Clinical Pillars &amp; Core Surgical Signs)">معاینه فیزیکی جامع (۱۲ ستون بالینی و ارکان معاینه جراحی)</span>
+              <span class="v3-safety-badge" data-i18n="safety_not_assessed">ارزیابی‌نشده ≠ منفی</span>
             </div>
             <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
               <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAllPe" title="باز کردن یا بستن یکجای تمام ستون‌های معاینه">
@@ -2359,8 +2411,26 @@
 
       </div>
 
-    
+      <!-- ================= SPECIALTY LENS: زنان و زایمان (Ob/Gyn Modular Shell) ================= -->
+      <div id="view-mode-obgyn" class="mode-view obgyn-mode-container" style="display: none;"></div>
+
       </main>
+
+      <!-- Slim Collapsible Universal Core Footer Indicator Bar -->
+      <div class="shared-core-footer-bar" id="sharedCoreFooterBar">
+        <button type="button" class="shared-core-footer-toggle" id="btnToggleSharedCoreBar" aria-expanded="false">
+          <span class="shared-core-toggle-icon" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </span>
+          <span class="shared-core-link-icon" aria-hidden="true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+          </span>
+          <span class="shared-core-text i18n-text" data-i18n="shared_core_linked">هسته مشترک: دارونامه و آزمایش‌ها متصل است</span>
+        </button>
+        <div class="shared-core-footer-meta" id="sharedCoreFooterMeta">
+          <span class="core-meta-pill mono-num" id="sharedCoreLiveCount">0 Active</span>
+        </div>
+      </div>
     </div>
 
     <!-- ================= COLUMN 3: ستون برگه پرونده زنده (Live Clinical Chart Sheet - 420px Flush — Bug 3) ================= -->
@@ -2400,16 +2470,23 @@
 
         <!-- Scrollable Chart Paper Body -->
         <div class="preview-paper-scroll-body">
+          <div class="v3-manuscript-sheet">
           <div class="chart-hospital-letterhead">
             <div class="chart-header-top">
               <div class="chart-emblem">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2v20M2 12h20"></path></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 20.66 7 20.66 17 12 22 3.34 17 3.34 7 12 2"></polygon><path d="M12 2v5.5"></path><path d="M3.34 7l5.2 3"></path><path d="M20.66 7l-5.2 3"></path><path d="M12 22v-5.5"></path><path d="M3.34 17l5.2-3"></path><path d="M20.66 17l-5.2-3"></path><path d="M12 9.5v5"></path><path d="M9.5 12h5"></path></svg>
               </div>
               <div class="chart-header-text">
                 <h4 class="chart-hospital-name" data-fa="مرکز آموزشی، پژوهشی و درمانی تخصصی و فوق‌تخصصی" data-en="Academic Medical Center — Clinical Documentation Chart">مرکز آموزشی، پژوهشی و درمانی تخصصی و فوق‌تخصصی</h4>
                 <div class="chart-doc-type" id="chartDocTypeSubtitle" data-fa="برگه پذیرش و خلاصه شرح‌حال بالینی جراحی" data-en="Department of General Surgery — Inpatient Clinical Record">برگه پذیرش و خلاصه شرح‌حال بالینی جراحی</div>
               </div>
-              <div class="chart-confidential-stamp" data-fa="محرمانه بالینی" data-en="CONFIDENTIAL">محرمانه بالینی</div>
+              <div class="chart-header-stamps">
+                <div class="chart-pii-shield-pill" id="chartPiiShieldPill">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                  <span data-i18n="core_pii_active">سپر حریم خصوصی فعال</span>
+                </div>
+                <div class="chart-confidential-stamp" data-fa="محرمانه بالینی" data-en="CONFIDENTIAL">محرمانه بالینی</div>
+              </div>
             </div>
 
             <div class="chart-demographics-grid">
@@ -2418,12 +2495,13 @@
               <div class="chart-demo-cell"><span class="demo-lbl" data-fa="بخش / تخت:" data-en="Ward / Bed:">بخش / تخت:</span> <strong id="chartPtWardBed" class="demo-val">—</strong></div>
               <div class="chart-demo-cell"><span class="demo-lbl" data-fa="شماره پرونده:" data-en="Case ID:">شماره پرونده:</span> <strong id="chartPtCaseId" class="demo-val mono-num">—</strong></div>
               <div class="chart-demo-cell"><span class="demo-lbl" data-fa="تاریخ ثبت:" data-en="Admission Date:">تاریخ ثبت:</span> <strong id="chartPtDate" class="demo-val mono-num">—</strong></div>
-              <div class="chart-demo-cell"><span class="demo-lbl" data-fa="پزشک مسئول:" data-en="Surgical Team:">پزشک مسئول:</span> <strong id="chartPtDoctor" class="demo-val" data-fa="تیم کشیک جراحی" data-en="On-Call Surgical Team">تیم کشیک جراحی</strong></div>
+              <div class="chart-demo-cell"><span class="demo-lbl" data-fa="پزشک مسئول:" data-en="Clinical Team:">پزشک مسئول:</span> <strong id="chartPtDoctor" class="demo-val" data-fa="تیم کشیک جراحی" data-en="On-Call Surgical Team">تیم کشیک جراحی</strong></div>
             </div>
           </div>
 
           <!-- Rendered Clinical Note -->
           <div class="clinical-note-rendered" id="liveNotePreview"></div>
+          </div>
         </div>
 
       </div>
@@ -2468,7 +2546,7 @@
           <span><kbd>↵</kbd> <span data-fa="پرش یا افزودن" data-en="Jump / Toggle">پرش یا افزودن</span></span>
           <span><kbd>ESC</kbd> <span data-fa="انصراف" data-en="Close">انصراف</span></span>
         </div>
-        <div class="command-palette-brand">SurgHistory Command Center</div>
+        <div class="command-palette-brand">MedHistorism Command Center</div>
       </div>
     </div>
   </div>
@@ -2863,14 +2941,14 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Main Application Script (ES Module with cache-busting) -->
-  <script type="module" src="js/app.js?v=1.2.0"></script>
+  <script type="module" src="js/app.js?v=3.1.0"></script>
 
   <!-- PWA Service Worker Registration with Immediate Update -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=1.2.0').then((reg) => {
-          console.log('[PWA v1.2] Service Worker registered:', reg.scope);
+        navigator.serviceWorker.register('sw.js?v=3.1.0').then((reg) => {
+          console.log('[PWA v3.0] Service Worker registered:', reg.scope);
           // Check for update immediately
           reg.update();
         }).catch((err) => {
