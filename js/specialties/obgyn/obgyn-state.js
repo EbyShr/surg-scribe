@@ -528,7 +528,7 @@ export function createDefaultObgynState() {
       priorCsIndications: '',
       isVirgin: false,
       maritalStatus: '',
-      marriageDurationYears: '',
+      conceptionMethod: '',
       reproductiveStatus: '',
       menopauseAge: '',
       maternalBgRh: '',
@@ -555,6 +555,7 @@ export function createDefaultObgynState() {
       duration: '',
       presentations: [], // [{ id, archetypeId, collapse, fields: {} }]
       symptoms: {}, // id -> { state: 1 | -1, modifiers: [], detail: '' }
+      anemiaSymptoms: {}, // id -> { state: 1 | -1 }
       narrativeExtra: ''
     },
     pastObstetricHistory: {
@@ -583,7 +584,7 @@ export function createDefaultObgynState() {
       bleedingDurationDays: '',
       flowVolume: '',
       padsPerDay: '',
-      clotPassage: false,
+      clotStatus: '',
       floodingOrNightChange: false,
       dysmenorrhea: '',
       imb: false,
@@ -595,62 +596,6 @@ export function createDefaultObgynState() {
         currentMethod: '',
         durationOfUse: '',
         priorMethodsAndSideEffects: ''
-      },
-      pahx: {
-        status: 0, // 0 = untouched, -1 = explicitly denied, 1 = positive
-        hasPriorAnesthesia: false,
-        anesthesiaTypes: [],
-        complications: ''
-      },
-      priorPathologyAndCurettage: {
-        hasPriorDncOrBiopsy: false,
-        records: []
-      },
-      cervicalAndBreastScreening: {
-        lastPapSmearDate: '',
-        lastPapSmearResult: '',
-        hpvTestStatus: '',
-        priorColposcopyResult: '',
-        lastMammographyOrBreastUsDate: '',
-        lastMammographyBirads: ''
-      }
-    },
-    antenatalCareChecklist: {
-      careRegularity: '',
-      firstTrimesterScreening: {
-        ntScanDone: false,
-        ntDate: '',
-        ntMeasurementMm: '',
-        nasalBone: '',
-        doubleMarkerRisk: ''
-      },
-      secondTrimesterScreening: {
-        quadMarkerRisk: '',
-        anomalyScanDone: false,
-        anomalyScanDate: '',
-        anomalyScanResult: '',
-        amniocentesisOrNipt: ''
-      },
-      routineAntenatalLabsAudit: {
-        gdmScreening75gOgtt: '',
-        hemoglobinAndAnemia: '',
-        plateletCount: '',
-        viralMarkers: '',
-        tshLevel: '',
-        urineCulture: '',
-        gbsSwab35to37w: ''
-      },
-      notableSonographicFindingsInPregnancy: {
-        uterineFibroids: '',
-        placentaPreviaHistory: '',
-        cervicalLengthMm: ''
-      },
-      supplementsAndVaccines: {
-        folicAcid: false,
-        ferrousSulfate: false,
-        calciumVitaminD: false,
-        multivitamin: false,
-        vaccines: ''
       }
     },
     pe: {
@@ -660,6 +605,7 @@ export function createDefaultObgynState() {
         pr: '',
         rr: '',
         temp: '',
+        spo2: '',
         urineDipstick: ''
       },
       obsMeasurements: {
@@ -673,55 +619,46 @@ export function createDefaultObgynState() {
         cervixConsistency: '',
         cervixPosition: '',
         presentingPart: '',
+        presentingPosition: '',
         membranesStatus: '',
-        amnioticFluidChar: ''
+        amnioticFluidChar: '',
+        fundalHeightWeek: '',
+        scarStatus: '',
+        scarTenderness: '',
+        leopoldLie: '',
+        leopoldPresentation: '',
+        leopoldBack: '',
+        leopoldEngagement: '',
+        fhrRegularity: '',
+        contractionsFreq: '',
+        contractionsDuration: '',
+        contractionsIntensity: '',
+        uterineTone: '',
+        epigastricRuqTenderness: '',
+        romPooling: '',
+        romNitrazine: '',
+        romFern: '',
+        romAmnisure: '',
+        pelvimetryPromontory: '',
+        pelvimetrySpines: '',
+        pelvimetryArch: '',
+        pelvimetryOverall: '',
+        edemaGrade: '',
+        edemaLocation: '',
+        calfTendernessVaricosities: '',
+        dtrGrade: '',
+        ankleClonus: ''
+      },
+      gynExam: {
+        breast: { symmetry: '', mass: '', discharge: '', axillaryLad: '', note: '' },
+        abdomen: { scars: '', tendernessQuadrant: '', reboundGuarding: '', palpableMass: '', cvaTenderness: '', note: '' },
+        externalGenitalia: { vulvaPerineum: '', bartholinSkene: '', prolapse: '', coughStressTest: '', note: '' },
+        speculum: { vaginalWalls: '', cervixAppearance: '', vbVolume: '', vbClots: '', dischargeChar: '', note: '' },
+        bimanual: { uterusSizeWeeks: '', uterusContour: '', uterusConsistency: '', uterusPosition: '', uterusMobility: '', uterusTenderness: '', cervixConsistency: '', cervixMobility: '', cmt: '', rightAdnexa: '', leftAdnexa: '', culDeSac: '', note: '' }
       },
       findings: {} // id -> { state: 1 | -1, detail: '' }
     },
     paraclinics: {
-      lastObstetricUltrasound: {
-        scanDate: '',
-        fetalCountAndHeartBeat: '',
-        presentation: '',
-        placentalLocationAndGrade: '',
-        amnioticFluidVolume: '',
-        sonographicGa: '',
-        efwGramsAndPercentile: '',
-        placentaAccretaColorDoppler: '',
-        bppScore: '',
-        umbilicalAndMcaDoppler: '',
-        cervicalLengthMm: ''
-      },
-      gynecologicUltrasound: {
-        scanType: 'TVS',
-        scanDate: '',
-        uterusDimensionsMm: '',
-        myometrialEchoAndMyomas: '',
-        endometrialThicknessMm: '',
-        rightOvary: '',
-        leftOvary: '',
-        culDeSacFreeFluid: ''
-      },
-      fetalMonitoring: {
-        testType: 'NST',
-        baselineBpm: '',
-        variability: '',
-        accelerations: '',
-        decelerations: {
-          status: 'None',
-          type: 'None',
-          isRecurrent: false,
-          variablePathologicalFlags: {
-            dropBelow70Bpm: false,
-            durationOver60Sec: false,
-            moreThan3In20Min: false
-          },
-          cordCompressionPatternVariant: 'None'
-        },
-        contractionsIn10Min: '',
-        reactivity: '',
-        nichdCategory: ''
-      },
       keyLabs: {
         bhcg: '',
         wbc: '',
@@ -742,7 +679,9 @@ export function createDefaultObgynState() {
         gbs: '',
         viralMarkers: ''
       },
-      keyLabsNote: ''
+      keyLabsNote: '',
+      extraLabs: [], // [{ id, label, value, unit }]
+      studies: [] // on-demand: [{ id, type, date, fields: {} }]
     },
     assessmentAndPlan: {
       ddx: [],
@@ -795,6 +734,103 @@ export function createDefaultObgynState() {
   };
 }
 
+const ALLOWED_TABS = ['admission', 'hpi', 'pmh_psh', 'dh_ah_sh_fh', 'ros', 'pe', 'paraclinics', 'plan'];
+export const OBGYN_TAB_IDS = ALLOWED_TABS;
+
+function filled(v) {
+  return v !== null && v !== undefined && String(v).trim() !== '';
+}
+
+function anyFilled(obj, keys) {
+  return keys.some((k) => filled(obj?.[k]));
+}
+
+/**
+ * Converts legacy (v3.1) populated structured paraclinic blobs into on-demand study cards.
+ * Only ever emits a card when the legacy block actually contains user data.
+ */
+function buildLegacyStudiesFromSaved(saved) {
+  const out = [];
+  const p = saved?.paraclinics || {};
+  let seq = 0;
+  const mk = (type, date, fields) => out.push({ id: `legacy_${type}_${seq += 1}`, type, date: date || '', fields });
+
+  const us = p.lastObstetricUltrasound;
+  if (us && anyFilled(us, ['presentation', 'placentalLocationAndGrade', 'amnioticFluidVolume', 'sonographicGa', 'efwGramsAndPercentile', 'placentaAccretaColorDoppler', 'bppScore', 'umbilicalAndMcaDoppler', 'cervicalLengthMm', 'fetalCountAndHeartBeat'])) {
+    mk('obs_ultrasound', us.scanDate, {
+      fetalCountFhr: us.fetalCountAndHeartBeat || '',
+      presentation: us.presentation || '',
+      placenta: us.placentalLocationAndGrade || '',
+      afi: us.amnioticFluidVolume || '',
+      sonoGa: us.sonographicGa || '',
+      efw: us.efwGramsAndPercentile || '',
+      accretaDoppler: us.placentaAccretaColorDoppler || '',
+      bppDopplerCl: [us.bppScore ? `BPP ${us.bppScore}` : '', us.umbilicalAndMcaDoppler || '', us.cervicalLengthMm ? `CL ${us.cervicalLengthMm}` : ''].filter(Boolean).join(' | '),
+      summary: ''
+    });
+  }
+
+  const gu = p.gynecologicUltrasound;
+  if (gu && anyFilled(gu, ['uterusDimensionsMm', 'myometrialEchoAndMyomas', 'endometrialThicknessMm', 'rightOvary', 'leftOvary', 'culDeSacFreeFluid'])) {
+    mk('gyn_ultrasound', gu.scanDate, {
+      modality: gu.scanType === 'TAS' ? 'TAS' : 'TVS',
+      uterus: gu.uterusDimensionsMm || '',
+      myometrium: gu.myometrialEchoAndMyomas || '',
+      endometrium: gu.endometrialThicknessMm || '',
+      rightOvary: gu.rightOvary || '',
+      leftOvary: gu.leftOvary || '',
+      culDeSac: gu.culDeSacFreeFluid || ''
+    });
+  }
+
+  const fm = p.fetalMonitoring;
+  if (fm && (anyFilled(fm, ['baselineBpm', 'variability', 'accelerations']) || (fm.decelerations?.type && fm.decelerations.type !== 'None'))) {
+    mk('nst_efm', '', {
+      testType: fm.testType || 'NST',
+      baselineBpm: fm.baselineBpm || '',
+      variability: fm.variability || '',
+      accelerations: fm.accelerations || '',
+      decelType: fm.decelerations?.type || '',
+      decelRecurrent: fm.decelerations?.isRecurrent ? 'yes' : '',
+      contractions: fm.contractionsIn10Min || '',
+      reactivity: ''
+    });
+  }
+
+  const scr = saved?.gynScreeningAndRecords?.cervicalAndBreastScreening;
+  if (scr && anyFilled(scr, ['lastPapSmearResult', 'hpvTestStatus'])) {
+    mk('pap_hpv', scr.lastPapSmearDate, { papResult: scr.lastPapSmearResult || '', hpvStatus: scr.hpvTestStatus || '', notes: '' });
+  }
+  if (scr && anyFilled(scr, ['lastMammographyBirads', 'lastMammographyOrBreastUsDate'])) {
+    mk('breast_imaging', scr.lastMammographyOrBreastUsDate, { modality: 'Both', birads: scr.lastMammographyBirads || '', findings: '' });
+  }
+
+  const recs = saved?.gynScreeningAndRecords?.priorPathologyAndCurettage?.records;
+  if (Array.isArray(recs)) {
+    recs.forEach((r) => {
+      if (r && anyFilled(r, ['procedureType', 'pathologyResult'])) {
+        mk('colposcopy_pathology', r.date, { procedure: '', result: [r.procedureType, r.pathologyResult].filter(Boolean).join(': ') });
+      }
+    });
+  }
+
+  const ac = saved?.antenatalCareChecklist;
+  if (ac?.firstTrimesterScreening?.ntScanDone && (filled(ac.firstTrimesterScreening.ntMeasurementMm) || filled(ac.firstTrimesterScreening.doubleMarkerRisk))) {
+    mk('antenatal_screening', ac.firstTrimesterScreening.ntDate, {
+      screenType: 'NT',
+      keyMeasurement: ac.firstTrimesterScreening.ntMeasurementMm || '',
+      result: ac.firstTrimesterScreening.doubleMarkerRisk || ''
+    });
+  }
+  if (ac?.secondTrimesterScreening?.anomalyScanDone && filled(ac.secondTrimesterScreening.anomalyScanResult)) {
+    mk('antenatal_screening', ac.secondTrimesterScreening.anomalyScanDate, {
+      screenType: 'Anomaly',
+      keyMeasurement: '',
+      result: ac.secondTrimesterScreening.anomalyScanResult || ''
+    });
+  }
+  return out;
+}
 export function normalizeSubMode(mode) {
   if (mode === 'prenatal' || mode === 'obstetrics') return 'obstetrics';
   if (mode === 'soap' || mode === 'soape') return 'soape';
@@ -840,18 +876,71 @@ export function normalizeObgynState(saved) {
     });
   }
 
-  // Migrate PAHx boolean -> tri-state (0 untouched, -1 denied, 1 positive)
-  const pahx = merged.gynScreeningAndRecords.pahx;
-  if (saved.gynScreeningAndRecords?.pahx) {
-    const rawPahx = saved.gynScreeningAndRecords.pahx;
-    if (rawPahx.status === 1 || rawPahx.status === -1) {
-      pahx.status = rawPahx.status;
-    } else if (rawPahx.hasPriorAnesthesia || (Array.isArray(rawPahx.anesthesiaTypes) && rawPahx.anesthesiaTypes.length > 0) || (rawPahx.complications || '').trim()) {
-      pahx.status = 1;
-      pahx.hasPriorAnesthesia = true;
+  // v3.2: PAHx removed from the active schema (anesthesia notes live inside PSH rows). Drop legacy key safely.
+  if (merged.gynScreeningAndRecords && 'pahx' in merged.gynScreeningAndRecords) {
+    delete merged.gynScreeningAndRecords.pahx;
+  }
+
+  // v3.2: Tab id migration (7-tab -> classic 8-tab order)
+  const TAB_MIGRATION = { history: 'pmh_psh', shared: 'dh_ah_sh_fh', workup: 'paraclinics' };
+  if (TAB_MIGRATION[merged.activeTab]) merged.activeTab = TAB_MIGRATION[merged.activeTab];
+  if (!ALLOWED_TABS.includes(merged.activeTab)) merged.activeTab = 'admission';
+
+  // v3.2: menstrual flow volume / clots decoupling
+  const mh = merged.menstrualHistory || {};
+  if (mh.flowVolume === 'normal') mh.flowVolume = 'moderate';
+  if (mh.clotPassage === true && !mh.clotStatus) mh.clotStatus = 'large_clots';
+  delete mh.clotPassage;
+  if (typeof mh.clotStatus !== 'string') mh.clotStatus = '';
+
+  // v3.2: marriage duration is no longer a demographic default; keep only when migrated into an infertility card
+  if (merged.obstetricIndex && 'marriageDurationYears' in merged.obstetricIndex) {
+    const legacyMd = merged.obstetricIndex.marriageDurationYears;
+    delete merged.obstetricIndex.marriageDurationYears;
+    if (legacyMd && Array.isArray(merged.ccAndHpi.presentations)) {
+      merged.ccAndHpi.presentations.forEach((p) => {
+        if (p?.archetypeId === 'GYN-6' && p.fields && !p.fields.marriageDurationYears) {
+          p.fields.marriageDurationYears = legacyMd;
+        }
+      });
     }
   }
 
+  // v3.2: OB-3 / GYN-1 bleeding fields decoupling (volume vs clots)
+  (merged.ccAndHpi.presentations || []).forEach((p) => {
+    if (!p || !p.fields) return;
+    if (p.archetypeId === 'OB-3') {
+      if (p.fields.bleedingAmount === 'heavy_clots') {
+        p.fields.bleedingAmount = 'heavy';
+        if (!p.fields.clotPassage) p.fields.clotPassage = 'large_clots';
+      } else if (p.fields.bleedingAmount === 'menses_like') {
+        p.fields.bleedingAmount = 'moderate';
+      }
+    }
+    if (p.archetypeId === 'GYN-1') {
+      if (p.fields.clotPassage === 'yes') p.fields.clotPassage = 'large_clots';
+      else if (p.fields.clotPassage === 'no') p.fields.clotPassage = 'none';
+      if (!p.fields.bleedingVolume && (p.fields.bleedingPattern === 'hmb')) {
+        // do not invent a volume; leave empty (Not Assessed != Negative)
+      }
+    }
+  });
+
+  // v3.2: hydrate legacy populated paraclinics into on-demand studies[] (never create blank cards)
+  const hasStudies = Array.isArray(saved.paraclinics?.studies) && saved.paraclinics.studies.length > 0;
+  if (!hasStudies) {
+    merged.paraclinics.studies = buildLegacyStudiesFromSaved(saved);
+  } else if (!Array.isArray(merged.paraclinics.studies)) {
+    merged.paraclinics.studies = [];
+  }
+  if (!Array.isArray(merged.paraclinics.extraLabs)) merged.paraclinics.extraLabs = [];
+  // drop legacy structured blobs from the merged state after hydration
+  ['lastObstetricUltrasound', 'gynecologicUltrasound', 'fetalMonitoring'].forEach((k) => { delete merged.paraclinics[k]; });
+  delete merged.antenatalCareChecklist;
+  if (merged.gynScreeningAndRecords) {
+    delete merged.gynScreeningAndRecords.cervicalAndBreastScreening;
+    delete merged.gynScreeningAndRecords.priorPathologyAndCurettage;
+  }
   // Migrate Phase-1 flat keys if present on legacy saved.obgyn
   if (saved.g !== undefined && (merged.obstetricIndex.G === null || merged.obstetricIndex.G === '')) merged.obstetricIndex.G = saved.g;
   if (saved.p !== undefined && (merged.obstetricIndex.P === null || merged.obstetricIndex.P === '')) merged.obstetricIndex.P = saved.p;
@@ -885,6 +974,15 @@ export function normalizeObgynState(saved) {
         };
       }
     });
+  }
+
+  // v3.2: legacy free-text TV selects -> coded values
+  const omx = merged.pe?.obsMeasurements;
+  if (omx) {
+    const PRES = { 'سفالیک (Cephalic)': 'cephalic', 'بریچ (Breech)': 'breech', 'عرضی / شانه': 'transverse', 'خارج از دسترس (High)': 'high' };
+    const MEM = { 'سالم (Intact)': 'intact', 'پاره (Ruptured)': 'ruptured' };
+    if (PRES[omx.presentingPart]) omx.presentingPart = PRES[omx.presentingPart];
+    if (MEM[omx.membranesStatus]) omx.membranesStatus = MEM[omx.membranesStatus];
   }
 
   return merged;

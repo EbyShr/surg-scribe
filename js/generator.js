@@ -830,6 +830,30 @@ export function generateNarrativeCCAndHPI(state) {
   return out.join('\n');
 }
 
+function formatAllergyReactionList(item, isEn) {
+  const RX_MAP = {
+    rx_urticaria: { fa: 'کهیر / راش پوستی', en: 'Urticaria / rash' },
+    rx_pruritus: { fa: 'خارش', en: 'Pruritus' },
+    rx_angioedema: { fa: 'آنژیوادم / تورم صورت', en: 'Angioedema / facial swelling' },
+    rx_bronchospasm: { fa: 'تنگی نفس / برونکواسپاسم', en: 'Dyspnea / bronchospasm' },
+    rx_anaphylaxis: { fa: 'آنافیلاکسی', en: 'Anaphylaxis' },
+    rx_gi: { fa: 'علائم گوارشی', en: 'GI symptoms' }
+  };
+  const rxArr = Array.isArray(item?.reactions) ? item.reactions : [];
+  const rxLabels = rxArr.map((r) => {
+    if (r && typeof r === 'object') {
+      return isEn ? tLabel(r.en || r.fa || r.label || '') : (r.fa || r.label || r.en || '');
+    }
+    const key = String(r || '').trim();
+    if (RX_MAP[key]) return isEn ? RX_MAP[key].en : RX_MAP[key].fa;
+    return isEn ? tLabel(key) : key;
+  }).filter(Boolean);
+  const det = item?.detail && String(item.detail).trim()
+    ? (isEn ? tLabel(item.detail.trim()) : normalizePersianClinicalText(item.detail.trim()))
+    : '';
+  return [...rxLabels, det].filter(Boolean);
+}
+
 /**
  * Pure English Clinical Admission Note Generator (v1.2-Bilingual-CleanUI)
  */
@@ -1004,12 +1028,14 @@ export function generateEnglishClinicalNote(state) {
   // 4. Medications, Allergies, Social & Family History
   lines.push(`\n### 4. Medications, Allergies, Social & Family History (DH / AH / SH / FH)`);
   const ahState = state.ah || {};
-  if (ahState.nkda) {
+  if (ahState.nkda && (!Array.isArray(ahState.selected) || ahState.selected.length === 0)) {
     lines.push(`- **Allergies (AH):** No Known Drug Allergies (NKDA).`);
   } else {
     const ahSel = (ahState.selected || []).map((item) => {
       if (typeof item === 'object' && item !== null) {
-        return item.detail ? `${tLabel(item.label)} (${tLabel(item.detail)})` : tLabel(item.label);
+        const rxParts = formatAllergyReactionList(item, true);
+        const lbl = tLabel(item.en || item.label);
+        return rxParts.length > 0 ? `${lbl} (reaction: ${rxParts.join('; ')})` : lbl;
       }
       return tLabel(item);
     }).filter(Boolean);
@@ -1545,12 +1571,14 @@ export function generateClinicalNote(state, langOverride) {
 
   // AH
   const ahItems = (state.ah?.selected || []).map((item) => {
-    if (typeof item === 'object') {
-      return item.detail ? `${item.label} (${normalizePersianClinicalText(item.detail)})` : item.label;
+    if (typeof item === 'object' && item !== null) {
+      const rxParts = formatAllergyReactionList(item, false);
+      const lbl = item.label || item.en || '';
+      return rxParts.length > 0 ? `${lbl} (واکنش: ${rxParts.join('؛ ')})` : lbl;
     }
     return item;
-  });
-  if (state.ah?.nkda) {
+  }).filter(Boolean);
+  if (state.ah?.nkda && ahItems.length === 0) {
     lines.push(`- **حساسیت‌ها (AH):** سابقه حساسیت دارویی، غذایی، لاتکس یا ماده حاجب ندارد (NKDA).`);
   } else if (ahItems.length > 0 || (state.ah?.note && state.ah.note.trim())) {
     const ahText = `${ahItems.join('، ')} ${state.ah?.note ? `(${normalizePersianClinicalText(state.ah.note)})` : ''}`.trim();

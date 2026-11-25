@@ -59,10 +59,16 @@ export const OBGYN_OBSTETRIC_ARCHETYPES = [
     subEn: 'Volume, blood color, painful vs painless & triggers',
     fields: [
       { key: 'bleedingOnset', type: 'text', fa: 'شروع و مدت خونریزی', en: 'Onset & Duration', phFa: 'شروع ناگهانی از ۲ ساعت قبل', phEn: 'Sudden onset 2 hours prior' },
-      { key: 'bleedingAmount', type: 'select', fa: 'میزان خونریزی', en: 'Bleeding Amount', options: [
+      { key: 'bleedingAmount', type: 'select', fa: 'حجم خونریزی', en: 'Bleeding Volume', options: [
         { val: 'spotting', fa: 'لکه‌بینی (Spotting)', en: 'Spotting' },
-        { val: 'menses_like', fa: 'در حد منس', en: 'Equivalent to menses' },
-        { val: 'heavy_clots', fa: 'شدید همراه با دفع لخته', en: 'Heavy with clots' }
+        { val: 'light', fa: 'خفیف / کم', en: 'Light' },
+        { val: 'moderate', fa: 'متوسط (در حد قاعدگی)', en: 'Moderate' },
+        { val: 'heavy', fa: 'شدید', en: 'Heavy' }
+      ]},
+      { key: 'clotPassage', type: 'select', fa: 'دفع لخته', en: 'Clot Passage', options: [
+        { val: 'none', fa: 'بدون لخته', en: 'No clots' },
+        { val: 'small_clots', fa: 'لخته‌های کوچک', en: 'Small clots' },
+        { val: 'large_clots', fa: 'لخته‌های بزرگ / مکرر', en: 'Large clots' }
       ]},
       { key: 'bloodColor', type: 'select', fa: 'رنگ خون', en: 'Blood Color', options: [
         { val: 'bright_red', fa: 'قرمز روشن (Bright red)', en: 'Bright red' },
@@ -164,9 +170,16 @@ export const OBGYN_GYN_ARCHETYPES = [
         { val: 'pcb', fa: 'خونریزی پس از نزدیکی (PCB)', en: 'Postcoital bleeding (PCB)' }
       ]},
       { key: 'padsPerDay', type: 'text', fa: 'تعداد پد در روز و تعویض شبانه', en: 'Pads/Day & Nighttime Changes', phFa: '۷ تا ۸ پد کاملاً خیس و نیاز به تعویض شبانه', phEn: '7-8 soaked pads/day with nighttime pad changes' },
+      { key: 'bleedingVolume', type: 'select', fa: 'حجم / شدت خونریزی', en: 'Bleeding Volume', options: [
+        { val: 'spotting', fa: 'لکه‌بینی (Spotting)', en: 'Spotting' },
+        { val: 'light', fa: 'خفیف / کم', en: 'Light' },
+        { val: 'moderate', fa: 'متوسط', en: 'Moderate' },
+        { val: 'heavy', fa: 'شدید', en: 'Heavy' }
+      ]},
       { key: 'clotPassage', type: 'select', fa: 'دفع لخته', en: 'Clot Passage', options: [
-        { val: 'yes', fa: 'مثبت (دفع لخته‌های بزرگ)', en: 'Present (large clots)' },
-        { val: 'no', fa: 'منفی', en: 'Absent' }
+        { val: 'none', fa: 'بدون لخته', en: 'No clots' },
+        { val: 'small_clots', fa: 'لخته‌های کوچک', en: 'Small clots' },
+        { val: 'large_clots', fa: 'لخته‌های بزرگ', en: 'Large clots' }
       ]},
       { key: 'currentEpisodeDays', type: 'text', fa: 'مدت اپیزود فعلی خونریزی (روز)', en: 'Current Episode Duration (days)', phFa: 'مثلاً ۱۲ روز متوالی', phEn: 'e.g. 12 consecutive days' }
     ]
@@ -271,6 +284,7 @@ export const OBGYN_GYN_ARCHETYPES = [
         { val: 'secondary', fa: 'ثانویه (Secondary)', en: 'Secondary Infertility' },
         { val: 'rpl', fa: 'سقط مکرر (RPL)', en: 'Recurrent Pregnancy Loss (RPL)' }
       ]},
+      { key: 'marriageDurationYears', type: 'text', fa: 'مدت ازدواج (سال)', en: 'Marriage Duration (years)', phFa: 'مثلاً ۵ سال', phEn: 'e.g. 5 years' },
       { key: 'unprotectedIntercourseDurationMonths', type: 'text', fa: 'مدت اقدام بدون پیشگیری (ماه/سال)', en: 'Duration of Unprotected Intercourse', phFa: 'مثلاً ۲۴ ماه', phEn: 'e.g. 24 months' },
       { key: 'coitalFrequency', type: 'text', fa: 'تعداد دفعات نزدیکی در هفته', en: 'Coital Frequency / Week', phFa: 'مثلاً ۲ تا ۳ بار در هفته', phEn: 'e.g. 2-3 times/week' },
       { key: 'priorWorkupAndArt', type: 'text', fa: 'بررسی‌ها و درمان‌های قبلی (HSG / اسپرموگرام / IUI / IVF)', en: 'Prior Workup & ART', phFa: 'HSG باز، آنالیز اسپرم همسر طبیعی، ۲ نوبت IUI ناموفق', phEn: 'Patent HSG, normal semen analysis, 2 failed IUI cycles' }
@@ -1107,7 +1121,7 @@ export const OBGYN_MEDICATIONS_DELTA = [
   { id: 'med_labetalol', en: 'Labetalol', fa: 'لاببتالول (خوراکی / تزریقی)', category: 'Antihypertensive in Pregnancy', commonDose: '20 mg IV bolus, then 40–80 mg Q10min or 100–400 mg PO BID', aliases: 'لاببتالول فشار خون بارداری labetalol trandate' },
   { id: 'med_hydralazine', en: 'Hydralazine', fa: 'هیدرالازین', category: 'Antihypertensive in Pregnancy', commonDose: '5–10 mg IV Q20min', aliases: 'هیدرالازین فشار بارداری hydralazine' },
   { id: 'med_nifedipine', en: 'Nifedipine (Adalat)', fa: 'نیفدیپین (آدالات)', category: 'Antihypertensive / Tocolytic', commonDose: '10–20 mg PO immediate-release', aliases: 'نیفدیپین ادالات توکولیتیک فشار خون nifedipine adalat' },
-  { id: 'med_methyldopa', en: 'Methyldopa (Aldomet)', fa: 'متیل‌دوپا (آلدومت)', category: 'Antihypertensive in Pregnancy', commonDose: '250–500 mg PO BID/TID', aliases: 'متیل دوپا الدومت فشار خون حاملگی methyldopa aldomet' },
+  { id: 'med_methyldopa', en: 'Methyldopa (Aldomet)', fa: 'متیل‌دوپا (آلدومت)', category: 'Antihypertensive in Pregnancy', commonDose: '250–500 mg PO BID/TID', aliases: 'متیل دوپا متیلدوپا متیل‌دوپا آلدومت الدومت فشار خون حاملگی methyldopa aldomet' },
   { id: 'med_indomethacin_supp', en: 'Indomethacin (Suppository / PO)', fa: 'شیاف/قرص ایندومتاسین (توکولیتیک زیر ۳۲ هفته)', category: 'Tocolytic / NSAID', commonDose: '50–100 mg PR/PO loading, then 25 mg Q6h max 48h', aliases: 'ایندومتاسین شیاف توکولیتیک زایمان زودرس indomethacin' },
   { id: 'med_betamethasone_obs', en: 'Betamethasone', fa: 'بتامتازون (رسیدگی ریه جنین)', category: 'Antenatal Corticosteroid', commonDose: '12 mg IM Q24h × 2 doses', aliases: 'بتامتازون ریه جنین بتا ال ای ال ام betamethasone' },
   { id: 'med_dexamethasone_obs', en: 'Dexamethasone', fa: 'دگزامتازون (رسیدگی ریه جنین)', category: 'Antenatal Corticosteroid', commonDose: '6 mg IM Q12h × 4 doses', aliases: 'دگزامتازون دگزا ریه جنین dexamethasone' },
@@ -1175,7 +1189,10 @@ export const OBGYN_PSH_DELTA = [
   { id: 'psh_colposcopy_leep', en: 'Colposcopy / LEEP / Cold-Knife Conization', fa: 'کولپوسکوپی / لیپ (LEEP) / کونیزاسیون سرویکس', aliases: 'کولپوسکوپی لیپ کونیزاسیون دهانه رحم colposcopy leep' },
   { id: 'psh_apr_colporrhaphy', en: 'Anterior and Posterior Colporrhaphy (APR)', fa: 'کلپورافی قدامی و خلفی (تعمیر سیستوسل و رکتوسل - APR)', aliases: 'کلپورافی افتادگی مثانه رکتوم ای پی ار apr colporrhaphy' },
   { id: 'psh_tvt_tot', en: 'Midurethral Sling (TVT / TOT)', fa: 'جراحی اسلینگ مجرا (TVT / TOT جهت بی‌اختیاری ادراری استرسی)', aliases: 'اسلینگ تی وی تی تی او تی بی اختیاری ادرار tvt tot' },
-  { id: 'psh_bartholin_marsupialization', en: 'Bartholin Gland Drainage / Marsupialization', fa: 'درناژ یا مارسوپیالیزاسیون کیست/آبسه بارتولن', aliases: 'بارتولن ابسه کیست مارسوپیالیزاسیون bartholin' }
+  { id: 'psh_bartholin_marsupialization', en: 'Bartholin Gland Drainage / Marsupialization', fa: 'درناژ یا مارسوپیالیزاسیون کیست/آبسه بارتولن', aliases: 'بارتولن ابسه کیست مارسوپیالیزاسیون bartholin' },
+  { id: 'psh_ivf_opu_et', en: 'IVF Procedure (OPU & Embryo Transfer)', fa: 'پروسیجر IVF / تخمک‌کشی (OPU) و انتقال جنین (ET)', aliases: 'ای وی اف آی وی اف آی‌وی‌اف ivf icsi opu et تخمک کشی انتقال جنین لقاح آزمایشگاهی نازایی' },
+  { id: 'psh_iui', en: 'Intrauterine Insemination (IUI)', fa: 'آی‌یوآی (IUI)', aliases: 'آی یو آی ای یو ای آی‌یوآی iui تلقیح داخل رحمی نازایی' },
+  { id: 'psh_gyn_laparoscopy', en: 'Diagnostic / Operative Gynecologic Laparoscopy', fa: 'لاپاراسکوپی تشخیصی / درمانی زنان', aliases: 'لاپاراسکوپی لاپاروسکوپی زنان کیست اندومتریوز laparoscopy diagnostic operative' }
 ];
 
 export const OBGYN_PMH_DELTA = [
@@ -1362,3 +1379,274 @@ export const OBGYN_SOAPE_CAPSULES = {
     { id: 'e_bf_meds', fa: 'آموزش شیردهی و مصرف منظم مکملها/داروها', en: 'Advised on breastfeeding technique and medication adherence' }
   ]
 };
+
+// ==========================================================================
+// MedHistorism v3.2 — Bedside Field-Audit Additions
+// ==========================================================================
+
+export const OBGYN_CONCEPTION_METHODS = [
+  { val: 'spontaneous', fa: 'خودبه‌خودی (Spontaneous)', en: 'Spontaneous', faShort: 'خودبه‌خودی', enShort: 'spontaneous conception' },
+  { val: 'IVF', fa: 'IVF (لقاح آزمایشگاهی)', en: 'IVF', faShort: 'IVF', enShort: 'IVF' },
+  { val: 'ICSI', fa: 'ICSI (میکرواینجکشن)', en: 'ICSI', faShort: 'ICSI', enShort: 'ICSI' },
+  { val: 'IUI', fa: 'IUI (تلقیح داخل رحمی)', en: 'IUI', faShort: 'IUI', enShort: 'IUI' },
+  { val: 'egg_donation', fa: 'تخمک اهدایی (Egg Donation)', en: 'Egg Donation', faShort: 'تخمک اهدایی', enShort: 'donor oocyte' }
+];
+
+export const OBGYN_BLEED_VOLUME_OPTIONS = [
+  { val: 'spotting', fa: 'لکه‌بینی', en: 'Spotting' },
+  { val: 'light', fa: 'خفیف', en: 'Light' },
+  { val: 'moderate', fa: 'متوسط', en: 'Moderate' },
+  { val: 'heavy', fa: 'شدید', en: 'Heavy' }
+];
+
+export const OBGYN_CLOT_OPTIONS = [
+  { val: 'none', fa: 'بدون لخته', en: 'No clots' },
+  { val: 'small_clots', fa: 'لخته‌های کوچک', en: 'Small clots' },
+  { val: 'large_clots', fa: 'لخته‌های بزرگ', en: 'Large clots' }
+];
+
+export const OBGYN_ANEMIA_SYMPTOMS = [
+  { id: 'anemia_fatigue', fa: 'ضعف و بی‌حالی', en: 'Fatigue & malaise' },
+  { id: 'anemia_orthostatic_dizziness', fa: 'سرگیجه وضعیتی (ارتوستاتیک)', en: 'Orthostatic dizziness' },
+  { id: 'anemia_palpitations', fa: 'تپش قلب', en: 'Palpitations' },
+  { id: 'anemia_exertional_dyspnea', fa: 'تنگی نفس فعالیتی', en: 'Exertional dyspnea' },
+  { id: 'anemia_headache_tinnitus', fa: 'سردرد یا وزوز گوش', en: 'Headache or tinnitus' }
+];
+
+export const OBGYN_QUICK_ALLERGENS = [
+  { id: 'alg_penicillin', fa: 'پنی‌سیلین', en: 'Penicillin' },
+  { id: 'alg_cephalosporin', fa: 'سفالوسپورین', en: 'Cephalosporins' },
+  { id: 'alg_nsaid', fa: 'آسپرین / NSAID', en: 'Aspirin / NSAIDs' },
+  { id: 'alg_sulfonamide', fa: 'سولفونامید', en: 'Sulfonamides' },
+  { id: 'alg_latex', fa: 'لاتکس', en: 'Latex' },
+  { id: 'alg_betadine', fa: 'بتادین / ید', en: 'Povidone-Iodine' },
+  { id: 'alg_contrast', fa: 'ماده حاجب', en: 'IV Contrast' },
+  { id: 'alg_food', fa: 'مواد غذایی', en: 'Food' }
+];
+
+export const OBGYN_ALLERGY_REACTIONS = [
+  { id: 'rx_urticaria', fa: 'کهیر / راش پوستی', en: 'Urticaria / rash' },
+  { id: 'rx_pruritus', fa: 'خارش', en: 'Pruritus' },
+  { id: 'rx_angioedema', fa: 'آنژیوادم / تورم صورت', en: 'Angioedema / facial swelling' },
+  { id: 'rx_bronchospasm', fa: 'تنگی نفس / برونکواسپاسم', en: 'Dyspnea / bronchospasm' },
+  { id: 'rx_anaphylaxis', fa: 'آنافیلاکسی', en: 'Anaphylaxis' },
+  { id: 'rx_gi', fa: 'علائم گوارشی', en: 'GI symptoms' }
+];
+
+export const OBGYN_QUICK_LAB_IDS = {
+  obstetrics: ['hb', 'plt', 'wbc', 'lab_urine_pr_cr_ratio', 'lab_ldh', 'lab_bhcg_quant', 'lab_ogtt_75g', 'lab_indirect_coombs'],
+  gynecology: ['lab_bhcg_quant', 'hb', 'wbc', 'plt', 'lab_ca125', 'lab_pap_smear_lbc', 'lab_hpv_cobas', 'lab_prolactin']
+};
+
+export const OBGYN_PARACLINIC_STUDY_TYPES = [
+  {
+    id: 'obs_ultrasound',
+    subMode: 'obstetrics',
+    fa: 'سونوگرافی بارداری',
+    en: 'Obstetric Ultrasound',
+    fields: [
+      { key: 'fetalCountFhr', type: 'text', fa: 'تعداد جنین و ضربان قلب', en: 'Fetal Count & FHR' },
+      { key: 'presentation', type: 'text', fa: 'پرزانتاسیون', en: 'Presentation' },
+      { key: 'placenta', type: 'text', fa: 'محل و گرید جفت', en: 'Placental Location / Grade' },
+      { key: 'afi', type: 'text', fa: 'مایع آمنیوتیک (AFI / MVP)', en: 'Amniotic Fluid (AFI / MVP)' },
+      { key: 'sonoGa', type: 'text', fa: 'سن بارداری سونوگرافیک', en: 'Sonographic GA' },
+      { key: 'efw', type: 'text', fa: 'وزن تخمینی جنین و صدک', en: 'EFW & Percentile' },
+      { key: 'accretaDoppler', type: 'text', fa: 'کالرداپلر آکرتا', en: 'Accreta Color Doppler' },
+      { key: 'bppDopplerCl', type: 'text', fa: 'BPP / داپلر / طول سرویکس', en: 'BPP / Doppler / Cervical Length' },
+      { key: 'summary', type: 'text', fa: 'خلاصه گزارش', en: 'Report Summary' }
+    ]
+  },
+  {
+    id: 'gyn_ultrasound',
+    subMode: 'gynecology',
+    fa: 'سونوگرافی ژنیکولوژی (TVS/TAS)',
+    en: 'Gynecologic Ultrasound (TVS/TAS)',
+    fields: [
+      { key: 'modality', type: 'select', fa: 'روش سونوگرافی', en: 'Modality', options: [
+        { val: 'TVS', fa: 'ترانس‌واژینال (TVS)', en: 'Transvaginal (TVS)' },
+        { val: 'TAS', fa: 'ترانس‌ابدومینال (TAS)', en: 'Transabdominal (TAS)' }
+      ]},
+      { key: 'uterus', type: 'text', fa: 'ابعاد رحم', en: 'Uterus Dimensions' },
+      { key: 'myometrium', type: 'text', fa: 'میومتر / میوم', en: 'Myometrium / Myomas' },
+      { key: 'endometrium', type: 'text', fa: 'ضخامت اندومتر (mm)', en: 'Endometrial Thickness (mm)' },
+      { key: 'rightOvary', type: 'text', fa: 'تخمدان راست', en: 'Right Ovary' },
+      { key: 'leftOvary', type: 'text', fa: 'تخمدان چپ', en: 'Left Ovary' },
+      { key: 'culDeSac', type: 'text', fa: 'مایع آزاد کول‌دوساک', en: 'Cul-de-sac Free Fluid' }
+    ]
+  },
+  {
+    id: 'nst_efm',
+    subMode: 'obstetrics',
+    fa: 'نوار قلب جنین (NST/EFM)',
+    en: 'Fetal Monitoring (NST/EFM)',
+    fields: [
+      { key: 'testType', type: 'select', fa: 'نوع تست', en: 'Test Type', options: [
+        { val: 'NST', fa: 'NST', en: 'NST' },
+        { val: 'CST', fa: 'CST', en: 'CST' },
+        { val: 'CTG', fa: 'CTG', en: 'CTG' }
+      ]},
+      { key: 'baselineBpm', type: 'text', fa: 'خط پایه (bpm)', en: 'Baseline (bpm)' },
+      { key: 'variability', type: 'select', fa: 'تغییرپذیری', en: 'Variability', options: [
+        { val: 'Absent', fa: 'فاقد', en: 'Absent' },
+        { val: 'Minimal', fa: 'کم', en: 'Minimal' },
+        { val: 'Moderate', fa: 'متوسط', en: 'Moderate' },
+        { val: 'Marked', fa: 'زیاد', en: 'Marked' }
+      ]},
+      { key: 'accelerations', type: 'text', fa: 'شتاب‌ها (Accelerations)', en: 'Accelerations' },
+      { key: 'decelType', type: 'select', fa: 'نوع دسلریشن', en: 'Decelerations', options: [
+        { val: 'None', fa: 'ندارد', en: 'None' },
+        { val: 'Early', fa: 'زودرس (Early)', en: 'Early' },
+        { val: 'Variable', fa: 'متغیر (Variable)', en: 'Variable' },
+        { val: 'Late', fa: 'دیررس (Late)', en: 'Late' }
+      ]},
+      { key: 'decelRecurrent', type: 'select', fa: 'راجعه بودن', en: 'Recurrent', options: [
+        { val: 'yes', fa: 'راجعه', en: 'Recurrent' },
+        { val: 'no', fa: 'غیرراجعه', en: 'Non-recurrent' }
+      ]},
+      { key: 'contractions', type: 'text', fa: 'انقباضات در ۱۰ دقیقه', en: 'Contractions / 10 min' },
+      { key: 'reactivity', type: 'select', fa: 'واکنش‌پذیری', en: 'Reactivity', options: [
+        { val: 'reactive', fa: 'ری‌اکتیو', en: 'Reactive' },
+        { val: 'nonreactive', fa: 'نان‌ری‌اکتیو', en: 'Non-reactive' }
+      ]}
+    ]
+  },
+  {
+    id: 'pap_hpv',
+    subMode: 'both',
+    fa: 'پاپ‌اسمیر / تست HPV',
+    en: 'Pap Smear / HPV Test',
+    fields: [
+      { key: 'papResult', type: 'text', fa: 'نتیجه پاپ‌اسمیر (Bethesda)', en: 'Pap Smear Result (Bethesda)' },
+      { key: 'hpvStatus', type: 'text', fa: 'نتیجه HPV DNA', en: 'HPV DNA Result' },
+      { key: 'notes', type: 'text', fa: 'توضیحات', en: 'Notes' }
+    ]
+  },
+  {
+    id: 'breast_imaging',
+    subMode: 'gynecology',
+    fa: 'ماموگرافی / سونوگرافی پستان',
+    en: 'Mammography / Breast Ultrasound',
+    fields: [
+      { key: 'modality', type: 'select', fa: 'روش', en: 'Modality', options: [
+        { val: 'Mammography', fa: 'ماموگرافی', en: 'Mammography' },
+        { val: 'Breast US', fa: 'سونوگرافی پستان', en: 'Breast Ultrasound' },
+        { val: 'Both', fa: 'هر دو', en: 'Both' }
+      ]},
+      { key: 'birads', type: 'text', fa: 'دسته BI-RADS', en: 'BI-RADS Category' },
+      { key: 'findings', type: 'text', fa: 'یافته‌ها', en: 'Findings' }
+    ]
+  },
+  {
+    id: 'colposcopy_pathology',
+    subMode: 'gynecology',
+    fa: 'کولپوسکوپی / جواب پاتولوژی (D&C/بیوپسی)',
+    en: 'Colposcopy / Pathology Report',
+    fields: [
+      { key: 'procedure', type: 'select', fa: 'پروسیجر', en: 'Procedure', options: [
+        { val: 'Colposcopy', fa: 'کولپوسکوپی', en: 'Colposcopy' },
+        { val: 'D&C', fa: 'کورتاژ (D&C)', en: 'D&C' },
+        { val: 'Endometrial Biopsy', fa: 'بیوپسی اندومتر', en: 'Endometrial Biopsy' },
+        { val: 'Cervical Biopsy', fa: 'بیوپسی سرویکس', en: 'Cervical Biopsy' },
+        { val: 'Surgical Specimen', fa: 'پاتولوژی نمونه جراحی (میومکتومی / هیسترکتومی)', en: 'Surgical Specimen (Myomectomy / Hysterectomy)' }
+      ]},
+      { key: 'result', type: 'text', fa: 'نتیجه پاتولوژی', en: 'Pathology Result' }
+    ]
+  },
+  {
+    id: 'antenatal_screening',
+    subMode: 'obstetrics',
+    fa: 'غربالگری سه‌ماهه اول (NT) / آنومالی اسکن / آمنیوسنتز',
+    en: 'Antenatal Screening (NT / Anomaly / Amnio)',
+    fields: [
+      { key: 'screenType', type: 'select', fa: 'نوع غربالگری', en: 'Screening Type', options: [
+        { val: 'NT', fa: 'سه‌ماهه اول (NT و دبل مارکر)', en: '1st Trimester NT & Double Marker' },
+        { val: 'Quad', fa: 'سه‌ماهه دوم (کوآد مارکر)', en: '2nd Trimester Quad Marker' },
+        { val: 'Anomaly', fa: 'آنومالی اسکن (۱۸ تا ۲۲ هفته)', en: 'Anomaly Scan (18-22w)' },
+        { val: 'NIPT', fa: 'NIPT / DNA آزاد جنین', en: 'NIPT / Cell-Free DNA' },
+        { val: 'Amnio', fa: 'آمنیوسنتز / CVS', en: 'Amniocentesis / CVS' }
+      ]},
+      { key: 'keyMeasurement', type: 'text', fa: 'NT (mm) / اندازه کلیدی', en: 'NT (mm) / Key Measurement' },
+      { key: 'result', type: 'text', fa: 'ریسک / نتیجه', en: 'Risk / Result' }
+    ]
+  }
+];
+
+// ----- Structured Ob/Gyn PE option dictionaries (shared by UI selects and narrative engine) -----
+const o2 = (val, fa, en) => ({ val, fa, en });
+const ABSENT_PRESENT = [o2('absent', 'ندارد', 'absent'), o2('present', 'دارد', 'present')];
+
+export const OBGYN_PE_OPTIONS = {
+  // Obstetrics
+  scarStatus: [o2('none', 'بدون اسکار جراحی', 'no surgical scar'), o2('pfannenstiel', 'اسکار پفانن‌اشتیل (سزارین قبلی)', 'Pfannenstiel scar (prior cesarean)'), o2('midline', 'اسکار خط وسط', 'midline scar')],
+  scarTenderness: [o2('absent', 'بدون تندرنس محل اسکار', 'no scar tenderness'), o2('present', 'تندرنس محل اسکار', 'scar tenderness')],
+  leopoldLie: [o2('longitudinal', 'طولی', 'longitudinal'), o2('transverse', 'عرضی', 'transverse'), o2('oblique', 'مایل', 'oblique')],
+  leopoldPresentation: [o2('cephalic', 'سفالیک', 'cephalic'), o2('breech', 'بریچ', 'breech'), o2('shoulder', 'شانه / عرضی', 'shoulder / transverse')],
+  leopoldBack: [o2('left', 'پشت جنین سمت چپ', 'fetal back on the left'), o2('right', 'پشت جنین سمت راست', 'fetal back on the right'), o2('anterior', 'پشت قدامی', 'fetal back anterior'), o2('posterior', 'پشت خلفی', 'fetal back posterior')],
+  leopoldEngagement: [o2('engaged', 'انگاژه', 'engaged'), o2('floating', 'شناور (انگاژه نشده)', 'floating / not engaged')],
+  fhrRegularity: [o2('regular', 'منظم', 'regular'), o2('irregular', 'نامنظم', 'irregular')],
+  contractionsIntensity: [o2('mild', 'خفیف', 'mild'), o2('moderate', 'متوسط', 'moderate'), o2('strong', 'قوی', 'strong')],
+  uterineTone: [o2('soft', 'رحم نرم بین انقباضات', 'soft uterus between contractions'), o2('irritable', 'رحم تحریک‌پذیر', 'irritable uterus'), o2('tetanic', 'رحم تخته‌ای (تتانیک)', 'tetanic / woody uterus')],
+  epigastricRuqTenderness: [o2('absent', 'بدون تندرنس اپیگاستر / RUQ', 'no epigastric / RUQ tenderness'), o2('present', 'تندرنس اپیگاستر / RUQ', 'epigastric / RUQ tenderness')],
+  cervixConsistency: [o2('firm', 'سفت', 'firm'), o2('medium', 'متوسط', 'medium'), o2('soft', 'نرم', 'soft')],
+  cervixPosition: [o2('posterior', 'خلفی', 'posterior'), o2('mid', 'میانی', 'mid-position'), o2('anterior', 'قدامی', 'anterior')],
+  presentingPart: [o2('cephalic', 'سفالیک', 'cephalic'), o2('breech', 'بریچ', 'breech'), o2('transverse', 'عرضی / شانه', 'transverse / shoulder'), o2('high', 'خارج از دسترس (High)', 'high / unengaged')],
+  presentingPosition: [o2('OA', 'OA', 'OA'), o2('LOA', 'LOA', 'LOA'), o2('ROA', 'ROA', 'ROA'), o2('OP', 'OP', 'OP'), o2('OT', 'OT', 'OT'), o2('Breech', 'Breech', 'Breech')],
+  membranesStatus: [o2('intact', 'سالم (Intact)', 'intact'), o2('ruptured', 'پاره (Ruptured)', 'ruptured')],
+  amnioticFluidChar: [o2('clear', 'شفاف', 'clear'), o2('meconium', 'آغشته به مکونیوم', 'meconium-stained'), o2('bloody', 'خونی', 'bloody'), o2('foul', 'بدبو', 'foul-smelling')],
+  romTest: [o2('positive', 'مثبت', 'positive'), o2('negative', 'منفی', 'negative')],
+  pelvimetryPromontory: [o2('not_palpable', 'پرومونتوار قابل لمس نیست', 'sacral promontory not palpable'), o2('palpable', 'پرومونتوار قابل لمس', 'sacral promontory palpable')],
+  pelvimetrySpines: [o2('non_prominent', 'خارهای ایسکیال غیربرجسته', 'non-prominent ischial spines'), o2('prominent', 'خارهای ایسکیال برجسته', 'prominent ischial spines')],
+  pelvimetryArch: [o2('wide', 'قوس ساب‌پوبیک وسیع (بیش از ۹۰ درجه)', 'wide subpubic arch (>90 degrees)'), o2('narrow', 'قوس ساب‌پوبیک باریک', 'narrow subpubic arch')],
+  pelvimetryOverall: [o2('adequate', 'لگن متناسب', 'adequate pelvis'), o2('borderline', 'لگن مرزی', 'borderline pelvis'), o2('contracted', 'لگن تنگ', 'contracted pelvis')],
+  grade04: [o2('0', '0', '0'), o2('+1', '+1', '+1'), o2('+2', '+2', '+2'), o2('+3', '+3', '+3'), o2('+4', '+4', '+4')],
+  edemaLocation: [o2('pretibial', 'پره‌تیبیال', 'pretibial'), o2('sacral', 'ساکرال', 'sacral'), o2('facial', 'صورت', 'facial'), o2('generalized', 'ژنرالیزه', 'generalized')],
+  calfTendernessVaricosities: [o2('absent', 'بدون تندرنس ساق و واریس', 'no calf tenderness or varicosities'), o2('calf_tenderness', 'تندرنس ساق', 'calf tenderness'), o2('varicosities', 'واریس اندام تحتانی', 'lower-extremity varicosities')],
+  ankleClonus: [o2('absent', 'کلونوس ندارد', 'no clonus'), o2('unsustained', 'کلونوس ناپایدار', 'unsustained clonus'), o2('sustained', 'کلونوس پایدار', 'sustained clonus')],
+  // Gynecology
+  breastSymmetry: [o2('symmetric', 'پستان‌ها قرینه', 'breasts symmetric'), o2('asymmetric', 'پستان‌ها نامتقارن', 'breasts asymmetric')],
+  breastMass: [o2('absent', 'بدون توده قابل لمس', 'no palpable mass'), o2('present', 'توده قابل لمس', 'palpable mass')],
+  breastDischarge: [o2('absent', 'بدون ترشح نیپل', 'no nipple discharge'), o2('present', 'ترشح نیپل', 'nipple discharge')],
+  axillaryLad: [o2('absent', 'بدون لنفادنوپاتی آگزیلاری', 'no axillary lymphadenopathy'), o2('present', 'لنفادنوپاتی آگزیلاری', 'axillary lymphadenopathy')],
+  tendernessQuadrant: [o2('none', 'بدون تندرنس', 'non-tender'), o2('rlq', 'تندرنس RLQ', 'RLQ tenderness'), o2('llq', 'تندرنس LLQ', 'LLQ tenderness'), o2('suprapubic', 'تندرنس سوپراپوبیک', 'suprapubic tenderness'), o2('diffuse', 'تندرنس منتشر', 'diffuse tenderness')],
+  reboundGuarding: [o2('absent', 'بدون ریباند و گاردینگ', 'no rebound or guarding'), o2('present', 'ریباند / گاردینگ مثبت', 'rebound / guarding present')],
+  cvaTenderness: [o2('absent', 'CVA tenderness منفی', 'no CVA tenderness'), o2('present', 'CVA tenderness مثبت', 'CVA tenderness present')],
+  vulvaPerineum: [o2('normal', 'ولو و پرینه طبیعی', 'normal vulva and perineum'), o2('lesion', 'ضایعه ولو / پرینه', 'vulvar / perineal lesion'), o2('atrophy', 'آتروفی ولووواژینال', 'vulvovaginal atrophy')],
+  bartholinSkene: [o2('normal', 'غدد بارتولن و اسکین طبیعی', 'normal Bartholin / Skene glands'), o2('abnormal', 'توده یا آبسه بارتولن / اسکین', 'Bartholin / Skene mass or abscess')],
+  prolapse: [o2('none', 'پرولاپس ندارد', 'no prolapse'), o2('grade1', 'پرولاپس گرید ۱', 'grade 1 prolapse'), o2('grade2', 'پرولاپس گرید ۲', 'grade 2 prolapse'), o2('grade3', 'پرولاپس گرید ۳', 'grade 3 prolapse'), o2('grade4', 'پرولاپس گرید ۴', 'grade 4 prolapse')],
+  coughStressTest: [o2('negative', 'تست استرس سرفه منفی', 'cough stress test negative'), o2('positive', 'تست استرس سرفه مثبت', 'cough stress test positive')],
+  vaginalWalls: [o2('normal', 'دیواره‌های واژن طبیعی', 'normal vaginal walls'), o2('atrophic', 'دیواره‌های واژن آتروفیک', 'atrophic vaginal walls'), o2('erythematous', 'دیواره‌های واژن ملتهب', 'erythematous vaginal walls'), o2('lesion', 'ضایعه واژینال', 'vaginal lesion')],
+  cervixAppearance: [o2('normal', 'سرویکس طبیعی', 'normal-appearing cervix'), o2('polyp', 'پولیپ سرویکس', 'cervical polyp'), o2('ectropion', 'اکتروپیون', 'ectropion'), o2('cervicitis', 'سرویسیت', 'cervicitis'), o2('lesion', 'ضایعه سرویکس', 'cervical lesion')],
+  vbVolume: [o2('none', 'بدون خونریزی فعال', 'no active bleeding'), o2('spotting', 'لکه‌بینی', 'spotting'), o2('light', 'خونریزی خفیف', 'light bleeding'), o2('moderate', 'خونریزی متوسط', 'moderate bleeding'), o2('heavy', 'خونریزی شدید', 'heavy bleeding')],
+  vbClots: [o2('none', 'بدون لخته', 'no clots'), o2('small_clots', 'لخته‌های کوچک', 'small clots'), o2('large_clots', 'لخته‌های بزرگ', 'large clots')],
+  dischargeChar: [o2('none', 'بدون ترشح پاتولوژیک', 'no pathologic discharge'), o2('physiologic', 'ترشح فیزیولوژیک', 'physiologic discharge'), o2('curdy_white', 'ترشح سفید پنیری', 'thick white curdy discharge'), o2('thin_gray', 'ترشح خاکستری رقیق', 'thin gray discharge'), o2('frothy_yellow_green', 'ترشح زرد-سبز کف‌آلود', 'frothy yellow-green discharge'), o2('mucopurulent', 'ترشح موکوپورولان', 'mucopurulent discharge')],
+  uterusSizeWeeks: [o2('normal', 'اندازه طبیعی', 'normal size'), o2('6w', 'معادل ۶ هفته', '6-week size'), o2('8w', 'معادل ۸ هفته', '8-week size'), o2('10w', 'معادل ۱۰ هفته', '10-week size'), o2('12w', 'معادل ۱۲ هفته', '12-week size'), o2('14w', 'معادل ۱۴ هفته', '14-week size'), o2('16w', 'معادل ۱۶ هفته', '16-week size'), o2('16plus', 'بزرگ‌تر از ۱۶ هفته', 'larger than 16-week size')],
+  uterusContour: [o2('regular', 'سطح منظم', 'regular contour'), o2('irregular', 'سطح نامنظم', 'irregular contour')],
+  uterusConsistency: [o2('firm', 'قوام سفت', 'firm'), o2('soft', 'قوام نرم', 'soft'), o2('boggy', 'قوام اسفنجی (Boggy)', 'boggy')],
+  uterusPosition: [o2('av', 'آنتورسه (AV)', 'anteverted'), o2('rv', 'رتروورسه (RV)', 'retroverted'), o2('mid', 'میدپوزیشن', 'midposition')],
+  uterusMobility: [o2('mobile', 'متحرک', 'mobile'), o2('fixed', 'فیکس', 'fixed')],
+  uterusTenderness: [o2('absent', 'بدون تندرنس رحم', 'non-tender uterus'), o2('present', 'تندرنس رحم', 'uterine tenderness')],
+  cervixConsistencyGyn: [o2('firm', 'سرویکس سفت', 'firm cervix'), o2('soft', 'سرویکس نرم', 'soft cervix')],
+  cervixMobility: [o2('mobile', 'سرویکس متحرک', 'mobile cervix'), o2('fixed', 'سرویکس فیکس', 'fixed cervix')],
+  cmt: [o2('negative', 'CMT منفی', 'CMT negative'), o2('positive', 'CMT مثبت', 'CMT positive')],
+  adnexa: [o2('free', 'آزاد، بدون تندرنس یا توده', 'free, non-tender, no mass'), o2('tender', 'تندرنس', 'tender'), o2('mass', 'توده قابل لمس', 'palpable mass')],
+  culDeSac: [o2('free', 'کول‌دوساک آزاد', 'cul-de-sac free'), o2('fullness', 'پری کول‌دوساک', 'cul-de-sac fullness'), o2('nodularity', 'ندولاریته یوتروساکرال', 'uterosacral nodularity')]
+};
+
+export const OBGYN_PE_NORMAL_PRESETS = {
+  obsAbdomen: { scarTenderness: 'absent', epigastricRuqTenderness: 'absent', uterineTone: 'soft' },
+  obsExtremities: { edemaGrade: '0', calfTendernessVaricosities: 'absent', dtrGrade: '+2', ankleClonus: 'absent' },
+  gynBreast: { symmetry: 'symmetric', mass: 'absent', discharge: 'absent', axillaryLad: 'absent' },
+  gynAbdomen: { tendernessQuadrant: 'none', reboundGuarding: 'absent', cvaTenderness: 'absent' },
+  gynExternal: { vulvaPerineum: 'normal', bartholinSkene: 'normal', prolapse: 'none', coughStressTest: 'negative' },
+  gynSpeculum: { vaginalWalls: 'normal', cervixAppearance: 'normal', vbVolume: 'none', vbClots: 'none', dischargeChar: 'none' },
+  gynBimanual: { uterusSizeWeeks: 'normal', uterusContour: 'regular', uterusConsistency: 'firm', uterusMobility: 'mobile', uterusTenderness: 'absent', cervixConsistency: 'firm', cervixMobility: 'mobile', cmt: 'negative', rightAdnexa: 'free', leftAdnexa: 'free', culDeSac: 'free' }
+};
+
+export const OBGYN_GENERAL_PE_SYSTEM_KEYS = [
+  'general_appearance',
+  'skin_hair_nails',
+  'heent_neck_thyroid',
+  'cardiovascular_peripheral_vascular',
+  'thorax_lungs',
+  'neurological'
+];

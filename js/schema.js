@@ -1676,7 +1676,7 @@ export const MASTER_DRUG_CATEGORIES = [
     catId: 'dh_anticoag_antiplatelet',
     catTitle: '۱. ضدپلاکت‌ها و ضدانعقادها (داروهای پرخطر جراحی - High-Alert)',
     drugs: [
-      { id: 'drg_asa', aliases: 'اسپرین آشپرین اشپرین آ.اس.آ آ اس آ asa aspirin 80 100 325 antiplatelet', label: 'آسپرین (Aspirin - ASA)', brands: 'Aspirin 80mg, 100mg, 325mg', defaultDose: '80mg', highAlert: true },
+      { id: 'drg_asa', aliases: 'اسپرین آسپرین آشپرین اشپرین آ.اس.آ آ اس آ آاسا آاس‌آ ای اس ای asa aspirin 80 100 325 antiplatelet', label: 'آسپرین (Aspirin - ASA)', brands: 'Aspirin 80mg, 100mg, 325mg, ASA, آ اس آ', defaultDose: '80mg', highAlert: true },
       { id: 'drg_clopidogrel', aliases: 'پلاویکس پلاوکس اسویکس زیلیت کلوپیدگرل clopidogrel plavix osvix zyllt تروکسام troxam', label: 'کلوپیدوگرل (Clopidogrel)', brands: 'Plavix پلاویکس, Osvix اسویکس, Zyllt زیلیت, Troxam تروکسام', defaultDose: '75mg', highAlert: true },
       { id: 'drg_ticagrelor', aliases: 'بریلینتا تیکاگرلور ticagrelor brilinta تیکاگریل ticagril تیکانور tikanor', label: 'تیکاگرلور (Ticagrelor)', brands: 'Brilinta بریلینتا, Ticagril تیکاگریل, Ticarel', defaultDose: '90mg', highAlert: true },
       { id: 'drg_prasugrel', label: 'پرازوگرل (Prasugrel)', brands: 'Effient افینت', defaultDose: '10mg', highAlert: true, aliases: 'پرازوگرل افینت prasugrel effient' },
@@ -1685,7 +1685,7 @@ export const MASTER_DRUG_CATEGORIES = [
       { id: 'drg_rivaroxaban', aliases: 'زارلتو زارالتو ایکسارلتو ریوارکسابان rivaroxaban xarelto نوآک doac', label: 'ریواروکسابان (Rivaroxaban)', brands: 'Xarelto زارلتو, ایکسارلتو, ریواکسان', defaultDose: '20mg', highAlert: true },
       { id: 'drg_apixaban', aliases: 'الیکوئیس اپیکسابان apixaban eliquis', label: 'آپیکسابان (Apixaban)', brands: 'Eliquis الیکوئیس, آپیکسابان', defaultDose: '5mg', highAlert: true },
       { id: 'drg_dabigatran', aliases: 'پراداکسا دابیگاتران dabigatran pradaxa', label: 'دابیگاتران (Dabigatran)', brands: 'Pradaxa پراداکسا', defaultDose: '150mg', highAlert: true },
-      { id: 'drg_enoxaparin', aliases: 'کلکسan کلکسان انکساپارین انوکساپارین هپارین زیرجلدی enoxaparin clexane lmwh', label: 'انوکساپارین (Enoxaparin)', brands: 'Clexane کلکسان', defaultDose: '40mg SC', highAlert: true },
+      { id: 'drg_enoxaparin', aliases: 'کلکسان کلگزان انکساپارین انوکساپارین هپارین زیرجلدی enoxaparin clexane lmwh', label: 'انوکساپارین (Enoxaparin)', brands: 'Clexane کلکسان / کلگزان', defaultDose: '40mg SC', highAlert: true },
       { id: 'drg_heparin', aliases: 'هپارین heparin ufh هپارین وریدی', label: 'هپارین (Unfractionated Heparin)', brands: 'Heparin', defaultDose: '5000 IU SC', highAlert: true }
     ]
   },
@@ -1703,7 +1703,7 @@ export const MASTER_DRUG_CATEGORIES = [
       { id: 'drg_nifedipine', label: 'نیفدیپین (Nifedipine)', brands: 'Adalat آدالات', defaultDose: '10mg', aliases: 'نیفدیپین آدالات nifedipine adalat' },
       { id: 'drg_diltiazem', label: 'دیلتیازم (Diltiazem)', brands: 'Cardizem کاردیزم', defaultDose: '60mg', aliases: 'دیلتیازم کاردیزم diltiazem' },
       { id: 'drg_verapamil', label: 'وراپامیل (Verapamil)', brands: 'Isoptin ایزوپتین', defaultDose: '40mg', aliases: 'وراپامیل ایزوپتین verapamil isoptin' },
-      { id: 'drg_metoprolol', aliases: 'متورال مترال بتالوک امتا متپرولول metoprolol metoral betaloc بتابلاکر', label: 'متوپرولول (Metoprolol)', brands: 'Metoral متورال, Betaloc بتالوک, امتا', defaultDose: '50mg' },
+      { id: 'drg_metoprolol', aliases: 'متورال مترال متوپرولول متپرولول متوپرولول تارترات متوپرولول سوکسینات بتالوک امتا metoprolol metoral betaloc lopressor بتابلاکر', label: 'متوپرولول / متورال (Metoprolol - Metoral)', brands: 'Metoral متورال, Betaloc بتالوک, Lopressor, امتا', defaultDose: '50mg' },
       { id: 'drg_bisoprolol', aliases: 'کونکور کنکور بیزپرولول زباکور bisoprolol concor', label: 'بیزوپرولول (Bisoprolol)', brands: 'Concor کونکور, زباکور', defaultDose: '5mg' },
       { id: 'drg_carvedilol', aliases: 'کوریول کارودیلول carvedilol coryol', label: 'کارودیلول (Carvedilol)', brands: 'Coryol کوریول', defaultDose: '6.25mg' },
       { id: 'drg_propranolol', aliases: 'پرانول ایندرال پروپرانولول propranolol inderal', label: 'پروپرانولول (Propranolol)', brands: 'Inderal ایندرال, پرانول', defaultDose: '20mg' },

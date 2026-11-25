@@ -2961,3 +2961,324 @@ select.input-select {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ==========================================================================
+   Phase 3 — Bedside Field-Audit Overhaul (v3.2)
+   Multi-Allergy Rows, Tactile TV Pills, ROS/PE Accordions & On-Demand Studies
+   ========================================================================== */
+
+.obgyn-mono-pill.is-art {
+  background: var(--lens-accent-soft);
+  color: var(--lens-accent);
+  border-color: var(--lens-accent-border);
+}
+
+.obgyn-inline-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.obgyn-inline-add-row .input-text {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+/* Anemia Cluster Strip */
+.obgyn-anemia-strip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border);
+}
+
+.obgyn-anemia-strip.is-embedded {
+  margin-top: 12px;
+  background: var(--v3-surface);
+}
+
+.obgyn-anemia-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.obgyn-anemia-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--v3-text-primary);
+}
+
+/* Multi-Allergy Row Builder */
+.obgyn-allergy-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.obgyn-allergy-row {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obgyn-allergy-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.obgyn-allergy-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--v3-text-primary);
+}
+
+.obgyn-reaction-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.obgyn-reaction-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface);
+  color: var(--v3-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.obgyn-reaction-chip:hover {
+  border-color: var(--lens-accent-border);
+}
+
+.obgyn-reaction-chip.active {
+  background: rgba(225, 29, 72, 0.14);
+  border-color: rgba(225, 29, 72, 0.45);
+  color: #BE123C;
+}
+
+body.dark-mode .obgyn-reaction-chip.active {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(251, 113, 133, 0.5);
+  color: #FDA4AF;
+}
+
+/* ROS & General PE Collapsible Accordions */
+.obgyn-sys-accordion {
+  border: 1px solid var(--v3-border);
+  border-radius: 12px;
+  background: var(--v3-surface);
+  overflow: hidden;
+}
+
+.obgyn-sys-acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+
+.obgyn-sys-counters {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: auto;
+}
+
+.obgyn-sys-badge-pos,
+.obgyn-sys-badge-neg {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--v3-surface-muted);
+  color: var(--v3-text-muted);
+}
+
+.obgyn-sys-badge-pos.has-val {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.obgyn-sys-badge-neg.has-val {
+  background: rgba(225, 29, 72, 0.12);
+  color: #BE123C;
+}
+
+body.dark-mode .obgyn-sys-badge-pos.has-val {
+  color: #6EE7B7;
+}
+
+body.dark-mode .obgyn-sys-badge-neg.has-val {
+  color: #FDA4AF;
+}
+
+/* Tactile TV Pill Selector Rows */
+.obgyn-tactile-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.obgyn-tactile-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--v3-text-secondary);
+  min-width: 112px;
+}
+
+.obgyn-tactile-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: 1 1 260px;
+}
+
+.obgyn-tactile-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface);
+  color: var(--v3-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.obgyn-tactile-btn:hover:not(:disabled) {
+  border-color: var(--lens-accent);
+}
+
+.obgyn-tactile-btn.active {
+  background: var(--lens-accent);
+  border-color: var(--lens-accent);
+  color: #FFFFFF;
+}
+
+.obgyn-tactile-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.obgyn-subbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--v3-text-primary);
+}
+
+.obgyn-subbox-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--v3-text-secondary);
+}
+
+/* On-Demand Paraclinics Study Launcher & Cards */
+.obgyn-study-launcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.obgyn-study-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--lens-accent-border);
+  background: var(--v3-surface-elevated);
+  color: var(--v3-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.obgyn-study-launch-btn:hover {
+  background: var(--lens-accent-soft);
+  border-color: var(--lens-accent);
+  color: var(--lens-accent);
+}
+
+.obgyn-study-launch-btn.has-items {
+  border-style: solid;
+  background: var(--lens-accent-soft);
+  border-color: var(--lens-accent);
+}
+
+.obgyn-studies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.obgyn-study-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--v3-surface-elevated);
+  border: 1px solid var(--v3-border-strong);
+}
+
+.obgyn-study-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.obgyn-study-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--v3-text-primary);
+}
+
+@media (max-width: 640px) {
+  .obgyn-form-grid.obgyn-cols-5,
+  .obgyn-form-grid.obgyn-cols-6 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .obgyn-tactile-label {
+    min-width: 100%;
+  }
+
+  .obgyn-sys-acc-head {
+    padding: 8px 10px;
+  }
+
+  .obgyn-study-launch-btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

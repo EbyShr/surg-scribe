@@ -1,4 +1,4 @@
-const CACHE_NAME = 'medhistorism-v3.1.1-obgyn-refined-cache';
+const CACHE_NAME = 'medhistorism-v3.2.0-bedside-audit-cache';
 
 const STATIC_ASSETS = [
   './',
@@ -36,7 +36,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW v3.1] Pre-caching MedHistorism modular clinical core assets');
+      console.log('[SW v3.2] Pre-caching MedHistorism modular clinical core assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -48,7 +48,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[SW v3.1] Removing old cache version:', key);
+            console.log('[SW v3.2] Removing old cache version:', key);
             return caches.delete(key);
           }
         })

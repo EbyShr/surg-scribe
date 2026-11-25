@@ -596,7 +596,7 @@ export function initSpecialtyHub(bridge = {}) {
       if ((st?.obgynModule?.subMode || st?.obgyn?.subMode) === 'soape') {
         setObgynSubMode('obstetrics');
       }
-      setObgynActiveTab('shared');
+      setObgynActiveTab('dh_ah_sh_fh');
     } else {
       hubBridge.openAdmissionTab('tab-dh');
     }

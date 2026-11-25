@@ -140,6 +140,10 @@ export function smartClinicalSearch(query, dataset, limit = 25) {
     }
 
     if (matchedAllTokens && totalScore > 0) {
+      // پاداش عبارت کامل: برای کوئری‌های چندکلمه‌ای (مثل «آ اس آ») تطبیق پیوسته عبارت امتیاز بیشتری می‌گیرد
+      if (queryTokens.length > 1 && normHaystack.includes(cleanQ)) {
+        totalScore += 120;
+      }
       scoredResults.push({ item, score: totalScore });
     }
   }

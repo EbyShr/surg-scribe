@@ -1,7 +1,10 @@
 /**
- * MedHistorism v3.1.1 — Ob/Gyn Complete Interactive Clinical UI Module
- * Multi-Presentation HPI, Compact Multi-Column Split-Pills, Strict Obs/Gyn Separation,
- * In-Place Shared Core Pickers (PMH/PSH/DH/Allergy/SH/FH), Capsule-Driven SOAPE & SADAF.
+ * MedHistorism v3.2 — Ob/Gyn Complete Interactive Clinical UI Module
+ * Classic 8-Tab Architecture:
+ *   1. Admission & CC -> 2. HPI -> 3. PMH & PSH -> 4. DH / AH / SH / FH
+ *   5. ROS (Full Head-to-Toe) -> 6. PE (Specialized + General Head-to-Toe)
+ *   7. Paraclinics (Labs + On-Demand Studies) -> 8. Assessment & Plan (ADCA VAN DIMLS)
+ * Zero Emojis, Zero Regressions, Full RTL/LTR & Light/Dark Support.
  */
 
 import {
@@ -9,15 +12,24 @@ import {
   OBGYN_GYN_ARCHETYPES,
   OBGYN_SS_FIVE_IDS,
   OBGYN_SYMPTOM_BANK,
-  OBGYN_STRUCTURED_PE_IDS,
-  OBGYN_PE_BANK,
   OBGYN_CONTRACEPTION_OPTIONS,
   OBGYN_DDX_PRESETS,
   OBGYN_PMH_DELTA,
   OBGYN_PSH_DELTA,
   OBGYN_MEDICATIONS_DELTA,
   OBGYN_SOAPE_CAPSULES,
-  ADCA_VAN_DIMLS_PRESETS
+  ADCA_VAN_DIMLS_PRESETS,
+  OBGYN_CONCEPTION_METHODS,
+  OBGYN_BLEED_VOLUME_OPTIONS,
+  OBGYN_CLOT_OPTIONS,
+  OBGYN_ANEMIA_SYMPTOMS,
+  OBGYN_QUICK_ALLERGENS,
+  OBGYN_ALLERGY_REACTIONS,
+  OBGYN_QUICK_LAB_IDS,
+  OBGYN_PARACLINIC_STUDY_TYPES,
+  OBGYN_PE_OPTIONS,
+  OBGYN_PE_NORMAL_PRESETS,
+  OBGYN_GENERAL_PE_SYSTEM_KEYS
 } from './obgyn-data.js';
 import {
   createDefaultObgynState,
@@ -32,10 +44,12 @@ import {
   ALL_MASTER_PMH_ITEMS,
   MASTER_PSH_SURGERIES_BANK,
   ALL_MASTER_DRUGS,
-  SURGICAL_SCHEMA,
-  DH_SIG_OPTIONS
+  DH_SIG_OPTIONS,
+  ROS_GROUPS_BILINGUAL,
+  PE_MANDATORY_PILLARS,
+  MASTER_ALL_LAB_TESTS
 } from '../../schema.js';
-import { getCurrentLanguage } from '../../i18n.js';
+import { getCurrentLanguage, tLabel } from '../../i18n.js';
 import { getIconSvg } from '../../icons.js';
 import { smartClinicalSearch } from '../../fuzzy-search.js';
 
@@ -47,25 +61,29 @@ let hostBridge = {
 };
 
 let activeSubMode = 'obstetrics'; // 'obstetrics' | 'gynecology' | 'soape'
-let activeTab = 'admission'; // 'admission' | 'hpi' | 'history' | 'shared' | 'pe' | 'workup' | 'plan'
+let activeTab = 'admission'; // 'admission' | 'hpi' | 'pmh_psh' | 'dh_ah_sh_fh' | 'ros' | 'pe' | 'paraclinics' | 'plan'
 let activeSoapeSection = 'soape_daily';
 let symptomSearchQuery = '';
 let showAllSymptoms = false;
+let rosSearchQuery = '';
+let generalPeSearchQuery = '';
+let labSearchQuery = '';
 let obsMenstrualExpanded = false;
 let gynPohExpanded = false;
 let adcaExpanded = false;
 const sharedSearchQueries = { pmh: '', psh: '', dh: '' };
-const expandedPeGroups = new Set();
-const expandedSharedGroups = new Set();
+const expandedRosSystems = new Set();
+const expandedGenPeSystems = new Set();
 
 const OBGYN_TABS = [
-  { id: 'admission', icon: 'file-text', fa: '۱. پذیرش، شاخص و سن بارداری', en: '1. Admission, Index & GA' },
-  { id: 'hpi', icon: 'activity', fa: '۲. شکایت اصلی و شرح بیماری', en: '2. CC & HPI' },
-  { id: 'history', icon: 'calendar', fa: '۳. سوابق مامایی، منس و غربالگری', en: '3. POH, Menstrual & Screen' },
-  { id: 'shared', icon: 'grid', fa: '۴. هسته مشترک و سابقه بیهوشی', en: '4. Shared Core & PAHx' },
-  { id: 'pe', icon: 'stethoscope', fa: '۵. معاینه تخصصی و TV', en: '5. Ob/Gyn Physical Exam' },
-  { id: 'workup', icon: 'ultrasound', fa: '۶. سونوگرافی، NST و آزمایش', en: '6. US, NST & Key Labs' },
-  { id: 'plan', icon: 'clipboard', fa: '۷. DDx، پلن و دستورات ADCA', en: '7. DDx, Plan & ADCA' }
+  { id: 'admission', icon: 'file-text', fa: '۱. پذیرش، شاخص و CC', en: '1. Admission & CC' },
+  { id: 'hpi', icon: 'activity', fa: '۲. شرح بیماری فعلی (HPI)', en: '2. HPI' },
+  { id: 'pmh_psh', icon: 'layers', fa: '۳. سوابق بیماری و جراحی', en: '3. PMH & PSH' },
+  { id: 'dh_ah_sh_fh', icon: 'pill', fa: '۴. دارو، حساسیت، عادات و فامیل', en: '4. DH / AH / SH / FH' },
+  { id: 'ros', icon: 'list-checks', fa: '۵. مرور سیستم‌ها (ROS)', en: '5. ROS' },
+  { id: 'pe', icon: 'stethoscope', fa: '۶. معاینه فیزیکی کامل (PE)', en: '6. Physical Exam' },
+  { id: 'paraclinics', icon: 'ultrasound', fa: '۷. پاراکلینیک و تصویربرداری', en: '7. Paraclinics' },
+  { id: 'plan', icon: 'clipboard', fa: '۸. تشخیص، پلن و دستورات ADCA', en: '8. Assessment & Plan' }
 ];
 
 const SOAPE_RAIL_TABS = [
@@ -88,8 +106,17 @@ function tx(isEn, fa, en) {
   return isEn ? en : fa;
 }
 
+function localizeBankText(raw, explicitEn, isEn) {
+  if (!isEn) return raw || explicitEn || '';
+  return tLabel(raw || '', explicitEn || '') || explicitEn || raw || '';
+}
+
 function hasVal(v) {
   return v !== null && v !== undefined && String(v).trim() !== '';
+}
+
+function stripTitleNoise(str) {
+  return String(str || '').replace(/^[۰-۹0-9]+[-.\s]+/, '').trim();
 }
 
 export function ensureObgynStateOnHost(state) {
@@ -135,20 +162,21 @@ export function setObgynUiSubMode(subMode) {
 }
 
 export function setObgynActiveTab(tabId) {
-  if (OBGYN_TABS.some((t) => t.id === tabId)) {
-    activeTab = tabId;
+  const alias = { history: 'pmh_psh', shared: 'dh_ah_sh_fh', workup: 'paraclinics' }[tabId] || tabId;
+  if (OBGYN_TABS.some((t) => t.id === alias)) {
+    activeTab = alias;
     const state = hostBridge.getState();
     if (state) {
       const ob = ensureObgynStateOnHost(state);
-      ob.activeTab = tabId;
+      ob.activeTab = alias;
     }
-  } else if (SOAPE_RAIL_TABS.some((t) => t.id === tabId)) {
-    activeSoapeSection = tabId;
+  } else if (SOAPE_RAIL_TABS.some((t) => t.id === alias)) {
+    activeSoapeSection = alias;
     const state = hostBridge.getState();
     if (state) {
       const ob = ensureObgynStateOnHost(state);
-      if (tabId === 'discharge_sadaf') ob.dischargeSadaf.active = true;
-      if (tabId === 'consult') ob.consultNote.active = true;
+      if (alias === 'discharge_sadaf') ob.dischargeSadaf.active = true;
+      if (alias === 'consult') ob.consultNote.active = true;
     }
   }
   exitObgynSharedCoreBanner();
@@ -186,48 +214,62 @@ function countSharedCoreStats(state) {
     + (Array.isArray(c.dh?.customDrugs) ? c.dh.customDrugs.length : 0);
   const ahCount = Array.isArray(c.ah?.selected) ? c.ah.selected.length : 0;
   const shFhCount = (c.sh?.negSmoking ? 1 : 0) + (c.sh?.negOpium ? 1 : 0) + (c.sh?.negAlcohol ? 1 : 0) + (hasVal(c.sh?.note) ? 1 : 0) + (c.fh?.negFamilyHistory ? 1 : 0) + (hasVal(c.fh?.note) ? 1 : 0);
-  let rosCount = 0;
-  Object.values(c.ros?.systems || {}).forEach((sys) => {
-    Object.values(sys?.items || {}).forEach((v) => {
-      const st = v && typeof v === 'object' ? v.state : v;
-      if (st === 1 || st === -1) rosCount += 1;
-    });
-  });
-  const labCount = Array.isArray(c.paraclinics?.labs)
-    ? c.paraclinics.labs.length
-    : Object.keys(c.paraclinics?.selectedLabs || {}).length;
-  return { pmhCount, pshCount, dhCount, ahCount, shFhCount, rosCount, labCount };
+  const rosItems = c.ros?.items || {};
+  const rosCount = Object.values(rosItems).filter((v) => {
+    const st = v && typeof v === 'object' ? v.state : v;
+    return st === 1 || st === -1;
+  }).length;
+  const genPeCount = Object.values(c.pe?.findings || {}).filter((v) => {
+    const st = v && typeof v === 'object' ? v.state : v;
+    return st === 1 || st === -1;
+  }).length;
+  return { pmhCount, pshCount, dhCount, ahCount, shFhCount, rosCount, genPeCount };
+}
+
+function countNonEmptyValues(obj) {
+  if (!obj || typeof obj !== 'object') return 0;
+  return Object.values(obj).filter((v) => hasVal(v)).length;
 }
 
 function getTabBadgeCount(tabId, state, ob) {
   if (!ob) return '';
+  const sc = countSharedCoreStats(state);
   if (tabId === 'admission') {
     const idx = ob.obstetricIndex || {};
-    return hasVal(idx.G) || hasVal(ob.gestationalDating?.lmpDate) || hasVal(ob.gestationalDating?.ntScanDate) ? '1+' : '';
+    const hasBasic = hasVal(idx.G) || hasVal(ob.ccAndHpi?.ccText) || hasVal(ob.gestationalDating?.lmpDate) || hasVal(ob.gestationalDating?.ntScanDate);
+    return hasBasic ? '1+' : '';
   }
   if (tabId === 'hpi') {
     const presCnt = Array.isArray(ob.ccAndHpi?.presentations) ? ob.ccAndHpi.presentations.length : 0;
     const symCnt = Object.values(ob.ccAndHpi?.symptoms || {}).filter((s) => s?.state === 1 || s?.state === -1).length;
-    return presCnt + symCnt > 0 ? String(presCnt + symCnt) : '';
+    const anCnt = Object.values(ob.ccAndHpi?.anemiaSymptoms || {}).filter((s) => s?.state === 1 || s?.state === -1).length;
+    return presCnt + symCnt + anCnt > 0 ? String(presCnt + symCnt + anCnt) : '';
   }
-  if (tabId === 'history') {
-    const cnt = (ob.pastObstetricHistory?.pregnancies?.length || 0) + (ob.gynScreeningAndRecords?.priorPathologyAndCurettage?.records?.length || 0);
-    return cnt > 0 ? String(cnt) : '';
+  if (tabId === 'pmh_psh') {
+    const pregCnt = ob.pastObstetricHistory?.pregnancies?.length || 0;
+    const tot = sc.pmhCount + sc.pshCount + pregCnt;
+    return tot > 0 ? String(tot) : '';
   }
-  if (tabId === 'shared') {
-    const sc = countSharedCoreStats(state);
-    const pahx = ob.gynScreeningAndRecords?.pahx;
-    const pahxSet = pahx && (pahx.status === 1 || pahx.status === -1 || pahx.hasPriorAnesthesia) ? 1 : 0;
-    const total = sc.pmhCount + sc.pshCount + sc.dhCount + sc.ahCount + sc.shFhCount + pahxSet;
-    return total > 0 ? String(total) : '';
+  if (tabId === 'dh_ah_sh_fh') {
+    const tot = sc.dhCount + sc.ahCount + sc.shFhCount + (state?.ah?.nkda ? 1 : 0);
+    return tot > 0 ? String(tot) : '';
+  }
+  if (tabId === 'ros') {
+    return sc.rosCount > 0 ? String(sc.rosCount) : '';
   }
   if (tabId === 'pe') {
-    const cnt = Object.entries(ob.pe?.findings || {}).filter(([id, f]) => !OBGYN_STRUCTURED_PE_IDS.has(id) && (f?.state === 1 || f?.state === -1)).length;
-    return cnt > 0 ? String(cnt) : '';
+    const vtCnt = countNonEmptyValues(ob.pe?.vitals);
+    const obsCnt = countNonEmptyValues(ob.pe?.obsMeasurements);
+    const gynSections = ob.pe?.gynExam || {};
+    const gynCnt = Object.values(gynSections).reduce((acc, sec) => acc + countNonEmptyValues(sec), 0);
+    const tot = vtCnt + (activeSubMode === 'gynecology' ? gynCnt : obsCnt) + sc.genPeCount;
+    return tot > 0 ? String(tot) : '';
   }
-  if (tabId === 'workup') {
-    const klCnt = Object.values(ob.paraclinics?.keyLabs || {}).filter((v) => String(v || '').trim() !== '').length;
-    return klCnt > 0 ? String(klCnt) : '';
+  if (tabId === 'paraclinics') {
+    const klCnt = countNonEmptyValues(ob.paraclinics?.keyLabs);
+    const exCnt = (Array.isArray(ob.paraclinics?.extraLabs) ? ob.paraclinics.extraLabs.filter((x) => hasVal(x?.value)).length : 0);
+    const stCnt = Array.isArray(ob.paraclinics?.studies) ? ob.paraclinics.studies.length : 0;
+    return klCnt + exCnt + stCnt > 0 ? String(klCnt + exCnt + stCnt) : '';
   }
   if (tabId === 'plan') {
     const ddxCnt = ob.assessmentAndPlan?.ddx?.length || 0;
@@ -252,8 +294,8 @@ function renderObgynNavigationRail(state, ob, isEn) {
     const heading = activeSubMode === 'soape'
       ? tx(isEn, 'سیر روزانه و ترخیص زنان', 'OB/GYN WARD SOAPE & DISCHARGE')
       : activeSubMode === 'gynecology'
-      ? tx(isEn, 'بخش‌های پرونده ژنیکولوژی', 'GYNECOLOGY SECTIONS')
-      : tx(isEn, 'بخش‌های پرونده مامایی', 'OBSTETRICS SECTIONS');
+      ? tx(isEn, 'بخش‌های پرونده ژنیکولوژی', 'GYNECOLOGY CHARTING ORDER')
+      : tx(isEn, 'بخش‌های پرونده مامایی', 'OBSTETRICS CHARTING ORDER');
 
     railEl.innerHTML = `
       <div class="rail-sections-label">${escapeHtml(heading)}</div>
@@ -318,23 +360,27 @@ function buildExecSummaryHtml(state, ob, isEn) {
   const ptLabel = hasVal(d.fullName)
     ? `${escapeHtml(d.fullName)}${hasVal(d.age) ? ` (${escapeHtml(d.age)}y)` : ''}`
     : tx(isEn, 'پرونده جدید زنان و زایمان', 'New Ob/Gyn Case');
-  const rhLabel = hasVal(idx.maternalBgRh) ? idx.maternalBgRh : tx(isEn, 'Rh: —', 'Rh: —');
+
+  const concObj = OBGYN_CONCEPTION_METHODS.find((c) => c.val === idx.conceptionMethod);
+  const concPill = concObj && concObj.val !== 'spontaneous'
+    ? `<span class="obgyn-mono-pill is-art">${escapeHtml(isEn ? concObj.en : concObj.faShort)}</span>`
+    : '';
 
   let pills = [];
   if (activeSubMode === 'gynecology') {
-    const lmpStr = ob.menstrualHistory?.lmpDate || ob.gestationalDating?.lmpDate || '—';
+    const lmpStr = ob.menstrualHistory?.lmpDate || ob.gestationalDating?.lmpDate || '';
     const patternStr = ob.menstrualHistory?.regularity === 'irregular'
       ? tx(isEn, 'نامنظم', 'Irregular')
       : ob.menstrualHistory?.regularity === 'regular'
       ? tx(isEn, 'منظم', 'Regular')
-      : '—';
+      : '';
     const cObj = OBGYN_CONTRACEPTION_OPTIONS.find((o) => o.val === ob.gynScreeningAndRecords?.contraception?.currentMethod);
-    const cStr = cObj ? (isEn ? cObj.en : cObj.fa) : '—';
     pills = [
       `<span class="obgyn-mono-pill">${escapeHtml(formulaCode)}</span>`,
-      `<span class="obgyn-mono-pill">LMP: ${escapeHtml(lmpStr)}</span>`,
-      patternStr !== '—' ? `<span class="obgyn-mono-pill">${escapeHtml(patternStr)}</span>` : '',
-      cStr !== '—' ? `<span class="obgyn-mono-pill">${escapeHtml(cStr)}</span>` : '',
+      concPill,
+      lmpStr ? `<span class="obgyn-mono-pill">LMP: ${escapeHtml(lmpStr)}</span>` : '',
+      patternStr ? `<span class="obgyn-mono-pill">${escapeHtml(patternStr)}</span>` : '',
+      cObj ? `<span class="obgyn-mono-pill">${escapeHtml(isEn ? cObj.en : cObj.fa)}</span>` : '',
       idx.isVirgin ? `<span class="obgyn-mono-pill is-lock">${getIconSvg('lock', { size: 12 })} Virgin Lock</span>` : ''
     ].filter(Boolean);
   } else {
@@ -344,9 +390,10 @@ function buildExecSummaryHtml(state, ob, isEn) {
     const redatePill = ga.redatingAlert?.shouldRedate ? `<span class="obgyn-mono-pill is-alert">Redated -> NT</span>` : '';
     pills = [
       `<span class="obgyn-mono-pill">${escapeHtml(formulaCode)}</span>`,
+      concPill,
       gaNt ? `<span class="obgyn-mono-pill">${escapeHtml(gaNt)}</span>` : '',
       gaLmp ? `<span class="obgyn-mono-pill">${escapeHtml(gaLmp)}</span>` : '',
-      hasVal(idx.maternalBgRh) ? `<span class="obgyn-mono-pill">${escapeHtml(rhLabel)}</span>` : '',
+      hasVal(idx.maternalBgRh) ? `<span class="obgyn-mono-pill">${escapeHtml(idx.maternalBgRh)}</span>` : '',
       bishopPill,
       redatePill,
       idx.isVirgin ? `<span class="obgyn-mono-pill is-lock">${getIconSvg('lock', { size: 12 })} Virgin Lock</span>` : ''
@@ -376,16 +423,16 @@ function renderGuardrailBannersHtml(guardrails, isEn, contextTab = '') {
   if (guardrails.virginLock && (contextTab === 'admission' || contextTab === 'pe' || !contextTab)) {
     alerts.push({ tone: 'lock', icon: 'lock', text: isEn ? guardrails.messages.virginEn : guardrails.messages.virginFa });
   }
-  if (guardrails.previaTvContraindicated && (contextTab === 'hpi' || contextTab === 'pe' || contextTab === 'workup')) {
+  if (guardrails.previaTvContraindicated && (contextTab === 'hpi' || contextTab === 'pe' || contextTab === 'paraclinics')) {
     alerts.push({ tone: 'danger', icon: 'siren', text: isEn ? guardrails.messages.previaEn : guardrails.messages.previaFa });
   }
-  if ((guardrails.accretaDopplerMandatory || guardrails.priorCsIndicationMissing) && (contextTab === 'admission' || contextTab === 'workup')) {
+  if ((guardrails.accretaDopplerMandatory || guardrails.priorCsIndicationMissing) && (contextTab === 'admission' || contextTab === 'paraclinics')) {
     alerts.push({ tone: 'warning', icon: 'alert-triangle', text: isEn ? guardrails.messages.accretaEn : guardrails.messages.accretaFa });
   }
   if (guardrails.ndCsMismatch && contextTab === 'admission') {
     alerts.push({ tone: 'warning', icon: 'alert-triangle', text: isEn ? guardrails.messages.ndCsEn : guardrails.messages.ndCsFa });
   }
-  if (guardrails.bhcgMandatory && (contextTab === 'hpi' || contextTab === 'workup')) {
+  if (guardrails.bhcgMandatory && (contextTab === 'hpi' || contextTab === 'paraclinics')) {
     alerts.push({ tone: 'danger', icon: 'alert-triangle', text: isEn ? guardrails.messages.bhcgEn : guardrails.messages.bhcgFa });
   }
   if (alerts.length === 0) return '';
@@ -429,10 +476,13 @@ function renderGaSummaryInner(gd, ga, isEn) {
   `;
 }
 
+/* =========================== TAB 1: ADMISSION & CC =========================== */
+
 function renderTabAdmission(state, ob, guardrails, isEn) {
   const d = state?.demographics || {};
   const idx = ob.obstetricIndex || {};
   const gd = ob.gestationalDating || {};
+  const hpi = ob.ccAndHpi || {};
   const ga = calculateTripleGestationalAge(gd);
   const isObs = activeSubMode !== 'gynecology';
   const csCount = parseInt(idx.CS ?? '0', 10) || 0;
@@ -445,13 +495,14 @@ function renderTabAdmission(state, ob, guardrails, isEn) {
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('user', { size: 16 })}
-          <span>${tx(isEn, 'مشخصات دموگرافیک، وضعیت تاهل و بکارت (جنسیت: خانم)', 'Demographics, Marital Status & Virgin Lock (Female)')}</span>
+          <span>${tx(isEn, 'مشخصات دموگرافیک، بکارت و وضعیت باروری (جنسیت: خانم)', 'Demographics, Virgin Lock & Reproductive Status (Female)')}</span>
         </div>
         <button type="button" class="obgyn-toggle-chip ${idx.isVirgin ? 'active is-lock' : ''}" id="btnObgynToggleVirgin" aria-pressed="${Boolean(idx.isVirgin)}">
           ${getIconSvg(idx.isVirgin ? 'lock' : 'unlock', { size: 14 })}
-          <span>${tx(isEn, idx.isVirgin ? 'Virgin (معاینه داخلی قفل)' : 'غیر Virgin / متاهل', idx.isVirgin ? 'Virgin (Internal Exam Locked)' : 'Non-Virgin')}</span>
+          <span>${tx(isEn, idx.isVirgin ? 'Virgin (معاینه داخلی قفل)' : 'غیر Virgin / معاینه آزاد', idx.isVirgin ? 'Virgin (Internal Exam Locked)' : 'Non-Virgin')}</span>
         </button>
       </div>
+
       <div class="obgyn-form-grid obgyn-cols-4">
         <div class="obgyn-field">
           <label for="obDemoName">${tx(isEn, 'نام و نام خانوادگی بیمار', 'Patient Full Name')}</label>
@@ -483,8 +534,13 @@ function renderTabAdmission(state, ob, guardrails, isEn) {
           </select>
         </div>
         <div class="obgyn-field">
-          <label for="obIdxMarriageYrs">${tx(isEn, 'مدت ازدواج (سال)', 'Marriage Duration (yr)')}</label>
-          <input type="number" class="input-text dir-ltr" id="obIdxMarriageYrs" min="0" value="${escapeHtml(idx.marriageDurationYears || '')}" placeholder="4">
+          <label for="obIdxConception">${tx(isEn, 'شیوه بارداری فعلی (Conception)', 'Conception Method')}</label>
+          <select class="input-select" id="obIdxConception">
+            <option value="" ${!idx.conceptionMethod ? 'selected' : ''}>${tx(isEn, 'نامشخص / ثبت‌نشده', 'Not specified')}</option>
+            ${OBGYN_CONCEPTION_METHODS.map((o) => `
+              <option value="${o.val}" ${idx.conceptionMethod === o.val ? 'selected' : ''}>${escapeHtml(isEn ? o.en : o.fa)}</option>
+            `).join('')}
+          </select>
         </div>
         <div class="obgyn-field">
           <label for="obIdxReproStatus">${tx(isEn, 'وضعیت باروری / هورمونی', 'Reproductive Status')}</label>
@@ -515,6 +571,17 @@ function renderTabAdmission(state, ob, guardrails, isEn) {
           <input type="number" class="input-text dir-ltr" id="obIdxMenopauseAge" min="30" max="70" value="${escapeHtml(idx.menopauseAge || '')}" placeholder="51">
         </div>
       </div>` : ''}
+
+      <div class="obgyn-form-grid obgyn-cols-3 obgyn-mt-sm">
+        <div class="obgyn-field is-span-2">
+          <label for="obAdmCc">${tx(isEn, 'شکایت اصلی بیمار (Chief Complaint - CC)', 'Chief Complaint (CC)')}</label>
+          <input type="text" class="input-text" id="obAdmCc" value="${escapeHtml(hpi.ccText || state?.cc?.patientQuote || '')}" placeholder="${isObs ? tx(isEn, 'مثلاً درد زایمانی، آبریزش یا فشار خون بالا...', 'e.g. Labor contractions, ROM leakage, or high BP...') : tx(isEn, 'مثلاً خونریزی شدید واژینال یا درد زیر دل...', 'e.g. Heavy vaginal bleeding or pelvic pain...')}">
+        </div>
+        <div class="obgyn-field">
+          <label for="obAdmDur">${tx(isEn, 'مدت شروع شکایت', 'Duration')}</label>
+          <input type="text" class="input-text" id="obAdmDur" value="${escapeHtml(hpi.duration || '')}" placeholder="${tx(isEn, 'مثلاً ۶ ساعت / ۲ هفته', 'e.g. 6 hours / 2 weeks')}">
+        </div>
+      </div>
 
       ${isObs && isRhNeg ? `
       <div class="obgyn-rh-box obgyn-mt-sm">
@@ -659,6 +726,8 @@ function renderTabAdmission(state, ob, guardrails, isEn) {
   `;
 }
 
+/* ================================ SPLIT-PILLS ================================ */
+
 function renderCompactSplitGrid(items, stateMap, { type, isEn, isLockedFn = null }) {
   return `
     <div class="obgyn-split-grid">
@@ -666,11 +735,26 @@ function renderCompactSplitGrid(items, stateMap, { type, isEn, isLockedFn = null
         const entry = stateMap?.[item.id] || { state: 0, modifiers: [], detail: '' };
         const st = entry.state || 0;
         const locked = typeof isLockedFn === 'function' ? isLockedFn(item) : false;
-        const hasDrawer = !locked && (st === 1 || st === -1);
+        const hasDrawer = !locked && (st === 1 || st === -1) && type !== 'anemia';
         const modsList = (isEn && item.modifiersEn?.length) ? item.modifiersEn : (item.modifiers || []);
-        const idAttr = type === 'sym' ? `data-sym-id="${item.id}"` : `data-pe-id="${item.id}"`;
-        const detClass = type === 'sym' ? 'obgyn-sym-detail-input' : 'obgyn-pe-detail-input';
-        const hint = type === 'pe'
+        const subTypes = Array.isArray(item.subTypes) ? item.subTypes : [];
+        const idAttr = type === 'sym'
+          ? `data-sym-id="${item.id}"`
+          : type === 'anemia'
+          ? `data-anemia-id="${item.id}"`
+          : type === 'ros'
+          ? `data-ros-id="${item.id}"`
+          : type === 'genpe'
+          ? `data-genpe-id="${item.id}"`
+          : `data-pe-id="${item.id}"`;
+        const detClass = type === 'sym'
+          ? 'obgyn-sym-detail-input'
+          : type === 'ros'
+          ? 'obgyn-ros-detail-input'
+          : type === 'genpe'
+          ? 'obgyn-genpe-detail-input'
+          : 'obgyn-pe-detail-input';
+        const hint = (type === 'pe' || type === 'genpe')
           ? (isEn ? (item.detailHintEn || 'Detail...') : (item.detailHint || 'توضیح معاینه...'))
           : tx(isEn, 'توضیح تکمیلی، زمان و شدت...', 'Optional onset, severity, or detail...');
 
@@ -698,6 +782,15 @@ function renderCompactSplitGrid(items, stateMap, { type, isEn, isLockedFn = null
                       }).join('')}
                     </div>
                   ` : ''}
+                  ${st === 1 && type === 'ros' && subTypes.length > 0 ? `
+                    <div class="obgyn-mod-chips">
+                      ${subTypes.map((stOpt) => {
+                        const isSubSel = Array.isArray(entry.subTypes) && entry.subTypes.includes(stOpt);
+                        const dispSub = localizeBankText(stOpt, '', isEn);
+                        return `<button type="button" class="obgyn-mod-chip ${isSubSel ? 'active' : ''}" data-ros-sub-id="${item.id}" data-ros-sub-val="${escapeHtml(stOpt)}">${escapeHtml(dispSub)}</button>`;
+                      }).join('')}
+                    </div>
+                  ` : ''}
                   <input type="text" class="input-text ${detClass}" ${idAttr} value="${escapeHtml(entry.detail || '')}" placeholder="${escapeHtml(hint)}">
                 </div>
               </div>
@@ -708,6 +801,23 @@ function renderCompactSplitGrid(items, stateMap, { type, isEn, isLockedFn = null
     </div>
   `;
 }
+
+function renderAnemiaClusterHtml(anemiaMap, isEn, inCard = false) {
+  const allNeg = OBGYN_ANEMIA_SYMPTOMS.every((it) => anemiaMap?.[it.id]?.state === -1);
+  return `
+    <div class="obgyn-anemia-strip ${inCard ? 'is-embedded' : ''}">
+      <div class="obgyn-anemia-head">
+        <span class="obgyn-anemia-title">${getIconSvg('droplet', { size: 14 })} ${tx(isEn, 'خوشه علائم کم‌خونی (Anemia Symptoms Cluster)', 'Anemia Symptoms Cluster')}</span>
+        <button type="button" class="obgyn-toggle-chip ${allNeg ? 'active is-danger' : ''}" data-anemia-neg-all="1">
+          <span>${tx(isEn, 'نفی علائم کم‌خونی (−)', 'Deny Anemia Symptoms (−)')}</span>
+        </button>
+      </div>
+      ${renderCompactSplitGrid(OBGYN_ANEMIA_SYMPTOMS, anemiaMap, { type: 'anemia', isEn })}
+    </div>
+  `;
+}
+
+/* =============================== TAB 2: HPI =============================== */
 
 function renderTabHpi(state, ob, guardrails, isEn) {
   const hpi = ob.ccAndHpi || {};
@@ -735,9 +845,9 @@ function renderTabHpi(state, ob, guardrails, isEn) {
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('file-text', { size: 16 })}
-          <span>${tx(isEn, '۱. شکایت اصلی (CC) و افزودن یک یا چند تظاهر بالینی (Multi-Presentation HPI)', '1. Chief Complaint (CC) & Multi-Presentation Builder')}</span>
+          <span>${tx(isEn, '۱. شکایت اصلی (CC) و شرح بیماری موجز چندمشکله (Multi-Presentation HPI)', '1. Chief Complaint (CC) & Multi-Presentation HPI')}</span>
         </div>
-        <span class="obgyn-safety-pill">${tx(isEn, 'نرسیده = ثبت‌نشده (≠ منفی)', 'Not Assessed ≠ Negative')}</span>
+        <span class="obgyn-safety-pill">${tx(isEn, 'ثبت‌نشده ≠ منفی', 'Not Assessed ≠ Negative')}</span>
       </div>
       <div class="obgyn-form-grid obgyn-cols-3">
         <div class="obgyn-field is-span-2">
@@ -778,6 +888,7 @@ function renderTabHpi(state, ob, guardrails, isEn) {
               || [...OBGYN_OBSTETRIC_ARCHETYPES, ...OBGYN_GYN_ARCHETYPES].find((a) => a.id === pres.archetypeId);
             if (!arch) return '';
             const collapsed = Boolean(pres.collapsed);
+            const isBleedCard = arch.id === 'OB-3' || arch.id === 'GYN-1';
             return `
               <div class="obgyn-arch-fields-box" data-pres-id="${escapeHtml(pres.id)}">
                 <div class="obgyn-pres-card-head">
@@ -813,6 +924,7 @@ function renderTabHpi(state, ob, guardrails, isEn) {
                       `;
                     }).join('')}
                   </div>
+                  ${isBleedCard ? renderAnemiaClusterHtml(hpi.anemiaSymptoms || {}, isEn, true) : ''}
                 ` : ''}
               </div>
             `;
@@ -854,7 +966,7 @@ function renderTabHpi(state, ob, guardrails, isEn) {
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('activity', { size: 16 })}
-          <span>${tx(isEn, 'چک‌لیست دقیق علائم مثبت و منفی (Split-Pills)', 'Precision Symptom Checklist (Compact Tri-State Grid)')}</span>
+          <span>${tx(isEn, 'علائم همراه HPI (مثبت و منفی)', 'Associated HPI Symptoms (Split-Pills)')}</span>
         </div>
         <div class="obgyn-filter-bar">
           <div class="obgyn-search-wrap">
@@ -871,12 +983,51 @@ function renderTabHpi(state, ob, guardrails, isEn) {
         ? `<div class="obgyn-empty-hint">${tx(isEn, 'موردی با این عبارت جستجو یافت نشد.', 'No matching symptoms found.')}</div>`
         : renderCompactSplitGrid(symBank, hpi.symptoms, { type: 'sym', isEn })}
 
+      ${!presentations.some((p) => p.archetypeId === 'OB-3' || p.archetypeId === 'GYN-1')
+        ? `<div class="obgyn-mt-md">${renderAnemiaClusterHtml(hpi.anemiaSymptoms || {}, isEn, false)}</div>`
+        : ''}
+
       <div class="obgyn-field obgyn-mt-md">
-        <label for="obHpiExtra">${tx(isEn, 'پاراگراف تکمیلی HPI (آزاد)', 'Additional Free-Text HPI Narrative')}</label>
+        <label for="obHpiExtra">${tx(isEn, 'توضیح تکمیلی HPI (آزاد)', 'Additional Free-Text HPI Narrative')}</label>
         <textarea class="input-textarea" id="obHpiExtra" rows="2" placeholder="${tx(isEn, 'سیر مراجعه، اقدامات سرپایی قبل از بستری و جزئیات اضافی...', 'Prior ER visits, outpatient workup, or extra chronology...')}">${escapeHtml(hpi.narrativeExtra || '')}</textarea>
       </div>
     </section>
   `;
+}
+
+/* =========================== TAB 3: PMH & PSH =========================== */
+
+function renderSharedSearchResults(kind, state, isEn) {
+  const q = sharedSearchQueries[kind] || '';
+  if (!q.trim()) return '';
+  if (kind === 'pmh') {
+    const matches = smartClinicalSearch(q, ALL_MASTER_PMH_ITEMS, 12);
+    if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'موردی یافت نشد.', 'No match found.')}</div>`;
+    return matches.map((it) => `
+      <button type="button" class="obgyn-search-result-chip" data-add-shared-pmh="${escapeHtml(it.id)}">
+        ${getIconSvg('plus', { size: 12 })}
+        <span>${escapeHtml(localizeBankText(it.fa || it.label || it.name, it.en, isEn))}</span>
+      </button>
+    `).join('');
+  }
+  if (kind === 'psh') {
+    const matches = smartClinicalSearch(q, MASTER_PSH_SURGERIES_BANK, 12);
+    if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'موردی یافت نشد.', 'No match found.')}</div>`;
+    return matches.map((it) => `
+      <button type="button" class="obgyn-search-result-chip" data-add-shared-psh="${escapeHtml(it.id)}">
+        ${getIconSvg('plus', { size: 12 })}
+        <span>${escapeHtml(localizeBankText(it.fa || it.label || it.name, it.en, isEn))}</span>
+      </button>
+    `).join('');
+  }
+  const matches = smartClinicalSearch(q, ALL_MASTER_DRUGS, 12);
+  if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'دارویی یافت نشد.', 'No drug match found.')}</div>`;
+  return matches.map((it) => `
+    <button type="button" class="obgyn-search-result-chip" data-add-shared-dh="${escapeHtml(it.id)}">
+      ${getIconSvg('plus', { size: 12 })}
+      <span>${escapeHtml(localizeBankText(it.fa || it.label || it.name, it.en, isEn))}</span>
+    </button>
+  `).join('');
 }
 
 function renderPohSectionHtml(poh, flags, flagDefs, isEn) {
@@ -901,7 +1052,7 @@ function renderPohSectionHtml(poh, flags, flagDefs, isEn) {
               ['CS', tx(isEn, 'سزارین (CS)', 'CS')],
               ['Miscarriage', tx(isEn, 'سقط (Abortion)', 'Miscarriage')],
               ['EP', tx(isEn, 'حاملگی خارج‌رحمی (EP)', 'Ectopic (EP)')],
-              ['IUFD', tx(isEn, 'مرده زایی (IUFD)', 'IUFD')],
+              ['IUFD', tx(isEn, 'مرده‌زایی (IUFD)', 'IUFD')],
               ['Molar', tx(isEn, 'حاملگی مولار', 'Molar')]
             ].map(([val, lbl]) => `<option value="${val}" ${row.outcomeType === val ? 'selected' : ''}>${escapeHtml(lbl)}</option>`).join('')}
           </select>
@@ -915,7 +1066,7 @@ function renderPohSectionHtml(poh, flags, flagDefs, isEn) {
   `;
 }
 
-function renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn) {
+function renderMenstrualHtml(mh, gsr, isEn) {
   return `
     <div class="obgyn-form-grid obgyn-cols-4">
       <div class="obgyn-field">
@@ -941,13 +1092,23 @@ function renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn) {
           <input type="text" class="input-text dir-ltr" id="obMhDuration" value="${escapeHtml(mh.bleedingDurationDays || '')}" placeholder="5">
         </div>
       </div>
+
       <div class="obgyn-field">
-        <label for="obMhFlow">${tx(isEn, 'حجم خونریزی', 'Flow Volume')}</label>
+        <label for="obMhFlow">${tx(isEn, 'حجم خونریزی (جدا از لخته)', 'Bleeding Volume (Independent)')}</label>
         <select class="input-select" id="obMhFlow">
           <option value="" ${!mh.flowVolume ? 'selected' : ''}>${tx(isEn, '-- انتخاب نشده --', '-- Not selected --')}</option>
-          <option value="normal" ${mh.flowVolume === 'normal' ? 'selected' : ''}>${tx(isEn, 'متوسط / طبیعی', 'Moderate / Normal')}</option>
-          <option value="light" ${mh.flowVolume === 'light' ? 'selected' : ''}>${tx(isEn, 'کم‌حجم (Hypomenorrhea)', 'Light')}</option>
-          <option value="heavy" ${mh.flowVolume === 'heavy' ? 'selected' : ''}>${tx(isEn, 'شدید (HMB)', 'Heavy (HMB)')}</option>
+          ${OBGYN_BLEED_VOLUME_OPTIONS.map((o) => `
+            <option value="${o.val}" ${mh.flowVolume === o.val ? 'selected' : ''}>${escapeHtml(isEn ? o.en : o.fa)}</option>
+          `).join('')}
+        </select>
+      </div>
+      <div class="obgyn-field">
+        <label for="obMhClots">${tx(isEn, 'وضعیت دفع لخته (Clots)', 'Clot Passage')}</label>
+        <select class="input-select" id="obMhClots">
+          <option value="" ${!mh.clotStatus ? 'selected' : ''}>${tx(isEn, '-- انتخاب نشده --', '-- Not selected --')}</option>
+          ${OBGYN_CLOT_OPTIONS.map((o) => `
+            <option value="${o.val}" ${mh.clotStatus === o.val ? 'selected' : ''}>${escapeHtml(isEn ? o.en : o.fa)}</option>
+          `).join('')}
         </select>
       </div>
       <div class="obgyn-field">
@@ -964,28 +1125,6 @@ function renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn) {
           <option value="severe" ${mh.dysmenorrhea === 'severe' ? 'selected' : ''}>${tx(isEn, 'شدید', 'Severe')}</option>
         </select>
       </div>
-      <div class="obgyn-field">
-        <label for="obMhPmp">${tx(isEn, 'قاعدگی ماقبل آخر (PMP)', 'Previous Menses (PMP)')}</label>
-        <input type="text" class="input-text dir-ltr" id="obMhPmp" value="${escapeHtml(mh.pmpDate || '')}" placeholder="1404/12/06">
-      </div>
-    </div>
-
-    <div class="obgyn-comp-chips obgyn-mt-sm">
-      ${[
-        ['clotPassage', 'دفع لخته (Clots)', 'Clot Passage'],
-        ['floodingOrNightChange', 'Flooding / تعویض شبانه پد', 'Flooding / Nocturnal Pads'],
-        ['imb', 'خونریزی بین‌قاعدگی (IMB)', 'Intermenstrual (IMB)'],
-        ['pcb', 'خونریزی پس از نزدیکی (PCB)', 'Postcoital (PCB)'],
-        ['isPostmenopausal', 'یائسه (PMB Checklist)', 'Postmenopausal'],
-        ['hrtUse', 'مصرف هورمون / HRT', 'Prior HRT Use']
-      ].map(([k, faL, enL]) => `
-        <button type="button" class="obgyn-toggle-chip ${mh[k] ? 'active' : ''}" data-mh-flag="${k}">
-          <span>${escapeHtml(isEn ? enL : faL)}</span>
-        </button>
-      `).join('')}
-    </div>
-
-    <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-md">
       <div class="obgyn-field is-span-2">
         <label for="obScrContra">${tx(isEn, 'روش پیشگیری فعلی از بارداری', 'Current Contraception Method')}</label>
         <select class="input-select" id="obScrContra">
@@ -995,60 +1134,35 @@ function renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn) {
           `).join('')}
         </select>
       </div>
-      <div class="obgyn-field">
-        <label for="obScrPapDate">${tx(isEn, 'تاریخ آخرین پاپ‌اسمیر', 'Last Pap Date')}</label>
-        <input type="text" class="input-text dir-ltr" id="obScrPapDate" value="${escapeHtml(gsr.cervicalAndBreastScreening?.lastPapSmearDate || '')}" placeholder="1403/08">
-      </div>
-      <div class="obgyn-field">
-        <label for="obScrPapRes">${tx(isEn, 'نتیجه پاپ‌اسمیر', 'Pap Smear Result')}</label>
-        <input type="text" class="input-text" id="obScrPapRes" value="${escapeHtml(gsr.cervicalAndBreastScreening?.lastPapSmearResult || '')}" placeholder="${tx(isEn, 'NILM / ASCUS / انجام نشده', 'NILM / ASCUS / Not done')}">
-      </div>
-      <div class="obgyn-field">
-        <label for="obScrHpv">${tx(isEn, 'وضعیت تست HPV', 'HPV DNA Status')}</label>
-        <input type="text" class="input-text" id="obScrHpv" value="${escapeHtml(gsr.cervicalAndBreastScreening?.hpvTestStatus || '')}" placeholder="${tx(isEn, 'منفی / مثبت (تایپ ۱۶/۱۸)', 'Negative / Positive')}">
-      </div>
-      <div class="obgyn-field">
-        <label for="obScrColpo">${tx(isEn, 'نتیجه کولپوسکوپی قبلی', 'Prior Colposcopy')}</label>
-        <input type="text" class="input-text" id="obScrColpo" value="${escapeHtml(gsr.cervicalAndBreastScreening?.priorColposcopyResult || '')}" placeholder="${tx(isEn, 'CIN I / نرمال...', 'CIN I / Normal...')}">
-      </div>
-      <div class="obgyn-field">
-        <label for="obScrMammoDate">${tx(isEn, 'تاریخ ماموگرافی / سونو پستان', 'Mammography / Breast US Date')}</label>
-        <input type="text" class="input-text dir-ltr" id="obScrMammoDate" value="${escapeHtml(gsr.cervicalAndBreastScreening?.lastMammographyOrBreastUsDate || '')}" placeholder="1404/02">
-      </div>
-      <div class="obgyn-field">
-        <label for="obScrMammoBirads">${tx(isEn, 'BI-RADS پستان', 'Breast BI-RADS')}</label>
-        <input type="text" class="input-text dir-ltr" id="obScrMammoBirads" value="${escapeHtml(gsr.cervicalAndBreastScreening?.lastMammographyBirads || '')}" placeholder="BI-RADS 1/2">
+      <div class="obgyn-field is-span-2">
+        <label for="obScrContraPrior">${tx(isEn, 'روش‌های پیشگیری قبلی / عوارض', 'Prior Contraception / Side Effects')}</label>
+        <input type="text" class="input-text" id="obScrContraPrior" value="${escapeHtml(gsr.contraception?.priorMethodsAndSideEffects || '')}" placeholder="${tx(isEn, 'توضیح اختیاری...', 'Optional note...')}">
       </div>
     </div>
 
-    <div class="obgyn-mt-sm">
-      <button type="button" class="btn btn-secondary btn-sm" id="btnObgynAddPathology">
-        ${getIconSvg('plus', { size: 14 })}
-        <span>${tx(isEn, 'افزودن پاتولوژی / D&C قبلی', 'Add Prior Pathology / D&C')}</span>
-      </button>
-      ${pathRecs.length > 0 ? `
-        <div class="obgyn-preg-list obgyn-mt-xs">
-          ${pathRecs.map((rec, rIdx) => `
-            <div class="obgyn-preg-row is-path">
-              <div class="obgyn-preg-badge">P${rIdx + 1}</div>
-              <input type="text" class="input-text dir-ltr obgyn-path-input" data-path-index="${rIdx}" data-path-field="date" value="${escapeHtml(rec.date || '')}" placeholder="${tx(isEn, 'تاریخ', 'Date')}">
-              <input type="text" class="input-text obgyn-path-input" data-path-index="${rIdx}" data-path-field="procedureType" value="${escapeHtml(rec.procedureType || '')}" placeholder="${tx(isEn, 'نوع اقدام (D&C / Pipelle)', 'Procedure (D&C / Biopsy)')}">
-              <input type="text" class="input-text obgyn-path-input is-wide" data-path-index="${rIdx}" data-path-field="pathologyResult" value="${escapeHtml(rec.pathologyResult || '')}" placeholder="${tx(isEn, 'گزارش پاتولوژی...', 'Pathology report...')}">
-              <button type="button" class="obgyn-icon-del" data-del-path="${rIdx}">${getIconSvg('trash', { size: 14 })}</button>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
+    <div class="obgyn-comp-chips obgyn-mt-sm">
+      ${[
+        ['floodingOrNightChange', 'Flooding / تعویض شبانه پد', 'Flooding / Nocturnal Pads'],
+        ['imb', 'خونریزی بین‌قاعدگی (IMB)', 'Intermenstrual (IMB)'],
+        ['pcb', 'خونریزی پس از نزدیکی (PCB)', 'Postcoital (PCB)'],
+        ['isPostmenopausal', 'یائسه (Postmenopausal)', 'Postmenopausal'],
+        ['hrtUse', 'مصرف هورمون / HRT', 'Prior HRT Use']
+      ].map(([k, faL, enL]) => `
+        <button type="button" class="obgyn-toggle-chip ${mh[k] ? 'active' : ''}" data-mh-flag="${k}">
+          <span>${escapeHtml(isEn ? enL : faL)}</span>
+        </button>
+      `).join('')}
     </div>
   `;
 }
 
-function renderTabHistory(state, ob, isEn) {
+function renderTabPmhPsh(state, ob, isEn) {
+  const pmhSel = collectSelectedPmhItems(state);
+  const pshList = Array.isArray(state?.psh?.surgeries) ? state.psh.surgeries : [];
   const poh = ob.pastObstetricHistory || { priorComplicationFlags: {}, pregnancies: [] };
   const flags = poh.priorComplicationFlags || {};
   const mh = ob.menstrualHistory || {};
   const gsr = ob.gynScreeningAndRecords || {};
-  const ac = ob.antenatalCareChecklist || {};
   const isObs = activeSubMode !== 'gynecology';
 
   const flagDefs = [
@@ -1061,19 +1175,117 @@ function renderTabHistory(state, ob, isEn) {
     ['priorShoulderDystociaOrMacrosomia', 'دیستوشی شانه / ماکروزومی', 'Shoulder Dystocia'],
     ['priorNicuOrAnomaly', 'بستری NICU / آنومالی', 'NICU / Anomaly']
   ];
-  const pathRecs = Array.isArray(gsr.priorPathologyAndCurettage?.records) ? gsr.priorPathologyAndCurettage.records : [];
 
-  if (!isObs) {
-    // STRICT GYNECOLOGY: Menstrual + Screening prominent, POH collapsed by default, NO Antenatal Care Checklist
-    return `
+  const quickPsh = [
+    ...OBGYN_PSH_DELTA.filter((x) => ['psh_cs', 'psh_dnc', 'psh_ivf_opu_et', 'psh_iui', 'psh_gyn_laparoscopy', 'psh_myomectomy', 'psh_tah_bso', 'psh_cerclage', 'psh_ovarian_cystectomy'].includes(x.id))
+  ];
+
+  return `
+    <!-- PMHx -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('shield', { size: 16 })}
+          <span>${tx(isEn, '۳-۱. سوابق بیماری‌های زمینه‌ای (PMHx)', '3.1 Past Medical History (PMHx)')}</span>
+        </div>
+        <button type="button" class="obgyn-toggle-chip ${state?.pmh?.masterRoutineNegative ? 'active is-danger' : ''}" id="btnObgynPmhNeg">
+          <span>${tx(isEn, 'سابقه بیماری زمینه‌ای ندارد (−)', 'No Chronic PMHx (−)')}</span>
+        </button>
+      </div>
+      <div class="obgyn-search-wrap">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obSharedPmhSearch" value="${escapeHtml(sharedSearchQueries.pmh)}" placeholder="${tx(isEn, 'جستجوی فازی بیماری (دیابت، فشار خون، کم‌کاری تیروئید، PCOS، آندومتریوز...)', 'Search PMH (DM, HTN, Hypothyroidism, PCOS, Endometriosis...)')}">
+      </div>
+      <div id="obSharedPmhResults" class="obgyn-comp-chips obgyn-mt-xs">${renderSharedSearchResults('pmh', state, isEn)}</div>
+      <div class="obgyn-comp-chips obgyn-mt-xs">
+        ${OBGYN_PMH_DELTA.slice(0, 8).map((it) => {
+          const selected = pmhSel.some((p) => p.id === it.id && p.state === 1);
+          return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-pmh="${escapeHtml(it.id)}">${escapeHtml(isEn ? it.en : it.fa)}</button>`;
+        }).join('')}
+      </div>
+      ${pmhSel.length > 0 ? `
+        <div class="obgyn-selected-list obgyn-mt-sm">
+          ${pmhSel.map((item) => `
+            <div class="obgyn-selected-row">
+              <strong>${escapeHtml(localizeBankText(item.label || item.fa, item.en, isEn))}</strong>
+              <input type="text" class="input-text obgyn-shared-pmh-det" data-pmh-cat="${escapeHtml(item.catId)}" data-pmh-id="${escapeHtml(item.id)}" value="${escapeHtml(item.detail || '')}" placeholder="${tx(isEn, 'توضیح / سال تشخیص...', 'Detail / year...')}">
+              <button type="button" class="obgyn-icon-del" data-del-shared-pmh="${escapeHtml(item.id)}" data-pmh-cat="${escapeHtml(item.catId)}">${getIconSvg('x', { size: 13 })}</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </section>
+
+    <!-- PSHx (with IVF, IUI, Laparoscopy + inline anesthesia/surgical note) -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('scalpel', { size: 16 })}
+          <span>${tx(isEn, '۳-۲. سوابق جراحی و پروسیجرها (PSHx — شامل IVF / IUI / لاپاراسکوپی)', '3.2 Past Surgical & Procedure History (PSHx)')}</span>
+        </div>
+        <button type="button" class="obgyn-toggle-chip ${state?.psh?.noSurgeries ? 'active is-danger' : ''}" id="btnObgynPshNeg">
+          <span>${tx(isEn, 'سابقه جراحی ندارد (−)', 'No Prior Surgeries (−)')}</span>
+        </button>
+      </div>
+      <div class="obgyn-search-wrap">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obSharedPshSearch" value="${escapeHtml(sharedSearchQueries.psh)}" placeholder="${tx(isEn, 'جستجوی جراحی یا پروسیجر (سزارین، IVF، IUI، لاپاراسکوپی، کورتاژ، میومکتومی...)', 'Search surgery/procedure (CS, IVF, IUI, Laparoscopy, D&C...)')}">
+      </div>
+      <div id="obSharedPshResults" class="obgyn-comp-chips obgyn-mt-xs">${renderSharedSearchResults('psh', state, isEn)}</div>
+      <div class="obgyn-comp-chips obgyn-mt-xs">
+        ${quickPsh.map((it) => {
+          const selected = pshList.some((s) => s.id === it.id);
+          return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-psh="${escapeHtml(it.id)}">${escapeHtml(isEn ? it.en : it.fa)}</button>`;
+        }).join('')}
+      </div>
+      ${pshList.length > 0 ? `
+        <div class="obgyn-selected-list obgyn-mt-sm">
+          ${pshList.map((s, sIdx) => `
+            <div class="obgyn-selected-row is-psh">
+              <strong>${escapeHtml(localizeBankText(s.label || s.procedure, s.en, isEn))}</strong>
+              <input type="text" class="input-text dir-ltr obgyn-shared-psh-inp" data-psh-idx="${sIdx}" data-psh-fld="year" value="${escapeHtml(s.year || '')}" placeholder="${tx(isEn, 'سال', 'Year')}">
+              <input type="text" class="input-text obgyn-shared-psh-inp" data-psh-idx="${sIdx}" data-psh-fld="note" value="${escapeHtml(s.note || '')}" placeholder="${tx(isEn, 'نوع بیهوشی / عارضه / توضیح', 'Anesthesia / complication / note')}">
+              <button type="button" class="obgyn-icon-del" data-del-shared-psh="${sIdx}">${getIconSvg('trash', { size: 13 })}</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </section>
+
+    <!-- SubMode-tailored POH & Menstrual History -->
+    ${isObs ? `
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('list-checks', { size: 16 })}
+            <span>${tx(isEn, 'سوابق بارداری‌های قبلی (POH) و عوارض مامایی', 'Prior Obstetric History (POH) & Complications')}</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnObgynAddPregnancy">
+            ${getIconSvg('plus', { size: 14 })}
+            <span>${tx(isEn, 'افزودن بارداری قبلی', 'Add Pregnancy')}</span>
+          </button>
+        </div>
+        ${renderPohSectionHtml(poh, flags, flagDefs, isEn)}
+      </section>
+
+      <section class="clinical-card obgyn-pe-accordion ${obsMenstrualExpanded ? 'is-open' : ''}">
+        <div class="obgyn-pe-acc-header">
+          <button type="button" class="obgyn-pe-acc-toggle" id="btnToggleObsMenstrualAcc" aria-expanded="${obsMenstrualExpanded}">
+            ${getIconSvg(obsMenstrualExpanded ? 'chevron-up' : 'chevron-down', { size: 15 })}
+            <strong>${tx(isEn, 'سوابق قاعدگی قبل از بارداری و پیشگیری (اختیاری)', 'Prior Menstrual & Contraception History (Optional)')}</strong>
+          </button>
+        </div>
+        ${obsMenstrualExpanded ? `<div class="obgyn-pe-acc-body">${renderMenstrualHtml(mh, gsr, isEn)}</div>` : ''}
+      </section>
+    ` : `
       <section class="clinical-card obgyn-section-card">
         <div class="card-header">
           <div class="card-title">
             ${getIconSvg('calendar', { size: 16 })}
-            <span>${tx(isEn, 'سوابق قاعدگی، یائسگی، پیشگیری و غربالگری (پاپ‌اسمیر / HPV / پاتولوژی)', 'Menstrual History, Contraception & Cervical/Pathology Screening')}</span>
+            <span>${tx(isEn, 'سوابق قاعدگی، یائسگی و پیشگیری از بارداری', 'Menstrual History & Contraception')}</span>
           </div>
         </div>
-        ${renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn)}
+        ${renderMenstrualHtml(mh, gsr, isEn)}
       </section>
 
       <section class="clinical-card obgyn-pe-accordion ${gynPohExpanded ? 'is-open' : ''}">
@@ -1092,373 +1304,269 @@ function renderTabHistory(state, ob, isEn) {
         </div>
         ${gynPohExpanded ? `<div class="obgyn-pe-acc-body">${renderPohSectionHtml(poh, flags, flagDefs, isEn)}</div>` : ''}
       </section>
-    `;
-  }
+    `}
+  `;
+}
 
-  // STRICT OBSTETRICS: POH + Antenatal Care open, Menstrual tucked collapsed-by-default
+/* =========================== TAB 4: DH / AH / SH / FH =========================== */
+
+function renderTabDhAhShFh(state, ob, isEn) {
+  const dhList = Array.isArray(state?.dh?.activeDrugs) ? state.dh.activeDrugs : [];
+  const customDrugs = Array.isArray(state?.dh?.customDrugs) ? state.dh.customDrugs : [];
+  const ahSel = Array.isArray(state?.ah?.selected) ? state.ah.selected : [];
+  const quickDrugs = OBGYN_MEDICATIONS_DELTA.slice(0, 10);
+
+  return `
+    <!-- 1. Drug Hx -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('pill', { size: 16 })}
+          <span>${tx(isEn, '۴-۱. داروهای مصرفی (Drug Hx — جستجوی برندهای ایرانی و نام ژنریک)', '4.1 Medication History (Drug Hx)')}</span>
+        </div>
+        <button type="button" class="obgyn-toggle-chip ${state?.dh?.noRoutineMeds ? 'active is-danger' : ''}" id="btnObgynDhNeg">
+          <span>${tx(isEn, 'داروی مصرفی ندارد (−)', 'No Routine Meds (−)')}</span>
+        </button>
+      </div>
+      <div class="obgyn-search-wrap">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obSharedDhSearch" value="${escapeHtml(sharedSearchQueries.dh)}" placeholder="${tx(isEn, 'جستجوی فازی دارو (متورال، متیلدوپا، کلگزان، آ اس آ، لوزار، ففول، دوفاستون، سایکلوژست...)', 'Search drug (Metoral, Methyldopa, Clexane, ASA, Losar, Fefol, Duphaston...)')}">
+      </div>
+      <div id="obSharedDhResults" class="obgyn-comp-chips obgyn-mt-xs">${renderSharedSearchResults('dh', state, isEn)}</div>
+      <div class="obgyn-comp-chips obgyn-mt-xs">
+        ${quickDrugs.map((dr) => {
+          const selected = dhList.some((x) => x.id === dr.id);
+          return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-dh="${escapeHtml(dr.id)}">${escapeHtml(isEn ? dr.en : dr.fa)}</button>`;
+        }).join('')}
+      </div>
+      <div class="obgyn-inline-add-row obgyn-mt-sm">
+        <input type="text" class="input-text" id="obCustomDrugInput" placeholder="${tx(isEn, 'نام داروی آزاد یا مکمل دلخواه...', 'Add custom medication or supplement...')}">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnObgynAddCustomDrug">
+          ${getIconSvg('plus', { size: 13 })}
+          <span>${tx(isEn, 'افزودن دارو', 'Add Custom Drug')}</span>
+        </button>
+      </div>
+
+      ${(dhList.length > 0 || customDrugs.length > 0) ? `
+        <div class="obgyn-selected-list obgyn-mt-sm">
+          ${dhList.map((dr, dIdx) => `
+            <div class="obgyn-selected-row is-dh">
+              <strong>${escapeHtml(localizeBankText(dr.name || dr.label, dr.en, isEn))}</strong>
+              <input type="text" class="input-text dir-ltr obgyn-shared-dh-inp" data-dh-kind="active" data-dh-idx="${dIdx}" data-dh-fld="dose" value="${escapeHtml(dr.dose || '')}" placeholder="${tx(isEn, 'دوز (مثلاً 50mg)', 'Dose')}">
+              <select class="input-select obgyn-shared-dh-inp" data-dh-kind="active" data-dh-idx="${dIdx}" data-dh-fld="sig">
+                ${DH_SIG_OPTIONS.map((opt) => `<option value="${escapeHtml(opt)}" ${dr.sig === opt ? 'selected' : ''}>${escapeHtml(localizeBankText(opt, '', isEn))}</option>`).join('')}
+              </select>
+              <button type="button" class="obgyn-icon-del" data-del-shared-dh="${dIdx}" data-dh-kind="active">${getIconSvg('trash', { size: 13 })}</button>
+            </div>
+          `).join('')}
+          ${customDrugs.map((dr, cIdx) => `
+            <div class="obgyn-selected-row is-dh">
+              <strong>${escapeHtml(localizeBankText(dr.name || dr.label || '', dr.en, isEn))}</strong>
+              <input type="text" class="input-text dir-ltr obgyn-shared-dh-inp" data-dh-kind="custom" data-dh-idx="${cIdx}" data-dh-fld="dose" value="${escapeHtml(dr.dose || '')}" placeholder="${tx(isEn, 'دوز', 'Dose')}">
+              <select class="input-select obgyn-shared-dh-inp" data-dh-kind="custom" data-dh-idx="${cIdx}" data-dh-fld="sig">
+                ${DH_SIG_OPTIONS.map((opt) => `<option value="${escapeHtml(opt)}" ${dr.sig === opt ? 'selected' : ''}>${escapeHtml(localizeBankText(opt, '', isEn))}</option>`).join('')}
+              </select>
+              <button type="button" class="obgyn-icon-del" data-del-shared-dh="${cIdx}" data-dh-kind="custom">${getIconSvg('trash', { size: 13 })}</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </section>
+
+    <!-- 2. Multi-Allergy Row Builder (AH) -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('alert-triangle', { size: 16 })}
+          <span>${tx(isEn, '۴-۲. سوابق حساسیت‌ها با ثبت واکنش مجزا برای هر آلرژن (AH)', '4.2 Multi-Allergy Builder with Per-Allergen Reactions (AH)')}</span>
+        </div>
+        <button type="button" class="obgyn-toggle-chip ${state?.ah?.nkda && ahSel.length === 0 ? 'active is-danger' : ''}" id="btnObgynAhNkda">
+          <span>${tx(isEn, 'حساسیت دارویی ندارد (NKDA)', 'No Known Drug Allergies (NKDA)')}</span>
+        </button>
+      </div>
+
+      <div class="obgyn-comp-chips">
+        ${OBGYN_QUICK_ALLERGENS.map((alg) => {
+          const exists = ahSel.some((x) => x.id === alg.id || x.label === alg.fa || x.en === alg.en);
+          return `
+            <button type="button" class="obgyn-toggle-chip ${exists ? 'active' : ''}" data-add-allergen-preset="${escapeHtml(alg.id)}">
+              ${getIconSvg(exists ? 'check' : 'plus', { size: 12 })}
+              <span>${escapeHtml(isEn ? alg.en : alg.fa)}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      <div class="obgyn-inline-add-row obgyn-mt-sm">
+        <input type="text" class="input-text" id="obCustomAllergenInput" placeholder="${tx(isEn, 'نام ماده حساسیت‌زا (مثلاً ایبوپروفن، تخم‌مرغ، متوکلروپرامید...)', 'Custom allergen name (e.g. Ibuprofen, Shellfish...)')}">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnObgynAddCustomAllergen">
+          ${getIconSvg('plus', { size: 13 })}
+          <span>${tx(isEn, 'افزودن آلرژی', 'Add Allergy')}</span>
+        </button>
+      </div>
+
+      ${ahSel.length === 0 ? `
+        <div class="obgyn-empty-hint obgyn-mt-sm">${state?.ah?.nkda ? tx(isEn, 'وضعیت بیمار به صورت «فاقد حساسیت (NKDA)» ثبت شده است.', 'Patient allergy status recorded as NKDA.') : tx(isEn, 'حساسیتی ثبت نشده است. برای NKDA دکمه بالا را بزنید یا یک یا چند آلرژن اضافه کنید.', 'No allergens added. Click NKDA above or select/add an allergen row.')}</div>
+      ` : `
+        <div class="obgyn-allergy-rows obgyn-mt-sm">
+          ${ahSel.map((alg, aIdx) => {
+            const obj = alg && typeof alg === 'object' ? alg : { id: `alg_${aIdx}`, label: String(alg), reactions: [], detail: '' };
+            const curRx = Array.isArray(obj.reactions) ? obj.reactions : [];
+            const displayLbl = isEn ? (obj.en || obj.label || '') : (obj.label || obj.en || '');
+            return `
+              <div class="obgyn-allergy-row" data-allergy-idx="${aIdx}">
+                <div class="obgyn-allergy-row-head">
+                  <strong class="obgyn-allergy-name">${escapeHtml(displayLbl)}</strong>
+                  <button type="button" class="obgyn-icon-del" data-del-allergy-idx="${aIdx}" title="${tx(isEn, 'حذف آلرژی', 'Remove allergen')}">${getIconSvg('x', { size: 14 })}</button>
+                </div>
+                <div class="obgyn-reaction-chips">
+                  ${OBGYN_ALLERGY_REACTIONS.map((rx) => {
+                    const active = curRx.includes(rx.id) || curRx.includes(rx.fa) || curRx.includes(rx.en);
+                    return `
+                      <button type="button" class="obgyn-reaction-chip ${active ? 'active' : ''}" data-allergy-idx="${aIdx}" data-rx-id="${escapeHtml(rx.id)}">
+                        <span>${escapeHtml(isEn ? rx.en : rx.fa)}</span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+                <input type="text" class="input-text obgyn-allergy-detail-inp" data-allergy-idx="${aIdx}" value="${escapeHtml(obj.detail || '')}" placeholder="${tx(isEn, 'توضیح تکمیلی واکنش (شدت، زمان یا درمان)...', 'Additional reaction detail...')}">
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </section>
+
+    <!-- 3. Social & Family History (SH & FH) -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('user', { size: 16 })}
+          <span>${tx(isEn, '۴-۳. عادات فردی (SH) و سابقه فامیلی (FH)', '4.3 Social History (SH) & Family History (FH)')}</span>
+        </div>
+      </div>
+      <div class="obgyn-comp-chips">
+        <button type="button" class="obgyn-toggle-chip ${state?.sh?.negSmoking ? 'active is-danger' : ''}" data-sh-toggle="negSmoking">${tx(isEn, 'عدم مصرف سیگار (−)', 'Non-Smoker (−)')}</button>
+        <button type="button" class="obgyn-toggle-chip ${state?.sh?.negOpium ? 'active is-danger' : ''}" data-sh-toggle="negOpium">${tx(isEn, 'عدم مصرف مخدر (−)', 'No Opium (−)')}</button>
+        <button type="button" class="obgyn-toggle-chip ${state?.sh?.negAlcohol ? 'active is-danger' : ''}" data-sh-toggle="negAlcohol">${tx(isEn, 'عدم مصرف الکل (−)', 'No Alcohol (−)')}</button>
+        <button type="button" class="obgyn-toggle-chip ${state?.fh?.negFamilyHistory ? 'active is-danger' : ''}" id="btnObgynFhNeg">${tx(isEn, 'سابقه فامیلی منفی (−)', 'Negative Family Hx (−)')}</button>
+      </div>
+      <div class="obgyn-form-grid obgyn-cols-2 obgyn-mt-sm">
+        <div class="obgyn-field">
+          <label for="obSharedShNote">${tx(isEn, 'توضیح عادات / شغل / قلیان / سیگار', 'Social Habits / Occupation Note')}</label>
+          <input type="text" class="input-text" id="obSharedShNote" value="${escapeHtml(state?.sh?.note || '')}" placeholder="${tx(isEn, 'شغل، مصرف سیگار/قلیان/مخدر...', 'Occupation or habit details...')}">
+        </div>
+        <div class="obgyn-field">
+          <label for="obSharedFhNote">${tx(isEn, 'سابقه فامیلی (سرطان پستان/تخمدان/رحم، دیابت، HTN، ترومبوفیلی)', 'Family Hx (BRCA, Ovarian/Endometrial Ca, DM, HTN, VTE...)')}</label>
+          <input type="text" class="input-text" id="obSharedFhNote" value="${escapeHtml(state?.fh?.note || '')}" placeholder="${tx(isEn, 'مادر: دیابت و پرفشاری خون...', 'Mother: DM, HTN...')}">
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+/* ================================ TAB 5: ROS ================================ */
+
+function getNonMaleRosGroups() {
+  return (ROS_GROUPS_BILINGUAL || [])
+    .filter((g) => g.systemKey !== 'male_reproductive')
+    .map((g) => ({
+      ...g,
+      items: (g.items || []).filter((it) => it.gender !== 'male')
+    }))
+    .filter((g) => g.items.length > 0);
+}
+
+function renderTabRos(state, ob, isEn) {
+  const rosItems = state?.ros?.items || {};
+  const groups = getNonMaleRosGroups();
+  const allSearchable = groups.flatMap((g) => g.items);
+  const query = rosSearchQuery.trim();
+  const searchHits = query ? smartClinicalSearch(query, allSearchable, 36) : [];
+
   return `
     <section class="clinical-card obgyn-section-card">
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('list-checks', { size: 16 })}
-          <span>${tx(isEn, 'تاریخچه بارداری به بارداری (G1, G2, ...) و عوارض مامایی', 'Pregnancy-by-Pregnancy Table & Prior Complications')}</span>
+          <span>${tx(isEn, '۵. مرور کامل سیستم‌ها از نوک مو تا نوک پا (ROS)', '5. Complete Head-to-Toe Review of Systems (ROS)')}</span>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" id="btnObgynAddPregnancy">
-          ${getIconSvg('plus', { size: 14 })}
-          <span>${tx(isEn, 'افزودن بارداری قبلی', 'Add Pregnancy')}</span>
+        <button type="button" class="obgyn-toggle-chip" id="btnObgynRosNegRemaining">
+          ${getIconSvg('check-circle', { size: 14 })}
+          <span>${tx(isEn, 'ثبت منفی سیستم‌های باقی‌مانده (−)', 'Mark Unassessed ROS Items Negative (−)')}</span>
         </button>
       </div>
-      ${renderPohSectionHtml(poh, flags, flagDefs, isEn)}
-    </section>
 
-    <section class="clinical-card obgyn-section-card">
-      <div class="card-header">
-        <div class="card-title">
-          ${getIconSvg('check-circle', { size: 16 })}
-          <span>${tx(isEn, 'چک‌لیست مراقبت‌های دوران بارداری (Antenatal Care Audit)', 'Antenatal Screening & Routine Labs Audit')}</span>
-        </div>
+      <div class="obgyn-search-wrap">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obRosSearchInput" value="${escapeHtml(rosSearchQuery)}" placeholder="${tx(isEn, 'جستجوی فازی علامت در کل ROS (تنگی نفس، تپش قلب، سوزش ادرار، سردرد، یبوست...)', 'Fuzzy search all 13 ROS systems (dyspnea, palpitations, dysuria, headache...)')}">
       </div>
-      <div class="obgyn-form-grid obgyn-cols-4">
-        <div class="obgyn-field">
-          <label for="obAcReg">${tx(isEn, 'وضعیت مراقبت‌های پره‌ناتال', 'Prenatal Care Regularity')}</label>
-          <input type="text" class="input-text" id="obAcReg" value="${escapeHtml(ac.careRegularity || '')}" placeholder="${tx(isEn, 'مراقبت منظم داشته است', 'Regular prenatal care')}">
+
+      ${query ? `
+        <div class="obgyn-mt-sm">
+          <div class="obgyn-launcher-label">${tx(isEn, `نتایج جستجو (${searchHits.length}):`, `Search results (${searchHits.length}):`)}</div>
+          ${searchHits.length === 0
+            ? `<div class="obgyn-empty-hint obgyn-mt-xs">${tx(isEn, 'علامتی یافت نشد.', 'No matching ROS symptom.')}</div>`
+            : `<div class="obgyn-mt-xs">${renderCompactSplitGrid(searchHits, rosItems, { type: 'ros', isEn })}</div>`
+          }
         </div>
-        <div class="obgyn-field">
-          <label for="obAcNtMm">${tx(isEn, 'اندازه NT (mm) & Double Marker', '1st-Tri NT (mm) / Risk')}</label>
-          <div class="obgyn-inline-pair">
-            <input type="text" class="input-text dir-ltr" id="obAcNtMm" value="${escapeHtml(ac.firstTrimesterScreening?.ntMeasurementMm || '')}" placeholder="1.4 mm">
-            <input type="text" class="input-text" id="obAcDouble" value="${escapeHtml(ac.firstTrimesterScreening?.doubleMarkerRisk || '')}" placeholder="${tx(isEn, 'کم‌خطر (Low risk)', 'Low risk')}">
-          </div>
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcAnom">${tx(isEn, 'آنومالی اسکن سه‌ماهه دوم', '2nd-Tri Anomaly Scan')}</label>
-          <input type="text" class="input-text" id="obAcAnom" value="${escapeHtml(ac.secondTrimesterScreening?.anomalyScanResult || '')}" placeholder="${tx(isEn, 'هفته ۱۹ نرمال بدون ناهنجاری', '19w Normal')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcOgtt">${tx(isEn, 'تست قند بارداری (75g OGTT)', 'GDM Screening (75g OGTT)')}</label>
-          <input type="text" class="input-text" id="obAcOgtt" value="${escapeHtml(ac.routineAntenatalLabsAudit?.gdmScreening75gOgtt || '')}" placeholder="${tx(isEn, 'نرمال (82/135/110)', 'Normal (82/135/110)')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcViral">${tx(isEn, 'ویرال مارکرها (HBsAg/HCV/HIV)', 'Viral Markers (HBsAg/HCV/HIV)')}</label>
-          <input type="text" class="input-text" id="obAcViral" value="${escapeHtml(ac.routineAntenatalLabsAudit?.viralMarkers || '')}" placeholder="${tx(isEn, 'منفی (Non-reactive)', 'Negative')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcTsh">${tx(isEn, 'تیروئید (TSH) و کشت ادرار (U/C)', 'TSH & Urine Culture')}</label>
-          <div class="obgyn-inline-pair">
-            <input type="text" class="input-text dir-ltr" id="obAcTsh" value="${escapeHtml(ac.routineAntenatalLabsAudit?.tshLevel || '')}" placeholder="TSH 2.1">
-            <input type="text" class="input-text" id="obAcUc" value="${escapeHtml(ac.routineAntenatalLabsAudit?.urineCulture || '')}" placeholder="${tx(isEn, 'استریل', 'Sterile')}">
-          </div>
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcGbs">${tx(isEn, 'کشت GBS (هفته ۳۵-۳۷)', 'GBS Swab (35-37w)')}</label>
-          <input type="text" class="input-text" id="obAcGbs" value="${escapeHtml(ac.routineAntenatalLabsAudit?.gbsSwab35to37w || '')}" placeholder="${tx(isEn, 'منفی / مثبت / انجام نشده', 'Negative / Positive')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obAcFibroid">${tx(isEn, 'یافته‌های قبلی سونو (فیبروم/پرویا)', 'Prior Fibroids / Previa Hx')}</label>
-          <input type="text" class="input-text" id="obAcFibroid" value="${escapeHtml(ac.notableSonographicFindingsInPregnancy?.uterineFibroids || '')}" placeholder="${tx(isEn, 'بدون میوم یا سابقه پرویا', 'None')}">
-        </div>
-      </div>
-      <div class="obgyn-comp-chips obgyn-mt-sm">
-        ${[
-          ['ntScanDone', 'NT سه‌ماهه اول انجام شده', '1st-Tri NT Completed'],
-          ['anomalyScanDone', 'آنومالی اسکن انجام شده', 'Anomaly Scan Completed']
-        ].map(([k, faL, enL]) => {
-          const checked = k === 'ntScanDone' ? ac.firstTrimesterScreening?.ntScanDone : ac.secondTrimesterScreening?.anomalyScanDone;
-          return `<button type="button" class="obgyn-toggle-chip ${checked ? 'active' : ''}" data-ac-flag="${k}"><span>${escapeHtml(isEn ? enL : faL)}</span></button>`;
-        }).join('')}
-        ${[
-          ['folicAcid', 'اسید فولیک', 'Folic Acid'],
-          ['ferrousSulfate', 'آهن (Ferrous)', 'Iron'],
-          ['calciumVitaminD', 'کلسیم + ویتامین D', 'Ca + Vit D'],
-          ['multivitamin', 'مولتی‌ویتامین پره‌ناتال', 'Prenatal MVI']
-        ].map(([k, faL, enL]) => `
-          <button type="button" class="obgyn-toggle-chip ${ac.supplementsAndVaccines?.[k] ? 'active' : ''}" data-sup-flag="${k}"><span>${escapeHtml(isEn ? enL : faL)}</span></button>
-        `).join('')}
+      ` : ''}
+
+      <div class="obgyn-mt-sm">
+        ${renderAnemiaClusterHtml(ob.ccAndHpi?.anemiaSymptoms || {}, isEn, false)}
       </div>
     </section>
 
-    <section class="clinical-card obgyn-pe-accordion ${obsMenstrualExpanded ? 'is-open' : ''}">
-      <div class="obgyn-pe-acc-header">
-        <button type="button" class="obgyn-pe-acc-toggle" id="btnToggleObsMenstrualAcc" aria-expanded="${obsMenstrualExpanded}">
-          ${getIconSvg(obsMenstrualExpanded ? 'chevron-up' : 'chevron-down', { size: 15 })}
-          <strong>${tx(isEn, 'سوابق قاعدگی، پیشگیری از بارداری و پاپ‌اسمیر قبلی (اختیاری)', 'Prior Menstrual, Contraception & Pap History (Optional)')}</strong>
-        </button>
-      </div>
-      ${obsMenstrualExpanded ? `<div class="obgyn-pe-acc-body">${renderMenstrualAndScreeningHtml(mh, gsr, pathRecs, isEn)}</div>` : ''}
-    </section>
+    <div class="obgyn-pe-accordions">
+      ${groups.map((grp) => {
+        const isOpen = expandedRosSystems.has(grp.systemKey);
+        let posCnt = 0;
+        let negCnt = 0;
+        grp.items.forEach((it) => {
+          const st = rosItems[it.id]?.state;
+          if (st === 1) posCnt += 1;
+          else if (st === -1) negCnt += 1;
+        });
+        return `
+          <div class="clinical-card obgyn-sys-accordion ${isOpen ? 'is-open' : ''}">
+            <div class="obgyn-sys-acc-head">
+              <button type="button" class="obgyn-pe-acc-toggle" data-ros-sys-toggle="${escapeHtml(grp.systemKey)}" aria-expanded="${isOpen}">
+                ${getIconSvg(isOpen ? 'chevron-up' : 'chevron-down', { size: 15 })}
+                <strong>${escapeHtml(isEn ? grp.en : stripTitleNoise(grp.group))}</strong>
+                <span class="obgyn-sys-counters">
+                  <span class="obgyn-sys-badge-pos ${posCnt > 0 ? 'has-val' : ''}">+${posCnt}</span>
+                  <span class="obgyn-sys-badge-neg ${negCnt > 0 ? 'has-val' : ''}">-${negCnt}</span>
+                  <span class="obgyn-pe-count">${posCnt + negCnt}/${grp.items.length}</span>
+                </span>
+              </button>
+              <button type="button" class="obgyn-normal-sec-btn" data-ros-sys-neg="${escapeHtml(grp.systemKey)}">
+                ${getIconSvg('minus', { size: 13 })}
+                <span>${tx(isEn, 'ثبت منفی این سیستم (−)', 'Mark System Negative (−)')}</span>
+              </button>
+            </div>
+            ${isOpen ? `
+              <div class="obgyn-pe-acc-body">
+                ${renderCompactSplitGrid(grp.items, rosItems, { type: 'ros', isEn })}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
   `;
 }
 
-function renderSharedSearchResults(kind, state, isEn) {
-  const q = sharedSearchQueries[kind] || '';
-  if (!q.trim()) return '';
-  if (kind === 'pmh') {
-    const matches = smartClinicalSearch(q, ALL_MASTER_PMH_ITEMS, 12);
-    if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'موردی یافت نشد.', 'No match found.')}</div>`;
-    return matches.map((it) => `
-      <button type="button" class="obgyn-search-result-chip" data-add-shared-pmh="${escapeHtml(it.id)}">
-        ${getIconSvg('plus', { size: 12 })}
-        <span>${escapeHtml(isEn ? (it.en || it.label) : (it.fa || it.label))}</span>
-      </button>
-    `).join('');
-  }
-  if (kind === 'psh') {
-    const matches = smartClinicalSearch(q, MASTER_PSH_SURGERIES_BANK, 12);
-    if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'موردی یافت نشد.', 'No match found.')}</div>`;
-    return matches.map((it) => `
-      <button type="button" class="obgyn-search-result-chip" data-add-shared-psh="${escapeHtml(it.id)}">
-        ${getIconSvg('plus', { size: 12 })}
-        <span>${escapeHtml(isEn ? (it.en || it.label) : (it.fa || it.label))}</span>
-      </button>
-    `).join('');
-  }
-  const matches = smartClinicalSearch(q, ALL_MASTER_DRUGS, 12);
-  if (matches.length === 0) return `<div class="obgyn-empty-hint">${tx(isEn, 'دارویی یافت نشد.', 'No drug match found.')}</div>`;
-  return matches.map((it) => `
-    <button type="button" class="obgyn-search-result-chip" data-add-shared-dh="${escapeHtml(it.id)}">
-      ${getIconSvg('plus', { size: 12 })}
-      <span>${escapeHtml(isEn ? (it.en || it.label) : (it.fa || it.label || it.name))}</span>
-    </button>
-  `).join('');
-}
+/* =============================== TAB 6: PE =============================== */
 
-function renderTabShared(state, ob, isEn) {
-  const pahx = ob.gynScreeningAndRecords?.pahx || {};
-  const pahxStatus = pahx.status === 1 || pahx.hasPriorAnesthesia ? 1 : (pahx.status === -1 ? -1 : 0);
-  const anesTypes = Array.isArray(pahx.anesthesiaTypes) ? pahx.anesthesiaTypes : [];
-  const sc = countSharedCoreStats(state);
-  const pmhSel = collectSelectedPmhItems(state);
-  const pshList = Array.isArray(state?.psh?.surgeries) ? state.psh.surgeries : [];
-  const dhList = Array.isArray(state?.dh?.activeDrugs) ? state.dh.activeDrugs : [];
-  const ahSel = Array.isArray(state?.ah?.selected) ? state.ah.selected : [];
-  const quickDrugs = OBGYN_MEDICATIONS_DELTA.slice(0, 10);
-
+function selectHtml(id, label, listKey, curVal, isEn, disabled = false, cls = 'obgyn-pe-opt-inp', dataAttrs = '') {
+  const opts = OBGYN_PE_OPTIONS[listKey] || [];
   return `
-    <section class="clinical-card obgyn-pahx-mandatory-card">
-      <div class="card-header">
-        <div class="card-title">
-          ${getIconSvg('shield', { size: 17 })}
-          <span>${tx(isEn, '۶. سابقه بیهوشی و بی‌حسی قبلی (PAHx — ستون الزامی پرونده)', '6. Past Anesthesia History (PAHx — Mandatory Pillar)')}</span>
-        </div>
-        <div class="obgyn-comp-chips">
-          <button type="button" class="obgyn-toggle-chip ${pahxStatus === -1 ? 'active is-danger' : ''}" id="btnObgynPahxNeg">
-            <span>${tx(isEn, 'سابقه بیهوشی ندارد (−)', 'No Prior Anesthesia (−)')}</span>
-          </button>
-          <button type="button" class="obgyn-toggle-chip ${pahxStatus === 1 ? 'active' : ''}" id="btnObgynPahxPos">
-            <span>${tx(isEn, 'سابقه بیهوشی دارد (+)', 'Prior Anesthesia (+)')}</span>
-          </button>
-        </div>
-      </div>
-      <div class="obgyn-comp-chips">
-        ${[
-          ['General Anesthesia (GA)', 'بیهوشی عمومی (GA)', 'General Anesthesia (GA)'],
-          ['Spinal Anesthesia', 'بی‌حسی نخاعی (Spinal)', 'Spinal Anesthesia'],
-          ['Epidural Analgesia', 'اپیدورال (Epidural)', 'Epidural Analgesia'],
-          ['Local / Sedation', 'بی‌حسی موضعی / سدیشن', 'Local / Sedation']
-        ].map(([val, faL, enL]) => {
-          const active = anesTypes.includes(val);
-          return `<button type="button" class="obgyn-toggle-chip ${active ? 'active' : ''}" data-pahx-type="${escapeHtml(val)}">${escapeHtml(isEn ? enL : faL)}</button>`;
-        }).join('')}
-      </div>
-      <div class="obgyn-field obgyn-mt-sm">
-        <label for="obPahxComp">${tx(isEn, 'عوارض بیهوشی قبلی (انتوباسیون دشوار، تهوع، سردرد اسپاینال...)', 'Anesthesia Complications / Notes')}</label>
-        <input type="text" class="input-text" id="obPahxComp" value="${escapeHtml(pahx.complications || '')}" placeholder="${tx(isEn, 'بدون عارضه (Without complications) یا ذکر عارضه خاص', 'Without complications / Difficult airway...')}">
-      </div>
-    </section>
-
-    <div class="obgyn-pe-accordions obgyn-mt-sm">
-      <!-- 1. IN-PLACE PMHx -->
-      <div class="clinical-card obgyn-pe-accordion ${expandedSharedGroups.has('pmh') ? 'is-open' : ''}">
-        <div class="obgyn-pe-acc-header">
-          <button type="button" class="obgyn-pe-acc-toggle" data-shared-acc-toggle="pmh" aria-expanded="${expandedSharedGroups.has('pmh')}">
-            ${getIconSvg(expandedSharedGroups.has('pmh') ? 'chevron-up' : 'chevron-down', { size: 15 })}
-            <strong>${tx(isEn, '۳. سوابق بیماری‌های زمینه‌ای (PMHx)', '3. Past Medical History (PMHx)')}</strong>
-            <span class="obgyn-pe-count">${state?.pmh?.masterRoutineNegative ? tx(isEn, 'منفی (−)', 'Negative') : sc.pmhCount}</span>
-          </button>
-          <button type="button" class="obgyn-toggle-chip ${state?.pmh?.masterRoutineNegative ? 'active is-danger' : ''}" id="btnObgynPmhNeg">
-            <span>${tx(isEn, 'سابقه بیماری زمینه‌ای ندارد (−)', 'No Chronic PMHx (−)')}</span>
-          </button>
-        </div>
-        ${expandedSharedGroups.has('pmh') ? `
-          <div class="obgyn-pe-acc-body">
-            <div class="obgyn-search-wrap">
-              ${getIconSvg('search', { size: 14 })}
-              <input type="search" class="input-text obgyn-inline-search" id="obSharedPmhSearch" value="${escapeHtml(sharedSearchQueries.pmh)}" placeholder="${tx(isEn, 'جستجوی فازی بیماری (مثلاً دیابت، فشار خون، PCOS، آندومتریوز...)', 'Search PMH (DM, HTN, PCOS, Endometriosis...)')}">
-            </div>
-            <div id="obSharedPmhResults" class="obgyn-comp-chips">${renderSharedSearchResults('pmh', state, isEn)}</div>
-            <div class="obgyn-comp-chips">
-              ${OBGYN_PMH_DELTA.slice(0, 8).map((it) => {
-                const selected = pmhSel.some((p) => p.id === it.id && p.state === 1);
-                return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-pmh="${escapeHtml(it.id)}">${escapeHtml(isEn ? it.en : it.fa)}</button>`;
-              }).join('')}
-            </div>
-            ${pmhSel.length > 0 ? `
-              <div class="obgyn-selected-list">
-                ${pmhSel.map((item) => `
-                  <div class="obgyn-selected-row">
-                    <strong>${escapeHtml(isEn ? (item.en || item.label) : (item.label || item.fa))}</strong>
-                    <input type="text" class="input-text obgyn-shared-pmh-det" data-pmh-cat="${escapeHtml(item.catId)}" data-pmh-id="${escapeHtml(item.id)}" value="${escapeHtml(item.detail || '')}" placeholder="${tx(isEn, 'توضیح / مدت...', 'Detail / year...')}">
-                    <button type="button" class="obgyn-icon-del" data-del-shared-pmh="${escapeHtml(item.id)}" data-pmh-cat="${escapeHtml(item.catId)}">${getIconSvg('x', { size: 13 })}</button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 2. IN-PLACE PSHx -->
-      <div class="clinical-card obgyn-pe-accordion ${expandedSharedGroups.has('psh') ? 'is-open' : ''}">
-        <div class="obgyn-pe-acc-header">
-          <button type="button" class="obgyn-pe-acc-toggle" data-shared-acc-toggle="psh" aria-expanded="${expandedSharedGroups.has('psh')}">
-            ${getIconSvg(expandedSharedGroups.has('psh') ? 'chevron-up' : 'chevron-down', { size: 15 })}
-            <strong>${tx(isEn, '۴. سوابق جراحی و پروسیجرهای قبلی (PSHx)', '4. Past Surgical History (PSHx)')}</strong>
-            <span class="obgyn-pe-count">${state?.psh?.noSurgeries ? tx(isEn, 'منفی (−)', 'Negative') : sc.pshCount}</span>
-          </button>
-          <button type="button" class="obgyn-toggle-chip ${state?.psh?.noSurgeries ? 'active is-danger' : ''}" id="btnObgynPshNeg">
-            <span>${tx(isEn, 'سابقه جراحی ندارد (−)', 'No Prior Surgeries (−)')}</span>
-          </button>
-        </div>
-        ${expandedSharedGroups.has('psh') ? `
-          <div class="obgyn-pe-acc-body">
-            <div class="obgyn-search-wrap">
-              ${getIconSvg('search', { size: 14 })}
-              <input type="search" class="input-text obgyn-inline-search" id="obSharedPshSearch" value="${escapeHtml(sharedSearchQueries.psh)}" placeholder="${tx(isEn, 'جستجوی جراحی (سزارین، کورتاژ، میومکتومی، آپاندکتومی...)', 'Search surgical procedure (CS, D&C, Myomectomy...)')}">
-            </div>
-            <div id="obSharedPshResults" class="obgyn-comp-chips">${renderSharedSearchResults('psh', state, isEn)}</div>
-            <div class="obgyn-comp-chips">
-              ${OBGYN_PSH_DELTA.slice(0, 8).map((it) => {
-                const selected = pshList.some((s) => s.id === it.id);
-                return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-psh="${escapeHtml(it.id)}">${escapeHtml(isEn ? it.en : it.fa)}</button>`;
-              }).join('')}
-            </div>
-            ${pshList.length > 0 ? `
-              <div class="obgyn-selected-list">
-                ${pshList.map((s, sIdx) => `
-                  <div class="obgyn-selected-row is-psh">
-                    <strong>${escapeHtml(isEn ? (s.en || s.label) : (s.label || s.procedure))}</strong>
-                    <input type="text" class="input-text dir-ltr obgyn-shared-psh-inp" data-psh-idx="${sIdx}" data-psh-fld="year" value="${escapeHtml(s.year || '')}" placeholder="${tx(isEn, 'سال', 'Year')}">
-                    <input type="text" class="input-text obgyn-shared-psh-inp" data-psh-idx="${sIdx}" data-psh-fld="note" value="${escapeHtml(s.note || '')}" placeholder="${tx(isEn, 'توضیح / عارضه', 'Detail / outcome')}">
-                    <button type="button" class="obgyn-icon-del" data-del-shared-psh="${sIdx}">${getIconSvg('trash', { size: 13 })}</button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 3. IN-PLACE DRUG Hx -->
-      <div class="clinical-card obgyn-pe-accordion ${expandedSharedGroups.has('dh') ? 'is-open' : ''}">
-        <div class="obgyn-pe-acc-header">
-          <button type="button" class="obgyn-pe-acc-toggle" data-shared-acc-toggle="dh" aria-expanded="${expandedSharedGroups.has('dh')}">
-            ${getIconSvg(expandedSharedGroups.has('dh') ? 'chevron-up' : 'chevron-down', { size: 15 })}
-            <strong>${tx(isEn, '۵. داروهای مصرفی بیمار (Drug Hx — ۶۴۳ داروی هسته مشترک + زنان)', '5. Medication History (Drug Hx — 643 Merged Drugs)')}</strong>
-            <span class="obgyn-pe-count">${state?.dh?.noRoutineMeds ? tx(isEn, 'منفی (−)', 'Negative') : sc.dhCount}</span>
-          </button>
-          <button type="button" class="obgyn-toggle-chip ${state?.dh?.noRoutineMeds ? 'active is-danger' : ''}" id="btnObgynDhNeg">
-            <span>${tx(isEn, 'داروی مصرفی ندارد (−)', 'No Routine Meds (−)')}</span>
-          </button>
-        </div>
-        ${expandedSharedGroups.has('dh') ? `
-          <div class="obgyn-pe-acc-body">
-            <div class="obgyn-search-wrap">
-              ${getIconSvg('search', { size: 14 })}
-              <input type="search" class="input-text obgyn-inline-search" id="obSharedDhSearch" value="${escapeHtml(sharedSearchQueries.dh)}" placeholder="${tx(isEn, 'جستجوی فازی دارو (فارسی/برند/انگلیسی مثلاً متیل‌دوپا، ففول، LD، سولفات...)', 'Search drug formulary (Methyldopa, Fefol, OCP, MgSO4...)')}">
-            </div>
-            <div id="obSharedDhResults" class="obgyn-comp-chips">${renderSharedSearchResults('dh', state, isEn)}</div>
-            <div class="obgyn-comp-chips">
-              ${quickDrugs.map((dr) => {
-                const selected = dhList.some((x) => x.id === dr.id);
-                return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-add-shared-dh="${escapeHtml(dr.id)}">${escapeHtml(isEn ? dr.en : dr.fa)}</button>`;
-              }).join('')}
-            </div>
-            ${dhList.length > 0 ? `
-              <div class="obgyn-selected-list">
-                ${dhList.map((dr, dIdx) => `
-                  <div class="obgyn-selected-row is-dh">
-                    <strong>${escapeHtml(isEn ? (dr.en || dr.name) : (dr.name || dr.label))}</strong>
-                    <input type="text" class="input-text dir-ltr obgyn-shared-dh-inp" data-dh-idx="${dIdx}" data-dh-fld="dose" value="${escapeHtml(dr.dose || '')}" placeholder="${tx(isEn, 'دوز (مثلاً 250mg)', 'Dose')}">
-                    <select class="input-select obgyn-shared-dh-inp" data-dh-idx="${dIdx}" data-dh-fld="sig">
-                      ${DH_SIG_OPTIONS.map((opt) => `<option value="${escapeHtml(opt)}" ${dr.sig === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
-                    </select>
-                    <button type="button" class="obgyn-icon-del" data-del-shared-dh="${dIdx}">${getIconSvg('trash', { size: 13 })}</button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 4. IN-PLACE ALLERGY -->
-      <div class="clinical-card obgyn-pe-accordion ${expandedSharedGroups.has('ah') ? 'is-open' : ''}">
-        <div class="obgyn-pe-acc-header">
-          <button type="button" class="obgyn-pe-acc-toggle" data-shared-acc-toggle="ah" aria-expanded="${expandedSharedGroups.has('ah')}">
-            ${getIconSvg(expandedSharedGroups.has('ah') ? 'chevron-up' : 'chevron-down', { size: 15 })}
-            <strong>${tx(isEn, '۷. سوابق حساسیت دارویی و غذایی (Allergies)', '7. Drug & Food Allergies')}</strong>
-            <span class="obgyn-pe-count">${state?.ah?.nkda ? 'NKDA' : sc.ahCount}</span>
-          </button>
-          <button type="button" class="obgyn-toggle-chip ${state?.ah?.nkda ? 'active is-danger' : ''}" id="btnObgynAhNkda">
-            <span>${tx(isEn, 'حساسیت دارویی ندارد (NKDA)', 'No Known Drug Allergies (NKDA)')}</span>
-          </button>
-        </div>
-        ${expandedSharedGroups.has('ah') ? `
-          <div class="obgyn-pe-acc-body">
-            <div class="obgyn-comp-chips">
-              ${(SURGICAL_SCHEMA.allergyTemplates || []).map((t) => {
-                const selected = ahSel.some((x) => x.id === t.id);
-                return `<button type="button" class="obgyn-toggle-chip ${selected ? 'active' : ''}" data-toggle-shared-ah="${escapeHtml(t.id)}">${escapeHtml(t.label)}</button>`;
-              }).join('')}
-            </div>
-            <div class="obgyn-field">
-              <label for="obSharedAhNote">${tx(isEn, 'توضیح واکنش آلرژیک', 'Allergy Reaction / Custom Allergen')}</label>
-              <input type="text" class="input-text" id="obSharedAhNote" value="${escapeHtml(state?.ah?.note || '')}" placeholder="${tx(isEn, 'مثلاً راش خارش‌دار به پنی‌سیلین...', 'e.g. Urticaria to Penicillin...')}">
-            </div>
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- 5. IN-PLACE SH / FH / ROS -->
-      <div class="clinical-card obgyn-pe-accordion ${expandedSharedGroups.has('shfh') ? 'is-open' : ''}">
-        <div class="obgyn-pe-acc-header">
-          <button type="button" class="obgyn-pe-acc-toggle" data-shared-acc-toggle="shfh" aria-expanded="${expandedSharedGroups.has('shfh')}">
-            ${getIconSvg(expandedSharedGroups.has('shfh') ? 'chevron-up' : 'chevron-down', { size: 15 })}
-            <strong>${tx(isEn, 'عادات (SH)، سابقه فامیلی (FH) و مرور سیستم‌ها (ROS)', 'Social Hx (SH), Family Hx (FH) & Optional Core ROS')}</strong>
-            <span class="obgyn-pe-count">${sc.shFhCount + sc.rosCount}</span>
-          </button>
-        </div>
-        ${expandedSharedGroups.has('shfh') ? `
-          <div class="obgyn-pe-acc-body">
-            <div class="obgyn-comp-chips">
-              <button type="button" class="obgyn-toggle-chip ${state?.sh?.negSmoking ? 'active' : ''}" data-sh-toggle="negSmoking">${tx(isEn, 'عدم مصرف سیگار (−)', 'Non-Smoker (−)')}</button>
-              <button type="button" class="obgyn-toggle-chip ${state?.sh?.negOpium ? 'active' : ''}" data-sh-toggle="negOpium">${tx(isEn, 'عدم مصرف مخدر (−)', 'No Opium (−)')}</button>
-              <button type="button" class="obgyn-toggle-chip ${state?.sh?.negAlcohol ? 'active' : ''}" data-sh-toggle="negAlcohol">${tx(isEn, 'عدم مصرف الکل (−)', 'No Alcohol (−)')}</button>
-              <button type="button" class="obgyn-toggle-chip ${state?.fh?.negFamilyHistory ? 'active' : ''}" id="btnObgynFhNeg">${tx(isEn, 'سابقه فامیلی منفی (−)', 'Negative Family Hx (−)')}</button>
-            </div>
-            <div class="obgyn-form-grid obgyn-cols-2">
-              <div class="obgyn-field">
-                <label for="obSharedShNote">${tx(isEn, 'توضیح عادات / شغل', 'Social Habits Note')}</label>
-                <input type="text" class="input-text" id="obSharedShNote" value="${escapeHtml(state?.sh?.note || '')}" placeholder="${tx(isEn, 'توضیح...', 'Details...')}">
-              </div>
-              <div class="obgyn-field">
-                <label for="obSharedFhNote">${tx(isEn, 'سابقه فامیلی (سرطان پستان/تخمدان، دیابت، HTN...)', 'Family Hx (BRCA, DM, HTN...)')}</label>
-                <input type="text" class="input-text" id="obSharedFhNote" value="${escapeHtml(state?.fh?.note || '')}" placeholder="${tx(isEn, 'مادر: دیابت و پرفشاری خون...', 'Mother: DM, HTN...')}">
-              </div>
-            </div>
-            <div class="obgyn-comp-chips">
-              <button type="button" class="obgyn-shared-bridge-btn" data-open-shared-tab="tab-ros">
-                ${getIconSvg('coreLink', { size: 14 })}
-                <span>${tx(isEn, `مرور جامع ۱۰ سیستمی ROS (${sc.rosCount})`, `Full 10-System Core ROS (${sc.rosCount})`)}</span>
-              </button>
-              <button type="button" class="obgyn-shared-bridge-btn" data-open-shared-tab="tab-paraclinics">
-                ${getIconSvg('coreLink', { size: 14 })}
-                <span>${tx(isEn, `پنل پاراکلینیک جامع (${sc.labCount})`, `Full Core Paraclinics (${sc.labCount})`)}</span>
-              </button>
-            </div>
-          </div>
-        ` : ''}
-      </div>
+    <div class="obgyn-field">
+      <label for="${escapeHtml(id)}">${escapeHtml(label)}</label>
+      <select class="input-select ${cls}" id="${escapeHtml(id)}" ${dataAttrs} ${disabled ? 'disabled' : ''}>
+        <option value="" ${!curVal ? 'selected' : ''}>${tx(isEn, '—', '—')}</option>
+        ${opts.map((o) => `<option value="${escapeHtml(o.val)}" ${curVal === o.val ? 'selected' : ''}>${escapeHtml(isEn ? o.en : o.fa)}</option>`).join('')}
+      </select>
     </div>
   `;
 }
@@ -1466,45 +1574,42 @@ function renderTabShared(state, ob, isEn) {
 function renderTabPe(state, ob, guardrails, isEn) {
   const v = ob.pe?.vitals || {};
   const om = ob.pe?.obsMeasurements || {};
-  const findings = ob.pe?.findings || {};
+  const ge = ob.pe?.gynExam || {};
+  const genFindings = state?.pe?.findings || {};
   const isGyn = activeSubMode === 'gynecology';
-  const subKey = isGyn ? 'gynecology' : 'obstetrics';
   const bishop = calculateBishopScore(om);
 
-  // Filter strictly non-duplicated qualitative PE items separated cleanly by subMode
-  const items = OBGYN_PE_BANK.filter((it) =>
-    !OBGYN_STRUCTURED_PE_IDS.has(it.id) &&
-    (it.subMode === 'both' || it.subMode === subKey)
-  );
-  const groupOrder = [];
-  const grouped = new Map();
-  items.forEach((it) => {
-    if (!grouped.has(it.subGroup)) {
-      grouped.set(it.subGroup, { subGroupFa: it.subGroup, subGroupEn: it.subGroupEn, items: [] });
-      groupOrder.push(it.subGroup);
-    }
-    grouped.get(it.subGroup).items.push(it);
-  });
+  const generalPillars = (PE_MANDATORY_PILLARS || []).filter((p) => OBGYN_GENERAL_PE_SYSTEM_KEYS.includes(p.systemKey));
+  const allGenItems = generalPillars.flatMap((p) => p.items || []);
+  const genQuery = generalPeSearchQuery.trim();
+  const genHits = genQuery ? smartClinicalSearch(genQuery, allGenItems, 30) : [];
+
+  const dilationBtns = [
+    ['0', tx(isEn, 'Closed', 'Closed')],
+    ...['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((n) => [n, `${n}cm`])
+  ];
+  const effacementBtns = ['0', '20', '30', '40', '50', '60', '70', '80', '90', '100'].map((n) => [n, `${n}%`]);
 
   return `
     ${renderGuardrailBannersHtml(guardrails, isEn, 'pe')}
 
+    <!-- Block A: Vital Signs -->
     <section class="clinical-card obgyn-section-card">
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('activity', { size: 16 })}
-          <span>${tx(isEn, isGyn ? 'علائم حیاتی (Vital Signs)' : 'علائم حیاتی (Vital Signs) و پروتئین ادرار', isGyn ? 'Bedside Vital Signs' : 'Bedside Vital Signs & Urine Dipstick')}</span>
+          <span>${tx(isEn, '۶-A. علائم حیاتی (Vital Signs)', '6.A Bedside Vital Signs')}</span>
         </div>
       </div>
-      <div class="obgyn-form-grid ${isGyn ? 'obgyn-cols-4' : 'obgyn-cols-6'}">
+      <div class="obgyn-form-grid ${isGyn ? 'obgyn-cols-5' : 'obgyn-cols-6'}">
         <div class="obgyn-field">
           <label for="obPeBp">BP (mmHg)</label>
           <input type="text" class="input-text dir-ltr" id="obPeBp" value="${escapeHtml(v.bp || '')}" placeholder="120/80">
         </div>
         ${!isGyn ? `
         <div class="obgyn-field">
-          <label for="obPeBpRep">${tx(isEn, 'تکرار BP (پس از ۴h)', 'Repeat BP')}</label>
-          <input type="text" class="input-text dir-ltr" id="obPeBpRep" value="${escapeHtml(v.bpRepeat || '')}" placeholder="160/105">
+          <label for="obPeBpRep">${tx(isEn, 'تکرار BP', 'Repeat BP')}</label>
+          <input type="text" class="input-text dir-ltr" id="obPeBpRep" value="${escapeHtml(v.bpRepeat || '')}" placeholder="140/90">
         </div>` : ''}
         <div class="obgyn-field">
           <label for="obPePr">PR (bpm)</label>
@@ -1518,6 +1623,10 @@ function renderTabPe(state, ob, guardrails, isEn) {
           <label for="obPeTemp">T (°C)</label>
           <input type="text" class="input-text dir-ltr" id="obPeTemp" value="${escapeHtml(v.temp || '')}" placeholder="36.8">
         </div>
+        <div class="obgyn-field">
+          <label for="obPeSpo2">SpO2 (%)</label>
+          <input type="text" class="input-text dir-ltr" id="obPeSpo2" value="${escapeHtml(v.spo2 || '')}" placeholder="98%">
+        </div>
         ${!isGyn ? `
         <div class="obgyn-field">
           <label for="obPeDipstick">Urine Dipstick</label>
@@ -1529,130 +1638,325 @@ function renderTabPe(state, ob, guardrails, isEn) {
       </div>
     </section>
 
+    <!-- Block B: Strict SubMode Specialized Exam -->
     ${!isGyn ? `
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('stethoscope', { size: 16 })}
+            <span>${tx(isEn, '۶-B۱. معاینه شکم حاملگی، مانورهای لئوپولد، FHR و انقباضات', '6.B1 Gravid Abdomen, Leopold Maneuvers, FHR & Contractions')}</span>
+          </div>
+          <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="obsAbdomen">
+            ${getIconSvg('check-circle', { size: 13 })}
+            <span>${tx(isEn, 'ثبت معاینه شکم طبیعی', 'Normal Gravid Abdomen')}</span>
+          </button>
+        </div>
+
+        <div class="obgyn-form-grid obgyn-cols-4">
+          <div class="obgyn-field">
+            <label for="obPeFh">${tx(isEn, 'ارتفاع فوندوس FH (cm)', 'Fundal Height (cm)')}</label>
+            <input type="text" class="input-text dir-ltr obgyn-obs-inp" id="obPeFh" data-obs-key="fundalHeightCm" value="${escapeHtml(om.fundalHeightCm || '')}" placeholder="34">
+          </div>
+          <div class="obgyn-field">
+            <label for="obPeFhWeek">${tx(isEn, 'ارتفاع فوندوس معادل (هفته)', 'FH Corresponds To (weeks)')}</label>
+            <input type="text" class="input-text dir-ltr obgyn-obs-inp" id="obPeFhWeek" data-obs-key="fundalHeightWeek" value="${escapeHtml(om.fundalHeightWeek || '')}" placeholder="34">
+          </div>
+          ${selectHtml('obPeScarStatus', tx(isEn, 'اسکار سزارین / جراحی', 'Surgical / CS Scar'), 'scarStatus', om.scarStatus, isEn, false, 'obgyn-obs-inp', 'data-obs-key="scarStatus"')}
+          ${selectHtml('obPeScarTend', tx(isEn, 'تندرنس محل اسکار', 'Scar Tenderness'), 'scarTenderness', om.scarTenderness, isEn, false, 'obgyn-obs-inp', 'data-obs-key="scarTenderness"')}
+
+          ${selectHtml('obPeLeoLie', tx(isEn, 'لئوپولد ۱/۲: قرار (Lie)', 'Leopold: Lie'), 'leopoldLie', om.leopoldLie, isEn, false, 'obgyn-obs-inp', 'data-obs-key="leopoldLie"')}
+          ${selectHtml('obPeLeoPres', tx(isEn, 'لئوپولد ۳: عضو پرزانته', 'Leopold: Presentation'), 'leopoldPresentation', om.leopoldPresentation, isEn, false, 'obgyn-obs-inp', 'data-obs-key="leopoldPresentation"')}
+          ${selectHtml('obPeLeoBack', tx(isEn, 'لئوپولد ۲: جهت پشت جنین', 'Leopold: Fetal Back'), 'leopoldBack', om.leopoldBack, isEn, false, 'obgyn-obs-inp', 'data-obs-key="leopoldBack"')}
+          ${selectHtml('obPeLeoEng', tx(isEn, 'لئوپولد ۴: انگاژمان', 'Leopold: Engagement'), 'leopoldEngagement', om.leopoldEngagement, isEn, false, 'obgyn-obs-inp', 'data-obs-key="leopoldEngagement"')}
+
+          <div class="obgyn-field">
+            <label for="obPeFhr">FHR (bpm)</label>
+            <input type="text" class="input-text dir-ltr obgyn-obs-inp" id="obPeFhr" data-obs-key="fhr" value="${escapeHtml(om.fhr || '')}" placeholder="142">
+          </div>
+          <div class="obgyn-field">
+            <label for="obPeFhrQuad">${tx(isEn, 'کوادران سمع FHR', 'FHR Quadrant')}</label>
+            <select class="input-select dir-ltr obgyn-obs-inp" id="obPeFhrQuad" data-obs-key="fhrQuadrant">
+              <option value="">—</option>
+              ${['LLQ', 'RLQ', 'LUQ', 'RUQ', 'Midline'].map((q) => `<option value="${q}" ${om.fhrQuadrant === q ? 'selected' : ''}>${q}</option>`).join('')}
+            </select>
+          </div>
+          ${selectHtml('obPeFhrReg', tx(isEn, 'نظم FHR', 'FHR Rhythm'), 'fhrRegularity', om.fhrRegularity, isEn, false, 'obgyn-obs-inp', 'data-obs-key="fhrRegularity"')}
+          ${selectHtml('obPeEpigTend', tx(isEn, 'تندرنس اپیگاستر / RUQ', 'Epigastric / RUQ Tenderness'), 'epigastricRuqTenderness', om.epigastricRuqTenderness, isEn, false, 'obgyn-obs-inp', 'data-obs-key="epigastricRuqTenderness"')}
+
+          <div class="obgyn-field">
+            <label for="obPeCtxFreq">${tx(isEn, 'فواصل انقباضات', 'Contraction Frequency')}</label>
+            <input type="text" class="input-text obgyn-obs-inp" id="obPeCtxFreq" data-obs-key="contractionsFreq" value="${escapeHtml(om.contractionsFreq || '')}" placeholder="${tx(isEn, 'مثلاً ۴ در ۱۰ دقیقه', 'e.g. Q3-4 min')}">
+          </div>
+          <div class="obgyn-field">
+            <label for="obPeCtxDur">${tx(isEn, 'مدت انقباضات', 'Contraction Duration')}</label>
+            <input type="text" class="input-text obgyn-obs-inp" id="obPeCtxDur" data-obs-key="contractionsDuration" value="${escapeHtml(om.contractionsDuration || '')}" placeholder="${tx(isEn, 'مثلاً ۴۵ ثانیه', 'e.g. 45 sec')}">
+          </div>
+          ${selectHtml('obPeCtxInt', tx(isEn, 'شدت انقباضات', 'Contraction Intensity'), 'contractionsIntensity', om.contractionsIntensity, isEn, false, 'obgyn-obs-inp', 'data-obs-key="contractionsIntensity"')}
+          ${selectHtml('obPeUtTone', tx(isEn, 'تون پایه رحم بین انقباضات', 'Resting Uterine Tone'), 'uterineTone', om.uterineTone, isEn, false, 'obgyn-obs-inp', 'data-obs-key="uterineTone"')}
+        </div>
+      </section>
+
+      <!-- Obstetric TV + Tactile Pills + ROM + 4-Point Pelvimetry -->
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('target', { size: 16 })}
+            <span>${tx(isEn, '۶-B۲. معاینه واژینال (TV)، تست‌های ROM و پلویمتری ۴ نقطه‌ای', '6.B2 Obstetric TV Exam, ROM Tests & 4-Point Pelvimetry')}</span>
+          </div>
+          <span id="obgynBishopBadge" class="obgyn-bishop-badge is-${bishop.status}">
+            ${escapeHtml(bishop.assessedCount > 0 ? (isEn ? bishop.labelEn : bishop.labelFa) : tx(isEn, 'Bishop Score: معیارها را وارد کنید', 'Bishop Score: Enter TV params'))}
+          </span>
+        </div>
+
+        <div class="obgyn-tv-box ${guardrails.virginLock ? 'is-locked' : guardrails.previaTvContraindicated ? 'is-previa-warn' : ''}">
+          <div class="obgyn-tactile-row">
+            <span class="obgyn-tactile-label">${tx(isEn, 'دیلاتاسیون سرویکس:', 'Dilation:')}</span>
+            <div class="obgyn-tactile-pills">
+              ${dilationBtns.map(([val, lbl]) => `
+                <button type="button" class="obgyn-tactile-btn ${String(om.dilationCm ?? '') === val ? 'active' : ''}" data-tactile-key="dilationCm" data-tactile-val="${val}" ${guardrails.virginLock ? 'disabled' : ''}>${escapeHtml(lbl)}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="obgyn-tactile-row obgyn-mt-xs">
+            <span class="obgyn-tactile-label">${tx(isEn, 'افاسمان سرویکس:', 'Effacement:')}</span>
+            <div class="obgyn-tactile-pills">
+              ${effacementBtns.map(([val, lbl]) => `
+                <button type="button" class="obgyn-tactile-btn ${String(om.effacementPct ?? '') === val ? 'active' : ''}" data-tactile-key="effacementPct" data-tactile-val="${val}" ${guardrails.virginLock ? 'disabled' : ''}>${escapeHtml(lbl)}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-sm">
+            <div class="obgyn-field">
+              <label for="obPeStation">${tx(isEn, 'Station و مقیاس', 'Station & Scale')}</label>
+              <div class="obgyn-inline-pair">
+                <select class="input-select dir-ltr obgyn-obs-inp" id="obPeStationScale" data-obs-key="stationScale" ${guardrails.virginLock ? 'disabled' : ''}>
+                  <option value="5" ${om.stationScale !== '3' ? 'selected' : ''}>-5..+5 [UNI]</option>
+                  <option value="3" ${om.stationScale === '3' ? 'selected' : ''}>-3..+3 [REF]</option>
+                </select>
+                <input type="text" class="input-text dir-ltr obgyn-obs-inp" id="obPeStation" data-obs-key="stationValue" value="${escapeHtml(om.stationValue ?? '')}" placeholder="-2" ${guardrails.virginLock ? 'disabled' : ''}>
+              </div>
+            </div>
+            ${selectHtml('obPeCons', tx(isEn, 'قوام سرویکس', 'Cervix Consistency'), 'cervixConsistency', om.cervixConsistency, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="cervixConsistency"')}
+            ${selectHtml('obPePos', tx(isEn, 'موقعیت سرویکس', 'Cervix Position'), 'cervixPosition', om.cervixPosition, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="cervixPosition"')}
+            ${selectHtml('obPePres', tx(isEn, 'عضو پرزانته', 'Presenting Part'), 'presentingPart', om.presentingPart, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="presentingPart"')}
+
+            ${selectHtml('obPePresPos', tx(isEn, 'پوزیشن پرزانتاسیون (OA/OP...)', 'Presenting Position'), 'presentingPosition', om.presentingPosition, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="presentingPosition"')}
+            ${selectHtml('obPeMembranes', tx(isEn, 'وضعیت پرده‌ها', 'Membranes'), 'membranesStatus', om.membranesStatus, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="membranesStatus"')}
+            ${selectHtml('obPeFluidChar', tx(isEn, 'مشخصات مایع آمنیوتیک', 'Amniotic Fluid'), 'amnioticFluidChar', om.amnioticFluidChar, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="amnioticFluidChar"')}
+          </div>
+
+          <div class="obgyn-subbox-label obgyn-mt-sm">${tx(isEn, 'تست‌های بالینی پارگی کیسه آب (Bedside ROM Tests)', 'Bedside ROM Tests')}</div>
+          <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-xs">
+            ${selectHtml('obRomPool', 'Pooling Test', 'romTest', om.romPooling, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="romPooling"')}
+            ${selectHtml('obRomNit', 'Nitrazine pH', 'romTest', om.romNitrazine, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="romNitrazine"')}
+            ${selectHtml('obRomFern', 'Fern Test', 'romTest', om.romFern, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="romFern"')}
+            ${selectHtml('obRomAmni', 'AmniSure (PAMG-1)', 'romTest', om.romAmnisure, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="romAmnisure"')}
+          </div>
+
+          <div class="obgyn-subbox-label obgyn-mt-sm">${tx(isEn, 'پلویمتری بالینی ۴ نقطه‌ای (Clinical Pelvimetry)', '4-Point Clinical Pelvimetry')}</div>
+          <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-xs">
+            ${selectHtml('obPelvProm', tx(isEn, 'پرومونتوار ساکروم', 'Sacral Promontory'), 'pelvimetryPromontory', om.pelvimetryPromontory, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="pelvimetryPromontory"')}
+            ${selectHtml('obPelvSpin', tx(isEn, 'خارهای ایسکیال', 'Ischial Spines'), 'pelvimetrySpines', om.pelvimetrySpines, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="pelvimetrySpines"')}
+            ${selectHtml('obPelvArch', tx(isEn, 'قوس ساب‌پوبیک', 'Subpubic Arch'), 'pelvimetryArch', om.pelvimetryArch, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="pelvimetryArch"')}
+            ${selectHtml('obPelvOverall', tx(isEn, 'ارزیابی کلی لگن', 'Overall Pelvic Adequacy'), 'pelvimetryOverall', om.pelvimetryOverall, isEn, guardrails.virginLock, 'obgyn-obs-inp', 'data-obs-key="pelvimetryOverall"')}
+          </div>
+        </div>
+      </section>
+
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('zap', { size: 16 })}
+            <span>${tx(isEn, '۶-B۳. اندام‌ها، ادم و رفلکس‌های تاندونی عمقی (Edema & DTR)', '6.B3 Extremities, Edema & DTR / Clonus')}</span>
+          </div>
+          <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="obsExtremities">
+            ${getIconSvg('check-circle', { size: 13 })}
+            <span>${tx(isEn, 'ثبت طبیعی (DTR +2، بدون ادم)', 'Record Normal (DTR +2, No Edema)')}</span>
+          </button>
+        </div>
+        <div class="obgyn-form-grid obgyn-cols-5">
+          ${selectHtml('obExtEdema', tx(isEn, 'شدت ادم (0 تا +4)', 'Edema Grade'), 'grade04', om.edemaGrade, isEn, false, 'obgyn-obs-inp', 'data-obs-key="edemaGrade"')}
+          ${selectHtml('obExtEdLoc', tx(isEn, 'محل ادم', 'Edema Location'), 'edemaLocation', om.edemaLocation, isEn, false, 'obgyn-obs-inp', 'data-obs-key="edemaLocation"')}
+          ${selectHtml('obExtCalf', tx(isEn, 'تندرنس ساق / واریس', 'Calf Tenderness / Varicosities'), 'calfTendernessVaricosities', om.calfTendernessVaricosities, isEn, false, 'obgyn-obs-inp', 'data-obs-key="calfTendernessVaricosities"')}
+          ${selectHtml('obExtDtr', tx(isEn, 'رفلکس پاتلار DTR', 'Patellar DTR'), 'grade04', om.dtrGrade, isEn, false, 'obgyn-obs-inp', 'data-obs-key="dtrGrade"')}
+          ${selectHtml('obExtClonus', tx(isEn, 'کلونوس مچ پا', 'Ankle Clonus'), 'ankleClonus', om.ankleClonus, isEn, false, 'obgyn-obs-inp', 'data-obs-key="ankleClonus"')}
+        </div>
+      </section>
+    ` : `
+      <!-- Deep Gynecology Specialized PE -->
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('stethoscope', { size: 16 })}
+            <span>${tx(isEn, '۶-B۱. معاینه پستان‌ها و آگزیلا', '6.B1 Breast & Axillary Exam')}</span>
+          </div>
+          <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="gynBreast">
+            ${getIconSvg('check-circle', { size: 13 })}
+            <span>${tx(isEn, 'ثبت معاینه پستان طبیعی', 'Normal Breast Exam')}</span>
+          </button>
+        </div>
+        <div class="obgyn-form-grid obgyn-cols-4">
+          ${selectHtml('gynBrSym', tx(isEn, 'تقارن پستان‌ها', 'Symmetry'), 'breastSymmetry', ge.breast?.symmetry, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="breast" data-gyn-key="symmetry"')}
+          ${selectHtml('gynBrMass', tx(isEn, 'توده قابل لمس', 'Palpable Mass'), 'breastMass', ge.breast?.mass, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="breast" data-gyn-key="mass"')}
+          ${selectHtml('gynBrDis', tx(isEn, 'ترشح نوک پستان', 'Nipple Discharge'), 'breastDischarge', ge.breast?.discharge, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="breast" data-gyn-key="discharge"')}
+          ${selectHtml('gynBrAx', tx(isEn, 'لنفادنوپاتی آگزیلاری', 'Axillary LAD'), 'axillaryLad', ge.breast?.axillaryLad, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="breast" data-gyn-key="axillaryLad"')}
+        </div>
+      </section>
+
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('target', { size: 16 })}
+            <span>${tx(isEn, '۶-B۲. معاینه کامل شکم ژنیکولوژی', '6.B2 Gynecologic Abdominal Exam')}</span>
+          </div>
+          <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="gynAbdomen">
+            ${getIconSvg('check-circle', { size: 13 })}
+            <span>${tx(isEn, 'ثبت معاینه شکم طبیعی', 'Normal Abdomen Exam')}</span>
+          </button>
+        </div>
+        <div class="obgyn-form-grid obgyn-cols-5">
+          <div class="obgyn-field">
+            <label for="gynAbdScars">${tx(isEn, 'اسکارهای جراحی', 'Surgical Scars')}</label>
+            <input type="text" class="input-text obgyn-gyn-inp" id="gynAbdScars" data-gyn-sec="abdomen" data-gyn-key="scars" value="${escapeHtml(ge.abdomen?.scars || '')}" placeholder="${tx(isEn, 'فانن‌اشتیل / تروکار / ندارد', 'Pfannenstiel / None')}">
+          </div>
+          ${selectHtml('gynAbdTend', tx(isEn, 'تندرنس شکمی', 'Quadrant Tenderness'), 'tendernessQuadrant', ge.abdomen?.tendernessQuadrant, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="abdomen" data-gyn-key="tendernessQuadrant"')}
+          ${selectHtml('gynAbdReb', tx(isEn, 'ریباند و گاردینگ', 'Rebound / Guarding'), 'reboundGuarding', ge.abdomen?.reboundGuarding, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="abdomen" data-gyn-key="reboundGuarding"')}
+          <div class="obgyn-field">
+            <label for="gynAbdMass">${tx(isEn, 'توده قابل لمس (اندازه / تحرک)', 'Palpable Mass (Size/Mobility)')}</label>
+            <input type="text" class="input-text obgyn-gyn-inp" id="gynAbdMass" data-gyn-sec="abdomen" data-gyn-key="palpableMass" value="${escapeHtml(ge.abdomen?.palpableMass || '')}" placeholder="${tx(isEn, 'ندارد / توده سوپراپوبیک...', 'None / 14w firm mass...')}">
+          </div>
+          ${selectHtml('gynAbdCva', 'CVA Tenderness', 'cvaTenderness', ge.abdomen?.cvaTenderness, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="abdomen" data-gyn-key="cvaTenderness"')}
+        </div>
+      </section>
+
+      <section class="clinical-card obgyn-section-card">
+        <div class="card-header">
+          <div class="card-title">
+            ${getIconSvg('shield', { size: 16 })}
+            <span>${tx(isEn, '۶-B۳. ژنیتالیای خارجی، پرولاپس، اسپکولوم و معاینه دودستی لگن', '6.B3 External Genitalia, Speculum & Deep Bimanual Pelvic Suite')}</span>
+          </div>
+        </div>
+
+        <div class="obgyn-subbox-head">
+          <strong>${tx(isEn, 'ژنیتالیای خارجی و پرولاپس', 'External Genitalia & Prolapse')}</strong>
+          <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="gynExternal">
+            ${getIconSvg('check-circle', { size: 12 })}
+            <span>${tx(isEn, 'ثبت طبیعی', 'Normal')}</span>
+          </button>
+        </div>
+        <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-xs">
+          ${selectHtml('gynExtVulva', tx(isEn, 'ولو و پرینه', 'Vulva & Perineum'), 'vulvaPerineum', ge.externalGenitalia?.vulvaPerineum, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="externalGenitalia" data-gyn-key="vulvaPerineum"')}
+          ${selectHtml('gynExtBarth', tx(isEn, 'غدد بارتولن و اسکین', 'Bartholin & Skene'), 'bartholinSkene', ge.externalGenitalia?.bartholinSkene, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="externalGenitalia" data-gyn-key="bartholinSkene"')}
+          ${selectHtml('gynExtProl', tx(isEn, 'پرولاپس (گرید)', 'Pelvic Organ Prolapse'), 'prolapse', ge.externalGenitalia?.prolapse, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="externalGenitalia" data-gyn-key="prolapse"')}
+          ${selectHtml('gynExtCough', tx(isEn, 'تست استرس سرفه (SUI)', 'Cough Stress Test'), 'coughStressTest', ge.externalGenitalia?.coughStressTest, isEn, false, 'obgyn-gyn-inp', 'data-gyn-sec="externalGenitalia" data-gyn-key="coughStressTest"')}
+        </div>
+
+        <div class="obgyn-tv-box ${guardrails.virginLock ? 'is-locked' : ''} obgyn-mt-md">
+          <div class="obgyn-subbox-head">
+            <strong>${tx(isEn, 'معاینه ۴ نقطه‌ای با اسپکولوم', '4-Checkpoint Speculum Exam')}</strong>
+            ${!guardrails.virginLock ? `
+              <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="gynSpeculum">
+                ${getIconSvg('check-circle', { size: 12 })}
+                <span>${tx(isEn, 'ثبت اسپکولوم طبیعی', 'Normal Speculum')}</span>
+              </button>
+            ` : `<span class="obgyn-flag-tag is-lock">${tx(isEn, 'قفل Virgin', 'Virgin Locked')}</span>`}
+          </div>
+          <div class="obgyn-form-grid obgyn-cols-5 obgyn-mt-xs">
+            ${selectHtml('gynSpWall', tx(isEn, 'دیواره‌های واژن', 'Vaginal Walls'), 'vaginalWalls', ge.speculum?.vaginalWalls, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="speculum" data-gyn-key="vaginalWalls"')}
+            ${selectHtml('gynSpCvx', tx(isEn, 'ظاهر سرویکس', 'Cervix Appearance'), 'cervixAppearance', ge.speculum?.cervixAppearance, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="speculum" data-gyn-key="cervixAppearance"')}
+            ${selectHtml('gynSpVb', tx(isEn, 'شدت خونریزی واژینال (VB)', 'VB Volume'), 'vbVolume', ge.speculum?.vbVolume, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="speculum" data-gyn-key="vbVolume"')}
+            ${selectHtml('gynSpClots', tx(isEn, 'دفع لخته در اسپکولوم', 'Clots on Speculum'), 'vbClots', ge.speculum?.vbClots, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="speculum" data-gyn-key="vbClots"')}
+            ${selectHtml('gynSpDis', tx(isEn, 'ترشحات واژینال / سرویسیت', 'Discharge'), 'dischargeChar', ge.speculum?.dischargeChar, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="speculum" data-gyn-key="dischargeChar"')}
+          </div>
+
+          <div class="obgyn-subbox-head obgyn-mt-md">
+            <strong>${tx(isEn, 'معاینه دودستی لگن و رکتوواژینال (Bimanual / Rectovaginal)', 'Deep Bimanual & Rectovaginal Exam')}</strong>
+            ${!guardrails.virginLock ? `
+              <button type="button" class="obgyn-normal-sec-btn" data-pe-preset="gynBimanual">
+                ${getIconSvg('check-circle', { size: 12 })}
+                <span>${tx(isEn, 'ثبت Bimanual طبیعی', 'Normal Bimanual')}</span>
+              </button>
+            ` : ''}
+          </div>
+          <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-xs">
+            ${selectHtml('gynBmSize', tx(isEn, 'اندازه رحم (معادل هفته)', 'Uterus Size (Weeks)'), 'uterusSizeWeeks', ge.bimanual?.uterusSizeWeeks, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusSizeWeeks"')}
+            ${selectHtml('gynBmCont', tx(isEn, 'کانتور / سطح رحم', 'Uterus Contour'), 'uterusContour', ge.bimanual?.uterusContour, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusContour"')}
+            ${selectHtml('gynBmCons', tx(isEn, 'قوام رحم', 'Uterus Consistency'), 'uterusConsistency', ge.bimanual?.uterusConsistency, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusConsistency"')}
+            ${selectHtml('gynBmPos', tx(isEn, 'وضعیت رحم (AV/RV/Mid)', 'Uterus Position'), 'uterusPosition', ge.bimanual?.uterusPosition, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusPosition"')}
+
+            ${selectHtml('gynBmMob', tx(isEn, 'تحرک رحم', 'Uterus Mobility'), 'uterusMobility', ge.bimanual?.uterusMobility, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusMobility"')}
+            ${selectHtml('gynBmTend', tx(isEn, 'تندرنس رحم', 'Uterine Tenderness'), 'uterusTenderness', ge.bimanual?.uterusTenderness, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="uterusTenderness"')}
+            ${selectHtml('gynBmCvxC', tx(isEn, 'قوام سرویکس', 'Cervix Consistency'), 'cervixConsistencyGyn', ge.bimanual?.cervixConsistency, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="cervixConsistency"')}
+            ${selectHtml('gynBmCvxM', tx(isEn, 'تحرک سرویکس', 'Cervix Mobility'), 'cervixMobility', ge.bimanual?.cervixMobility, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="cervixMobility"')}
+
+            ${selectHtml('gynBmCmt', 'CMT', 'cmt', ge.bimanual?.cmt, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="cmt"')}
+            ${selectHtml('gynBmRAdx', tx(isEn, 'آدنکس راست (Right Adnexa)', 'Right Adnexa'), 'adnexa', ge.bimanual?.rightAdnexa, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="rightAdnexa"')}
+            ${selectHtml('gynBmLAdx', tx(isEn, 'آدنکس چپ (Left Adnexa)', 'Left Adnexa'), 'adnexa', ge.bimanual?.leftAdnexa, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="leftAdnexa"')}
+            ${selectHtml('gynBmCul', tx(isEn, 'بن‌بست خلفی (Cul-de-sac)', 'Posterior Cul-de-sac'), 'culDeSac', ge.bimanual?.culDeSac, isEn, guardrails.virginLock, 'obgyn-gyn-inp', 'data-gyn-sec="bimanual" data-gyn-key="culDeSac"')}
+          </div>
+          <div class="obgyn-field obgyn-mt-xs">
+            <label for="gynBmNote">${tx(isEn, 'توضیح تکمیلی معاینه دودستی (مثلاً ابعاد توده آدنکس)', 'Additional Bimanual / Adnexal Mass Detail')}</label>
+            <input type="text" class="input-text obgyn-gyn-inp" id="gynBmNote" data-gyn-sec="bimanual" data-gyn-key="note" value="${escapeHtml(ge.bimanual?.note || '')}" placeholder="${tx(isEn, 'مثلاً توده ۵ سانتی‌متری تندر در آدنکس چپ...', 'e.g. Tender 5cm left adnexal mass...')}" ${guardrails.virginLock ? 'disabled' : ''}>
+          </div>
+        </div>
+      </section>
+    `}
+
+    <!-- Block C: Complete Head-to-Toe General PE (from MASTER_PE_BANK) -->
     <section class="clinical-card obgyn-section-card">
       <div class="card-header">
         <div class="card-title">
-          ${getIconSvg('stethoscope', { size: 16 })}
-          <span>${tx(isEn, 'اندازه‌گیری‌های شکم حاملگی، FHR و معاینه واژینال مامایی (TV / Bishop)', 'Obstetric FHR, Fundal Height & Vaginal Exam (TV / Bishop)')}</span>
-        </div>
-        <span id="obgynBishopBadge" class="obgyn-bishop-badge is-${bishop.status}">
-          ${escapeHtml(bishop.assessedCount > 0 ? (isEn ? bishop.labelEn : bishop.labelFa) : tx(isEn, 'Bishop Score: معیارها را وارد کنید', 'Bishop Score: Enter TV params'))}
-        </span>
-      </div>
-      <div class="obgyn-form-grid obgyn-cols-4">
-        <div class="obgyn-field">
-          <label for="obPeFhr">FHR (bpm)</label>
-          <input type="text" class="input-text dir-ltr" id="obPeFhr" value="${escapeHtml(om.fhr || '')}" placeholder="142">
-        </div>
-        <div class="obgyn-field">
-          <label for="obPeFhrQuad">${tx(isEn, 'کوادران سمع FHR', 'FHR Quadrant')}</label>
-          <select class="input-select dir-ltr" id="obPeFhrQuad">
-            <option value="">—</option>
-            ${['LLQ', 'RLQ', 'LUQ', 'RUQ', 'Midline'].map((q) => `<option value="${q}" ${om.fhrQuadrant === q ? 'selected' : ''}>${q}</option>`).join('')}
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obPeFh">${tx(isEn, 'ارتفاع فوندوس رحم FH (cm)', 'Fundal Height (cm)')}</label>
-          <input type="text" class="input-text dir-ltr" id="obPeFh" value="${escapeHtml(om.fundalHeightCm || '')}" placeholder="34">
-        </div>
-        <div class="obgyn-field">
-          <label for="obPePres">${tx(isEn, 'عضو پرزانته', 'Presenting Part')}</label>
-          <select class="input-select" id="obPePres" ${guardrails.virginLock ? 'disabled' : ''}>
-            <option value="">—</option>
-            <option value="سفالیک (Cephalic)" ${om.presentingPart === 'سفالیک (Cephalic)' ? 'selected' : ''}>${tx(isEn, 'سفالیک (Cephalic)', 'Cephalic')}</option>
-            <option value="بریچ (Breech)" ${om.presentingPart === 'بریچ (Breech)' ? 'selected' : ''}>${tx(isEn, 'بریچ (Breech)', 'Breech')}</option>
-            <option value="عرضی / شانه" ${om.presentingPart === 'عرضی / شانه' ? 'selected' : ''}>${tx(isEn, 'عرضی / شانه', 'Transverse / Shoulder')}</option>
-            <option value="خارج از دسترس (High)" ${om.presentingPart === 'خارج از دسترس (High)' ? 'selected' : ''}>${tx(isEn, 'خارج از دسترس (High)', 'High / Unengaged')}</option>
-          </select>
+          ${getIconSvg('user', { size: 16 })}
+          <span>${tx(isEn, '۶-C. معاینه فیزیکی عمومی سر تا پا (General Head-to-Toe PE)', '6.C Head-to-Toe General Physical Examination')}</span>
         </div>
       </div>
-
-      <div class="obgyn-tv-box ${guardrails.virginLock ? 'is-locked' : guardrails.previaTvContraindicated ? 'is-previa-warn' : ''} obgyn-mt-sm">
-        <div class="obgyn-form-grid obgyn-cols-4">
-          <div class="obgyn-field">
-            <label for="obPeDil">${tx(isEn, 'دیلاتاسیون (cm)', 'Dilation (cm)')}</label>
-            <input type="text" class="input-text dir-ltr" id="obPeDil" value="${escapeHtml(om.dilationCm ?? '')}" placeholder="0 - 10" ${guardrails.virginLock ? 'disabled' : ''}>
-          </div>
-          <div class="obgyn-field">
-            <label for="obPeEff">${tx(isEn, 'افاسمان (%)', 'Effacement (%)')}</label>
-            <input type="text" class="input-text dir-ltr" id="obPeEff" value="${escapeHtml(om.effacementPct ?? '')}" placeholder="0 - 100" ${guardrails.virginLock ? 'disabled' : ''}>
-          </div>
-          <div class="obgyn-field">
-            <label for="obPeStation">${tx(isEn, 'Station و مقیاس', 'Station & Scale')}</label>
-            <div class="obgyn-inline-pair">
-              <select class="input-select dir-ltr" id="obPeStationScale" ${guardrails.virginLock ? 'disabled' : ''}>
-                <option value="5" ${om.stationScale !== '3' ? 'selected' : ''}>-5..+5 [UNI]</option>
-                <option value="3" ${om.stationScale === '3' ? 'selected' : ''}>-3..+3 [REF]</option>
-              </select>
-              <input type="text" class="input-text dir-ltr" id="obPeStation" value="${escapeHtml(om.stationValue ?? '')}" placeholder="-3" ${guardrails.virginLock ? 'disabled' : ''}>
-            </div>
-          </div>
-          <div class="obgyn-field">
-            <label for="obPeCons">${tx(isEn, 'قوام و موقعیت سرویکس', 'Consistency & Position')}</label>
-            <div class="obgyn-inline-pair">
-              <select class="input-select" id="obPeCons" ${guardrails.virginLock ? 'disabled' : ''}>
-                <option value="">${tx(isEn, 'قوام...', 'Firmness...')}</option>
-                <option value="firm" ${om.cervixConsistency === 'firm' ? 'selected' : ''}>${tx(isEn, 'سفت (Firm)', 'Firm')}</option>
-                <option value="medium" ${om.cervixConsistency === 'medium' ? 'selected' : ''}>${tx(isEn, 'متوسط', 'Medium')}</option>
-                <option value="soft" ${om.cervixConsistency === 'soft' ? 'selected' : ''}>${tx(isEn, 'نرم (Soft)', 'Soft')}</option>
-              </select>
-              <select class="input-select" id="obPePos" ${guardrails.virginLock ? 'disabled' : ''}>
-                <option value="">${tx(isEn, 'موقعیت...', 'Position...')}</option>
-                <option value="posterior" ${om.cervixPosition === 'posterior' ? 'selected' : ''}>${tx(isEn, 'خلفی', 'Posterior')}</option>
-                <option value="mid" ${om.cervixPosition === 'mid' ? 'selected' : ''}>${tx(isEn, 'میانی', 'Mid')}</option>
-                <option value="anterior" ${om.cervixPosition === 'anterior' ? 'selected' : ''}>${tx(isEn, 'قدامی', 'Anterior')}</option>
-              </select>
-            </div>
-          </div>
-          <div class="obgyn-field is-span-2">
-            <label for="obPeMembranes">${tx(isEn, 'وضعیت پرده‌ها (Intact / Ruptured)', 'Membranes Status')}</label>
-            <select class="input-select" id="obPeMembranes" ${guardrails.virginLock ? 'disabled' : ''}>
-              <option value="">—</option>
-              <option value="سالم (Intact)" ${om.membranesStatus === 'سالم (Intact)' ? 'selected' : ''}>${tx(isEn, 'سالم (Intact)', 'Intact')}</option>
-              <option value="پاره (Ruptured)" ${om.membranesStatus === 'پاره (Ruptured)' ? 'selected' : ''}>${tx(isEn, 'پاره (Ruptured)', 'Ruptured')}</option>
-            </select>
-          </div>
-          <div class="obgyn-field is-span-2">
-            <label for="obPeFluidChar">${tx(isEn, 'رنگ و بوی مایع آمنیوتیک', 'Amniotic Fluid Character')}</label>
-            <input type="text" class="input-text" id="obPeFluidChar" value="${escapeHtml(om.amnioticFluidChar || '')}" placeholder="${tx(isEn, 'شفاف / مکونیوم / خونی / بدون بوی بد', 'Clear / Meconium / No odor')}" ${guardrails.virginLock ? 'disabled' : ''}>
-          </div>
-        </div>
+      <div class="obgyn-search-wrap">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obGenPeSearchInput" value="${escapeHtml(generalPeSearchQuery)}" placeholder="${tx(isEn, 'جستجوی علامت در معاینه عمومی (رنگ‌پریدگی ملتحمه، سوفل، کراکل ریه، تیروئید، DTR...)', 'Search general PE findings (conjunctival pallor, murmur, crackles, thyroid, GCS...)')}">
       </div>
-    </section>` : ''}
+      ${genQuery ? `
+        <div class="obgyn-mt-sm">
+          ${genHits.length === 0
+            ? `<div class="obgyn-empty-hint">${tx(isEn, 'موردی یافت نشد.', 'No matching general PE item.')}</div>`
+            : renderCompactSplitGrid(genHits, genFindings, { type: 'genpe', isEn })
+          }
+        </div>
+      ` : ''}
+    </section>
 
     <div class="obgyn-pe-accordions">
-      ${groupOrder.map((grpKey) => {
-        const grp = grouped.get(grpKey);
-        const isOpen = expandedPeGroups.has(grpKey);
-        const assessedCnt = grp.items.filter((it) => {
-          const st = findings[it.id]?.state;
-          return st === 1 || st === -1;
-        }).length;
-        const hasNormalTargets = grp.items.some((it) => (it.normalState === 1 || it.normalState === -1) && !(guardrails.virginLock && it.isInternalPelvic));
-
+      ${generalPillars.map((pillar) => {
+        const isOpen = expandedGenPeSystems.has(pillar.systemKey);
+        let posCnt = 0;
+        let negCnt = 0;
+        (pillar.items || []).forEach((it) => {
+          const st = genFindings[it.id]?.state;
+          if (st === 1) posCnt += 1;
+          else if (st === -1) negCnt += 1;
+        });
+        const titleTxt = isEn ? pillar.en : stripTitleNoise(pillar.title);
         return `
-          <div class="clinical-card obgyn-pe-accordion ${isOpen ? 'is-open' : ''}">
-            <div class="obgyn-pe-acc-header">
-              <button type="button" class="obgyn-pe-acc-toggle" data-pe-group-toggle="${escapeHtml(grpKey)}" aria-expanded="${isOpen}">
+          <div class="clinical-card obgyn-sys-accordion ${isOpen ? 'is-open' : ''}">
+            <div class="obgyn-sys-acc-head">
+              <button type="button" class="obgyn-pe-acc-toggle" data-genpe-sys-toggle="${escapeHtml(pillar.systemKey)}" aria-expanded="${isOpen}">
                 ${getIconSvg(isOpen ? 'chevron-up' : 'chevron-down', { size: 15 })}
-                <strong>${escapeHtml(isEn ? grp.subGroupEn : grp.subGroupFa)}</strong>
-                <span class="obgyn-pe-count">${assessedCnt}/${grp.items.length}</span>
+                <strong>${escapeHtml(titleTxt)}</strong>
+                <span class="obgyn-sys-counters">
+                  <span class="obgyn-sys-badge-pos ${posCnt > 0 ? 'has-val' : ''}">+${posCnt}</span>
+                  <span class="obgyn-sys-badge-neg ${negCnt > 0 ? 'has-val' : ''}">-${negCnt}</span>
+                  <span class="obgyn-pe-count">${posCnt + negCnt}/${pillar.items.length}</span>
+                </span>
               </button>
-              ${hasNormalTargets ? `
-                <button type="button" class="obgyn-normal-sec-btn" data-pe-normal-group="${escapeHtml(grpKey)}">
-                  ${getIconSvg('check-circle', { size: 13 })}
-                  <span>${tx(isEn, 'ثبت معاینه نرمال این بخش', 'Record Normal Exam')}</span>
-                </button>
-              ` : ''}
+              <button type="button" class="obgyn-normal-sec-btn" data-genpe-sys-normal="${escapeHtml(pillar.systemKey)}">
+                ${getIconSvg('check-circle', { size: 13 })}
+                <span>${tx(isEn, 'ثبت معاینه نرمال این بخش', 'Record Normal Exam')}</span>
+              </button>
             </div>
             ${isOpen ? `
               <div class="obgyn-pe-acc-body">
-                ${renderCompactSplitGrid(grp.items, findings, {
-                  type: 'pe',
-                  isEn,
-                  isLockedFn: (it) => guardrails.virginLock && it.isInternalPelvic
-                })}
+                ${renderCompactSplitGrid(pillar.items, genFindings, { type: 'genpe', isEn })}
               </div>
             ` : ''}
           </div>
@@ -1662,13 +1966,66 @@ function renderTabPe(state, ob, guardrails, isEn) {
   `;
 }
 
-function renderTabWorkup(state, ob, guardrails, isEn) {
-  const us = ob.paraclinics?.lastObstetricUltrasound || {};
-  const tvs = ob.paraclinics?.gynecologicUltrasound || {};
-  const fm = ob.paraclinics?.fetalMonitoring || {};
-  const dec = fm.decelerations || { variablePathologicalFlags: {} };
+/* =========================== TAB 7: PARACLINICS =========================== */
+
+function renderStudyCardHtml(study, isEn) {
+  const def = OBGYN_PARACLINIC_STUDY_TYPES.find((t) => t.id === study.type);
+  if (!def) return '';
+  const f = study.fields || {};
+  let nichdHtml = '';
+  if (study.type === 'nst_efm') {
+    const hasTrace = hasVal(f.baselineBpm) && hasVal(f.variability);
+    const nichd = evaluateNichdCategory({
+      baselineBpm: f.baselineBpm,
+      variability: f.variability,
+      decelerations: { type: f.decelType || 'None', isRecurrent: f.decelRecurrent === 'yes', variablePathologicalFlags: {}, cordCompressionPatternVariant: 'None' }
+    });
+    const cls = nichd.category === 'Category III' ? 'cat3' : nichd.category === 'Category I' ? 'cat1' : 'cat2';
+    nichdHtml = `<span class="obgyn-nichd-badge is-${cls}">${escapeHtml(hasTrace ? (isEn ? nichd.labelEn : nichd.labelFa) : tx(isEn, 'NICHD: پارامترها را وارد کنید', 'NICHD: Enter trace'))}</span>`;
+  }
+  return `
+    <div class="obgyn-study-card" data-study-id="${escapeHtml(study.id)}">
+      <div class="obgyn-study-head">
+        <div class="obgyn-study-title-wrap">
+          <strong>${escapeHtml(isEn ? def.en : def.fa)}</strong>
+          ${nichdHtml}
+        </div>
+        <button type="button" class="obgyn-icon-del" data-del-study-id="${escapeHtml(study.id)}" title="${tx(isEn, 'حذف گزارش', 'Remove study')}">${getIconSvg('trash', { size: 14 })}</button>
+      </div>
+      <div class="obgyn-form-grid obgyn-cols-4 obgyn-mt-xs">
+        <div class="obgyn-field">
+          <label>${tx(isEn, 'تاریخ / ساعت مطالعه', 'Date / Time')}</label>
+          <input type="text" class="input-text dir-ltr obgyn-study-date-inp" data-study-id="${escapeHtml(study.id)}" value="${escapeHtml(study.date || '')}" placeholder="1405/01/15">
+        </div>
+        ${(def.fields || []).map((fd) => {
+          const cur = f[fd.key] || '';
+          if (fd.type === 'select') {
+            return `
+              <div class="obgyn-field">
+                <label>${escapeHtml(isEn ? fd.en : fd.fa)}</label>
+                <select class="input-select obgyn-study-fld-inp" data-study-id="${escapeHtml(study.id)}" data-study-fld="${escapeHtml(fd.key)}">
+                  <option value="" ${!cur ? 'selected' : ''}>—</option>
+                  ${(fd.options || []).map((o) => `<option value="${escapeHtml(o.val)}" ${cur === o.val ? 'selected' : ''}>${escapeHtml(isEn ? o.en : o.fa)}</option>`).join('')}
+                </select>
+              </div>
+            `;
+          }
+          return `
+            <div class="obgyn-field">
+              <label>${escapeHtml(isEn ? fd.en : fd.fa)}</label>
+              <input type="text" class="input-text obgyn-study-fld-inp" data-study-id="${escapeHtml(study.id)}" data-study-fld="${escapeHtml(fd.key)}" value="${escapeHtml(cur)}">
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderTabParaclinics(state, ob, guardrails, isEn) {
   const kl = ob.paraclinics?.keyLabs || {};
-  const nichd = evaluateNichdCategory(fm);
+  const extraLabs = Array.isArray(ob.paraclinics?.extraLabs) ? ob.paraclinics.extraLabs : [];
+  const studies = Array.isArray(ob.paraclinics?.studies) ? ob.paraclinics.studies : [];
   const isGyn = activeSubMode === 'gynecology';
 
   const obsLabRows = [
@@ -1685,7 +2042,6 @@ function renderTabWorkup(state, ob, guardrails, isEn) {
     ['indirectCoombs', 'Indirect Coombs', 'Negative', false],
     ['gbs', 'GBS Swab (35-37w)', 'Negative', false]
   ];
-
   const gynLabRows = [
     ['bhcg', 'β-hCG (IU/L)', '<5 / 2450', guardrails.bhcgMandatory],
     ['hb', 'Hb / MCV', '9.8 / 74', false],
@@ -1698,191 +2054,21 @@ function renderTabWorkup(state, ob, guardrails, isEn) {
     ['fshLh', 'FSH / LH', '6.2 / 5.4', false],
     ['cr', 'Cr (mg/dL)', '0.7', false]
   ];
-
   const activeLabRows = isGyn ? gynLabRows : obsLabRows;
+  const labSearchHits = labSearchQuery.trim() ? smartClinicalSearch(labSearchQuery, MASTER_ALL_LAB_TESTS, 12) : [];
 
   return `
-    ${renderGuardrailBannersHtml(guardrails, isEn, 'workup')}
+    ${renderGuardrailBannersHtml(guardrails, isEn, 'paraclinics')}
 
-    ${!isGyn ? `
-    <section class="clinical-card obgyn-section-card">
-      <div class="card-header">
-        <div class="card-title">
-          ${getIconSvg('ultrasound', { size: 16 })}
-          <span>${tx(isEn, 'آخرین سونوگرافی بارداری (۶ محور الزامی + داپلر آکرتا)', 'Last Obstetric Ultrasound (6 Checkpoints + Accreta Doppler)')}</span>
-        </div>
-      </div>
-      <div class="obgyn-form-grid obgyn-cols-4">
-        <div class="obgyn-field">
-          <label for="obUsDate">${tx(isEn, 'تاریخ سونوگرافی', 'Scan Date')}</label>
-          <input type="text" class="input-text dir-ltr" id="obUsDate" value="${escapeHtml(us.scanDate || '')}" placeholder="1405/01/15">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsPres">${tx(isEn, '۱. پرزانتاسیون و ضربان', '1. Presentation & FHR')}</label>
-          <input type="text" class="input-text" id="obUsPres" value="${escapeHtml(us.presentation || '')}" placeholder="${tx(isEn, 'سفالیک، FHR نرمال', 'Cephalic, normal FHR')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsPlacenta">${tx(isEn, '۲. محل و گرید جفت', '2. Placental Location & Grade')}</label>
-          <input type="text" class="input-text" id="obUsPlacenta" value="${escapeHtml(us.placentalLocationAndGrade || '')}" placeholder="${tx(isEn, 'قدامی گرید ۲ / پایین یا پرویا', 'Anterior Gr II')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsFluid">${tx(isEn, '۳. مایع آمنیوتیک (AFI/MVP)', '3. Amniotic Fluid (AFI)')}</label>
-          <input type="text" class="input-text" id="obUsFluid" value="${escapeHtml(us.amnioticFluidVolume || '')}" placeholder="${tx(isEn, 'نرمال (AFI 12 cm)', 'Normal (AFI 12 cm)')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsGa">${tx(isEn, '۴. سن بارداری سونو', '4. Sonographic GA')}</label>
-          <input type="text" class="input-text dir-ltr" id="obUsGa" value="${escapeHtml(us.sonographicGa || '')}" placeholder="34W+2d">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsEfw">${tx(isEn, '۵. وزن تخمینی (EFW) و صدک', '5. EFW (g) & Percentile')}</label>
-          <input type="text" class="input-text" id="obUsEfw" value="${escapeHtml(us.efwGramsAndPercentile || '')}" placeholder="${tx(isEn, '2300 g (صدک ۳۰)', '2300 g (30th %ile)')}">
-        </div>
-        <div class="obgyn-field is-span-2 ${guardrails.accretaDopplerMandatory ? 'is-amber-mandatory' : ''}">
-          <label for="obUsAccreta">${tx(isEn, '۶. کالرداپلر آکرتای جفت (الزامی در سابقه CS)', '6. Placenta Accreta Color Doppler (Mandatory if prior CS)')}</label>
-          <input type="text" class="input-text" id="obUsAccreta" value="${escapeHtml(us.placentaAccretaColorDoppler || '')}" placeholder="${tx(isEn, 'فاقد شواهد چسبندگی جفت (No Accreta)', 'No sonographic signs of placenta accreta')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsBpp">BPP Score</label>
-          <input type="text" class="input-text dir-ltr" id="obUsBpp" value="${escapeHtml(us.bppScore || '')}" placeholder="8/8">
-        </div>
-        <div class="obgyn-field is-span-2">
-          <label for="obUsDoppler">${tx(isEn, 'داپلر نافی / مغزی (UA/MCA PI)', 'Umbilical / MCA Doppler')}</label>
-          <input type="text" class="input-text" id="obUsDoppler" value="${escapeHtml(us.umbilicalAndMcaDoppler || '')}" placeholder="${tx(isEn, 'UA-PI نرمال، جریان دیاستولیک مثبت', 'Normal UA-PI, positive EDF')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obUsCl">${tx(isEn, 'طول سرویکس (mm)', 'Cervical Length (mm)')}</label>
-          <input type="text" class="input-text dir-ltr" id="obUsCl" value="${escapeHtml(us.cervicalLengthMm || '')}" placeholder="32 mm">
-        </div>
-      </div>
-    </section>
-
-    <section class="clinical-card obgyn-section-card">
-      <div class="card-header">
-        <div class="card-title">
-          ${getIconSvg('activity', { size: 16 })}
-          <span>${tx(isEn, 'ابزار تفسیر ۵ مرحله‌ای NST / EFM و رده‌بندی خودکار NICHD', '5-Step NST / FHT Builder & Auto NICHD Evaluator')}</span>
-        </div>
-        <span id="obgynNichdBadge" class="obgyn-nichd-badge is-${nichd.category === 'Category III' ? 'cat3' : nichd.category === 'Category I' ? 'cat1' : 'cat2'}">
-          ${escapeHtml(fm.baselineBpm || fm.variability ? (isEn ? nichd.labelEn : nichd.labelFa) : tx(isEn, 'NICHD: پارامترهای NST را وارد کنید', 'NICHD: Enter NST trace'))}
-        </span>
-      </div>
-      <div class="obgyn-form-grid obgyn-cols-4">
-        <div class="obgyn-field">
-          <label for="obNstType">${tx(isEn, 'نوع تست', 'Test Modality')}</label>
-          <select class="input-select dir-ltr" id="obNstType">
-            ${['NST', 'OCT', 'Continuous EFM'].map((m) => `<option value="${m}" ${fm.testType === m ? 'selected' : ''}>${m}</option>`).join('')}
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstBase">${tx(isEn, '۱. ضربان پایه Baseline (bpm)', '1. Baseline FHR (bpm)')}</label>
-          <input type="number" class="input-text dir-ltr" id="obNstBase" value="${escapeHtml(fm.baselineBpm || '')}" placeholder="140">
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstVar">${tx(isEn, '۲. تغییرپذیری (Variability)', '2. Variability')}</label>
-          <select class="input-select" id="obNstVar">
-            <option value="">—</option>
-            ${['Moderate', 'Minimal', 'Absent', 'Marked'].map((vr) => `<option value="${vr}" ${fm.variability === vr ? 'selected' : ''}>${vr}</option>`).join('')}
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstAccel">${tx(isEn, '۳. تسریع (Accelerations)', '3. Accelerations')}</label>
-          <input type="text" class="input-text" id="obNstAccel" value="${escapeHtml(fm.accelerations || '')}" placeholder="${tx(isEn, 'Reactive (2x >=15bpm for 15s)', 'Present / Reactive')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstDecelType">${tx(isEn, '۴. افت ضربان (Decelerations)', '4. Deceleration Type')}</label>
-          <select class="input-select" id="obNstDecelType">
-            ${['None', 'Early', 'Variable', 'Late', 'Prolonged'].map((tp) => `<option value="${tp}" ${dec.type === tp ? 'selected' : ''}>${tp}</option>`).join('')}
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstVariant">${tx(isEn, 'الگوی خاص (Sinusoidal / Saltatory)', 'Special Variant')}</label>
-          <select class="input-select" id="obNstVariant">
-            ${['None', 'Saltatory', 'Sinusoidal'].map((vt) => `<option value="${vt}" ${dec.cordCompressionPatternVariant === vt ? 'selected' : ''}>${vt}</option>`).join('')}
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obNstCtx">${tx(isEn, '۵. انقباضات رحمی در ۱۰ دقیقه', '5. Contractions / 10 min')}</label>
-          <input type="text" class="input-text" id="obNstCtx" value="${escapeHtml(fm.contractionsIn10Min || '')}" placeholder="${tx(isEn, 'ندارد / ۳ بار در ۱۰ دقیقه', 'None / 3 in 10 min')}">
-        </div>
-        <div class="obgyn-field obgyn-flex-end">
-          <button type="button" class="obgyn-toggle-chip ${dec.isRecurrent ? 'active' : ''}" id="btnObgynDecelRecurrent">
-            <span>${tx(isEn, 'افت راجعه (>=50% انقباضات)', 'Recurrent (>=50%)')}</span>
-          </button>
-        </div>
-      </div>
-
-      ${dec.type === 'Variable' ? `
-        <div class="obgyn-var-decel-box obgyn-mt-sm">
-          <strong>${tx(isEn, 'معیارهای افت متغیر پاتولوژیک (Pathological Variable Decelerations):', 'Pathological Variable Deceleration Criteria:')}</strong>
-          <div class="obgyn-comp-chips obgyn-mt-xs">
-            ${[
-              ['dropBelow70Bpm', 'افت زیر 70 bpm', 'Drop <70 bpm'],
-              ['durationOver60Sec', 'طول افت بیش از 60 ثانیه', 'Duration >60 sec'],
-              ['moreThan3In20Min', 'بیش از ۳ بار در ۲۰ دقیقه', '>3 times / 20 min']
-            ].map(([k, faL, enL]) => `
-              <button type="button" class="obgyn-toggle-chip ${dec.variablePathologicalFlags?.[k] ? 'active is-danger' : ''}" data-var-flag="${k}">${escapeHtml(isEn ? enL : faL)}</button>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-    </section>` : `
-    <section class="clinical-card obgyn-section-card">
-      <div class="card-header">
-        <div class="card-title">
-          ${getIconSvg('ultrasound', { size: 16 })}
-          <span>${tx(isEn, 'سونوگرافی واژینال / شکمی ژنیکولوژی (TAS / TVS)', 'Gynecologic Pelvic Ultrasound (TAS / TVS)')}</span>
-        </div>
-      </div>
-      <div class="obgyn-form-grid obgyn-cols-4">
-        <div class="obgyn-field">
-          <label for="obTvsType">${tx(isEn, 'روش سونوگرافی', 'Scan Modality')}</label>
-          <select class="input-select dir-ltr" id="obTvsType">
-            <option value="TVS" ${tvs.scanType === 'TVS' ? 'selected' : ''}>TVS (Transvaginal)</option>
-            <option value="TAS" ${tvs.scanType === 'TAS' ? 'selected' : ''}>TAS (Transabdominal)</option>
-          </select>
-        </div>
-        <div class="obgyn-field">
-          <label for="obTvsDate">${tx(isEn, 'تاریخ سونو', 'Scan Date')}</label>
-          <input type="text" class="input-text dir-ltr" id="obTvsDate" value="${escapeHtml(tvs.scanDate || '')}" placeholder="1405/01/15">
-        </div>
-        <div class="obgyn-field">
-          <label for="obTvsUterus">${tx(isEn, 'ابعاد رحم (mm)', 'Uterus Size (mm)')}</label>
-          <input type="text" class="input-text dir-ltr" id="obTvsUterus" value="${escapeHtml(tvs.uterusDimensionsMm || '')}" placeholder="82 x 48 mm">
-        </div>
-        <div class="obgyn-field">
-          <label for="obTvsEt">${tx(isEn, 'ضخامت اندومتر ET (mm)', 'Endometrial Thickness (mm)')}</label>
-          <input type="text" class="input-text dir-ltr" id="obTvsEt" value="${escapeHtml(tvs.endometrialThicknessMm || '')}" placeholder="16">
-        </div>
-        <div class="obgyn-field is-span-2">
-          <label for="obTvsMyoma">${tx(isEn, 'میومتر، فیبروم (FIGO) یا آدنومیوز', 'Myometrial Echo & Myomas')}</label>
-          <input type="text" class="input-text" id="obTvsMyoma" value="${escapeHtml(tvs.myometrialEchoAndMyomas || '')}" placeholder="${tx(isEn, 'میوم ساب‌موکوزال 30mm...', 'Submucosal myoma 30mm...')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obTvsRo">${tx(isEn, 'تخمدان راست (RO)', 'Right Ovary')}</label>
-          <input type="text" class="input-text" id="obTvsRo" value="${escapeHtml(tvs.rightOvary || '')}" placeholder="${tx(isEn, 'نرمال', 'Normal')}">
-        </div>
-        <div class="obgyn-field">
-          <label for="obTvsLo">${tx(isEn, 'تخمدان چپ (LO)', 'Left Ovary')}</label>
-          <input type="text" class="input-text" id="obTvsLo" value="${escapeHtml(tvs.leftOvary || '')}" placeholder="${tx(isEn, 'کیست ساده 35mm', 'Simple cyst 35mm')}">
-        </div>
-        <div class="obgyn-field is-span-4">
-          <label for="obTvsCul">${tx(isEn, 'مایع آزاد کل‌دوساک (Cul-de-sac)', 'Cul-de-sac Free Fluid')}</label>
-          <input type="text" class="input-text" id="obTvsCul" value="${escapeHtml(tvs.culDeSacFreeFluid || '')}" placeholder="${tx(isEn, 'فاقد مایع آزاد', 'No free fluid')}">
-        </div>
-      </div>
-    </section>`}
-
+    <!-- Section A: Labs + Shared 200+ Lab Search -->
     <section class="clinical-card obgyn-section-card">
       <div class="card-header">
         <div class="card-title">
           ${getIconSvg('test-tube', { size: 16 })}
-          <span>${tx(isEn, isGyn ? 'خلاصه آزمایشات ژنیکولوژی (β-hCG / CBC / TSH / Coag / مارکرها)' : 'خلاصه آزمایشات مامایی (HELLP / CBC / Pr-Cr / OGTT / Coombs / GBS)', isGyn ? 'Gynecology Quick Labs' : 'Obstetric Quick Labs')}</span>
+          <span>${tx(isEn, '۷-A. آزمایشات منتخب زنان/مامایی و جستجوی ۲۰۰+ آزمایش هسته مشترک', '7.A Quick Ob/Gyn Labs & 200+ Shared Lab Search')}</span>
         </div>
-        <button type="button" class="obgyn-shared-bridge-btn" data-open-shared-tab="tab-paraclinics">
-          ${getIconSvg('coreLink', { size: 14 })}
-          <span>${tx(isEn, 'پنل جامع آزمایشات هسته مشترک', 'Open Full Shared Lab Panel')}</span>
-        </button>
       </div>
+
       <div class="obgyn-form-grid obgyn-cols-6">
         ${activeLabRows.map(([k, lbl, ph, highlight]) => `
           <div class="obgyn-field ${highlight ? 'is-bhcg-mandatory' : ''}">
@@ -1891,13 +2077,73 @@ function renderTabWorkup(state, ob, guardrails, isEn) {
           </div>
         `).join('')}
       </div>
+
+      <div class="obgyn-search-wrap obgyn-mt-md">
+        ${getIconSvg('search', { size: 14 })}
+        <input type="search" class="input-text obgyn-inline-search" id="obLabSearchInput" value="${escapeHtml(labSearchQuery)}" placeholder="${tx(isEn, 'افزودن آزمایش دیگر از ۲۰۰+ تست هسته مشترک (Fibrinogen, Ferritin, AMH, D-Dimer, Potassium...)...', 'Search 200+ shared labs (Fibrinogen, Ferritin, AMH, D-Dimer, Potassium...)')}">
+      </div>
+      ${labSearchHits.length > 0 ? `
+        <div class="obgyn-comp-chips obgyn-mt-xs">
+          ${labSearchHits.map((t) => `
+            <button type="button" class="obgyn-search-result-chip" data-add-extra-lab="${escapeHtml(t.id)}">
+              ${getIconSvg('plus', { size: 12 })}
+              <span>${escapeHtml(localizeBankText(t.label || t.fa, t.en, isEn))}</span>
+            </button>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      ${extraLabs.length > 0 ? `
+        <div class="obgyn-selected-list obgyn-mt-sm">
+          ${extraLabs.map((row, idx) => `
+            <div class="obgyn-selected-row">
+              <strong>${escapeHtml(localizeBankText(row.label, row.en, isEn))}${row.unit ? ` <small>(${escapeHtml(row.unit)})</small>` : ''}</strong>
+              <input type="text" class="input-text dir-ltr obgyn-extra-lab-inp" data-extra-lab-idx="${idx}" value="${escapeHtml(row.value || '')}" placeholder="${tx(isEn, 'مقدار...', 'Result...')}">
+              <button type="button" class="obgyn-icon-del" data-del-extra-lab="${idx}">${getIconSvg('x', { size: 13 })}</button>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
       <div class="obgyn-field obgyn-mt-sm">
         <label for="obKlNote">${tx(isEn, 'توضیحات آزمایشات و کراس‌مچ', 'Additional Lab / Crossmatch Notes')}</label>
-        <input type="text" class="input-text" id="obKlNote" value="${escapeHtml(ob.paraclinics?.keyLabsNote || '')}" placeholder="${tx(isEn, 'مثلاً ۲ واحد پک‌سل رزرو شد...', 'e.g. 2 units PRBCs crossmatched...')}">
+        <input type="text" class="input-text" id="obKlNote" value="${escapeHtml(ob.paraclinics?.keyLabsNote || '')}" placeholder="${tx(isEn, 'کراس‌مچ ۲ واحد گلبول فشرده، نتایج تکمیلی...', 'Crossmatched 2u pRBC, coagulation profile...')}">
       </div>
+    </section>
+
+    <!-- Section B: On-Demand Diagnostic Study Launcher (Zero Blank Forms Until Clicked) -->
+    <section class="clinical-card obgyn-section-card">
+      <div class="card-header">
+        <div class="card-title">
+          ${getIconSvg('ultrasound', { size: 16 })}
+          <span>${tx(isEn, '۷-B. افزودن گزارش سونوگرافی، NST، پاپ‌اسمیر، ماموگرافی و پاتولوژی (انتخابی)', '7.B On-Demand Diagnostic Studies Launcher (Optional Add-Ons)')}</span>
+        </div>
+      </div>
+      <div class="obgyn-study-launcher">
+        ${OBGYN_PARACLINIC_STUDY_TYPES.map((st) => {
+          const cnt = studies.filter((x) => x.type === st.id).length;
+          return `
+            <button type="button" class="obgyn-study-launch-btn ${cnt > 0 ? 'has-items' : ''}" data-add-study-type="${escapeHtml(st.id)}">
+              ${getIconSvg('plus', { size: 13 })}
+              <span>${escapeHtml(isEn ? st.en : st.fa)}</span>
+              ${cnt > 0 ? `<span class="obgyn-pe-count has-filled">${cnt}</span>` : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+
+      ${studies.length === 0 ? `
+        <div class="obgyn-empty-hint obgyn-mt-sm">${tx(isEn, 'هیچ فرم خالی از پیش چاپ نمی‌شود. در صورت وجود سونوگرافی، نوار قلب جنین، پاپ‌اسمیر، ماموگرافی یا جواب پاتولوژی روی دکمه‌های بالا کلیک کنید.', 'Zero empty templates are pre-printed. Click any study button above to add an optional dated report.')}</div>
+      ` : `
+        <div class="obgyn-studies-list obgyn-mt-md">
+          ${studies.map((s) => renderStudyCardHtml(s, isEn)).join('')}
+        </div>
+      `}
     </section>
   `;
 }
+
+/* ================================ TAB 8: PLAN ================================ */
 
 function renderTabPlan(state, ob, isEn) {
   const ap = ob.assessmentAndPlan || {};
@@ -2230,6 +2476,8 @@ function renderSubModeSoape(state, ob, isEn) {
   `;
 }
 
+/* ======================== BADGE REFRESH & HANDLERS ======================== */
+
 function refreshDynamicBadgesWithoutRerender(state, ob, isEn) {
   if (typeof document === 'undefined') return;
   const stripEl = document.getElementById('obgynExecStrip');
@@ -2248,16 +2496,6 @@ function refreshDynamicBadgesWithoutRerender(state, ob, isEn) {
     bishopEl.textContent = b.assessedCount > 0
       ? (isEn ? b.labelEn : b.labelFa)
       : tx(isEn, 'Bishop Score: معیارها را وارد کنید', 'Bishop Score: Enter TV params');
-  }
-
-  const nichdEl = document.getElementById('obgynNichdBadge');
-  if (nichdEl) {
-    const fm = ob.paraclinics?.fetalMonitoring || {};
-    const n = evaluateNichdCategory(fm);
-    nichdEl.className = `obgyn-nichd-badge is-${n.category === 'Category III' ? 'cat3' : n.category === 'Category I' ? 'cat1' : 'cat2'}`;
-    nichdEl.textContent = (fm.baselineBpm || fm.variability)
-      ? (isEn ? n.labelEn : n.labelFa)
-      : tx(isEn, 'NICHD: پارامترهای NST را وارد کنید', 'NICHD: Enter NST trace');
   }
 }
 
@@ -2371,13 +2609,52 @@ function bindSharedSearchHandlers(container, state, isEn) {
   });
 }
 
+function bindAnemiaEvents(container, ob, isEn) {
+  container.querySelectorAll('[data-anemia-id][data-target-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const aid = btn.getAttribute('data-anemia-id');
+      const target = Number(btn.getAttribute('data-target-state'));
+      if (!ob.ccAndHpi.anemiaSymptoms) ob.ccAndHpi.anemiaSymptoms = {};
+      const cur = ob.ccAndHpi.anemiaSymptoms[aid]?.state || 0;
+      ob.ccAndHpi.anemiaSymptoms[aid] = { state: cur === target ? 0 : target };
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+
+  container.querySelectorAll('[data-anemia-neg-all]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!ob.ccAndHpi.anemiaSymptoms) ob.ccAndHpi.anemiaSymptoms = {};
+      const allNeg = OBGYN_ANEMIA_SYMPTOMS.every((it) => ob.ccAndHpi.anemiaSymptoms[it.id]?.state === -1);
+      OBGYN_ANEMIA_SYMPTOMS.forEach((it) => {
+        if (allNeg) {
+          delete ob.ccAndHpi.anemiaSymptoms[it.id];
+        } else if (ob.ccAndHpi.anemiaSymptoms[it.id]?.state !== 1) {
+          ob.ccAndHpi.anemiaSymptoms[it.id] = { state: -1 };
+        }
+      });
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+}
+
+function preserveFocusRerender(id, caret) {
+  renderObgynWorkspace();
+  const reEl = document.getElementById(id);
+  if (reEl) {
+    reEl.focus();
+    if (typeof caret === 'number') reEl.setSelectionRange(caret, caret);
+  }
+}
+
 function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   const triggerSoftSync = () => {
     refreshDynamicBadgesWithoutRerender(state, ob, isEn);
     hostBridge.onStateChange();
   };
 
-  // Tab 1: Demographics & Obstetric Index
+  // Tab 1: Admission & CC
   const syncDemoDom = (domId, val) => {
     const domEl = document.getElementById(domId);
     if (domEl && domEl.value !== val) domEl.value = val;
@@ -2387,6 +2664,13 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   bindFieldInput(container, 'obDemoWard', (v) => { state.demographics.ward = v; syncDemoDom('demoWard', v); }, triggerSoftSync);
   bindFieldInput(container, 'obDemoBed', (v) => { state.demographics.bed = v; syncDemoDom('demoBed', v); }, triggerSoftSync);
 
+  bindFieldInput(container, 'obAdmCc', (v) => {
+    ob.ccAndHpi.ccText = v;
+    if (!state.cc) state.cc = {};
+    state.cc.patientQuote = v;
+  }, triggerSoftSync);
+  bindFieldInput(container, 'obAdmDur', (v) => { ob.ccAndHpi.duration = v; }, triggerSoftSync);
+
   container.querySelector('#btnObgynToggleVirgin')?.addEventListener('click', () => {
     ob.obstetricIndex.isVirgin = !ob.obstetricIndex.isVirgin;
     renderObgynWorkspace();
@@ -2394,7 +2678,7 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   });
 
   bindFieldInput(container, 'obIdxMarital', (v) => { ob.obstetricIndex.maritalStatus = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obIdxMarriageYrs', (v) => { ob.obstetricIndex.marriageDurationYears = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obIdxConception', (v) => { ob.obstetricIndex.conceptionMethod = v; }, triggerSoftSync);
   bindFieldInput(container, 'obIdxReproStatus', (v) => {
     ob.obstetricIndex.reproductiveStatus = v;
     renderObgynWorkspace();
@@ -2442,7 +2726,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   });
   bindFieldInput(container, 'obIdxChorionicity', (v) => { ob.obstetricIndex.chorionicity = v; }, triggerSoftSync);
 
-  // Triple-Anchor GA
   container.querySelectorAll('.obgyn-cal-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       ob.gestationalDating.lmpCalendar = btn.getAttribute('data-cal-mode') || 'jalali';
@@ -2464,7 +2747,7 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   bindFieldInput(container, 'obGdLastW', (v) => { ob.gestationalDating.lastSonoGaWeeks = v; }, triggerSoftSync);
   bindFieldInput(container, 'obGdLastD', (v) => { ob.gestationalDating.lastSonoGaDays = v; }, triggerSoftSync);
 
-  // Tab 2: Multi-Presentation HPI & Split-Pills
+  // Tab 2: HPI
   bindFieldInput(container, 'obHpiCc', (v) => {
     ob.ccAndHpi.ccText = v;
     if (!state.cc) state.cc = {};
@@ -2487,7 +2770,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       hostBridge.onStateChange();
     });
   });
-
   container.querySelectorAll('[data-toggle-pres-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const pid = btn.getAttribute('data-toggle-pres-id');
@@ -2498,7 +2780,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       }
     });
   });
-
   container.querySelectorAll('[data-del-pres-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const pid = btn.getAttribute('data-del-pres-id');
@@ -2507,7 +2788,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       hostBridge.onStateChange();
     });
   });
-
   container.querySelectorAll('.obgyn-pres-input').forEach((el) => {
     const evt = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(evt, () => {
@@ -2536,15 +2816,8 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
 
   container.querySelector('#obHpiSymSearch')?.addEventListener('input', (e) => {
     symptomSearchQuery = e.target.value || '';
-    const caret = e.target.selectionStart;
-    renderObgynWorkspace();
-    const reEl = document.getElementById('obHpiSymSearch');
-    if (reEl) {
-      reEl.focus();
-      if (typeof caret === 'number') reEl.setSelectionRange(caret, caret);
-    }
+    preserveFocusRerender('obHpiSymSearch', e.target.selectionStart);
   });
-
   container.querySelector('#btnObgynToggleAllSyms')?.addEventListener('click', () => {
     showAllSymptoms = !showAllSymptoms;
     renderObgynWorkspace();
@@ -2561,8 +2834,7 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       hostBridge.onStateChange();
     });
   });
-
-  container.querySelectorAll('.obgyn-mod-chip').forEach((chip) => {
+  container.querySelectorAll('.obgyn-mod-chip[data-sym-id]').forEach((chip) => {
     chip.addEventListener('click', () => {
       const symId = chip.getAttribute('data-sym-id');
       const modVal = chip.getAttribute('data-mod-val');
@@ -2573,7 +2845,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       hostBridge.onStateChange();
     });
   });
-
   container.querySelectorAll('.obgyn-sym-detail-input').forEach((inp) => {
     inp.addEventListener('input', () => {
       const symId = inp.getAttribute('data-sym-id');
@@ -2583,202 +2854,9 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
     });
   });
 
-  // Tab 3: POH, Menstrual & Screening
-  container.querySelector('#btnToggleObsMenstrualAcc')?.addEventListener('click', () => {
-    obsMenstrualExpanded = !obsMenstrualExpanded;
-    renderObgynWorkspace();
-  });
-  container.querySelector('#btnToggleGynPohAcc')?.addEventListener('click', () => {
-    gynPohExpanded = !gynPohExpanded;
-    renderObgynWorkspace();
-  });
+  bindAnemiaEvents(container, ob, isEn);
 
-  container.querySelector('#btnObgynAddPregnancy')?.addEventListener('click', () => {
-    ob.pastObstetricHistory.pregnancies.push({
-      id: `preg_${Date.now()}`,
-      orderNumber: ob.pastObstetricHistory.pregnancies.length + 1,
-      yearOrChildAge: '',
-      outcomeType: 'NVD',
-      gaAtOutcomeWeeks: '',
-      birthWeightGrams: '',
-      csIndicationOrLossMethod: ''
-    });
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-
-  container.querySelectorAll('[data-del-preg]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const idxRow = parseInt(btn.getAttribute('data-del-preg'), 10);
-      ob.pastObstetricHistory.pregnancies.splice(idxRow, 1);
-      ob.pastObstetricHistory.pregnancies.forEach((p, i) => { p.orderNumber = i + 1; });
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  container.querySelectorAll('.obgyn-preg-input').forEach((el) => {
-    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
-    el.addEventListener(evt, () => {
-      const idxRow = parseInt(el.getAttribute('data-preg-index'), 10);
-      const fld = el.getAttribute('data-preg-field');
-      if (ob.pastObstetricHistory.pregnancies[idxRow]) {
-        ob.pastObstetricHistory.pregnancies[idxRow][fld] = el.value;
-        triggerSoftSync();
-      }
-    });
-  });
-
-  container.querySelectorAll('[data-poh-flag]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-poh-flag');
-      ob.pastObstetricHistory.priorComplicationFlags[k] = !ob.pastObstetricHistory.priorComplicationFlags[k];
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  bindFieldInput(container, 'obMhMenarche', (v) => { ob.menstrualHistory.menarcheAge = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhLmp', (v) => {
-    ob.menstrualHistory.lmpDate = v;
-    if (!ob.gestationalDating.lmpDate) ob.gestationalDating.lmpDate = v;
-  }, triggerSoftSync);
-  bindFieldInput(container, 'obMhReg', (v) => { ob.menstrualHistory.regularity = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhInterval', (v) => { ob.menstrualHistory.cycleIntervalDays = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhDuration', (v) => { ob.menstrualHistory.bleedingDurationDays = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhFlow', (v) => { ob.menstrualHistory.flowVolume = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhPads', (v) => { ob.menstrualHistory.padsPerDay = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhDys', (v) => { ob.menstrualHistory.dysmenorrhea = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obMhPmp', (v) => { ob.menstrualHistory.pmpDate = v; }, triggerSoftSync);
-
-  container.querySelectorAll('[data-mh-flag]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-mh-flag');
-      ob.menstrualHistory[k] = !ob.menstrualHistory[k];
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  bindFieldInput(container, 'obScrContra', (v) => { ob.gynScreeningAndRecords.contraception.currentMethod = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrPapDate', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.lastPapSmearDate = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrPapRes', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.lastPapSmearResult = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrHpv', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.hpvTestStatus = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrColpo', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.priorColposcopyResult = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrMammoDate', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.lastMammographyOrBreastUsDate = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obScrMammoBirads', (v) => { ob.gynScreeningAndRecords.cervicalAndBreastScreening.lastMammographyBirads = v; }, triggerSoftSync);
-
-  container.querySelector('#btnObgynAddPathology')?.addEventListener('click', () => {
-    ob.gynScreeningAndRecords.priorPathologyAndCurettage.hasPriorDncOrBiopsy = true;
-    ob.gynScreeningAndRecords.priorPathologyAndCurettage.records.push({ id: `path_${Date.now()}`, date: '', procedureType: '', pathologyResult: '' });
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-
-  container.querySelectorAll('[data-del-path]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const rIdx = parseInt(btn.getAttribute('data-del-path'), 10);
-      ob.gynScreeningAndRecords.priorPathologyAndCurettage.records.splice(rIdx, 1);
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  container.querySelectorAll('.obgyn-path-input').forEach((inp) => {
-    inp.addEventListener('input', () => {
-      const rIdx = parseInt(inp.getAttribute('data-path-index'), 10);
-      const fld = inp.getAttribute('data-path-field');
-      if (ob.gynScreeningAndRecords.priorPathologyAndCurettage.records[rIdx]) {
-        ob.gynScreeningAndRecords.priorPathologyAndCurettage.records[rIdx][fld] = inp.value;
-        triggerSoftSync();
-      }
-    });
-  });
-
-  bindFieldInput(container, 'obAcReg', (v) => { ob.antenatalCareChecklist.careRegularity = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcNtMm', (v) => { ob.antenatalCareChecklist.firstTrimesterScreening.ntMeasurementMm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcDouble', (v) => { ob.antenatalCareChecklist.firstTrimesterScreening.doubleMarkerRisk = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcAnom', (v) => { ob.antenatalCareChecklist.secondTrimesterScreening.anomalyScanResult = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcOgtt', (v) => { ob.antenatalCareChecklist.routineAntenatalLabsAudit.gdmScreening75gOgtt = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcViral', (v) => { ob.antenatalCareChecklist.routineAntenatalLabsAudit.viralMarkers = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcTsh', (v) => { ob.antenatalCareChecklist.routineAntenatalLabsAudit.tshLevel = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcUc', (v) => { ob.antenatalCareChecklist.routineAntenatalLabsAudit.urineCulture = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcGbs', (v) => { ob.antenatalCareChecklist.routineAntenatalLabsAudit.gbsSwab35to37w = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obAcFibroid', (v) => { ob.antenatalCareChecklist.notableSonographicFindingsInPregnancy.uterineFibroids = v; }, triggerSoftSync);
-
-  container.querySelectorAll('[data-ac-flag]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-ac-flag');
-      if (k === 'ntScanDone') ob.antenatalCareChecklist.firstTrimesterScreening.ntScanDone = !ob.antenatalCareChecklist.firstTrimesterScreening.ntScanDone;
-      if (k === 'anomalyScanDone') ob.antenatalCareChecklist.secondTrimesterScreening.anomalyScanDone = !ob.antenatalCareChecklist.secondTrimesterScreening.anomalyScanDone;
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  container.querySelectorAll('[data-sup-flag]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-sup-flag');
-      ob.antenatalCareChecklist.supplementsAndVaccines[k] = !ob.antenatalCareChecklist.supplementsAndVaccines[k];
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  // Tab 4: PAHx Tri-State & In-Place Shared Core Pickers
-  container.querySelector('#btnObgynPahxNeg')?.addEventListener('click', () => {
-    const p = ob.gynScreeningAndRecords.pahx;
-    p.status = p.status === -1 ? 0 : -1;
-    p.hasPriorAnesthesia = false;
-    if (p.status === -1) {
-      p.anesthesiaTypes = [];
-      p.complications = '';
-    }
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-  container.querySelector('#btnObgynPahxPos')?.addEventListener('click', () => {
-    const p = ob.gynScreeningAndRecords.pahx;
-    p.status = p.status === 1 ? 0 : 1;
-    p.hasPriorAnesthesia = p.status === 1;
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-
-  container.querySelectorAll('[data-pahx-type]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const val = btn.getAttribute('data-pahx-type');
-      const p = ob.gynScreeningAndRecords.pahx;
-      const arr = Array.isArray(p.anesthesiaTypes) ? p.anesthesiaTypes : [];
-      if (arr.includes(val)) {
-        p.anesthesiaTypes = arr.filter((x) => x !== val);
-      } else {
-        p.anesthesiaTypes = [...arr, val];
-        p.status = 1;
-        p.hasPriorAnesthesia = true;
-      }
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-  bindFieldInput(container, 'obPahxComp', (v) => {
-    const p = ob.gynScreeningAndRecords.pahx;
-    p.complications = v;
-    if (hasVal(v)) {
-      p.status = 1;
-      p.hasPriorAnesthesia = true;
-    }
-  }, triggerSoftSync);
-
-  container.querySelectorAll('[data-shared-acc-toggle]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-shared-acc-toggle');
-      if (expandedSharedGroups.has(k)) expandedSharedGroups.delete(k);
-      else expandedSharedGroups.add(k);
-      renderObgynWorkspace();
-    });
-  });
-
+  // Tab 3: PMH & PSH + POH/Menstrual
   container.querySelector('#btnObgynPmhNeg')?.addEventListener('click', () => {
     state.pmh.masterRoutineNegative = !state.pmh.masterRoutineNegative;
     renderObgynWorkspace();
@@ -2789,15 +2867,13 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
     renderObgynWorkspace();
     hostBridge.onStateChange();
   });
-  container.querySelector('#btnObgynDhNeg')?.addEventListener('click', () => {
-    state.dh.noRoutineMeds = !state.dh.noRoutineMeds;
+  container.querySelector('#btnToggleObsMenstrualAcc')?.addEventListener('click', () => {
+    obsMenstrualExpanded = !obsMenstrualExpanded;
     renderObgynWorkspace();
-    hostBridge.onStateChange();
   });
-  container.querySelector('#btnObgynAhNkda')?.addEventListener('click', () => {
-    state.ah.nkda = !state.ah.nkda;
+  container.querySelector('#btnToggleGynPohAcc')?.addEventListener('click', () => {
+    gynPohExpanded = !gynPohExpanded;
     renderObgynWorkspace();
-    hostBridge.onStateChange();
   });
 
   [
@@ -2857,13 +2933,97 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
     });
   });
 
+  container.querySelector('#btnObgynAddPregnancy')?.addEventListener('click', () => {
+    ob.pastObstetricHistory.pregnancies.push({
+      id: `preg_${Date.now()}`,
+      orderNumber: ob.pastObstetricHistory.pregnancies.length + 1,
+      yearOrChildAge: '',
+      outcomeType: 'NVD',
+      gaAtOutcomeWeeks: '',
+      birthWeightGrams: '',
+      csIndicationOrLossMethod: ''
+    });
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
+  container.querySelectorAll('[data-del-preg]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idxRow = parseInt(btn.getAttribute('data-del-preg'), 10);
+      ob.pastObstetricHistory.pregnancies.splice(idxRow, 1);
+      ob.pastObstetricHistory.pregnancies.forEach((p, i) => { p.orderNumber = i + 1; });
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-preg-input').forEach((el) => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const idxRow = parseInt(el.getAttribute('data-preg-index'), 10);
+      const fld = el.getAttribute('data-preg-field');
+      if (ob.pastObstetricHistory.pregnancies[idxRow]) {
+        ob.pastObstetricHistory.pregnancies[idxRow][fld] = el.value;
+        triggerSoftSync();
+      }
+    });
+  });
+  container.querySelectorAll('[data-poh-flag]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-poh-flag');
+      ob.pastObstetricHistory.priorComplicationFlags[k] = !ob.pastObstetricHistory.priorComplicationFlags[k];
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+
+  bindFieldInput(container, 'obMhMenarche', (v) => { ob.menstrualHistory.menarcheAge = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhLmp', (v) => {
+    ob.menstrualHistory.lmpDate = v;
+    if (!ob.gestationalDating.lmpDate) ob.gestationalDating.lmpDate = v;
+  }, triggerSoftSync);
+  bindFieldInput(container, 'obMhReg', (v) => { ob.menstrualHistory.regularity = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhInterval', (v) => { ob.menstrualHistory.cycleIntervalDays = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhDuration', (v) => { ob.menstrualHistory.bleedingDurationDays = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhFlow', (v) => { ob.menstrualHistory.flowVolume = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhClots', (v) => { ob.menstrualHistory.clotStatus = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhPads', (v) => { ob.menstrualHistory.padsPerDay = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obMhDys', (v) => { ob.menstrualHistory.dysmenorrhea = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obScrContra', (v) => { ob.gynScreeningAndRecords.contraception.currentMethod = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obScrContraPrior', (v) => { ob.gynScreeningAndRecords.contraception.priorMethodsAndSideEffects = v; }, triggerSoftSync);
+  container.querySelectorAll('[data-mh-flag]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-mh-flag');
+      ob.menstrualHistory[k] = !ob.menstrualHistory[k];
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+
+  // Tab 4: DH / AH / SH / FH
+  container.querySelector('#btnObgynDhNeg')?.addEventListener('click', () => {
+    state.dh.noRoutineMeds = !state.dh.noRoutineMeds;
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
+  container.querySelector('#btnObgynAddCustomDrug')?.addEventListener('click', () => {
+    const inp = container.querySelector('#obCustomDrugInput');
+    const name = inp?.value?.trim();
+    if (!name) return;
+    if (!state.dh) state.dh = { noRoutineMeds: false, activeDrugs: [], customDrugs: [], categories: {}, note: '' };
+    if (!Array.isArray(state.dh.customDrugs)) state.dh.customDrugs = [];
+    state.dh.noRoutineMeds = false;
+    state.dh.customDrugs.push({ id: `cust_${Date.now()}`, name, dose: '', sig: 'Daily (روزانه)' });
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
   container.querySelectorAll('.obgyn-shared-dh-inp').forEach((el) => {
     const evt = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(evt, () => {
       const idx = parseInt(el.getAttribute('data-dh-idx'), 10);
       const fld = el.getAttribute('data-dh-fld');
-      if (state.dh?.activeDrugs?.[idx]) {
-        state.dh.activeDrugs[idx][fld] = el.value;
+      const kind = el.getAttribute('data-dh-kind');
+      const arr = kind === 'custom' ? state.dh?.customDrugs : state.dh?.activeDrugs;
+      if (arr?.[idx]) {
+        arr[idx][fld] = el.value;
         triggerSoftSync();
       }
     });
@@ -2871,29 +3031,80 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   container.querySelectorAll('[data-del-shared-dh]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.getAttribute('data-del-shared-dh'), 10);
-      state.dh.activeDrugs.splice(idx, 1);
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
+      const kind = btn.getAttribute('data-dh-kind');
+      const arr = kind === 'custom' ? state.dh?.customDrugs : state.dh?.activeDrugs;
+      if (arr) {
+        arr.splice(idx, 1);
+        renderObgynWorkspace();
+        hostBridge.onStateChange();
+      }
     });
   });
 
-  container.querySelectorAll('[data-toggle-shared-ah]').forEach((btn) => {
+  // Multi-Allergy Row Builder events
+  container.querySelector('#btnObgynAhNkda')?.addEventListener('click', () => {
+    if (!state.ah) state.ah = { nkda: false, selected: [], note: '' };
+    state.ah.nkda = !state.ah.nkda;
+    if (state.ah.nkda) state.ah.selected = [];
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
+  container.querySelectorAll('[data-add-allergen-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const aid = btn.getAttribute('data-toggle-shared-ah');
-      if (!state.ah.selected) state.ah.selected = [];
-      const curIdx = state.ah.selected.findIndex((x) => x.id === aid);
-      if (curIdx >= 0) {
-        state.ah.selected.splice(curIdx, 1);
-      } else {
-        const tmpl = (SURGICAL_SCHEMA.allergyTemplates || []).find((t) => t.id === aid);
+      const pid = btn.getAttribute('data-add-allergen-preset');
+      const preset = OBGYN_QUICK_ALLERGENS.find((x) => x.id === pid);
+      if (!preset) return;
+      if (!state.ah) state.ah = { nkda: false, selected: [], note: '' };
+      if (!Array.isArray(state.ah.selected)) state.ah.selected = [];
+      const exists = state.ah.selected.some((x) => x.id === preset.id || x.label === preset.fa);
+      if (!exists) {
         state.ah.nkda = false;
-        if (tmpl) state.ah.selected.push({ id: tmpl.id, label: tmpl.label, detail: '' });
+        state.ah.selected.push({ id: preset.id, label: preset.fa, en: preset.en, reactions: [], detail: '' });
       }
       renderObgynWorkspace();
       hostBridge.onStateChange();
     });
   });
-  bindFieldInput(container, 'obSharedAhNote', (v) => { state.ah.note = v; if (hasVal(v)) state.ah.nkda = false; }, triggerSoftSync);
+  container.querySelector('#btnObgynAddCustomAllergen')?.addEventListener('click', () => {
+    const inp = container.querySelector('#obCustomAllergenInput');
+    const lbl = inp?.value?.trim();
+    if (!lbl) return;
+    if (!state.ah) state.ah = { nkda: false, selected: [], note: '' };
+    if (!Array.isArray(state.ah.selected)) state.ah.selected = [];
+    state.ah.nkda = false;
+    state.ah.selected.push({ id: `alg_cust_${Date.now()}`, label: lbl, en: lbl, reactions: [], detail: '' });
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
+  container.querySelectorAll('[data-del-allergy-idx]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const aIdx = parseInt(btn.getAttribute('data-del-allergy-idx'), 10);
+      state.ah.selected.splice(aIdx, 1);
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-reaction-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const aIdx = parseInt(btn.getAttribute('data-allergy-idx'), 10);
+      const rxId = btn.getAttribute('data-rx-id');
+      const row = state.ah?.selected?.[aIdx];
+      if (!row || typeof row !== 'object') return;
+      if (!Array.isArray(row.reactions)) row.reactions = [];
+      row.reactions = row.reactions.includes(rxId) ? row.reactions.filter((x) => x !== rxId) : [...row.reactions, rxId];
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-allergy-detail-inp').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const aIdx = parseInt(inp.getAttribute('data-allergy-idx'), 10);
+      if (state.ah?.selected?.[aIdx] && typeof state.ah.selected[aIdx] === 'object') {
+        state.ah.selected[aIdx].detail = inp.value;
+        triggerSoftSync();
+      }
+    });
+  });
 
   container.querySelectorAll('[data-sh-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2911,136 +3122,220 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   bindFieldInput(container, 'obSharedShNote', (v) => { state.sh.note = v; }, triggerSoftSync);
   bindFieldInput(container, 'obSharedFhNote', (v) => { state.fh.note = v; }, triggerSoftSync);
 
-  container.querySelectorAll('[data-open-shared-tab]').forEach((btn) => {
+  // Tab 5: ROS
+  container.querySelector('#obRosSearchInput')?.addEventListener('input', (e) => {
+    rosSearchQuery = e.target.value || '';
+    preserveFocusRerender('obRosSearchInput', e.target.selectionStart);
+  });
+  container.querySelector('#btnObgynRosNegRemaining')?.addEventListener('click', () => {
+    if (!state.ros) state.ros = { items: {} };
+    if (!state.ros.items) state.ros.items = {};
+    getNonMaleRosGroups().forEach((grp) => {
+      grp.items.forEach((it) => {
+        const cur = state.ros.items[it.id];
+        if (!cur || (cur.state !== 1 && cur.state !== -1)) {
+          state.ros.items[it.id] = { state: -1, subTypes: [], detail: '', system: it.system, label: it.fa || it.label, en: it.en };
+        }
+      });
+    });
+    renderObgynWorkspace();
+    hostBridge.onStateChange();
+  });
+  container.querySelectorAll('[data-ros-sys-toggle]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-open-shared-tab');
-      if (tabId) enterObgynSharedCoreTab(tabId);
+      const k = btn.getAttribute('data-ros-sys-toggle');
+      if (expandedRosSystems.has(k)) expandedRosSystems.delete(k);
+      else expandedRosSystems.add(k);
+      renderObgynWorkspace();
+    });
+  });
+  container.querySelectorAll('[data-ros-sys-neg]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-ros-sys-neg');
+      const grp = getNonMaleRosGroups().find((g) => g.systemKey === k);
+      if (!grp) return;
+      if (!state.ros) state.ros = { items: {} };
+      if (!state.ros.items) state.ros.items = {};
+      grp.items.forEach((it) => {
+        const cur = state.ros.items[it.id];
+        if (!cur || cur.state !== 1) {
+          state.ros.items[it.id] = { state: -1, subTypes: [], detail: '', system: it.system, label: it.fa || it.label, en: it.en };
+        }
+      });
+      expandedRosSystems.add(k);
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('[data-ros-id][data-target-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rid = btn.getAttribute('data-ros-id');
+      const target = Number(btn.getAttribute('data-target-state'));
+      if (!state.ros) state.ros = { items: {} };
+      if (!state.ros.items) state.ros.items = {};
+      const cur = state.ros.items[rid] || { state: 0, subTypes: [], detail: '' };
+      const all = getNonMaleRosGroups().flatMap((g) => g.items);
+      const bi = all.find((x) => x.id === rid);
+      if (cur.state === target) {
+        delete state.ros.items[rid];
+      } else {
+        state.ros.items[rid] = { ...cur, state: target, system: bi?.system || cur.system, label: bi?.fa || cur.label, en: bi?.en || cur.en };
+      }
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('[data-ros-sub-id]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const rid = chip.getAttribute('data-ros-sub-id');
+      const val = chip.getAttribute('data-ros-sub-val');
+      const cur = state.ros?.items?.[rid];
+      if (!cur) return;
+      const arr = Array.isArray(cur.subTypes) ? cur.subTypes : [];
+      cur.subTypes = arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-ros-detail-input').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const rid = inp.getAttribute('data-ros-id');
+      if (state.ros?.items?.[rid]) {
+        state.ros.items[rid].detail = inp.value;
+        triggerSoftSync();
+      }
     });
   });
 
-  // Tab 5: PE
+  // Tab 6: PE (Vitals + Deep Obs / Gyn + General Head-to-Toe)
   bindFieldInput(container, 'obPeBp', (v) => { ob.pe.vitals.bp = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPeBpRep', (v) => { ob.pe.vitals.bpRepeat = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPePr', (v) => { ob.pe.vitals.pr = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPeRr', (v) => { ob.pe.vitals.rr = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPeTemp', (v) => { ob.pe.vitals.temp = v; }, triggerSoftSync);
+  bindFieldInput(container, 'obPeSpo2', (v) => { ob.pe.vitals.spo2 = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPeDipstick', (v) => { ob.pe.vitals.urineDipstick = v; }, triggerSoftSync);
 
-  bindFieldInput(container, 'obPeFhr', (v) => { ob.pe.obsMeasurements.fhr = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeFhrQuad', (v) => { ob.pe.obsMeasurements.fhrQuadrant = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeFh', (v) => { ob.pe.obsMeasurements.fundalHeightCm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPePres', (v) => { ob.pe.obsMeasurements.presentingPart = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeDil', (v) => { ob.pe.obsMeasurements.dilationCm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeEff', (v) => { ob.pe.obsMeasurements.effacementPct = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeStationScale', (v) => { ob.pe.obsMeasurements.stationScale = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeStation', (v) => { ob.pe.obsMeasurements.stationValue = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeCons', (v) => { ob.pe.obsMeasurements.cervixConsistency = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPePos', (v) => { ob.pe.obsMeasurements.cervixPosition = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeMembranes', (v) => { ob.pe.obsMeasurements.membranesStatus = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obPeFluidChar', (v) => { ob.pe.obsMeasurements.amnioticFluidChar = v; }, triggerSoftSync);
-
-  container.querySelectorAll('[data-pe-group-toggle]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const grp = btn.getAttribute('data-pe-group-toggle');
-      if (expandedPeGroups.has(grp)) expandedPeGroups.delete(grp);
-      else expandedPeGroups.add(grp);
-      renderObgynWorkspace();
+  container.querySelectorAll('.obgyn-obs-inp').forEach((el) => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const k = el.getAttribute('data-obs-key');
+      if (k) {
+        ob.pe.obsMeasurements[k] = el.value;
+        triggerSoftSync();
+      }
     });
   });
-
-  container.querySelectorAll('[data-pe-normal-group]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const grp = btn.getAttribute('data-pe-normal-group');
-      const isVirgin = Boolean(ob.obstetricIndex?.isVirgin);
-      const subKey = activeSubMode === 'gynecology' ? 'gynecology' : 'obstetrics';
-      if (!ob.pe.findings) ob.pe.findings = {};
-      OBGYN_PE_BANK.forEach((it) => {
-        if (!OBGYN_STRUCTURED_PE_IDS.has(it.id) && (it.subMode === 'both' || it.subMode === subKey) && it.subGroup === grp) {
-          if (isVirgin && it.isInternalPelvic) return;
-          if (it.normalState === 1 || it.normalState === -1) {
-            const curDet = ob.pe.findings[it.id]?.detail || '';
-            ob.pe.findings[it.id] = { state: it.normalState, detail: curDet };
-          }
-        }
-      });
-      expandedPeGroups.add(grp);
-      renderObgynWorkspace();
-      hostBridge.onStateChange();
-    });
-  });
-
-  container.querySelectorAll('[data-pe-id][data-target-state]').forEach((btn) => {
+  container.querySelectorAll('[data-tactile-key]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (btn.disabled) return;
-      const peId = btn.getAttribute('data-pe-id');
-      const target = Number(btn.getAttribute('data-target-state'));
-      if (!ob.pe.findings) ob.pe.findings = {};
-      const cur = ob.pe.findings[peId] || { state: 0, detail: '' };
-      ob.pe.findings[peId] = { ...cur, state: cur.state === target ? 0 : target };
+      const k = btn.getAttribute('data-tactile-key');
+      const v = btn.getAttribute('data-tactile-val');
+      ob.pe.obsMeasurements[k] = String(ob.pe.obsMeasurements[k] ?? '') === v ? '' : v;
       renderObgynWorkspace();
       hostBridge.onStateChange();
     });
   });
 
-  container.querySelectorAll('.obgyn-pe-detail-input').forEach((inp) => {
-    inp.addEventListener('input', () => {
-      const peId = inp.getAttribute('data-pe-id');
-      if (!ob.pe.findings[peId]) ob.pe.findings[peId] = { state: 1, detail: '' };
-      ob.pe.findings[peId].detail = inp.value;
+  container.querySelectorAll('.obgyn-gyn-inp').forEach((el) => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const sec = el.getAttribute('data-gyn-sec');
+      const key = el.getAttribute('data-gyn-key');
+      if (!ob.pe.gynExam) ob.pe.gynExam = {};
+      if (!ob.pe.gynExam[sec]) ob.pe.gynExam[sec] = {};
+      ob.pe.gynExam[sec][key] = el.value;
       triggerSoftSync();
     });
   });
 
-  // Tab 6: Workup
-  bindFieldInput(container, 'obUsDate', (v) => { ob.paraclinics.lastObstetricUltrasound.scanDate = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsPres', (v) => { ob.paraclinics.lastObstetricUltrasound.presentation = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsPlacenta', (v) => { ob.paraclinics.lastObstetricUltrasound.placentalLocationAndGrade = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsFluid', (v) => { ob.paraclinics.lastObstetricUltrasound.amnioticFluidVolume = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsGa', (v) => { ob.paraclinics.lastObstetricUltrasound.sonographicGa = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsEfw', (v) => { ob.paraclinics.lastObstetricUltrasound.efwGramsAndPercentile = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsAccreta', (v) => { ob.paraclinics.lastObstetricUltrasound.placentaAccretaColorDoppler = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsBpp', (v) => { ob.paraclinics.lastObstetricUltrasound.bppScore = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsDoppler', (v) => { ob.paraclinics.lastObstetricUltrasound.umbilicalAndMcaDoppler = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obUsCl', (v) => { ob.paraclinics.lastObstetricUltrasound.cervicalLengthMm = v; }, triggerSoftSync);
-
-  bindFieldInput(container, 'obNstType', (v) => { ob.paraclinics.fetalMonitoring.testType = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obNstBase', (v) => { ob.paraclinics.fetalMonitoring.baselineBpm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obNstVar', (v) => { ob.paraclinics.fetalMonitoring.variability = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obNstAccel', (v) => { ob.paraclinics.fetalMonitoring.accelerations = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obNstDecelType', (v) => {
-    ob.paraclinics.fetalMonitoring.decelerations.type = v;
-    ob.paraclinics.fetalMonitoring.decelerations.status = v === 'None' ? 'None' : 'Present';
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-  bindFieldInput(container, 'obNstVariant', (v) => { ob.paraclinics.fetalMonitoring.decelerations.cordCompressionPatternVariant = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obNstCtx', (v) => { ob.paraclinics.fetalMonitoring.contractionsIn10Min = v; }, triggerSoftSync);
-
-  container.querySelector('#btnObgynDecelRecurrent')?.addEventListener('click', () => {
-    ob.paraclinics.fetalMonitoring.decelerations.isRecurrent = !ob.paraclinics.fetalMonitoring.decelerations.isRecurrent;
-    renderObgynWorkspace();
-    hostBridge.onStateChange();
-  });
-
-  container.querySelectorAll('[data-var-flag]').forEach((btn) => {
+  container.querySelectorAll('[data-pe-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const k = btn.getAttribute('data-var-flag');
-      const vf = ob.paraclinics.fetalMonitoring.decelerations.variablePathologicalFlags;
-      vf[k] = !vf[k];
+      const key = btn.getAttribute('data-pe-preset');
+      const vals = OBGYN_PE_NORMAL_PRESETS[key];
+      if (!vals) return;
+      if (key === 'obsAbdomen' || key === 'obsExtremities') {
+        Object.assign(ob.pe.obsMeasurements, vals);
+      } else {
+        const secMap = {
+          gynBreast: 'breast',
+          gynAbdomen: 'abdomen',
+          gynExternal: 'externalGenitalia',
+          gynSpeculum: 'speculum',
+          gynBimanual: 'bimanual'
+        };
+        const targetSec = secMap[key];
+        if (targetSec) {
+          if (!ob.pe.gynExam) ob.pe.gynExam = {};
+          if (!ob.pe.gynExam[targetSec]) ob.pe.gynExam[targetSec] = {};
+          Object.assign(ob.pe.gynExam[targetSec], vals);
+        }
+      }
       renderObgynWorkspace();
       hostBridge.onStateChange();
     });
   });
 
-  bindFieldInput(container, 'obTvsType', (v) => { ob.paraclinics.gynecologicUltrasound.scanType = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsDate', (v) => { ob.paraclinics.gynecologicUltrasound.scanDate = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsUterus', (v) => { ob.paraclinics.gynecologicUltrasound.uterusDimensionsMm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsEt', (v) => { ob.paraclinics.gynecologicUltrasound.endometrialThicknessMm = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsMyoma', (v) => { ob.paraclinics.gynecologicUltrasound.myometrialEchoAndMyomas = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsRo', (v) => { ob.paraclinics.gynecologicUltrasound.rightOvary = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsLo', (v) => { ob.paraclinics.gynecologicUltrasound.leftOvary = v; }, triggerSoftSync);
-  bindFieldInput(container, 'obTvsCul', (v) => { ob.paraclinics.gynecologicUltrasound.culDeSacFreeFluid = v; }, triggerSoftSync);
+  // General PE search + accordions
+  container.querySelector('#obGenPeSearchInput')?.addEventListener('input', (e) => {
+    generalPeSearchQuery = e.target.value || '';
+    preserveFocusRerender('obGenPeSearchInput', e.target.selectionStart);
+  });
+  container.querySelectorAll('[data-genpe-sys-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-genpe-sys-toggle');
+      if (expandedGenPeSystems.has(k)) expandedGenPeSystems.delete(k);
+      else expandedGenPeSystems.add(k);
+      renderObgynWorkspace();
+    });
+  });
+  container.querySelectorAll('[data-genpe-sys-normal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-genpe-sys-normal');
+      const pillar = (PE_MANDATORY_PILLARS || []).find((p) => p.systemKey === k);
+      if (!pillar) return;
+      if (!state.pe) state.pe = { findings: {} };
+      if (!state.pe.findings) state.pe.findings = {};
+      (pillar.items || []).forEach((it) => {
+        if (it.normalState === 1 || it.normalState === -1) {
+          const curDet = state.pe.findings[it.id]?.detail || '';
+          state.pe.findings[it.id] = { state: it.normalState, detail: curDet, system: it.system, label: it.fa, en: it.en };
+        }
+      });
+      expandedGenPeSystems.add(k);
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('[data-genpe-id][data-target-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const pid = btn.getAttribute('data-genpe-id');
+      const target = Number(btn.getAttribute('data-target-state'));
+      if (!state.pe) state.pe = { findings: {} };
+      if (!state.pe.findings) state.pe.findings = {};
+      const cur = state.pe.findings[pid] || { state: 0, detail: '' };
+      const all = (PE_MANDATORY_PILLARS || []).flatMap((p) => p.items || []);
+      const bi = all.find((x) => x.id === pid);
+      if (cur.state === target) {
+        delete state.pe.findings[pid];
+      } else {
+        state.pe.findings[pid] = { ...cur, state: target, system: bi?.system || cur.system, label: bi?.fa || cur.label, en: bi?.en || cur.en };
+      }
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-genpe-detail-input').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const pid = inp.getAttribute('data-genpe-id');
+      if (state.pe?.findings?.[pid]) {
+        state.pe.findings[pid].detail = inp.value;
+        triggerSoftSync();
+      }
+    });
+  });
 
+  // Tab 7: Paraclinics & On-Demand Studies
   container.querySelectorAll('.obgyn-kl-input').forEach((inp) => {
     inp.addEventListener('input', () => {
       const k = inp.getAttribute('data-kl-key');
@@ -3050,7 +3345,103 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   });
   bindFieldInput(container, 'obKlNote', (v) => { ob.paraclinics.keyLabsNote = v; }, triggerSoftSync);
 
-  // Tab 7: DDx, Plan & Collapsible ADCA VAN DIMLS
+  container.querySelector('#obLabSearchInput')?.addEventListener('input', (e) => {
+    labSearchQuery = e.target.value || '';
+    preserveFocusRerender('obLabSearchInput', e.target.selectionStart);
+  });
+  container.querySelectorAll('[data-add-extra-lab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lid = btn.getAttribute('data-add-extra-lab');
+      const t = MASTER_ALL_LAB_TESTS.find((x) => x.id === lid);
+      if (!t) return;
+      if (!Array.isArray(ob.paraclinics.extraLabs)) ob.paraclinics.extraLabs = [];
+      if (!ob.paraclinics.extraLabs.some((x) => x.id === lid)) {
+        ob.paraclinics.extraLabs.push({ id: lid, label: t.fa || t.label, en: t.en || t.label, unit: t.unit || '', value: '' });
+      }
+      labSearchQuery = '';
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-extra-lab-inp').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.getAttribute('data-extra-lab-idx'), 10);
+      if (ob.paraclinics.extraLabs?.[idx]) {
+        ob.paraclinics.extraLabs[idx].value = inp.value;
+        triggerSoftSync();
+      }
+    });
+  });
+  container.querySelectorAll('[data-del-extra-lab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-del-extra-lab'), 10);
+      ob.paraclinics.extraLabs.splice(idx, 1);
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+
+  container.querySelectorAll('[data-add-study-type]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const typeId = btn.getAttribute('data-add-study-type');
+      if (!Array.isArray(ob.paraclinics.studies)) ob.paraclinics.studies = [];
+      ob.paraclinics.studies.push({
+        id: `study_${typeId}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+        type: typeId,
+        date: '',
+        fields: {}
+      });
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('[data-del-study-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sid = btn.getAttribute('data-del-study-id');
+      ob.paraclinics.studies = (ob.paraclinics.studies || []).filter((s) => s.id !== sid);
+      renderObgynWorkspace();
+      hostBridge.onStateChange();
+    });
+  });
+  container.querySelectorAll('.obgyn-study-date-inp').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      const sid = inp.getAttribute('data-study-id');
+      const target = (ob.paraclinics.studies || []).find((s) => s.id === sid);
+      if (target) {
+        target.date = inp.value;
+        triggerSoftSync();
+      }
+    });
+  });
+  container.querySelectorAll('.obgyn-study-fld-inp').forEach((el) => {
+    const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, () => {
+      const sid = el.getAttribute('data-study-id');
+      const fld = el.getAttribute('data-study-fld');
+      const target = (ob.paraclinics.studies || []).find((s) => s.id === sid);
+      if (target) {
+        if (!target.fields) target.fields = {};
+        target.fields[fld] = el.value;
+        if (target.type === 'nst_efm') {
+          const card = el.closest('.obgyn-study-card');
+          const badge = card?.querySelector('.obgyn-nichd-badge');
+          if (badge) {
+            const f = target.fields;
+            const n = evaluateNichdCategory({
+              baselineBpm: f.baselineBpm,
+              variability: f.variability,
+              decelerations: { type: f.decelType || 'None', isRecurrent: f.decelRecurrent === 'yes', variablePathologicalFlags: {}, cordCompressionPatternVariant: 'None' }
+            });
+            badge.className = `obgyn-nichd-badge is-${n.category === 'Category III' ? 'cat3' : n.category === 'Category I' ? 'cat1' : 'cat2'}`;
+            badge.textContent = (hasVal(f.baselineBpm) && hasVal(f.variability)) ? (isEn ? n.labelEn : n.labelFa) : tx(isEn, 'NICHD: پارامترها را وارد کنید', 'NICHD: Enter trace');
+          }
+        }
+        triggerSoftSync();
+      }
+    });
+  });
+
+  // Tab 8: DDx, Plan & ADCA VAN DIMLS
   container.querySelectorAll('[data-ddx-val]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const val = btn.getAttribute('data-ddx-val');
@@ -3062,12 +3453,10 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
   });
   bindFieldInput(container, 'obPlanDdxCustom', (v) => { ob.assessmentAndPlan.ddxCustom = v; }, triggerSoftSync);
   bindFieldInput(container, 'obPlanSummary', (v) => { ob.assessmentAndPlan.planSummary = v; }, triggerSoftSync);
-
   container.querySelector('#btnToggleAdcaAcc')?.addEventListener('click', () => {
     adcaExpanded = !adcaExpanded;
     renderObgynWorkspace();
   });
-
   container.querySelectorAll('[data-adca-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const pKey = btn.getAttribute('data-adca-preset');
@@ -3080,7 +3469,6 @@ function bindObgynWorkspaceEvents(container, state, ob, isEn) {
       hostBridge.onStateChange();
     });
   });
-
   container.querySelectorAll('.obgyn-adca-input').forEach((el) => {
     el.addEventListener('input', () => {
       const k = el.getAttribute('data-adca-key');
@@ -3219,8 +3607,10 @@ export function renderObgynWorkspace(subModeOverride = null) {
   } else {
     activeSubMode = normalizeSubMode(ob.subMode);
   }
-  if (ob.activeTab && OBGYN_TABS.some((t) => t.id === ob.activeTab)) {
-    activeTab = ob.activeTab;
+  const tabAlias = { history: 'pmh_psh', shared: 'dh_ah_sh_fh', workup: 'paraclinics' }[ob.activeTab] || ob.activeTab;
+  if (tabAlias && OBGYN_TABS.some((t) => t.id === tabAlias)) {
+    activeTab = tabAlias;
+    ob.activeTab = tabAlias;
   }
 
   const isEn = getCurrentLanguage() === 'en';
@@ -3234,14 +3624,16 @@ export function renderObgynWorkspace(subModeOverride = null) {
     sectionHtml = renderSubModeSoape(state, ob, isEn);
   } else if (activeTab === 'hpi') {
     sectionHtml = renderTabHpi(state, ob, guardrails, isEn);
-  } else if (activeTab === 'history') {
-    sectionHtml = renderTabHistory(state, ob, isEn);
-  } else if (activeTab === 'shared') {
-    sectionHtml = renderTabShared(state, ob, isEn);
+  } else if (activeTab === 'pmh_psh') {
+    sectionHtml = renderTabPmhPsh(state, ob, isEn);
+  } else if (activeTab === 'dh_ah_sh_fh') {
+    sectionHtml = renderTabDhAhShFh(state, ob, isEn);
+  } else if (activeTab === 'ros') {
+    sectionHtml = renderTabRos(state, ob, isEn);
   } else if (activeTab === 'pe') {
     sectionHtml = renderTabPe(state, ob, guardrails, isEn);
-  } else if (activeTab === 'workup') {
-    sectionHtml = renderTabWorkup(state, ob, guardrails, isEn);
+  } else if (activeTab === 'paraclinics') {
+    sectionHtml = renderTabParaclinics(state, ob, guardrails, isEn);
   } else if (activeTab === 'plan') {
     sectionHtml = renderTabPlan(state, ob, isEn);
   } else {

@@ -26,7 +26,7 @@ import {
 } from './js/specialties/obgyn/obgyn-data.js';
 import { generateObgynNote } from './js/specialties/obgyn/obgyn-generator.js';
 import { deepStripPIIForCloud } from './js/google-sync.js';
-import { sanitizeRecordForExport } from './js/generator.js';
+import { sanitizeRecordForExport, generateClinicalNote } from './js/generator.js';
 
 const PERSIAN_RE = /[\u0600-\u06FF]/;
 const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
@@ -165,20 +165,33 @@ const emptyObsEn = generateObgynNote(emptyCase, 'en');
 assert.ok(!emptyObsFa.includes('آقا') && !emptyObsEn.includes('Male'), 'Ob/Gyn header leaked Male/آقا');
 assert.ok(emptyObsFa.includes('خانم') && emptyObsEn.includes('Female'), 'Ob/Gyn header missing Female/خانم');
 assert.ok(!emptyObsFa.includes('ثبت‌نشده بر اساس سونوگرافی NT') && !emptyObsFa.includes('از اخیر قبل'), 'Broken Obstetric placeholder appeared');
-assert.ok(!emptyObsFa.includes('سابقه بیهوشی یا بی‌حسی قبلی را ذکر نمی‌کند') && !emptyObsFa.includes('بیمار وجود'), 'Untouched PAHx/symptoms leaked as denied negative');
-assert.ok(!emptyObsEn.includes('explicitly denies') && !emptyObsEn.includes('Denies prior anesthesia history'), 'Untouched PAHx/symptoms leaked as denied negative in EN');
+assert.ok(!emptyObsFa.includes('PAHx') && !emptyObsFa.includes('بیمار وجود'), 'Untouched symptoms leaked as denied negative');
+assert.ok(!emptyObsEn.includes('explicitly denies') && !emptyObsEn.includes('PAHx'), 'Untouched PAHx/symptoms leaked as denied negative in EN');
 assert.equal(PERSIAN_RE.test(emptyObsEn), false, 'English empty note leaked Persian characters');
+
+// Strict 8-section classic ordering on empty/populated notes
+const idxCcFa = emptyObsFa.indexOf('۱. شکایت اصلی');
+const idxHpiFa = emptyObsFa.indexOf('۲. شرح بیماری فعلی');
+const idxPmhFa = emptyObsFa.indexOf('۳. سوابق بیماری‌ها و جراحی‌ها');
+const idxDhFa = emptyObsFa.indexOf('۴. داروها، حساسیت‌ها، عادات');
+const idxRosFa = emptyObsFa.indexOf('۵. مرور سیستم‌ها (ROS)');
+const idxPeFa = emptyObsFa.indexOf('۶. معاینه فیزیکی (PE)');
+const idxParaFa = emptyObsFa.indexOf('۷. پاراکلینیک');
+const idxPlanFa = emptyObsFa.indexOf('۸. تشخیص افتراقی');
+assert.ok(idxCcFa < idxHpiFa && idxHpiFa < idxPmhFa && idxPmhFa < idxDhFa && idxDhFa < idxRosFa && idxRosFa < idxPeFa && idxPeFa < idxParaFa && idxParaFa < idxPlanFa, 'Classic 8-section order violated in FA note');
+assert.ok(emptyObsEn.indexOf('5. Review of Systems (ROS)') < emptyObsEn.indexOf('6. Physical Examination (PE)') && emptyObsEn.indexOf('6. Physical Examination (PE)') < emptyObsEn.indexOf('7. Paraclinics'), 'Classic 8-section order violated in EN note');
 
 const emptyGynCase = {
   demographics: { fullName: 'مریم کریمی', age: '27', gender: 'male' },
   obgynModule: { ...createDefaultObgynState(), subMode: 'gynecology' }
 };
 const emptyGynFa = generateObgynNote(emptyGynCase, 'fa');
-assert.ok(!emptyGynFa.includes('آقا') && !emptyGynFa.includes('بدون روش پیشگیری') && !emptyGynFa.includes('الگوی منس منظم') && !emptyGynFa.includes('طول سیکل — روز'), 'Untouched Gyn defaults polluted narrative');
+assert.ok(!emptyGynFa.includes('آقا') && !emptyGynFa.includes('بدون روش پیشگیری') && !emptyGynFa.includes('الگوی منس منظم') && !emptyGynFa.includes('طول سیکل — روز') && !emptyGynFa.includes('مدت ازدواج') && !emptyGynFa.includes('PAHx'), 'Untouched Gyn defaults or removed fields polluted narrative');
 
-// Verify PAHx tri-state (-1 explicit negative) & Multi-Presentation sequencing
+// Verify PAHx removal on normalization, Multi-Presentation sequencing & decoupled bleeding + anemia
 const multiPresState = normalizeObgynState({
   subMode: 'obstetrics',
+  obstetricIndex: { conceptionMethod: 'IVF' },
   gynScreeningAndRecords: { pahx: { status: -1, hasPriorAnesthesia: false, anesthesiaTypes: [], complications: '' } },
   ccAndHpi: {
     ccText: 'آبریزش و درد زایمان',
@@ -186,17 +199,36 @@ const multiPresState = normalizeObgynState({
     presentations: [
       { id: 'p1', archetypeId: 'OB-2', fields: { onsetCharacter: 'gush', fluidColor: 'clear' } },
       { id: 'p2', archetypeId: 'OB-1', fields: { frequencyMins: '5', regularity: 'regular_progressive' } },
-      { id: 'p3', archetypeId: 'OB-3', fields: { bleedingAmount: 'spotting' } }
-    ]
+      { id: 'p3', archetypeId: 'OB-3', fields: { bleedingAmount: 'moderate', clotPassage: 'large_clots' } }
+    ],
+    anemiaSymptoms: {
+      anemia_fatigue: { state: 1 },
+      anemia_palpitations: { state: -1 }
+    }
   }
 });
+assert.equal('pahx' in multiPresState.gynScreeningAndRecords, false, 'Legacy PAHx must be dropped on normalization');
 const multiGuard = evaluateObgynSafetyGuardrails(multiPresState);
 assert.equal(multiGuard.previaTvContraindicated, true, 'Multi-presentation OB-3 should trigger previaTvContraindicated');
 const multiFa = generateObgynNote({ demographics: { age: '30' }, obgynModule: multiPresState }, 'fa');
 const multiEn = generateObgynNote({ demographics: { age: '30' }, obgynModule: multiPresState }, 'en');
-assert.ok(multiFa.includes('در بررسی') && multiFa.includes('همچنین در خصوص'), 'Multi-presentation sequential prose failed in FA');
-assert.ok(multiFa.includes('سابقه بیهوشی یا بی‌حسی قبلی را ذکر نمی‌کند'), 'Explicit PAHx status=-1 denial missing');
+assert.ok(multiFa.includes('**درد زایمان') && multiFa.includes('**خونریزی واژینال در بارداری'), 'Multi-presentation cards missing');
+assert.ok(multiFa.includes('بارداری از طریق IVF') && multiEn.includes('conceived via IVF'), 'Conception Method IVF missing in opening sentence');
+assert.ok(multiFa.includes('حجم متوسط همراه با لخته‌های بزرگ') && multiEn.includes('moderate-volume bleeding with large clots'), 'Decoupled moderate bleeding + large clots failed');
+assert.ok(multiFa.includes('علائم کم‌خونی (ضعف و بی‌حالی)') && multiFa.includes('تپش قلب'), 'Anemia symptom cluster positive/negative failed');
+assert.ok(!multiFa.includes('PAHx') && !multiFa.includes('سابقه بیهوشی'), 'Removed PAHx leaked into output');
 assert.equal(PERSIAN_RE.test(multiEn), false, `Multi-presentation EN leaked Persian text:\n${multiEn}`);
+
+// Verify GYN-6 marriage duration appears ONLY inside Infertility card
+const infState = normalizeObgynState({
+  subMode: 'gynecology',
+  obstetricIndex: { marriageDurationYears: '7' },
+  ccAndHpi: { presentations: [{ id: 'g6', archetypeId: 'GYN-6', fields: { infertilityType: 'primary' } }] }
+});
+const infFa = generateObgynNote({ demographics: { age: '31' }, obgynModule: infState }, 'fa');
+assert.ok(infFa.includes('مدت ازدواج (سال): 7'), 'Migrated marriage duration inside GYN-6 missing');
+const nonInfState = normalizeObgynState({ subMode: 'gynecology', obstetricIndex: { marriageDurationYears: '7' } });
+assert.equal(generateObgynNote({ demographics: { age: '31' }, obgynModule: nonInfState }, 'fa').includes('مدت ازدواج'), false, 'Marriage duration leaked outside GYN-6');
 
 // Verify qualitative PE filter removes all 13 structured duplicates
 const qualitativePeCount = OBGYN_PE_BANK.filter((it) => !OBGYN_STRUCTURED_PE_IDS.has(it.id)).length;
@@ -237,13 +269,82 @@ const obsState = normalizeObgynState({
     adcaVanDimls: { ...ADCA_VAN_DIMLS_PRESETS.preeclampsia_severe.en }
   }
 });
-const obsFullCase = { demographics: { fullName: 'فاطمه رضایی', age: '32', ward: 'زنان', bed: '402' }, obgynModule: obsState };
+const obsFullCase = {
+  demographics: { fullName: 'فاطمه رضایی', age: '32', ward: 'زنان', bed: '402' },
+  ah: {
+    nkda: false,
+    selected: [
+      { id: 'alg_penicillin', label: 'پنی‌سیلین', en: 'Penicillin', reactions: ['rx_urticaria', 'rx_angioedema'], detail: 'بستری اورژانس' },
+      { id: 'alg_latex', label: 'لاتکس', en: 'Latex', reactions: ['rx_pruritus'], detail: '' }
+    ]
+  },
+  ros: {
+    items: {
+      ros_fever: { state: -1, subTypes: [], detail: '' },
+      ros_headache: { state: 1, subTypes: [], detail: 'فرونتال' }
+    }
+  },
+  pe: {
+    findings: {
+      pe_eye_conjunctival_pallor: { state: -1, detail: '' },
+      pe_alert: { state: 1, detail: '' }
+    }
+  },
+  obgynModule: obsState
+};
 const obsFa = generateObgynNote(obsFullCase, 'fa');
 const obsEn = generateObgynNote(obsFullCase, 'en');
 assert.ok(obsFa.includes('**G2P1L1D0Ab0**'), 'Obs FA formula missing');
 assert.ok(obsFa.includes('Magnesium Sulfate'), 'Obs FA MgSO4 missing');
+assert.ok(obsFa.includes('پنی‌سیلین (واکنش: کهیر / راش پوستی؛ آنژیوادم / تورم صورت؛ بستری اورژانس)') && obsFa.includes('لاتکس (واکنش: خارش)'), 'Multi-allergy per-allergen reactions failed in Ob/Gyn FA');
+assert.ok(obsEn.includes('Penicillin (reaction: Urticaria / rash; Angioedema / facial swelling') && obsEn.includes('Latex (reaction: Pruritus)'), 'Multi-allergy per-allergen reactions failed in Ob/Gyn EN');
+const rosSliceFa = obsFa.slice(obsFa.indexOf('۵. مرور سیستم‌ها (ROS)'), obsFa.indexOf('۶. معاینه فیزیکی (PE)'));
+assert.ok(rosSliceFa.includes('سردرد') && rosSliceFa.includes('تب'), 'ROS slice missing positive/negative items before PE');
+assert.ok(obsFa.indexOf('کالرداپلر آکرتا') > obsFa.indexOf('۷. پاراکلینیک'), 'Paraclinics US leaked before Section 7!');
+assert.equal(obsFa.slice(obsFa.indexOf('۲. شرح بیماری فعلی'), obsFa.indexOf('۳. سوابق بیماری‌ها')).includes('آکرتا'), false, 'Ultrasound leaked into HPI!');
 assert.equal(PERSIAN_RE.test(obsEn), false, `Obs EN leaked Persian text:\n${obsEn}`);
 assert.equal(EMOJI_RE.test(obsFa) || EMOJI_RE.test(obsEn), false, 'Emoji leaked into Obstetrics output');
+
+// Verify Surgery generator.js also pairs multi-allergy reactions properly
+const surgMultiAhState = {
+  demographics: { fullName: 'سارا علوی', age: '35', gender: 'female' },
+  ah: obsFullCase.ah,
+  pmh: { categories: {} }, psh: { surgeries: [] }, dh: { activeDrugs: [] },
+  sh: {}, fh: {}, ros: { items: {} }, pe: { vitals: {}, findings: {} }, paraclinics: { labs: {}, imaging: {} }, ddx: {}
+};
+const surgMultiFa = generateClinicalNote(surgMultiAhState, 'fa');
+const surgMultiEn = generateClinicalNote(surgMultiAhState, 'en');
+assert.ok(surgMultiFa.includes('پنی‌سیلین (واکنش: کهیر / راش پوستی؛ آنژیوادم / تورم صورت؛ بستری اورژانس)'), 'Surgery generator FA failed to pair allergy reactions');
+assert.ok(surgMultiEn.includes('Penicillin (reaction: Urticaria / rash; Angioedema / facial swelling'), 'Surgery generator EN failed to pair allergy reactions');
+
+// Verify all 16 Iranian ward drug brands + IVF/IUI/Laparoscopy in PSH
+const IRAN_BRANDS = ['متورال', 'metoral', 'متیلدوپا', 'کلگزان', 'آ اس آ', 'لوزار', 'دیووان', 'نورواسک', 'کاپتوپریل', 'ایندرال', 'نولپازا', 'امپرازول', 'لووتیروکسین', 'ففول', 'دوفاستون', 'سایکلوژست'];
+for (const brand of IRAN_BRANDS) {
+  const hits = smartClinicalSearch(brand, ALL_MASTER_DRUGS, 5);
+  assert.ok(hits.length > 0, `Iranian drug search failed for "${brand}"`);
+}
+assert.equal(smartClinicalSearch('آ اس آ', ALL_MASTER_DRUGS, 5)[0].id, 'drg_asa', 'ASA must rank #1 for آ اس آ');
+assert.equal(smartClinicalSearch('متورال', ALL_MASTER_DRUGS, 5)[0].id, 'drg_metoprolol', 'Metoral must rank #1 for متورال');
+assert.ok(smartClinicalSearch('IVF', MASTER_PSH_SURGERIES_BANK).some((x) => x.id === 'psh_ivf_opu_et'), 'IVF missing in PSH bank');
+assert.ok(smartClinicalSearch('IUI', MASTER_PSH_SURGERIES_BANK).some((x) => x.id === 'psh_iui'), 'IUI missing in PSH bank');
+assert.ok(smartClinicalSearch('لاپاراسکوپی', MASTER_PSH_SURGERIES_BANK).some((x) => x.id === 'psh_gyn_laparoscopy'), 'Gyn Laparoscopy missing in PSH bank');
+
+// Deep Gynecology PE + Separate Left/Right Adnexa + On-Demand Studies
+const gynDeepState = normalizeObgynState({
+  subMode: 'gynecology',
+  pe: {
+    vitals: { bp: '110/70', spo2: '99%' },
+    gynExam: {
+      bimanual: { uterusSizeWeeks: '10w', uterusPosition: 'av', cmt: 'negative', rightAdnexa: 'free', leftAdnexa: 'tender' }
+    }
+  },
+  paraclinics: {
+    studies: [{ id: 's1', type: 'pap_hpv', date: '1405/01/10', fields: { papResult: 'NILM', hpvStatus: 'Negative' } }]
+  }
+});
+const gynDeepFa = generateObgynNote({ demographics: { age: '34' }, obgynModule: gynDeepState }, 'fa');
+assert.ok(gynDeepFa.includes('آدنکس راست: آزاد، بدون تندرنس یا توده') && gynDeepFa.includes('آدنکس چپ: تندرنس'), 'Deep Gyn separate left/right adnexa failed');
+assert.ok(gynDeepFa.indexOf('پاپ‌اسمیر') > gynDeepFa.indexOf('۷. پاراکلینیک'), 'Pap smear study must render strictly in Section 7 after PE');
 
 // Gynecology AUB + Virgin case
 const gynState = normalizeObgynState({
@@ -335,7 +436,7 @@ assert.equal(serializedExport.includes('فاطمه رضایی'), false, 'JSON ex
 
 // Check every STATIC_ASSET in sw.js exists on disk & scan Ob/Gyn modules for emojis
 const swContent = fs.readFileSync('./sw.js', 'utf8');
-assert.ok(swContent.includes('medhistorism-v3.1.1-obgyn-refined-cache'), 'sw.js cache version not bumped to v3.1.1');
+assert.ok(swContent.includes('medhistorism-v3.2.0-bedside-audit-cache'), 'sw.js cache version not bumped to v3.2.0');
 const matchAssets = swContent.match(/STATIC_ASSETS\s*=\s*\[([\s\S]*?)\]/);
 assert.ok(matchAssets, 'Could not parse STATIC_ASSETS in sw.js');
 const assetPaths = [...matchAssets[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);

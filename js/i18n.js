@@ -21,9 +21,9 @@ export const STORAGE_THEME_KEY = 'surg_theme_mode';
 
 export const I18N_DICTIONARY = {
   fa: {
-    app_title: 'MedHistorism Clinical Workstation | سامانه جامع بالینی v3.1',
+    app_title: 'MedHistorism Clinical Workstation | سامانه جامع بالینی v3.2',
     brand_title: 'MedHistorism',
-    version_pill: 'v3.1 Core',
+    version_pill: 'v3.2 Core',
     case_id_tooltip: 'شناسه یکتا پرونده شیفت',
     btn_new_case: 'پرونده جدید',
     collector_label: 'ثبت‌کننده:',
@@ -229,7 +229,7 @@ export const I18N_DICTIONARY = {
     atls_nav_efast_plan: '۴. eFAST، تصویربرداری و پلن اورژانس',
 
     // MedHistorism v3.0 Specialty Hub & Modular Core
-    hub_version_badge: 'v3.1 هسته ماژولار',
+    hub_version_badge: 'v3.2 هسته ماژولار',
     hub_search_ph: 'جستجوی بیمار، دارو، آزمایش یا ماژول... (Ctrl+K)',
     hub_offline_ready: 'آماده کار آفلاین',
     hub_shift_vault: 'صندوق شیفت',
@@ -295,9 +295,9 @@ export const I18N_DICTIONARY = {
   },
 
   en: {
-    app_title: 'MedHistorism Clinical Workstation | v3.1',
+    app_title: 'MedHistorism Clinical Workstation | v3.2',
     brand_title: 'MedHistorism',
-    version_pill: 'v3.1 Core',
+    version_pill: 'v3.2 Core',
     case_id_tooltip: 'Unique Shift Case ID',
     btn_new_case: 'New Patient',
     collector_label: 'Collector:',
@@ -503,7 +503,7 @@ export const I18N_DICTIONARY = {
     atls_nav_efast_plan: '4. eFAST, Imaging & Trauma Plan',
 
     // MedHistorism v3.0 Specialty Hub & Modular Core
-    hub_version_badge: 'v3.1 Modular Core',
+    hub_version_badge: 'v3.2 Modular Core',
     hub_search_ph: 'Search patients, drugs, labs, or modules... (Ctrl+K)',
     hub_offline_ready: 'Offline-First Ready',
     hub_shift_vault: 'Shift Vault',
